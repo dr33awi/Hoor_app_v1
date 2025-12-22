@@ -212,7 +212,7 @@ class ProductService extends BaseService {
     String productId,
     String color,
     int size,
-    int quantity,
+    int quantity, {String? reason}
   ) async {
     try {
       final key = ProductModel.inventoryKey(color, size);

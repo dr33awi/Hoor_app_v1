@@ -1,5 +1,5 @@
 // lib/features/products/screens/add_edit_product_screen.dart
-// شاشة إضافة/تعديل منتج
+// شاشة إضافة/تعديل منتج - مُصلح
 
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -33,14 +33,44 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   Map<String, int> _inventory = {};
   File? _imageFile;
   bool _isLoading = false;
+  bool _isCategoriesLoading = true;
 
   bool get isEditing => widget.product != null;
 
   @override
   void initState() {
     super.initState();
+    _loadCategories();
     if (isEditing) {
       _loadProductData();
+    }
+  }
+
+  Future<void> _loadCategories() async {
+    final provider = context.read<ProductProvider>();
+
+    // تحميل الفئات إذا لم تكن محملة
+    if (provider.categories.isEmpty) {
+      await provider.loadCategories();
+    }
+
+    if (mounted) {
+      setState(() {
+        _isCategoriesLoading = false;
+        // ✅ التحقق من أن الفئة المحددة موجودة في القائمة
+        _validateSelectedCategory(provider);
+      });
+    }
+  }
+
+  /// ✅ التحقق من صحة الفئة المحددة
+  void _validateSelectedCategory(ProductProvider provider) {
+    if (_selectedCategory != null) {
+      final categoryNames = provider.categories.map((c) => c.name).toList();
+      if (!categoryNames.contains(_selectedCategory)) {
+        // الفئة غير موجودة، نجعلها null
+        _selectedCategory = null;
+      }
     }
   }
 
@@ -180,6 +210,28 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   Widget _buildBasicInfoSection() {
     return Consumer<ProductProvider>(
       builder: (context, provider, _) {
+        // ✅ إزالة الفئات المكررة وإنشاء قائمة فريدة
+        final uniqueCategories = provider.categories
+            .map((c) => c.name)
+            .toSet()
+            .toList();
+
+        // ✅ التحقق من أن القيمة المحددة موجودة في القائمة
+        final safeSelectedCategory =
+            (_selectedCategory != null &&
+                uniqueCategories.contains(_selectedCategory))
+            ? _selectedCategory
+            : null;
+
+        // ✅ تحديث القيمة إذا كانت مختلفة
+        if (safeSelectedCategory != _selectedCategory) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              setState(() => _selectedCategory = safeSelectedCategory);
+            }
+          });
+        }
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -218,28 +270,63 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
             ),
             const SizedBox(height: 16),
 
-            // الفئة
-            DropdownButtonFormField<String>(
-              value: _selectedCategory,
-              decoration: const InputDecoration(
-                labelText: 'الفئة *',
-                prefixIcon: Icon(Icons.category),
+            // الفئة - ✅ مُصلح
+            _isCategoriesLoading
+                ? const Center(child: CircularProgressIndicator())
+                : Row(
+                    children: [
+                      Expanded(
+                        child: DropdownButtonFormField<String>(
+                          // ✅ استخدام القيمة الآمنة
+                          value: safeSelectedCategory,
+                          decoration: const InputDecoration(
+                            labelText: 'الفئة *',
+                            prefixIcon: Icon(Icons.category),
+                          ),
+                          // ✅ إضافة hint عندما لا توجد قيمة
+                          hint: const Text('اختر الفئة'),
+                          items: uniqueCategories.isEmpty
+                              ? null // ✅ عدم عرض items فارغة
+                              : uniqueCategories.map((categoryName) {
+                                  return DropdownMenuItem<String>(
+                                    value: categoryName,
+                                    child: Text(categoryName),
+                                  );
+                                }).toList(),
+                          onChanged: uniqueCategories.isEmpty
+                              ? null
+                              : (value) {
+                                  setState(() => _selectedCategory = value);
+                                },
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'الرجاء اختيار الفئة';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // زر إضافة فئة جديدة
+                      IconButton(
+                        onPressed: _showAddCategoryDialog,
+                        icon: const Icon(Icons.add_circle_outline),
+                        tooltip: 'إضافة فئة جديدة',
+                        color: AppTheme.primaryColor,
+                      ),
+                    ],
+                  ),
+
+            // ✅ رسالة إذا لم توجد فئات
+            if (!_isCategoriesLoading && uniqueCategories.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'لا توجد فئات - اضغط + لإضافة فئة جديدة',
+                  style: TextStyle(color: Colors.orange[700], fontSize: 12),
+                ),
               ),
-              items: provider.categories
-                  .map(
-                    (c) => DropdownMenuItem(value: c.name, child: Text(c.name)),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                setState(() => _selectedCategory = value);
-              },
-              validator: (value) {
-                if (value == null || value.isEmpty) {
-                  return 'الرجاء اختيار الفئة';
-                }
-                return null;
-              },
-            ),
+
             const SizedBox(height: 16),
 
             // العلامة التجارية
@@ -310,7 +397,74 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     );
   }
 
+  void _showAddCategoryDialog() {
+    final controller = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('إضافة فئة جديدة'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(
+            labelText: 'اسم الفئة',
+            hintText: 'مثال: رياضي، رسمي، كاجوال',
+            prefixIcon: Icon(Icons.category),
+          ),
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final name = controller.text.trim();
+              if (name.isNotEmpty) {
+                Navigator.pop(dialogContext);
+
+                final provider = context.read<ProductProvider>();
+
+                // ✅ التحقق من عدم وجود الفئة مسبقاً
+                final exists = provider.categories.any((c) => c.name == name);
+                if (exists) {
+                  _showError('الفئة "$name" موجودة بالفعل');
+                  return;
+                }
+
+                final success = await provider.addCategory(name);
+
+                if (success && mounted) {
+                  setState(() {
+                    _selectedCategory = name;
+                  });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('تم إضافة فئة "$name"'),
+                      backgroundColor: AppTheme.successColor,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('إضافة'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildColorsSection() {
+    // ✅ إزالة الألوان المكررة
+    final uniqueColors = _colors.toSet().toList();
+    if (uniqueColors.length != _colors.length) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _colors = uniqueColors);
+      });
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -334,7 +488,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: _colors
+          children: uniqueColors
               .map(
                 (color) => Chip(
                   label: Text(color),
@@ -352,7 +506,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
               )
               .toList(),
         ),
-        if (_colors.isEmpty)
+        if (uniqueColors.isEmpty)
           Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
@@ -365,6 +519,14 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   }
 
   Widget _buildSizesSection() {
+    // ✅ إزالة المقاسات المكررة
+    final uniqueSizes = _sizes.toSet().toList()..sort();
+    if (uniqueSizes.length != _sizes.length) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _sizes = uniqueSizes);
+      });
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -388,7 +550,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: _sizes
+          children: uniqueSizes
               .map(
                 (size) => Chip(
                   label: Text('$size'),
@@ -406,7 +568,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
               )
               .toList(),
         ),
-        if (_sizes.isEmpty)
+        if (uniqueSizes.isEmpty)
           Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
@@ -419,6 +581,10 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   }
 
   Widget _buildInventorySection() {
+    // ✅ استخدام القوائم الفريدة
+    final uniqueColors = _colors.toSet().toList();
+    final uniqueSizes = _sizes.toSet().toList()..sort();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -446,7 +612,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
-                    ..._sizes.map(
+                    ...uniqueSizes.map(
                       (size) => Padding(
                         padding: const EdgeInsets.all(8),
                         child: Text(
@@ -459,14 +625,14 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                   ],
                 ),
                 // الصفوف
-                ..._colors.map(
+                ...uniqueColors.map(
                   (color) => TableRow(
                     children: [
                       Padding(
                         padding: const EdgeInsets.all(8),
                         child: Text(color),
                       ),
-                      ..._sizes.map((size) {
+                      ...uniqueSizes.map((size) {
                         final key = '$color-$size';
                         return Padding(
                           padding: const EdgeInsets.all(4),
@@ -544,7 +710,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     final controller = TextEditingController();
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('إضافة لون'),
         content: TextField(
           controller: controller,
@@ -556,16 +722,23 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('إلغاء'),
           ),
           ElevatedButton(
             onPressed: () {
-              if (controller.text.isNotEmpty) {
+              final colorName = controller.text.trim();
+              if (colorName.isNotEmpty) {
+                // ✅ التحقق من عدم وجود اللون مسبقاً
+                if (_colors.contains(colorName)) {
+                  Navigator.pop(dialogContext);
+                  _showError('اللون "$colorName" موجود بالفعل');
+                  return;
+                }
                 setState(() {
-                  _colors.add(controller.text.trim());
+                  _colors.add(colorName);
                 });
-                Navigator.pop(context);
+                Navigator.pop(dialogContext);
               }
             },
             child: const Text('إضافة'),
@@ -579,7 +752,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     final controller = TextEditingController();
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('إضافة مقاس'),
         content: TextField(
           controller: controller,
@@ -593,18 +766,24 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('إلغاء'),
           ),
           ElevatedButton(
             onPressed: () {
               final size = int.tryParse(controller.text);
-              if (size != null && !_sizes.contains(size)) {
+              if (size != null) {
+                // ✅ التحقق من عدم وجود المقاس مسبقاً
+                if (_sizes.contains(size)) {
+                  Navigator.pop(dialogContext);
+                  _showError('المقاس "$size" موجود بالفعل');
+                  return;
+                }
                 setState(() {
                   _sizes.add(size);
                   _sizes.sort();
                 });
-                Navigator.pop(context);
+                Navigator.pop(dialogContext);
               }
             },
             child: const Text('إضافة'),
@@ -637,8 +816,8 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
       brand: _brandController.text.trim(),
       price: double.parse(_priceController.text),
       costPrice: double.parse(_costPriceController.text),
-      colors: _colors,
-      sizes: _sizes,
+      colors: _colors.toSet().toList(), // ✅ إزالة المكررات
+      sizes: _sizes.toSet().toList()..sort(), // ✅ إزالة المكررات
       inventory: _inventory,
       imageUrl: widget.product?.imageUrl,
       createdAt: widget.product?.createdAt ?? DateTime.now(),
@@ -656,7 +835,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
 
     setState(() => _isLoading = false);
 
-    if (success) {
+    if (success && mounted) {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -664,7 +843,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
           backgroundColor: AppTheme.successColor,
         ),
       );
-    } else {
+    } else if (mounted) {
       _showError(provider.error ?? 'حدث خطأ');
     }
   }
@@ -672,20 +851,20 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   void _showDeleteConfirmation() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('حذف المنتج'),
         content: const Text('هل أنت متأكد من حذف هذا المنتج؟'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('إلغاء'),
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context);
+              Navigator.pop(dialogContext);
               final provider = context.read<ProductProvider>();
               final success = await provider.deleteProduct(widget.product!.id);
-              if (success) {
+              if (success && mounted) {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
@@ -706,6 +885,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   }
 
   void _showError(String message) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: AppTheme.errorColor),
     );

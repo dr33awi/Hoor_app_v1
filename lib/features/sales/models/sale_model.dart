@@ -1,5 +1,5 @@
 // lib/features/sales/models/sale_model.dart
-// نموذج المبيعات
+// نموذج المبيعات - محسن
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/constants/app_constants.dart';
@@ -13,6 +13,7 @@ class SaleItem {
   final int quantity;
   final double unitPrice;
   final double costPrice;
+  final String? barcode;
 
   SaleItem({
     required this.productId,
@@ -22,6 +23,7 @@ class SaleItem {
     required this.quantity,
     required this.unitPrice,
     required this.costPrice,
+    this.barcode,
   });
 
   factory SaleItem.fromMap(Map<String, dynamic> map) {
@@ -33,6 +35,7 @@ class SaleItem {
       quantity: map['quantity'] ?? 0,
       unitPrice: (map['unitPrice'] ?? 0).toDouble(),
       costPrice: (map['costPrice'] ?? 0).toDouble(),
+      barcode: map['barcode'],
     );
   }
 
@@ -45,17 +48,17 @@ class SaleItem {
       'quantity': quantity,
       'unitPrice': unitPrice,
       'costPrice': costPrice,
+      'barcode': barcode,
     };
   }
 
-  /// الإجمالي للعنصر
   double get totalPrice => unitPrice * quantity;
-
-  /// إجمالي التكلفة
   double get totalCost => costPrice * quantity;
-
-  /// الربح
   double get profit => totalPrice - totalCost;
+  double get profitPercentage => totalCost > 0 ? (profit / totalCost) * 100 : 0;
+
+  String get variant => '$color - مقاس $size';
+  String get inventoryKey => '$color-$size';
 
   SaleItem copyWith({
     String? productId,
@@ -65,6 +68,7 @@ class SaleItem {
     int? quantity,
     double? unitPrice,
     double? costPrice,
+    String? barcode,
   }) {
     return SaleItem(
       productId: productId ?? this.productId,
@@ -74,8 +78,20 @@ class SaleItem {
       quantity: quantity ?? this.quantity,
       unitPrice: unitPrice ?? this.unitPrice,
       costPrice: costPrice ?? this.costPrice,
+      barcode: barcode ?? this.barcode,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SaleItem &&
+          productId == other.productId &&
+          color == other.color &&
+          size == other.size;
+
+  @override
+  int get hashCode => Object.hash(productId, color, size);
 }
 
 /// نموذج الفاتورة
@@ -97,6 +113,11 @@ class SaleModel {
   final String userName;
   final DateTime saleDate;
   final DateTime createdAt;
+  final double? amountPaid;
+  final double? changeGiven;
+  final String? refundReason;
+  final DateTime? refundedAt;
+  final String? refundedBy;
 
   SaleModel({
     required this.id,
@@ -116,33 +137,61 @@ class SaleModel {
     required this.userName,
     required this.saleDate,
     required this.createdAt,
+    this.amountPaid,
+    this.changeGiven,
+    this.refundReason,
+    this.refundedAt,
+    this.refundedBy,
   });
 
   factory SaleModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+    return SaleModel.fromMap(doc.id, data);
+  }
+
+  factory SaleModel.fromMap(String id, Map<String, dynamic> map) {
     return SaleModel(
-      id: doc.id,
-      invoiceNumber: data['invoiceNumber'] ?? '',
+      id: id,
+      invoiceNumber: map['invoiceNumber'] ?? '',
       items:
-          (data['items'] as List<dynamic>?)
+          (map['items'] as List<dynamic>?)
               ?.map((item) => SaleItem.fromMap(item))
               .toList() ??
           [],
-      subtotal: (data['subtotal'] ?? 0).toDouble(),
-      discount: (data['discount'] ?? 0).toDouble(),
-      discountPercent: (data['discountPercent'] ?? 0).toDouble(),
-      tax: (data['tax'] ?? 0).toDouble(),
-      total: (data['total'] ?? 0).toDouble(),
-      paymentMethod: data['paymentMethod'] ?? AppConstants.paymentCash,
-      status: data['status'] ?? AppConstants.saleStatusCompleted,
-      buyerName: data['buyerName'],
-      buyerPhone: data['buyerPhone'],
-      notes: data['notes'],
-      userId: data['userId'] ?? '',
-      userName: data['userName'] ?? '',
-      saleDate: (data['saleDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
-      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      subtotal: (map['subtotal'] ?? 0).toDouble(),
+      discount: (map['discount'] ?? 0).toDouble(),
+      discountPercent: (map['discountPercent'] ?? 0).toDouble(),
+      tax: (map['tax'] ?? 0).toDouble(),
+      total: (map['total'] ?? 0).toDouble(),
+      paymentMethod: map['paymentMethod'] ?? AppConstants.paymentCash,
+      status: map['status'] ?? AppConstants.saleStatusCompleted,
+      buyerName: map['buyerName'],
+      buyerPhone: map['buyerPhone'],
+      notes: map['notes'],
+      userId: map['userId'] ?? '',
+      userName: map['userName'] ?? '',
+      saleDate: _parseDateTime(map['saleDate']),
+      createdAt: _parseDateTime(map['createdAt']),
+      amountPaid: (map['amountPaid'] as num?)?.toDouble(),
+      changeGiven: (map['changeGiven'] as num?)?.toDouble(),
+      refundReason: map['refundReason'],
+      refundedAt: _parseDateTimeNullable(map['refundedAt']),
+      refundedBy: map['refundedBy'],
     );
+  }
+
+  static DateTime _parseDateTime(dynamic value) {
+    if (value == null) return DateTime.now();
+    if (value is DateTime) return value;
+    if (value is Timestamp) return value.toDate();
+    return DateTime.now();
+  }
+
+  static DateTime? _parseDateTimeNullable(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is Timestamp) return value.toDate();
+    return null;
   }
 
   Map<String, dynamic> toMap() {
@@ -163,6 +212,11 @@ class SaleModel {
       'userName': userName,
       'saleDate': Timestamp.fromDate(saleDate),
       'createdAt': Timestamp.fromDate(createdAt),
+      'amountPaid': amountPaid,
+      'changeGiven': changeGiven,
+      'refundReason': refundReason,
+      'refundedAt': refundedAt != null ? Timestamp.fromDate(refundedAt!) : null,
+      'refundedBy': refundedBy,
     };
   }
 
@@ -184,6 +238,11 @@ class SaleModel {
     String? userName,
     DateTime? saleDate,
     DateTime? createdAt,
+    double? amountPaid,
+    double? changeGiven,
+    String? refundReason,
+    DateTime? refundedAt,
+    String? refundedBy,
   }) {
     return SaleModel(
       id: id ?? this.id,
@@ -203,24 +262,45 @@ class SaleModel {
       userName: userName ?? this.userName,
       saleDate: saleDate ?? this.saleDate,
       createdAt: createdAt ?? this.createdAt,
+      amountPaid: amountPaid ?? this.amountPaid,
+      changeGiven: changeGiven ?? this.changeGiven,
+      refundReason: refundReason ?? this.refundReason,
+      refundedAt: refundedAt ?? this.refundedAt,
+      refundedBy: refundedBy ?? this.refundedBy,
     );
   }
 
-  /// عدد العناصر
+  // الخصائص المحسوبة
   int get itemsCount => items.fold(0, (sum, item) => sum + item.quantity);
-
-  /// إجمالي التكلفة
   double get totalCost => items.fold(0, (sum, item) => sum + item.totalCost);
-
-  /// إجمالي الربح
   double get totalProfit => total - totalCost;
+  double get profitPercentage =>
+      totalCost > 0 ? (totalProfit / totalCost) * 100 : 0;
 
-  /// هل الفاتورة مكتملة
   bool get isCompleted => status == AppConstants.saleStatusCompleted;
-
-  /// هل الفاتورة ملغية
   bool get isCancelled => status == AppConstants.saleStatusCancelled;
-
-  /// هل الفاتورة معلقة
   bool get isPending => status == AppConstants.saleStatusPending;
+  bool get isRefunded => status == AppConstants.saleStatusRefunded;
+
+  bool get isCash => paymentMethod == AppConstants.paymentCash;
+  bool get isCard => paymentMethod == AppConstants.paymentCard;
+  bool get isCredit => paymentMethod == AppConstants.paymentCredit;
+
+  /// هل يمكن إلغاء الفاتورة
+  bool get canBeCancelled => isCompleted && !isRefunded;
+
+  /// هل يمكن استرجاع الفاتورة
+  bool get canBeRefunded => isCompleted && !isRefunded;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SaleModel && runtimeType == other.runtimeType && id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
+
+  @override
+  String toString() =>
+      'SaleModel(id: $id, invoice: $invoiceNumber, total: $total)';
 }

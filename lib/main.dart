@@ -1,45 +1,66 @@
 // lib/main.dart
-// نقطة البداية للتطبيق
+// نقطة البداية للتطبيق - محسن
 
-import 'package:device_preview/device_preview.dart';
-import 'package:hoor_manager/features/sales/providers/product_provider.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:hoor_manager/features/sales/providers/product_provider.dart';
 import 'package:provider/provider.dart';
+
 import 'core/services/firebase_service.dart';
+import 'core/services/local_storage_service.dart';
+import 'core/services/connectivity_service.dart';
 import 'core/services/logger_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/constants/app_constants.dart';
+
 import 'features/auth/providers/auth_provider.dart';
 import 'features/products/providers/product_provider.dart';
+
 import 'features/auth/screens/login_screen.dart';
 import 'features/home/screens/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // إعدادات النظام
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
+  SystemChrome.setSystemUIOverlayStyle(
+    const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+    ),
+  );
+
   AppLogger.i('🚀 بدء تشغيل التطبيق...');
+
+  // تهيئة الخدمات
+  await _initializeServices();
+
+  AppLogger.i('✅ التطبيق جاهز للتشغيل');
+
+  runApp(const MyApp());
+}
+
+Future<void> _initializeServices() async {
+  // تهيئة التخزين المحلي
+  AppLogger.startOperation('تهيئة التخزين المحلي');
+  final localStorage = LocalStorageService();
+  await localStorage.initialize();
+  AppLogger.endOperation('تهيئة التخزين المحلي', success: true);
 
   // تهيئة Firebase
   AppLogger.startOperation('تهيئة Firebase');
   final firebaseService = FirebaseService();
   final result = await firebaseService.initialize();
+  AppLogger.endOperation('تهيئة Firebase', success: result.success);
 
-  if (result.success) {
-    AppLogger.endOperation('تهيئة Firebase', success: true);
-  } else {
-    AppLogger.e('فشل في تهيئة Firebase', error: result.error);
-  }
-
-  AppLogger.i('✅ التطبيق جاهز للتشغيل');
-
-  runApp(
-    DevicePreview(
-      enabled: !kReleaseMode, // تفعيل فقط في وضع التطوير
-      builder: (context) => const MyApp(),
-    ),
-  );
+  // بدء مراقبة الاتصال
+  ConnectivityService().startMonitoring();
 }
 
 class MyApp extends StatelessWidget {
@@ -57,12 +78,8 @@ class MyApp extends StatelessWidget {
         title: AppConstants.appName,
         debugShowCheckedModeBanner: false,
 
-        // إعدادات DevicePreview
-        useInheritedMediaQuery: true,
-        builder: DevicePreview.appBuilder,
-
         // إعدادات اللغة العربية
-        locale: DevicePreview.locale(context) ?? const Locale('ar', 'SA'),
+        locale: const Locale('ar', 'SA'),
         supportedLocales: const [Locale('ar', 'SA'), Locale('en', 'US')],
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
@@ -82,9 +99,49 @@ class MyApp extends StatelessWidget {
   }
 }
 
-/// غلاف المصادقة - يحدد الشاشة بناءً على حالة تسجيل الدخول
-class AuthWrapper extends StatelessWidget {
+/// غلاف المصادقة
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
+
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  @override
+  void initState() {
+    super.initState();
+    _checkConnectivity();
+  }
+
+  void _checkConnectivity() {
+    ConnectivityService().checkConnectivity().then((isConnected) {
+      if (!isConnected && mounted) {
+        _showOfflineSnackbar();
+      }
+    });
+  }
+
+  void _showOfflineSnackbar() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Row(
+          children: [
+            Icon(Icons.wifi_off, color: Colors.white),
+            SizedBox(width: 12),
+            Text('أنت غير متصل بالإنترنت'),
+          ],
+        ),
+        backgroundColor: AppTheme.warningColor,
+        duration: const Duration(seconds: 5),
+        action: SnackBarAction(
+          label: 'إعادة المحاولة',
+          textColor: Colors.white,
+          onPressed: _checkConnectivity,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -1,16 +1,19 @@
 // lib/core/services/firebase_service.dart
-// خدمة Firebase الموحدة - نقطة الوصول الوحيدة لـ Firebase
+// خدمة Firebase الموحدة - محسنة مع دعم Offline
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:async';
+import 'dart:typed_data';
 import 'base_service.dart';
 import 'logger_service.dart';
+import 'connectivity_service.dart';
 
 /// خدمة Firebase الموحدة
 /// تستخدم Singleton Pattern لضمان وجود نسخة واحدة فقط
-class FirebaseService extends BaseService {
+class FirebaseService extends BaseService with SubscriptionMixin {
   // Singleton
   static final FirebaseService _instance = FirebaseService._internal();
   factory FirebaseService() => _instance;
@@ -22,36 +25,34 @@ class FirebaseService extends BaseService {
   FirebaseStorage? _storage;
 
   bool _initialized = false;
+  bool _offlineMode = false;
 
   // Getters
   FirebaseFirestore get firestore {
-    if (_firestore == null) {
-      throw Exception(
-        'Firebase لم يتم تهيئته بعد. قم بتشغيل initialize() أولاً',
-      );
-    }
+    _checkInitialized();
     return _firestore!;
   }
 
   FirebaseAuth get auth {
-    if (_auth == null) {
-      throw Exception(
-        'Firebase لم يتم تهيئته بعد. قم بتشغيل initialize() أولاً',
-      );
-    }
+    _checkInitialized();
     return _auth!;
   }
 
   FirebaseStorage get storage {
-    if (_storage == null) {
-      throw Exception(
-        'Firebase لم يتم تهيئته بعد. قم بتشغيل initialize() أولاً',
-      );
-    }
+    _checkInitialized();
     return _storage!;
   }
 
   bool get isInitialized => _initialized;
+  bool get isOfflineMode => _offlineMode;
+
+  void _checkInitialized() {
+    if (!_initialized) {
+      throw StateError(
+        'Firebase لم يتم تهيئته بعد. قم بتشغيل initialize() أولاً',
+      );
+    }
+  }
 
   /// تهيئة Firebase
   Future<ServiceResult<void>> initialize() async {
@@ -61,25 +62,45 @@ class FirebaseService extends BaseService {
     }
 
     try {
-      AppLogger.d('جاري تهيئة Firebase...');
+      AppLogger.startOperation('تهيئة Firebase');
+
       await Firebase.initializeApp();
+
       _firestore = FirebaseFirestore.instance;
       _auth = FirebaseAuth.instance;
       _storage = FirebaseStorage.instance;
 
-      // إعدادات Firestore
+      // إعدادات Firestore للـ Offline
       _firestore!.settings = const Settings(
         persistenceEnabled: true,
         cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
       );
 
+      // الاستماع لحالة الاتصال
+      _setupConnectivityListener();
+
       _initialized = true;
-      AppLogger.i('✅ تم تهيئة Firebase بنجاح');
+      AppLogger.endOperation('تهيئة Firebase', success: true);
       return ServiceResult.success();
-    } catch (e) {
-      AppLogger.firebaseError('initialize', e);
-      return ServiceResult.failure(handleError(e));
+    } catch (e, stackTrace) {
+      AppLogger.firebaseError('initialize', e, stackTrace);
+      return ServiceResult.failure(handleError(e, 'Firebase initialization'));
     }
+  }
+
+  /// إعداد مستمع الاتصال
+  void _setupConnectivityListener() {
+    final subscription = ConnectivityService().onConnectivityChanged.listen((
+      isConnected,
+    ) {
+      _offlineMode = !isConnected;
+      if (isConnected) {
+        AppLogger.i('🌐 تم استعادة الاتصال بالإنترنت');
+      } else {
+        AppLogger.w('📴 تم فقدان الاتصال - الوضع Offline');
+      }
+    });
+    addSubscription(subscription);
   }
 
   // ==================== Firestore Operations ====================
@@ -103,10 +124,15 @@ class FirebaseService extends BaseService {
     Map<String, dynamic> data,
   ) async {
     try {
-      final docRef = await collection(collectionPath).add(data);
+      AppLogger.database('ADD', collectionPath);
+      final docRef = await collection(collectionPath).add({
+        ...data,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
       return ServiceResult.success(docRef.id);
     } catch (e) {
-      return ServiceResult.failure(handleError(e));
+      return ServiceResult.failure(handleError(e, 'add to $collectionPath'));
     }
   }
 
@@ -118,10 +144,17 @@ class FirebaseService extends BaseService {
     bool merge = false,
   }) async {
     try {
-      await document(collectionPath, docId).set(data, SetOptions(merge: merge));
+      AppLogger.database('SET', collectionPath, docId: docId);
+      await document(collectionPath, docId).set({
+        ...data,
+        if (!merge) 'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: merge));
       return ServiceResult.success();
     } catch (e) {
-      return ServiceResult.failure(handleError(e));
+      return ServiceResult.failure(
+        handleError(e, 'set $collectionPath/$docId'),
+      );
     }
   }
 
@@ -132,10 +165,16 @@ class FirebaseService extends BaseService {
     Map<String, dynamic> data,
   ) async {
     try {
-      await document(collectionPath, docId).update(data);
+      AppLogger.database('UPDATE', collectionPath, docId: docId);
+      await document(
+        collectionPath,
+        docId,
+      ).update({...data, 'updatedAt': FieldValue.serverTimestamp()});
       return ServiceResult.success();
     } catch (e) {
-      return ServiceResult.failure(handleError(e));
+      return ServiceResult.failure(
+        handleError(e, 'update $collectionPath/$docId'),
+      );
     }
   }
 
@@ -145,31 +184,76 @@ class FirebaseService extends BaseService {
     String docId,
   ) async {
     try {
+      AppLogger.database('DELETE', collectionPath, docId: docId);
       await document(collectionPath, docId).delete();
       return ServiceResult.success();
     } catch (e) {
-      return ServiceResult.failure(handleError(e));
+      return ServiceResult.failure(
+        handleError(e, 'delete $collectionPath/$docId'),
+      );
     }
   }
 
   /// الحصول على document واحد
   Future<ServiceResult<DocumentSnapshot<Map<String, dynamic>>>> get(
     String collectionPath,
-    String docId,
-  ) async {
+    String docId, {
+    Source source = Source.serverAndCache,
+  }) async {
     try {
-      final doc = await document(collectionPath, docId).get();
+      AppLogger.database('GET', collectionPath, docId: docId);
+      final doc = await document(
+        collectionPath,
+        docId,
+      ).get(GetOptions(source: source));
+
       if (!doc.exists) {
         return ServiceResult.failure('البيانات غير موجودة', 'not-found');
       }
       return ServiceResult.success(doc);
     } catch (e) {
-      return ServiceResult.failure(handleError(e));
+      return ServiceResult.failure(
+        handleError(e, 'get $collectionPath/$docId'),
+      );
     }
   }
 
-  /// الحصول على جميع documents في collection
+  /// الحصول على جميع documents في collection مع Pagination
   Future<ServiceResult<QuerySnapshot<Map<String, dynamic>>>> getAll(
+    String collectionPath, {
+    Query<Map<String, dynamic>> Function(
+      CollectionReference<Map<String, dynamic>>,
+    )?
+    queryBuilder,
+    int? limit,
+    DocumentSnapshot? startAfter,
+    Source source = Source.serverAndCache,
+  }) async {
+    try {
+      AppLogger.database('GET_ALL', collectionPath);
+      Query<Map<String, dynamic>> query = collection(collectionPath);
+
+      if (queryBuilder != null) {
+        query = queryBuilder(collection(collectionPath));
+      }
+
+      if (startAfter != null) {
+        query = query.startAfterDocument(startAfter);
+      }
+
+      if (limit != null) {
+        query = query.limit(limit);
+      }
+
+      final snapshot = await query.get(GetOptions(source: source));
+      return ServiceResult.success(snapshot);
+    } catch (e) {
+      return ServiceResult.failure(handleError(e, 'getAll $collectionPath'));
+    }
+  }
+
+  /// عد documents
+  Future<ServiceResult<int>> count(
     String collectionPath, {
     Query<Map<String, dynamic>> Function(
       CollectionReference<Map<String, dynamic>>,
@@ -181,10 +265,11 @@ class FirebaseService extends BaseService {
       if (queryBuilder != null) {
         query = queryBuilder(collection(collectionPath));
       }
-      final snapshot = await query.get();
-      return ServiceResult.success(snapshot);
+
+      final snapshot = await query.count().get();
+      return ServiceResult.success(snapshot.count ?? 0);
     } catch (e) {
-      return ServiceResult.failure(handleError(e));
+      return ServiceResult.failure(handleError(e, 'count $collectionPath'));
     }
   }
 
@@ -195,11 +280,18 @@ class FirebaseService extends BaseService {
       CollectionReference<Map<String, dynamic>>,
     )?
     queryBuilder,
+    int? limit,
   }) {
     Query<Map<String, dynamic>> query = collection(collectionPath);
+
     if (queryBuilder != null) {
       query = queryBuilder(collection(collectionPath));
     }
+
+    if (limit != null) {
+      query = query.limit(limit);
+    }
+
     return query.snapshots();
   }
 
@@ -213,13 +305,22 @@ class FirebaseService extends BaseService {
 
   /// تنفيذ Transaction
   Future<ServiceResult<T>> runTransaction<T>(
-    Future<T> Function(Transaction transaction) handler,
-  ) async {
+    Future<T> Function(Transaction transaction) handler, {
+    Duration timeout = const Duration(seconds: 30),
+    int maxAttempts = 5,
+  }) async {
     try {
-      final result = await firestore.runTransaction(handler);
+      AppLogger.d('بدء Transaction');
+      final result = await firestore.runTransaction(
+        handler,
+        timeout: timeout,
+        maxAttempts: maxAttempts,
+      );
+      AppLogger.d('اكتمل Transaction بنجاح');
       return ServiceResult.success(result);
     } catch (e) {
-      return ServiceResult.failure(handleError(e));
+      AppLogger.e('فشل Transaction', error: e);
+      return ServiceResult.failure(handleError(e, 'transaction'));
     }
   }
 
@@ -228,44 +329,71 @@ class FirebaseService extends BaseService {
     void Function(WriteBatch batch) handler,
   ) async {
     try {
+      AppLogger.d('بدء Batch Write');
       final batch = firestore.batch();
       handler(batch);
       await batch.commit();
+      AppLogger.d('اكتمل Batch Write بنجاح');
       return ServiceResult.success();
     } catch (e) {
-      return ServiceResult.failure(handleError(e));
+      AppLogger.e('فشل Batch Write', error: e);
+      return ServiceResult.failure(handleError(e, 'batch'));
+    }
+  }
+
+  /// التحقق من وجود document
+  Future<bool> exists(String collectionPath, String docId) async {
+    try {
+      final doc = await document(collectionPath, docId).get();
+      return doc.exists;
+    } catch (e) {
+      return false;
     }
   }
 
   // ==================== Storage Operations ====================
 
-  /// رفع ملف
+  /// رفع ملف من Bytes
   Future<ServiceResult<String>> uploadFile(
     String path,
-    List<int> data,
+    Uint8List data,
     String contentType,
   ) async {
     try {
+      AppLogger.d('رفع ملف: $path');
       final ref = storage.ref().child(path);
       final uploadTask = ref.putData(
-        data as dynamic,
+        data,
         SettableMetadata(contentType: contentType),
       );
+
+      // تتبع التقدم
+      uploadTask.snapshotEvents.listen((snapshot) {
+        final progress = snapshot.bytesTransferred / snapshot.totalBytes;
+        AppLogger.d('تقدم الرفع: ${(progress * 100).toStringAsFixed(1)}%');
+      });
+
       final snapshot = await uploadTask;
       final downloadUrl = await snapshot.ref.getDownloadURL();
+      AppLogger.d('تم رفع الملف بنجاح: $downloadUrl');
       return ServiceResult.success(downloadUrl);
     } catch (e) {
-      return ServiceResult.failure(handleError(e));
+      return ServiceResult.failure(handleError(e, 'upload file'));
     }
   }
 
   /// حذف ملف
   Future<ServiceResult<void>> deleteFile(String path) async {
     try {
+      AppLogger.d('حذف ملف: $path');
       await storage.ref().child(path).delete();
       return ServiceResult.success();
     } catch (e) {
-      return ServiceResult.failure(handleError(e));
+      // تجاهل الخطأ إذا كان الملف غير موجود
+      if (e is FirebaseException && e.code == 'object-not-found') {
+        return ServiceResult.success();
+      }
+      return ServiceResult.failure(handleError(e, 'delete file'));
     }
   }
 
@@ -275,7 +403,50 @@ class FirebaseService extends BaseService {
       final url = await storage.ref().child(path).getDownloadURL();
       return ServiceResult.success(url);
     } catch (e) {
-      return ServiceResult.failure(handleError(e));
+      return ServiceResult.failure(handleError(e, 'get file url'));
     }
+  }
+
+  /// الحصول على metadata الملف
+  Future<ServiceResult<FullMetadata>> getFileMetadata(String path) async {
+    try {
+      final metadata = await storage.ref().child(path).getMetadata();
+      return ServiceResult.success(metadata);
+    } catch (e) {
+      return ServiceResult.failure(handleError(e, 'get file metadata'));
+    }
+  }
+
+  // ==================== Utility Methods ====================
+
+  /// تمكين الوضع Offline
+  Future<void> enableOfflineMode() async {
+    await firestore.disableNetwork();
+    _offlineMode = true;
+    AppLogger.i('تم تفعيل الوضع Offline');
+  }
+
+  /// تعطيل الوضع Offline
+  Future<void> disableOfflineMode() async {
+    await firestore.enableNetwork();
+    _offlineMode = false;
+    AppLogger.i('تم تعطيل الوضع Offline');
+  }
+
+  /// مسح الـ Cache
+  Future<void> clearCache() async {
+    await firestore.clearPersistence();
+    AppLogger.i('تم مسح Cache');
+  }
+
+  /// الانتظار حتى تتم المزامنة
+  Future<void> waitForPendingWrites() async {
+    await firestore.waitForPendingWrites();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    AppLogger.d('تم تنظيف FirebaseService');
   }
 }

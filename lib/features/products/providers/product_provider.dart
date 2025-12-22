@@ -1,13 +1,15 @@
 // lib/features/products/providers/product_provider.dart
-// مزود حالة المنتجات
+// مزود حالة المنتجات - محسن
 
+import 'dart:async';
 import 'dart:io';
-import 'package:hoor_manager/features/products/models/product_model.dart';
-import 'package:hoor_manager/features/products/services/product_service.dart';
 import 'package:flutter/material.dart';
-import '../models/category_model.dart';
-import '../services/category_service.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/services/logger_service.dart';
+import '../models/product_model.dart';
+import '../models/category_model.dart';
+import '../services/product_service.dart';
+import '../services/category_service.dart';
 
 class ProductProvider with ChangeNotifier {
   final ProductService _productService = ProductService();
@@ -19,6 +21,8 @@ class ProductProvider with ChangeNotifier {
   String? _error;
   String _searchQuery = '';
   String? _selectedCategory;
+  StreamSubscription? _productsSubscription;
+  StreamSubscription? _categoriesSubscription;
 
   // Getters
   List<ProductModel> get products => _getFilteredProducts();
@@ -33,20 +37,20 @@ class ProductProvider with ChangeNotifier {
   List<ProductModel> _getFilteredProducts() {
     var filtered = _products.where((p) => p.isActive).toList();
 
-    // فلترة حسب الفئة
     if (_selectedCategory != null && _selectedCategory!.isNotEmpty) {
       filtered = filtered
           .where((p) => p.category == _selectedCategory)
           .toList();
     }
 
-    // فلترة حسب البحث
     if (_searchQuery.isNotEmpty) {
       final query = _searchQuery.toLowerCase();
       filtered = filtered.where((p) {
         return p.name.toLowerCase().contains(query) ||
             p.brand.toLowerCase().contains(query) ||
-            p.category.toLowerCase().contains(query);
+            p.category.toLowerCase().contains(query) ||
+            (p.barcode?.contains(query) ?? false) ||
+            (p.sku?.toLowerCase().contains(query) ?? false);
       }).toList();
     }
 
@@ -55,12 +59,30 @@ class ProductProvider with ChangeNotifier {
 
   /// المنتجات منخفضة المخزون
   List<ProductModel> get lowStockProducts {
-    return _products.where((p) => p.isActive && p.isLowStock()).toList();
+    return _products.where((p) => p.isActive && p.isLowStock()).toList()
+      ..sort((a, b) => a.totalQuantity.compareTo(b.totalQuantity));
   }
 
   /// المنتجات نفذت من المخزون
   List<ProductModel> get outOfStockProducts {
     return _products.where((p) => p.isActive && p.isOutOfStock).toList();
+  }
+
+  /// المنتجات ذات المخزون الحرج
+  List<ProductModel> get criticalStockProducts {
+    return _products.where((p) => p.isActive && p.isCriticalStock).toList();
+  }
+
+  /// إجمالي قيمة المخزون
+  double get totalStockValue {
+    return _products
+        .where((p) => p.isActive)
+        .fold(0, (sum, p) => sum + p.stockValue);
+  }
+
+  /// عدد المنتجات النشطة
+  int get activeProductsCount {
+    return _products.where((p) => p.isActive).length;
   }
 
   /// تحميل المنتجات
@@ -109,7 +131,6 @@ class ProductProvider with ChangeNotifier {
     final result = await _productService.addProduct(product);
 
     if (result.success) {
-      // رفع الصورة إذا وجدت
       if (imageFile != null) {
         await _productService.uploadProductImage(result.data!.id, imageFile);
       }
@@ -131,7 +152,6 @@ class ProductProvider with ChangeNotifier {
     final result = await _productService.updateProduct(product);
 
     if (result.success) {
-      // رفع الصورة إذا وجدت
       if (imageFile != null) {
         await _productService.uploadProductImage(product.id, imageFile);
       }
@@ -165,8 +185,9 @@ class ProductProvider with ChangeNotifier {
     String productId,
     String color,
     int size,
-    int quantity,
-  ) async {
+    int quantity, {
+    String? reason,
+  }) async {
     _error = null;
 
     final result = await _productService.updateInventory(
@@ -174,6 +195,7 @@ class ProductProvider with ChangeNotifier {
       color,
       size,
       quantity,
+      reason: reason,
     );
 
     if (result.success) {
@@ -214,11 +236,40 @@ class ProductProvider with ChangeNotifier {
     }
   }
 
+  /// البحث بالباركود
+  ProductModel? getProductByBarcode(String barcode) {
+    try {
+      return _products.firstWhere((p) => p.barcode == barcode && p.isActive);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// التحقق من توفر كمية
+  bool checkAvailability(
+    String productId,
+    String color,
+    int size,
+    int quantity,
+  ) {
+    final product = getProductById(productId);
+    if (product == null) return false;
+    return product.hasQuantity(color, size, quantity);
+  }
+
+  /// الحصول على الكمية المتوفرة
+  int getAvailableQuantity(String productId, String color, int size) {
+    final product = getProductById(productId);
+    if (product == null) return 0;
+    return product.getQuantity(color, size);
+  }
+
   /// إضافة فئة
-  Future<bool> addCategory(String name) async {
+  Future<bool> addCategory(String name, {String? description}) async {
     final category = CategoryModel(
       id: '',
       name: name,
+      description: description,
       order: _categories.length,
       createdAt: DateTime.now(),
     );
@@ -237,6 +288,16 @@ class ProductProvider with ChangeNotifier {
 
   /// حذف فئة
   Future<bool> deleteCategory(String categoryId) async {
+    // التحقق من عدم وجود منتجات مرتبطة
+    final category = _categories.firstWhere((c) => c.id == categoryId);
+    final hasProducts = _products.any((p) => p.category == category.name);
+
+    if (hasProducts) {
+      _error = 'لا يمكن حذف الفئة لوجود منتجات مرتبطة بها';
+      notifyListeners();
+      return false;
+    }
+
     final result = await _categoryService.deleteCategory(categoryId);
 
     if (result.success) {
@@ -249,22 +310,40 @@ class ProductProvider with ChangeNotifier {
     }
   }
 
-  /// مسح الخطأ
   void clearError() {
     _error = null;
     notifyListeners();
   }
 
-  /// Stream للمنتجات (للتحديثات الفورية)
+  /// بدء الاستماع للتحديثات
   void startListening() {
-    _productService.streamProducts().listen((products) {
+    _productsSubscription?.cancel();
+    _categoriesSubscription?.cancel();
+
+    _productsSubscription = _productService.streamProducts().listen((products) {
       _products = products;
       notifyListeners();
     });
 
-    _categoryService.streamCategories().listen((categories) {
+    _categoriesSubscription = _categoryService.streamCategories().listen((
+      categories,
+    ) {
       _categories = categories;
       notifyListeners();
     });
+  }
+
+  /// إيقاف الاستماع
+  void stopListening() {
+    _productsSubscription?.cancel();
+    _categoriesSubscription?.cancel();
+    _productsSubscription = null;
+    _categoriesSubscription = null;
+  }
+
+  @override
+  void dispose() {
+    stopListening();
+    super.dispose();
   }
 }
