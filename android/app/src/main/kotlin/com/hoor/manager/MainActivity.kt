@@ -1,4 +1,4 @@
-package com.example.sales_manager
+package com.hoor.manager
 
 import io.flutter.embedding.android.FlutterActivity
 

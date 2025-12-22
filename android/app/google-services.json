@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "730727540126",
+    "project_id": "hoormanager-81b49",
+    "storage_bucket": "hoormanager-81b49.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:730727540126:android:844c37547696c3bf9b228f",
+        "android_client_info": {
+          "package_name": "com.hoor.manager"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "730727540126-2quk2a1jrogumdvcha3l12h7n0n354gn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.hoor.manager",
+            "certificate_hash": "ddc0e5370e826cb650a6f17bbe67d389b801eca0"
+          }
+        },
+        {
+          "client_id": "730727540126-hmc3fhife6s11vp2bl78ncap017pnm02.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyARb5Mo5j7HYfw9ZuKKZgR8zfdZkRK-f6U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "730727540126-hmc3fhife6s11vp2bl78ncap017pnm02.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "730727540126-nbqhqukcdlg1j0r7sif4gh3uaodrpeun.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.hoor.manager"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

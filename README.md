@@ -1,4 +1,4 @@
-# sales_manager
+# hoor_manager
 
 A new Flutter project.
 
