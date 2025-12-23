@@ -1,16 +1,18 @@
 // lib/core/services/business/product_service.dart
-// خدمة المنتجات - إدارة المنتجات والمخزون
+// خدمة المنتجات - إدارة المنتجات والمخزون والفئات
 
 import 'package:uuid/uuid.dart';
 import '../../constants/app_constants.dart';
 import '../base/base_service.dart';
 import '../infrastructure/firebase_service.dart';
 import '../../../features/products/models/product_model.dart';
+import '../../../features/products/models/category_model.dart';
 
 /// خدمة المنتجات
 class ProductService extends BaseService {
   FirebaseService get _firebase => FirebaseService();
   final String _collection = AppConstants.productsCollection;
+  final String _categoriesCollection = AppConstants.categoriesCollection;
 
   // Singleton
   static final ProductService _instance = ProductService._internal();
@@ -290,6 +292,59 @@ class ProductService extends BaseService {
       }
 
       return ServiceResult.success();
+    } catch (e) {
+      return ServiceResult.failure(handleError(e));
+    }
+  }
+
+  // ==================== إدارة الفئات ====================
+
+  /// الحصول على جميع الفئات
+  Future<ServiceResult<List<CategoryModel>>> getAllCategories({
+    bool activeOnly = true,
+  }) async {
+    try {
+      final result = await _firebase.getAll(
+        _categoriesCollection,
+        queryBuilder: (ref) => ref.orderBy('order'),
+      );
+
+      if (!result.success) {
+        return ServiceResult.failure(result.error!);
+      }
+
+      var categories = result.data!.docs
+          .map((doc) => CategoryModel.fromFirestore(doc))
+          .toList();
+
+      if (activeOnly) {
+        categories = categories.where((c) => c.isActive).toList();
+      }
+
+      return ServiceResult.success(categories);
+    } catch (e) {
+      return ServiceResult.failure(handleError(e));
+    }
+  }
+
+  /// إضافة فئة جديدة
+  Future<ServiceResult<CategoryModel>> addCategory(
+    CategoryModel category,
+  ) async {
+    try {
+      final id = const Uuid().v4();
+      final newCategory = category.copyWith(id: id);
+
+      final result = await _firebase.set(
+        _categoriesCollection,
+        id,
+        newCategory.toMap(),
+      );
+      if (!result.success) {
+        return ServiceResult.failure(result.error!);
+      }
+
+      return ServiceResult.success(newCategory);
     } catch (e) {
       return ServiceResult.failure(handleError(e));
     }

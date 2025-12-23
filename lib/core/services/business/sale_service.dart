@@ -7,14 +7,12 @@ import '../base/base_service.dart';
 import '../base/logger_service.dart';
 import '../infrastructure/firebase_service.dart';
 import 'auth_service.dart';
-import 'audit_service.dart';
 import '../../../features/sales/models/sale_model.dart';
 
 /// خدمة المبيعات
 class SaleService extends BaseService {
   FirebaseService get _firebase => FirebaseService();
   AuthService get _auth => AuthService();
-  AuditService get _audit => AuditService();
   final String _collection = AppConstants.salesCollection;
 
   static final SaleService _instance = SaleService._internal();
@@ -82,12 +80,8 @@ class SaleService extends BaseService {
         return ServiceResult.failure(result.error!);
       }
 
-      await _audit.logSale(
-        saleId: result.data!.id,
-        invoiceNumber: result.data!.invoiceNumber,
-        total: result.data!.total,
-        itemsCount: result.data!.itemsCount,
-      );
+      // Log sale creation
+      AppLogger.i('تم إنشاء فاتورة: ${result.data!.invoiceNumber}');
 
       AppLogger.endOperation('إنشاء فاتورة', success: true);
       return ServiceResult.success(result.data);
@@ -151,11 +145,8 @@ class SaleService extends BaseService {
         return ServiceResult.failure(result.error!);
       }
 
-      await _audit.logCancelSale(
-        saleId: saleId,
-        invoiceNumber: '',
-        reason: reason,
-      );
+      // Log sale cancellation
+      AppLogger.i('تم إلغاء فاتورة: $saleId');
       AppLogger.endOperation('إلغاء فاتورة', success: true);
       return ServiceResult.success();
     } catch (e) {

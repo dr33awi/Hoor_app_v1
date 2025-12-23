@@ -6,12 +6,10 @@ import '../models/product_model.dart';
 import '../models/category_model.dart';
 import '../../../core/services/service_locator.dart';
 import '../../../core/services/business/product_service.dart';
-import '../../../core/services/business/category_service.dart';
 
 class ProductProvider extends ChangeNotifier {
   // استخدام Service Locator بدلاً من إنشاء instances جديدة
   ProductService get _productService => sl.products;
-  CategoryService get _categoryService => sl.categories;
 
   List<ProductModel> _products = [];
   List<ProductModel> _filteredProducts = [];
@@ -67,7 +65,7 @@ class ProductProvider extends ChangeNotifier {
 
   /// تحميل الفئات
   Future<void> loadCategories() async {
-    final result = await _categoryService.getAllCategories();
+    final result = await _productService.getAllCategories();
 
     if (result.success) {
       _categories = result.data!;
@@ -144,7 +142,7 @@ class ProductProvider extends ChangeNotifier {
       createdAt: DateTime.now(),
     );
 
-    final result = await _categoryService.addCategory(category);
+    final result = await _productService.addCategory(category);
 
     if (result.success) {
       _categories.add(result.data!);

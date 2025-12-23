@@ -14,9 +14,7 @@ import 'infrastructure/connectivity_service.dart';
 // خدمات الأعمال
 import 'business/auth_service.dart';
 import 'business/product_service.dart';
-import 'business/category_service.dart';
 import 'business/sale_service.dart';
-import 'business/audit_service.dart';
 
 // الأدوات المساعدة
 import 'utilities/barcode_service.dart';
@@ -49,9 +47,7 @@ class ServiceLocator {
   // خدمات الأعمال
   late final AuthService _authService;
   late final ProductService _productService;
-  late final CategoryService _categoryService;
   late final SaleService _saleService;
-  late final AuditService _auditService;
 
   // خدمات الأدوات
   late final BarcodeService _barcodeService;
@@ -75,14 +71,8 @@ class ServiceLocator {
   /// خدمة المنتجات
   ProductService get products => _productService;
 
-  /// خدمة الفئات
-  CategoryService get categories => _categoryService;
-
   /// خدمة المبيعات
   SaleService get sales => _saleService;
-
-  /// خدمة التدقيق
-  AuditService get audit => _auditService;
 
   /// خدمة الباركود
   BarcodeService get barcode => _barcodeService;
@@ -156,9 +146,7 @@ class ServiceLocator {
     // خدمات الأعمال
     _authService = AuthService();
     _productService = ProductService();
-    _categoryService = CategoryService();
     _saleService = SaleService();
-    _auditService = AuditService();
 
     // خدمات الأدوات
     _barcodeService = BarcodeService();
@@ -194,9 +182,6 @@ class ServiceLocator {
     try {
       // إيقاف مراقبة الاتصال
       _connectivityService.stopMonitoring();
-
-      // مسح بيانات التدقيق
-      _auditService.clearCurrentUser();
 
       // مسح المستخدم من Auth Service
       _authService.setCurrentUser(null);
@@ -240,14 +225,8 @@ AuthService get authService => sl.auth;
 /// اختصار لخدمة المنتجات
 ProductService get productService => sl.products;
 
-/// اختصار لخدمة الفئات
-CategoryService get categoryService => sl.categories;
-
 /// اختصار لخدمة المبيعات
 SaleService get saleService => sl.sales;
-
-/// اختصار لخدمة التدقيق
-AuditService get auditService => sl.audit;
 
 /// اختصار لخدمة الباركود
 BarcodeService get barcodeService => sl.barcode;

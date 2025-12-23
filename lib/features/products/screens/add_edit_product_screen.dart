@@ -20,7 +20,8 @@ class AddEditProductScreen extends StatefulWidget {
   State<AddEditProductScreen> createState() => _AddEditProductScreenState();
 }
 
-class _AddEditProductScreenState extends State<AddEditProductScreen> {
+class _AddEditProductScreenState extends State<AddEditProductScreen>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -38,7 +39,11 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   bool _isLoading = false;
   bool _isCategoriesLoading = true;
   bool _hasScannedBarcode = false;
-  bool _wasGeneratedBarcode = false; // ✅ لتتبع إذا تم توليد باركود تلقائي
+  bool _wasGeneratedBarcode = false;
+
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
 
   bool get isEditing => widget.product != null;
 
@@ -50,12 +55,25 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     _inventory = {};
     _variantBarcodes = {};
 
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
+          CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+        );
+
+    _animationController.forward();
+
     if (isEditing) {
       _loadProductData();
     } else {
-      // توليد باركود تلقائي للمنتج الجديد
       _barcodeController.text = _barcodeService.generateProductBarcode();
-      _wasGeneratedBarcode = true; // ✅ تم توليد باركود تلقائياً
+      _wasGeneratedBarcode = true;
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadCategories());
@@ -93,6 +111,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     _priceController.dispose();
     _costPriceController.dispose();
     _barcodeController.dispose();
+    _animationController.dispose();
     super.dispose();
   }
 
@@ -141,10 +160,17 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: Icon(
-            Icons.arrow_back_ios_rounded,
-            size: 18,
-            color: AppColors.primary,
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              Icons.arrow_back_ios_rounded,
+              size: 16,
+              color: AppColors.primary,
+            ),
           ),
         ),
         title: Text(
@@ -156,57 +182,106 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
           ),
         ),
         centerTitle: true,
-      ),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildBarcodeSection(),
-              const SizedBox(height: 24),
-              _buildBasicInfo(),
-              const SizedBox(height: 24),
-              _buildColorsSection(),
-              const SizedBox(height: 24),
-              _buildSizesSection(),
-              if (_colors.isNotEmpty && _sizes.isNotEmpty) ...[
-                const SizedBox(height: 24),
-                _buildInventory(),
-              ],
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _saveProduct,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+        actions: [
+          if (isEditing)
+            Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: IconButton(
+                onPressed: _isLoading ? null : _saveProduct,
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Text(
-                          isEditing ? 'تحديث' : 'إضافة المنتج',
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                  child: Icon(Icons.check, size: 18, color: AppColors.success),
                 ),
               ),
-            ],
+            ),
+        ],
+      ),
+      body: FadeTransition(
+        opacity: _fadeAnimation,
+        child: SlideTransition(
+          position: _slideAnimation,
+          child: Form(
+            key: _formKey,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildBarcodeSection(),
+                  const SizedBox(height: 20),
+                  _buildBasicInfo(),
+                  const SizedBox(height: 20),
+                  _buildColorsSection(),
+                  const SizedBox(height: 20),
+                  _buildSizesSection(),
+                  if (_colors.isNotEmpty && _sizes.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    _buildInventory(),
+                  ],
+                  const SizedBox(height: 28),
+                  _buildSaveButton(),
+                  const SizedBox(height: 20),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSaveButton() {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.95, end: 1.0),
+      duration: const Duration(milliseconds: 300),
+      builder: (context, scale, child) =>
+          Transform.scale(scale: scale, child: child),
+      child: SizedBox(
+        width: double.infinity,
+        height: 54,
+        child: ElevatedButton(
+          onPressed: _isLoading ? null : _saveProduct,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            shadowColor: Colors.transparent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: _isLoading
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: Colors.white,
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        isEditing ? Icons.update : Icons.add_circle_outline,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        isEditing ? 'تحديث المنتج' : 'إضافة المنتج',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
           ),
         ),
       ),
@@ -215,32 +290,49 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
 
   Widget _buildBarcodeSection() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade100),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(
-                Icons.qr_code_scanner,
-                color: Colors.grey.shade600,
-                size: 20,
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.info.withValues(alpha: 0.2),
+                      AppColors.info.withValues(alpha: 0.1),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.qr_code_scanner,
+                  color: AppColors.info,
+                  size: 20,
+                ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
               const Text(
                 'باركود المنتج',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
 
-          // حقل الباركود
           Row(
             children: [
               Expanded(
@@ -252,77 +344,65 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-
-              // زر مسح الباركود
-              GestureDetector(
-                onTap: _scanBarcode,
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppColors.info.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    Icons.qr_code_scanner,
-                    color: AppColors.info,
-                  ),
-                ),
+              _buildIconBtn(
+                Icons.qr_code_scanner,
+                AppColors.info,
+                _scanBarcode,
               ),
               const SizedBox(width: 8),
-
-              // زر توليد باركود جديد
-              GestureDetector(
-                onTap: _generateNewBarcode,
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppColors.success.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.refresh, color: AppColors.success),
-                ),
+              _buildIconBtn(
+                Icons.refresh,
+                AppColors.success,
+                _generateNewBarcode,
               ),
             ],
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
 
-          // معاينة الباركود
-          if (_barcodeController.text.isNotEmpty) ...[
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Column(
-                children: [
-                  SizedBox(
-                    height: 60,
-                    child: CustomPaint(
-                      size: const Size(double.infinity, 60),
-                      painter: SimpleBarcodePreviewPainter(
-                        _barcodeController.text,
+          if (_barcodeController.text.isNotEmpty)
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0.0, end: 1.0),
+              duration: const Duration(milliseconds: 300),
+              builder: (context, value, child) =>
+                  Opacity(opacity: value, child: child),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.grey.shade50, Colors.white],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  children: [
+                    SizedBox(
+                      height: 60,
+                      child: CustomPaint(
+                        size: const Size(double.infinity, 60),
+                        painter: SimpleBarcodePreviewPainter(
+                          _barcodeController.text,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _barcodeController.text,
-                    style: const TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 12,
-                      letterSpacing: 2,
+                    const SizedBox(height: 10),
+                    Text(
+                      _barcodeController.text,
+                      style: const TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 12,
+                        letterSpacing: 2,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ],
 
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Text(
             'يمكنك مسح باركود موجود أو استخدام الباركود المولّد تلقائياً',
             style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
@@ -332,19 +412,68 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     );
   }
 
+  Widget _buildIconBtn(IconData icon, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
+        ),
+        child: Icon(icon, color: color, size: 22),
+      ),
+    );
+  }
+
   Widget _buildBasicInfo() {
     return Consumer<ProductProvider>(
       builder: (context, provider, _) {
         final cats = provider.categories.map((c) => c.name).toSet().toList();
         return Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: Colors.grey.shade100),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.primary.withValues(alpha: 0.2),
+                          AppColors.primary.withValues(alpha: 0.1),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.info_outline,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'المعلومات الأساسية',
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
               TextFormField(
                 controller: _nameController,
                 decoration: _inputDeco(
@@ -361,12 +490,14 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
               ),
               const SizedBox(height: 14),
               _isCategoriesLoading
-                  ? const CircularProgressIndicator()
+                  ? const Center(
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
                   : Row(
                       children: [
                         Expanded(
                           child: DropdownButtonFormField<String>(
-                            initialValue: cats.contains(_selectedCategory)
+                            value: cats.contains(_selectedCategory)
                                 ? _selectedCategory
                                 : null,
                             decoration: _inputDeco(
@@ -387,19 +518,10 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: _addCategory,
-                          child: Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(
-                              Icons.add,
-                              color: AppColors.primary,
-                            ),
-                          ),
+                        _buildIconBtn(
+                          Icons.add,
+                          AppColors.primary,
+                          _addCategory,
                         ),
                       ],
                     ),
@@ -450,11 +572,17 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
 
   Widget _buildColorsSection() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade100),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -463,15 +591,27 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
             children: [
               Row(
                 children: [
-                  Icon(
-                    Icons.palette_outlined,
-                    color: Colors.grey.shade600,
-                    size: 20,
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.purple.withValues(alpha: 0.2),
+                          Colors.purple.withValues(alpha: 0.1),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.palette_outlined,
+                      color: Colors.purple,
+                      size: 20,
+                    ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 12),
                   const Text(
                     'الألوان',
-                    style: TextStyle(fontWeight: FontWeight.w600),
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
                   ),
                 ],
               ),
@@ -479,35 +619,70 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                 onTap: _addColor,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
+                    horizontal: 14,
+                    vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(8),
+                    gradient: const LinearGradient(
+                      colors: [AppColors.primary, Color(0xFF1A4A73)],
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.3),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                  child: const Text(
-                    '+ إضافة',
-                    style: TextStyle(color: Colors.white, fontSize: 12),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.add, color: Colors.white, size: 16),
+                      SizedBox(width: 4),
+                      Text(
+                        'إضافة',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          _colors.isEmpty
-              ? Container(
-                  padding: const EdgeInsets.all(20),
-                  child: Text(
-                    'لم يتم إضافة ألوان',
-                    style: TextStyle(color: Colors.grey.shade400),
+          const SizedBox(height: 14),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: _colors.isEmpty
+                ? Container(
+                    key: const ValueKey('empty'),
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.palette_outlined,
+                          size: 40,
+                          color: Colors.grey.shade300,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'لم يتم إضافة ألوان',
+                          style: TextStyle(color: Colors.grey.shade400),
+                        ),
+                      ],
+                    ),
+                  )
+                : Wrap(
+                    key: const ValueKey('colors'),
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _colors.map((c) => _buildColorChip(c)).toList(),
                   ),
-                )
-              : Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _colors.map((c) => _buildColorChip(c)).toList(),
-                ),
+          ),
         ],
       ),
     );
@@ -566,11 +741,17 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
 
   Widget _buildSizesSection() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade100),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -579,15 +760,27 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
             children: [
               Row(
                 children: [
-                  Icon(
-                    Icons.straighten_outlined,
-                    color: Colors.grey.shade600,
-                    size: 20,
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.orange.withValues(alpha: 0.2),
+                          Colors.orange.withValues(alpha: 0.1),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.straighten_outlined,
+                      color: Colors.orange,
+                      size: 20,
+                    ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 12),
                   const Text(
                     'المقاسات',
-                    style: TextStyle(fontWeight: FontWeight.w600),
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
                   ),
                 ],
               ),
@@ -598,15 +791,30 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
-                        vertical: 6,
+                        vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: Colors.grey.shade200),
                       ),
-                      child: const Text(
-                        'مقاسات شائعة',
-                        style: TextStyle(fontSize: 12),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.auto_fix_high,
+                            size: 14,
+                            color: Colors.grey.shade600,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'شائعة',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -615,16 +823,36 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                     onTap: _addSize,
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
+                        horizontal: 14,
+                        vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(8),
+                        gradient: const LinearGradient(
+                          colors: [AppColors.primary, Color(0xFF1A4A73)],
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                      child: const Text(
-                        '+ إضافة',
-                        style: TextStyle(color: Colors.white, fontSize: 12),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.add, color: Colors.white, size: 16),
+                          SizedBox(width: 4),
+                          Text(
+                            'إضافة',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -632,20 +860,35 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          _sizes.isEmpty
-              ? Container(
-                  padding: const EdgeInsets.all(20),
-                  child: Text(
-                    'لم يتم إضافة مقاسات',
-                    style: TextStyle(color: Colors.grey.shade400),
+          const SizedBox(height: 14),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: _sizes.isEmpty
+                ? Container(
+                    key: const ValueKey('empty'),
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.straighten_outlined,
+                          size: 40,
+                          color: Colors.grey.shade300,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'لم يتم إضافة مقاسات',
+                          style: TextStyle(color: Colors.grey.shade400),
+                        ),
+                      ],
+                    ),
+                  )
+                : Wrap(
+                    key: const ValueKey('sizes'),
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _sizes.map((s) => _buildSizeChip(s)).toList(),
                   ),
-                )
-              : Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: _sizes.map((s) => _buildSizeChip(s)).toList(),
-                ),
+          ),
         ],
       ),
     );
@@ -681,11 +924,17 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
 
   Widget _buildInventory() {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade100),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -695,15 +944,27 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
             children: [
               Row(
                 children: [
-                  Icon(
-                    Icons.inventory_outlined,
-                    color: Colors.grey.shade600,
-                    size: 20,
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppColors.success.withValues(alpha: 0.2),
+                          AppColors.success.withValues(alpha: 0.1),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.inventory_outlined,
+                      color: AppColors.success,
+                      size: 20,
+                    ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 12),
                   const Text(
                     'المخزون والباركود',
-                    style: TextStyle(fontWeight: FontWeight.w600),
+                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
                   ),
                 ],
               ),
@@ -711,26 +972,31 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                 onTap: _generateAllVariantBarcodes,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
+                    horizontal: 14,
+                    vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF8B5CF6).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF8B5CF6), Color(0xFF7C3AED)],
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                  child: Row(
+                  child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        Icons.qr_code,
-                        size: 14,
-                        color: const Color(0xFF8B5CF6),
-                      ),
-                      const SizedBox(width: 4),
-                      const Text(
+                      Icon(Icons.qr_code, size: 14, color: Colors.white),
+                      SizedBox(width: 6),
+                      Text(
                         'توليد باركود',
                         style: TextStyle(
-                          color: Color(0xFF8B5CF6),
+                          color: Colors.white,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
@@ -741,41 +1007,42 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
-
-          // جدول المخزون
+          const SizedBox(height: 18),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: DataTable(
               headingRowColor: WidgetStateProperty.all(Colors.grey.shade50),
               columnSpacing: 20,
-              columns: [
-                const DataColumn(
+              headingRowHeight: 48,
+              dataRowMinHeight: 52,
+              dataRowMaxHeight: 56,
+              columns: const [
+                DataColumn(
                   label: Text(
                     'اللون',
                     style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
-                const DataColumn(
+                DataColumn(
                   label: Text(
                     'المقاس',
                     style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
-                const DataColumn(
+                DataColumn(
                   label: Text(
                     'الكمية',
                     style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                   numeric: true,
                 ),
-                const DataColumn(
+                DataColumn(
                   label: Text(
                     'الباركود',
                     style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
-                const DataColumn(
+                DataColumn(
                   label: Text(
                     'طباعة',
                     style: TextStyle(fontWeight: FontWeight.w600),
