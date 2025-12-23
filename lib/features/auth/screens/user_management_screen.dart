@@ -72,7 +72,10 @@ class _UserManagementScreenState extends State<UserManagementScreen>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text('في الانتظار'),
+                  const Text(
+                    'في الانتظار',
+                    style: TextStyle(color: AppTheme.textOnPrimary),
+                  ),
                   if (_pendingUsers.isNotEmpty) ...[
                     const SizedBox(width: 8),
                     Container(
@@ -87,7 +90,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                       child: Text(
                         '${_pendingUsers.length}',
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: AppTheme.textOnPrimary,
                           fontSize: 12,
                         ),
                       ),
@@ -96,7 +99,12 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                 ],
               ),
             ),
-            const Tab(text: 'جميع المستخدمين'),
+            const Tab(
+              child: Text(
+                'جميع المستخدمين',
+                style: TextStyle(color: AppTheme.textOnPrimary),
+              ),
+            ),
           ],
         ),
         actions: [
@@ -118,11 +126,11 @@ class _UserManagementScreenState extends State<UserManagementScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle_outline, size: 64, color: Colors.grey[400]),
+            Icon(Icons.check_circle_outline, size: 64, color: AppTheme.grey400),
             const SizedBox(height: 16),
             Text(
               'لا توجد طلبات في الانتظار',
-              style: TextStyle(color: Colors.grey[600]),
+              style: TextStyle(color: AppTheme.grey600),
             ),
           ],
         ),
@@ -324,7 +332,7 @@ class _PendingUserCard extends StatelessWidget {
                       ),
                       Text(
                         user.email,
-                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                        style: TextStyle(color: AppTheme.grey600, fontSize: 14),
                       ),
                     ],
                   ),
@@ -336,7 +344,7 @@ class _PendingUserCard extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: user.authProvider == 'google'
-                        ? Colors.red.withOpacity(0.1)
+                        ? AppTheme.redColor.withOpacity(0.1)
                         : AppTheme.primaryColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -344,7 +352,7 @@ class _PendingUserCard extends StatelessWidget {
                     user.authProvider == 'google' ? 'Google' : 'Email',
                     style: TextStyle(
                       color: user.authProvider == 'google'
-                          ? Colors.red
+                          ? AppTheme.redColor
                           : AppTheme.primaryColor,
                       fontSize: 12,
                     ),
@@ -355,11 +363,11 @@ class _PendingUserCard extends StatelessWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
+                Icon(Icons.access_time, size: 16, color: AppTheme.grey600),
                 const SizedBox(width: 4),
                 Text(
                   'التسجيل: ${dateFormatter.format(user.createdAt)}',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                  style: TextStyle(color: AppTheme.grey600, fontSize: 12),
                 ),
               ],
             ),
@@ -426,7 +434,7 @@ class _UserCard extends StatelessWidget {
           children: [
             _buildStatusBadge(),
             const SizedBox(width: 8),
-            Icon(Icons.chevron_left, color: Colors.grey[400]),
+            Icon(Icons.chevron_left, color: AppTheme.grey400),
           ],
         ),
       ),
@@ -444,7 +452,7 @@ class _UserCard extends StatelessWidget {
       color = AppTheme.errorColor;
       text = 'مرفوض';
     } else if (!user.isActive) {
-      color = Colors.grey;
+      color = AppTheme.grey600;
       text = 'معطل';
     } else if (user.isAdmin) {
       color = AppTheme.primaryColor;
@@ -493,7 +501,7 @@ class _UserDetailsSheet extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: Colors.grey[300],
+              color: AppTheme.grey300,
               borderRadius: BorderRadius.circular(2),
             ),
           ),

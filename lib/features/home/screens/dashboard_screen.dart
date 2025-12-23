@@ -87,7 +87,7 @@ class DashboardScreen extends StatelessWidget {
                     value: '${productProvider.lowStockProducts.length}',
                     icon: Icons.warning,
                     color: productProvider.lowStockProducts.isEmpty
-                        ? Colors.grey
+                        ? AppTheme.grey600
                         : AppTheme.warningColor,
                   ),
                 ),
@@ -218,7 +218,7 @@ class DashboardScreen extends StatelessWidget {
                   child: Center(
                     child: Text(
                       'لا توجد فواتير بعد',
-                      style: TextStyle(color: Colors.grey),
+                      style: TextStyle(color: AppTheme.grey600),
                     ),
                   ),
                 )
@@ -281,7 +281,7 @@ class DashboardScreen extends StatelessWidget {
       case 'معلق':
         return AppTheme.warningColor;
       default:
-        return Colors.grey;
+        return AppTheme.grey600;
     }
   }
 }
@@ -326,7 +326,7 @@ class _StatCard extends StatelessWidget {
               title,
               style: Theme.of(
                 context,
-              ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
+              ).textTheme.bodySmall?.copyWith(color: AppTheme.grey600),
             ),
             const SizedBox(height: 4),
             Text(

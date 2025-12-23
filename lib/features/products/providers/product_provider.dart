@@ -1,5 +1,5 @@
 // lib/features/products/providers/product_provider.dart
-// مزود حالة المنتجات - محسن
+// مزود حالة المنتجات - مُصحح
 
 import 'dart:async';
 import 'dart:io';
@@ -113,6 +113,9 @@ class ProductProvider with ChangeNotifier {
 
     if (result.success) {
       _categories = result.data!;
+      AppLogger.i('✅ تم تحميل ${_categories.length} فئة');
+    } else {
+      AppLogger.e('❌ فشل تحميل الفئات', error: result.error);
     }
 
     notifyListeners();
@@ -264,8 +267,20 @@ class ProductProvider with ChangeNotifier {
     return product.getQuantity(color, size);
   }
 
-  /// إضافة فئة
+  /// ✅ إضافة فئة - مُصحح
   Future<bool> addCategory(String name, {String? description}) async {
+    _error = null;
+
+    // التحقق من عدم وجود الفئة مسبقاً
+    final exists = _categories.any(
+      (c) => c.name.toLowerCase() == name.toLowerCase(),
+    );
+    if (exists) {
+      _error = 'الفئة "$name" موجودة بالفعل';
+      notifyListeners();
+      return false;
+    }
+
     final category = CategoryModel(
       id: '',
       name: name,
@@ -276,11 +291,15 @@ class ProductProvider with ChangeNotifier {
 
     final result = await _categoryService.addCategory(category);
 
-    if (result.success) {
-      await loadCategories();
+    if (result.success && result.data != null) {
+      // ✅ إضافة الفئة مباشرة للقائمة المحلية لتظهر فوراً
+      _categories = List<CategoryModel>.from(_categories)..add(result.data!);
+      AppLogger.i('✅ تم إضافة فئة: $name');
+      notifyListeners();
       return true;
     } else {
-      _error = result.error;
+      _error = result.error ?? 'فشل إضافة الفئة';
+      AppLogger.e('❌ فشل إضافة فئة: $name', error: result.error);
       notifyListeners();
       return false;
     }
@@ -301,7 +320,9 @@ class ProductProvider with ChangeNotifier {
     final result = await _categoryService.deleteCategory(categoryId);
 
     if (result.success) {
-      await loadCategories();
+      // ✅ حذف الفئة من القائمة المحلية فوراً
+      _categories = _categories.where((c) => c.id != categoryId).toList();
+      notifyListeners();
       return true;
     } else {
       _error = result.error;

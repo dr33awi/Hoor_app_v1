@@ -50,7 +50,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       Icon(
                         Icons.error_outline,
                         size: 64,
-                        color: Colors.grey[400],
+                        color: AppTheme.grey400,
                       ),
                       const SizedBox(height: 16),
                       Text(provider.error!),
@@ -74,7 +74,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       Icon(
                         Icons.inventory_2_outlined,
                         size: 64,
-                        color: Colors.grey[400],
+                        color: AppTheme.grey400,
                       ),
                       const SizedBox(height: 16),
                       Text(
@@ -82,7 +82,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                 provider.selectedCategory != null
                             ? 'لا توجد نتائج'
                             : 'لا توجد منتجات',
-                        style: TextStyle(color: Colors.grey[600]),
+                        style: TextStyle(color: AppTheme.grey600),
                       ),
                       if (provider.searchQuery.isEmpty &&
                           provider.selectedCategory == null) ...[
@@ -131,10 +131,10 @@ class _ProductsScreenState extends State<ProductsScreen> {
         return Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppTheme.surfaceColor,
             boxShadow: [
               BoxShadow(
-                color: Colors.grey.withOpacity(0.1),
+                color: AppTheme.grey400.withOpacity(0.2),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -257,7 +257,7 @@ class _ProductCard extends StatelessWidget {
                           imageUrl: product.imageUrl!,
                           fit: BoxFit.cover,
                           placeholder: (_, __) => Container(
-                            color: Colors.grey[200],
+                            color: AppTheme.grey200,
                             child: const Center(
                               child: CircularProgressIndicator(),
                             ),
@@ -273,7 +273,7 @@ class _ProductCard extends StatelessWidget {
                     left: 8,
                     child: CircleAvatar(
                       radius: 16,
-                      backgroundColor: Colors.white.withOpacity(0.9),
+                      backgroundColor: AppTheme.surfaceColor.withOpacity(0.9),
                       child: IconButton(
                         icon: const Icon(Icons.edit, size: 16),
                         padding: EdgeInsets.zero,
@@ -302,7 +302,7 @@ class _ProductCard extends StatelessWidget {
                     if (product.brand.isNotEmpty)
                       Text(
                         product.brand,
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                        style: TextStyle(fontSize: 12, color: AppTheme.grey600),
                         maxLines: 1,
                       ),
                     const Spacer(),
@@ -320,7 +320,7 @@ class _ProductCard extends StatelessWidget {
                           '${product.totalQuantity}',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey[600],
+                            color: AppTheme.grey600,
                           ),
                         ),
                       ],
@@ -337,8 +337,8 @@ class _ProductCard extends StatelessWidget {
 
   Widget _buildPlaceholder() {
     return Container(
-      color: Colors.grey[200],
-      child: Icon(Icons.image, size: 48, color: Colors.grey[400]),
+      color: AppTheme.grey200,
+      child: Icon(Icons.image, size: 48, color: AppTheme.grey400),
     );
   }
 
@@ -365,7 +365,7 @@ class _ProductCard extends StatelessWidget {
       child: Text(
         text,
         style: const TextStyle(
-          color: Colors.white,
+          color: AppTheme.textOnPrimary,
           fontSize: 10,
           fontWeight: FontWeight.bold,
         ),

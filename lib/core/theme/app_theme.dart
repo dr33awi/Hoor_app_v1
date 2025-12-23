@@ -8,11 +8,10 @@ class AppTheme {
   AppTheme._();
 
   // ==================== الألوان الرئيسية ====================
-  static const Color primaryColor = Color(0xFF1976D2);
-  static const Color primaryDark = Color(0xFF1565C0);
-  static const Color primaryLight = Color(0xFF42A5F5);
-  static const Color secondaryColor = Color(0xFF26A69A);
-  static const Color accentColor = Color(0xFF64B5F6);
+  static const Color primaryColor = Color(0xFF12334E);
+  static const Color primaryDark = Color(0xFF0D2438);
+  static const Color primaryLight = Color(0xFF1E4A6E);
+  static const Color secondaryColor = Color(0xFFE9DAC1);
 
   // ==================== ألوان الحالات ====================
   static const Color successColor = Color(0xFF4CAF50);
@@ -31,6 +30,16 @@ class AppTheme {
   static const Color textSecondary = Color(0xFF757575);
   static const Color textHint = Color(0xFF9E9E9E);
   static const Color textOnPrimary = Colors.white;
+
+  // ==================== الألوان الرمادية (مائل للأزرق) ====================
+  static const Color grey200 = Color(0xFFE2E8F0); // خلفيات خفيفة
+  static const Color grey300 = Color(0xFFCBD5E1); // حدود
+  static const Color grey400 = Color(0xFF94A3B8); // أيقونات خافتة
+  static const Color grey600 = Color(0xFF475569); // نصوص ثانوية
+
+  // ==================== ألوان إضافية ====================
+  static const Color redColor = Color(0xFFF44336);
+  static const Color orange700 = Color(0xFFF57C00);
 
   // ==================== الثيم الفاتح ====================
   static ThemeData lightTheme = ThemeData(
@@ -117,7 +126,11 @@ class AppTheme {
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
         minimumSize: const Size(88, 48),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        textStyle: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: textOnPrimary,
+        ),
       ),
     ),
 
@@ -244,45 +257,4 @@ class AppTheme {
       ),
     ),
   );
-
-  // ==================== المساعدات ====================
-
-  /// الحصول على لون حسب الحالة
-  static Color getStatusColor(String status) {
-    switch (status) {
-      case 'مكتمل':
-        return successColor;
-      case 'ملغي':
-        return errorColor;
-      case 'معلق':
-        return warningColor;
-      case 'مسترجع':
-        return infoColor;
-      default:
-        return textSecondary;
-    }
-  }
-
-  /// الحصول على لون المخزون
-  static Color getStockColor(int quantity, {int threshold = 5}) {
-    if (quantity == 0) return errorColor;
-    if (quantity <= threshold) return warningColor;
-    return successColor;
-  }
-
-  /// تدرج رئيسي
-  static const LinearGradient primaryGradient = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [primaryColor, primaryDark],
-  );
-
-  /// ظل البطاقة
-  static List<BoxShadow> get cardShadow => [
-    BoxShadow(
-      color: Colors.black.withOpacity(0.1),
-      blurRadius: 8,
-      offset: const Offset(0, 2),
-    ),
-  ];
 }

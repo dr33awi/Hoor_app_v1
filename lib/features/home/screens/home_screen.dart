@@ -91,7 +91,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     Text(
                       authProvider.isAdmin ? 'مدير' : 'موظف',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 12, color: AppTheme.grey600),
                     ),
                   ],
                 ),
@@ -123,9 +123,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 value: 'logout',
                 child: Row(
                   children: [
-                    Icon(Icons.logout, color: Colors.red),
+                    Icon(Icons.logout, color: AppTheme.redColor),
                     SizedBox(width: 12),
-                    Text('تسجيل الخروج', style: TextStyle(color: Colors.red)),
+                    Text(
+                      'تسجيل الخروج',
+                      style: TextStyle(color: AppTheme.redColor),
+                    ),
                   ],
                 ),
               ),

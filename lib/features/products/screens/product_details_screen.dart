@@ -46,7 +46,7 @@ class ProductDetailsScreen extends StatelessWidget {
                       imageUrl: product.imageUrl!,
                       fit: BoxFit.cover,
                       placeholder: (_, __) => Container(
-                        color: Colors.grey[200],
+                        color: AppTheme.grey200,
                         child: const Center(child: CircularProgressIndicator()),
                       ),
                       errorWidget: (_, __, ___) => _buildPlaceholder(),
@@ -70,7 +70,7 @@ class ProductDetailsScreen extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       product.brand,
-                      style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 16, color: AppTheme.grey600),
                     ),
                   ],
                   const SizedBox(height: 8),
@@ -106,7 +106,7 @@ class ProductDetailsScreen extends StatelessWidget {
                               children: [
                                 Text(
                                   'سعر البيع',
-                                  style: TextStyle(color: Colors.grey[600]),
+                                  style: TextStyle(color: AppTheme.grey600),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
@@ -123,14 +123,14 @@ class ProductDetailsScreen extends StatelessWidget {
                           Container(
                             width: 1,
                             height: 40,
-                            color: Colors.grey[300],
+                            color: AppTheme.grey300,
                           ),
                           Expanded(
                             child: Column(
                               children: [
                                 Text(
                                   'التكلفة',
-                                  style: TextStyle(color: Colors.grey[600]),
+                                  style: TextStyle(color: AppTheme.grey600),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
@@ -146,14 +146,14 @@ class ProductDetailsScreen extends StatelessWidget {
                           Container(
                             width: 1,
                             height: 40,
-                            color: Colors.grey[300],
+                            color: AppTheme.grey300,
                           ),
                           Expanded(
                             child: Column(
                               children: [
                                 Text(
                                   'الربح',
-                                  style: TextStyle(color: Colors.grey[600]),
+                                  style: TextStyle(color: AppTheme.grey600),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
@@ -299,8 +299,8 @@ class ProductDetailsScreen extends StatelessWidget {
 
   Widget _buildPlaceholder() {
     return Container(
-      color: Colors.grey[200],
-      child: Icon(Icons.image, size: 64, color: Colors.grey[400]),
+      color: AppTheme.grey200,
+      child: Icon(Icons.image, size: 64, color: AppTheme.grey400),
     );
   }
 

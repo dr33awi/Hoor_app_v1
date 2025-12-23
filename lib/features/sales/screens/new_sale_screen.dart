@@ -64,16 +64,16 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.shopping_cart_outlined, size: 80, color: Colors.grey[400]),
+          Icon(Icons.shopping_cart_outlined, size: 80, color: AppTheme.grey400),
           const SizedBox(height: 16),
           Text(
             'السلة فارغة',
-            style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+            style: TextStyle(fontSize: 18, color: AppTheme.grey600),
           ),
           const SizedBox(height: 8),
           Text(
             'اضغط على زر + لإضافة منتجات',
-            style: TextStyle(color: Colors.grey[500]),
+            style: TextStyle(color: AppTheme.grey600),
           ),
         ],
       ),
@@ -103,7 +103,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                       const SizedBox(height: 4),
                       Text(
                         '${item.color} - مقاس ${item.size}',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                        style: TextStyle(fontSize: 12, color: AppTheme.grey600),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -182,10 +182,10 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.surfaceColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
+            color: AppTheme.grey400.withOpacity(0.3),
             blurRadius: 8,
             offset: const Offset(0, -2),
           ),
@@ -369,7 +369,7 @@ class _ProductSelectorState extends State<_ProductSelector> {
           width: 40,
           height: 4,
           decoration: BoxDecoration(
-            color: Colors.grey[300],
+            color: AppTheme.grey300,
             borderRadius: BorderRadius.circular(2),
           ),
         ),
@@ -407,7 +407,7 @@ class _ProductSelectorState extends State<_ProductSelector> {
                     final product = products[index];
                     return ListTile(
                       leading: CircleAvatar(
-                        backgroundColor: Colors.grey[200],
+                        backgroundColor: AppTheme.grey200,
                         child: const Icon(Icons.inventory_2),
                       ),
                       title: Text(product.name),
@@ -524,7 +524,7 @@ class _ProductSelectorState extends State<_ProductSelector> {
                     ),
                     Text(
                       'متوفر: $availableQty',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      style: TextStyle(fontSize: 12, color: AppTheme.grey600),
                     ),
                   ],
                 ],
@@ -612,7 +612,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey[300],
+                color: AppTheme.grey300,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -794,7 +794,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                       width: 24,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Colors.white,
+                        color: AppTheme.textOnPrimary,
                       ),
                     )
                   : const Text('تأكيد البيع', style: TextStyle(fontSize: 16)),

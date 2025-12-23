@@ -74,7 +74,7 @@ class PendingApprovalScreen extends StatelessWidget {
                       Text(
                         'طلب تسجيلك قيد المراجعة من قبل المدير.\nسيتم إعلامك عند الموافقة على حسابك.',
                         style: TextStyle(
-                          color: Colors.grey[600],
+                          color: AppTheme.grey600,
                           fontSize: 16,
                           height: 1.5,
                         ),
@@ -89,7 +89,7 @@ class PendingApprovalScreen extends StatelessWidget {
                           vertical: 12,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.grey[100],
+                          color: AppTheme.grey200,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
@@ -179,7 +179,7 @@ class PendingApprovalScreen extends StatelessWidget {
                       // ملاحظة
                       Text(
                         'إذا كان لديك استفسار، تواصل مع المدير',
-                        style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                        style: TextStyle(color: AppTheme.grey600, fontSize: 12),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -209,7 +209,7 @@ class PendingApprovalScreen extends StatelessWidget {
               child: Text(
                 number,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: AppTheme.textOnPrimary,
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
                 ),
@@ -217,7 +217,7 @@ class PendingApprovalScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          Icon(icon, size: 20, color: Colors.grey[600]),
+          Icon(icon, size: 20, color: AppTheme.grey600),
           const SizedBox(width: 8),
           Expanded(child: Text(text, style: const TextStyle(fontSize: 14))),
         ],

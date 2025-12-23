@@ -180,7 +180,7 @@ class SaleDetailsScreen extends StatelessWidget {
                     title: Text(item.productName),
                     subtitle: Text(
                       '${item.color} - مقاس ${item.size}',
-                      style: TextStyle(color: Colors.grey[600]),
+                      style: TextStyle(color: AppTheme.grey600),
                     ),
                     trailing: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -194,7 +194,7 @@ class SaleDetailsScreen extends StatelessWidget {
                           '${item.quantity} × ${formatter.format(item.unitPrice)}',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey[600],
+                            color: AppTheme.grey600,
                           ),
                         ),
                       ],
@@ -258,7 +258,7 @@ class SaleDetailsScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(16),
                   child: Row(
                     children: [
-                      Icon(Icons.note, color: Colors.grey[600]),
+                      Icon(Icons.note, color: AppTheme.grey600),
                       const SizedBox(width: 12),
                       Expanded(child: Text(sale.notes!)),
                     ],
@@ -277,9 +277,9 @@ class SaleDetailsScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: Colors.grey[600]),
+          Icon(icon, size: 20, color: AppTheme.grey600),
           const SizedBox(width: 12),
-          Text(label, style: TextStyle(color: Colors.grey[600])),
+          Text(label, style: TextStyle(color: AppTheme.grey600)),
           const Spacer(),
           Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
         ],
@@ -325,7 +325,7 @@ class SaleDetailsScreen extends StatelessWidget {
       case 'معلق':
         return AppTheme.warningColor;
       default:
-        return Colors.grey;
+        return AppTheme.grey600;
     }
   }
 

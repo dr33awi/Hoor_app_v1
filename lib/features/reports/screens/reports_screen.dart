@@ -92,7 +92,7 @@ class _ReportsScreenState extends State<ReportsScreen>
 
     return Container(
       padding: const EdgeInsets.all(16),
-      color: Colors.white,
+      color: AppTheme.surfaceColor,
       child: Row(
         children: [
           Expanded(
@@ -104,7 +104,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                   vertical: 12,
                 ),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey[300]!),
+                  border: Border.all(color: AppTheme.grey300),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -374,7 +374,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                       value: '${lowStock.length}',
                       icon: Icons.warning,
                       color: lowStock.isEmpty
-                          ? Colors.grey
+                          ? AppTheme.grey600
                           : AppTheme.warningColor,
                     ),
                   ),
@@ -665,7 +665,7 @@ class _StatCard extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               title,
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              style: TextStyle(fontSize: 12, color: AppTheme.grey600),
             ),
             const SizedBox(height: 4),
             FittedBox(

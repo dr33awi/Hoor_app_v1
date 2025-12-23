@@ -51,14 +51,14 @@ class _SalesScreenState extends State<SalesScreen> {
                       Icon(
                         Icons.receipt_long_outlined,
                         size: 64,
-                        color: Colors.grey[400],
+                        color: AppTheme.grey400,
                       ),
                       const SizedBox(height: 16),
                       Text(
                         provider.searchQuery.isNotEmpty
                             ? 'لا توجد نتائج'
                             : 'لا توجد فواتير',
-                        style: TextStyle(color: Colors.grey[600]),
+                        style: TextStyle(color: AppTheme.grey600),
                       ),
                     ],
                   ),
@@ -91,10 +91,10 @@ class _SalesScreenState extends State<SalesScreen> {
         return Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppTheme.surfaceColor,
             boxShadow: [
               BoxShadow(
-                color: Colors.grey.withOpacity(0.1),
+                color: AppTheme.grey400.withOpacity(0.2),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -255,12 +255,12 @@ class _SaleCard extends StatelessWidget {
                               Icon(
                                 Icons.person_outline,
                                 size: 16,
-                                color: Colors.grey[600],
+                                color: AppTheme.grey600,
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 sale.buyerName!,
-                                style: TextStyle(color: Colors.grey[700]),
+                                style: TextStyle(color: AppTheme.grey600),
                               ),
                             ],
                           ),
@@ -271,13 +271,13 @@ class _SaleCard extends StatelessWidget {
                             Icon(
                               Icons.access_time,
                               size: 16,
-                              color: Colors.grey[600],
+                              color: AppTheme.grey600,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               dateFormatter.format(sale.saleDate),
                               style: TextStyle(
-                                color: Colors.grey[600],
+                                color: AppTheme.grey600,
                                 fontSize: 12,
                               ),
                             ),
@@ -289,13 +289,13 @@ class _SaleCard extends StatelessWidget {
                             Icon(
                               _getPaymentIcon(),
                               size: 16,
-                              color: Colors.grey[600],
+                              color: AppTheme.grey600,
                             ),
                             const SizedBox(width: 4),
                             Text(
                               sale.paymentMethod,
                               style: TextStyle(
-                                color: Colors.grey[600],
+                                color: AppTheme.grey600,
                                 fontSize: 12,
                               ),
                             ),
@@ -319,7 +319,7 @@ class _SaleCard extends StatelessWidget {
                       ),
                       Text(
                         '${sale.itemsCount} عنصر',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                        style: TextStyle(color: AppTheme.grey600, fontSize: 12),
                       ),
                     ],
                   ),
@@ -341,7 +341,7 @@ class _SaleCard extends StatelessWidget {
       case 'معلق':
         return AppTheme.warningColor;
       default:
-        return Colors.grey;
+        return AppTheme.grey600;
     }
   }
 
