@@ -1,9 +1,10 @@
-// lib/features/products/widgets/barcode_scanner_widget.dart
+﻿// lib/features/products/widgets/barcode_scanner_widget.dart
 // ✅ ويدجت مسح الباركود الحقيقي - محدّث
 
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../../../core/theme/app_theme.dart';
 
 /// ويدجت مسح الباركود باستخدام mobile_scanner
 class BarcodeScannerWidget extends StatefulWidget {
@@ -82,7 +83,7 @@ class _BarcodeScannerWidgetState extends State<BarcodeScannerWidget>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
-            Icon(Icons.camera_alt, color: Color(0xFFEF4444)),
+            Icon(Icons.camera_alt, color: AppColors.error),
             SizedBox(width: 12),
             Text('صلاحية الكاميرا'),
           ],
@@ -101,9 +102,7 @@ class _BarcodeScannerWidgetState extends State<BarcodeScannerWidget>
               Navigator.pop(ctx);
               openAppSettings();
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1A1A2E),
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
             child: const Text('فتح الإعدادات'),
           ),
         ],
@@ -210,7 +209,7 @@ class _BarcodeScannerWidgetState extends State<BarcodeScannerWidget>
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         decoration: BoxDecoration(
                           color: _isScanning
-                              ? const Color(0xFF1A1A2E)
+                              ? AppColors.primary
                               : Colors.grey.shade100,
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -247,7 +246,7 @@ class _BarcodeScannerWidgetState extends State<BarcodeScannerWidget>
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         decoration: BoxDecoration(
                           color: !_isScanning
-                              ? const Color(0xFF1A1A2E)
+                              ? AppColors.primary
                               : Colors.grey.shade100,
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -315,7 +314,7 @@ class _BarcodeScannerWidgetState extends State<BarcodeScannerWidget>
               icon: const Icon(Icons.settings),
               label: const Text('فتح الإعدادات'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1A1A2E),
+                backgroundColor: AppColors.primary,
                 padding: const EdgeInsets.symmetric(
                   horizontal: 24,
                   vertical: 12,
@@ -333,7 +332,7 @@ class _BarcodeScannerWidgetState extends State<BarcodeScannerWidget>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 10,
             spreadRadius: 2,
           ),
@@ -373,7 +372,7 @@ class _BarcodeScannerWidgetState extends State<BarcodeScannerWidget>
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.7),
+                  color: Colors.black.withValues(alpha: 0.7),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -384,7 +383,7 @@ class _BarcodeScannerWidgetState extends State<BarcodeScannerWidget>
                           ? Icons.check_circle
                           : Icons.center_focus_weak,
                       color: _isProcessing
-                          ? const Color(0xFF10B981)
+                          ? AppColors.success
                           : Colors.white,
                     ),
                     const SizedBox(width: 12),
@@ -394,7 +393,7 @@ class _BarcodeScannerWidgetState extends State<BarcodeScannerWidget>
                           : 'وجّه الكاميرا نحو الباركود',
                       style: TextStyle(
                         color: _isProcessing
-                            ? const Color(0xFF10B981)
+                            ? AppColors.success
                             : Colors.white,
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -459,8 +458,8 @@ class _BarcodeScannerWidgetState extends State<BarcodeScannerWidget>
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(
-                        color: Color(0xFF1A1A2E),
+                      borderSide: BorderSide(
+                        color: AppColors.primary,
                         width: 2,
                       ),
                     ),
@@ -481,7 +480,7 @@ class _BarcodeScannerWidgetState extends State<BarcodeScannerWidget>
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1A1A2E),
+                      backgroundColor: AppColors.primary,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -523,7 +522,7 @@ class ScannerOverlayPainter extends CustomPainter {
         RRect.fromRectAndRadius(scanWindow, const Radius.circular(12)),
       );
 
-    final backgroundPaint = Paint()..color = Colors.black.withOpacity(0.5);
+    final backgroundPaint = Paint()..color = Colors.black.withValues(alpha: 0.5);
 
     canvas.drawPath(
       Path.combine(PathOperation.difference, backgroundPath, windowPath),
@@ -543,7 +542,7 @@ class ScannerOverlayPainter extends CustomPainter {
 
     // الزوايا الملونة
     final cornerPaint = Paint()
-      ..color = const Color(0xFF10B981)
+      ..color = AppColors.success
       ..strokeWidth = 4
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;
@@ -603,7 +602,7 @@ class ScannerOverlayPainter extends CustomPainter {
       ..shader = LinearGradient(
         colors: [
           Colors.transparent,
-          const Color(0xFF10B981).withOpacity(0.8),
+          AppColors.success.withValues(alpha: 0.8),
           Colors.transparent,
         ],
       ).createShader(Rect.fromLTWH(scanWindow.left, 0, scanWindow.width, 2));
@@ -621,3 +620,5 @@ class ScannerOverlayPainter extends CustomPainter {
     return oldDelegate.animation != animation;
   }
 }
+
+

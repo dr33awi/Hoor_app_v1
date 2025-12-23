@@ -1,10 +1,11 @@
-// lib/core/services/print_service.dart
+// lib/core/services/utilities/print_service.dart
 // خدمة الطباعة - للباركود والفواتير
 
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import '../../theme/app_theme.dart';
 
 /// خدمة الطباعة
 class PrintService {
@@ -18,7 +19,9 @@ class PrintService {
       RenderRepaintBoundary boundary =
           key.currentContext!.findRenderObject() as RenderRepaintBoundary;
       ui.Image image = await boundary.toImage(pixelRatio: 3.0);
-      ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      ByteData? byteData = await image.toByteData(
+        format: ui.ImageByteFormat.png,
+      );
       return byteData?.buffer.asUint8List();
     } catch (e) {
       debugPrint('Error converting widget to image: $e');
@@ -62,26 +65,20 @@ class BarcodeLabelWidget extends StatelessWidget {
             // اسم المنتج
             Text(
               productName,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 4),
-            
+
             // اللون والمقاس
             Text(
               variant,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade700,
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
             ),
             const SizedBox(height: 8),
-            
+
             // الباركود
             Container(
               height: 50,
@@ -95,7 +92,7 @@ class BarcodeLabelWidget extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4),
-            
+
             // رقم الباركود
             Text(
               barcode,
@@ -106,12 +103,12 @@ class BarcodeLabelWidget extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            
+
             // السعر
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
-                color: const Color(0xFF1A1A2E),
+                color: AppColors.primary,
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
@@ -145,7 +142,7 @@ class SimpleBarcodePatinterForLabel extends CustomPainter {
     // رسم أشرطة بسيطة بناءً على البيانات
     final barWidth = size.width / (data.length * 3 + 10);
     double x = barWidth * 2;
-    
+
     // شريط البداية
     canvas.drawRect(Rect.fromLTWH(x, 0, barWidth, size.height), paint);
     x += barWidth * 2;
@@ -155,14 +152,11 @@ class SimpleBarcodePatinterForLabel extends CustomPainter {
     // رسم الأشرطة بناءً على الأحرف
     for (int i = 0; i < data.length; i++) {
       final charCode = data.codeUnitAt(i);
-      
+
       // رسم نمط بناءً على كود الحرف
       for (int j = 0; j < 3; j++) {
         if ((charCode >> j) & 1 == 1) {
-          canvas.drawRect(
-            Rect.fromLTWH(x, 0, barWidth, size.height),
-            paint,
-          );
+          canvas.drawRect(Rect.fromLTWH(x, 0, barWidth, size.height), paint);
         }
         x += barWidth;
       }
@@ -220,24 +214,18 @@ class InvoicePrintWidget extends StatelessWidget {
             // الشعار والعنوان
             const Text(
               '🥾 متجر الأحذية',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
             Text(
               'فاتورة مبيعات',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
             ),
             const SizedBox(height: 12),
-            
+
             // خط فاصل
             Divider(color: Colors.grey.shade300, thickness: 1),
-            
+
             // معلومات الفاتورة
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -263,16 +251,13 @@ class InvoicePrintWidget extends StatelessWidget {
                   'التاريخ:',
                   style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                 ),
-                Text(
-                  _formatDate(date),
-                  style: const TextStyle(fontSize: 12),
-                ),
+                Text(_formatDate(date), style: const TextStyle(fontSize: 12)),
               ],
             ),
-            
+
             const SizedBox(height: 12),
             Divider(color: Colors.grey.shade300, thickness: 1),
-            
+
             // عناوين الجدول
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
@@ -314,57 +299,59 @@ class InvoicePrintWidget extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             Divider(color: Colors.grey.shade200),
-            
+
             // المنتجات
-            ...items.map((item) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.name,
-                          style: const TextStyle(fontSize: 12),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          item.variant,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey.shade600,
+            ...items.map(
+              (item) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.name,
+                            style: const TextStyle(fontSize: 12),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                      ],
+                          Text(
+                            item.variant,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      '${item.quantity}',
-                      style: const TextStyle(fontSize: 12),
-                      textAlign: TextAlign.center,
+                    Expanded(
+                      child: Text(
+                        '${item.quantity}',
+                        style: const TextStyle(fontSize: 12),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      '${item.total.toStringAsFixed(0)}',
-                      style: const TextStyle(fontSize: 12),
-                      textAlign: TextAlign.left,
+                    Expanded(
+                      child: Text(
+                        '${item.total.toStringAsFixed(0)}',
+                        style: const TextStyle(fontSize: 12),
+                        textAlign: TextAlign.left,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            )),
-            
+            ),
+
             const SizedBox(height: 8),
             Divider(color: Colors.grey.shade300, thickness: 1),
-            
+
             // المجموع
             const SizedBox(height: 8),
             Row(
@@ -400,7 +387,7 @@ class InvoicePrintWidget extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color(0xFF1A1A2E),
+                color: AppColors.primary,
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Row(
@@ -425,7 +412,7 @@ class InvoicePrintWidget extends StatelessWidget {
                 ],
               ),
             ),
-            
+
             if (notes != null && notes!.isNotEmpty) ...[
               const SizedBox(height: 12),
               Container(
@@ -437,33 +424,24 @@ class InvoicePrintWidget extends StatelessWidget {
                 ),
                 child: Text(
                   'ملاحظات: $notes',
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: Colors.grey.shade700,
-                  ),
+                  style: TextStyle(fontSize: 10, color: Colors.grey.shade700),
                 ),
               ),
             ],
-            
+
             const SizedBox(height: 16),
             Divider(color: Colors.grey.shade200),
             const SizedBox(height: 8),
-            
+
             // رسالة الشكر
             const Text(
               'شكراً لتسوقكم معنا',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 4),
             Text(
               'البضاعة المباعة لا ترد ولا تستبدل',
-              style: TextStyle(
-                fontSize: 10,
-                color: Colors.grey.shade500,
-              ),
+              style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
             ),
           ],
         ),

@@ -1,19 +1,20 @@
-// lib/features/sales/services/sale_service.dart
-// خدمة المبيعات (محدّث - بدون ضريبة وطريقة دفع)
+// lib/core/services/business/sale_service.dart
+// خدمة المبيعات - إدارة الفواتير والمبيعات
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../constants/app_constants.dart';
-import 'base_service.dart';
-import 'firebase_service.dart';
+import '../../constants/app_constants.dart';
+import '../base/base_service.dart';
+import '../base/logger_service.dart';
+import '../infrastructure/firebase_service.dart';
 import 'auth_service.dart';
 import 'audit_service.dart';
-import 'logger_service.dart';
-import '../../features/sales/models/sale_model.dart';
+import '../../../features/sales/models/sale_model.dart';
 
+/// خدمة المبيعات
 class SaleService extends BaseService {
-  final FirebaseService _firebase = FirebaseService();
-  final AuthService _auth = AuthService();
-  final AuditService _audit = AuditService();
+  FirebaseService get _firebase => FirebaseService();
+  AuthService get _auth => AuthService();
+  AuditService get _audit => AuditService();
   final String _collection = AppConstants.salesCollection;
 
   static final SaleService _instance = SaleService._internal();
@@ -310,7 +311,7 @@ class SaleService extends BaseService {
   }
 }
 
-/// تقرير المبيعات (مبسّط - بدون ضريبة وطرق دفع)
+/// تقرير المبيعات
 class SalesReport {
   final int totalOrders;
   final int totalItems;

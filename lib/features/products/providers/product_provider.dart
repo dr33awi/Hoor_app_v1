@@ -4,12 +4,14 @@
 import 'package:flutter/foundation.dart';
 import '../models/product_model.dart';
 import '../models/category_model.dart';
-import '../../../core/services/product_service.dart';
-import '../../../core/services/category_service.dart';
+import '../../../core/services/service_locator.dart';
+import '../../../core/services/business/product_service.dart';
+import '../../../core/services/business/category_service.dart';
 
 class ProductProvider extends ChangeNotifier {
-  final ProductService _productService = ProductService();
-  final CategoryService _categoryService = CategoryService();
+  // استخدام Service Locator بدلاً من إنشاء instances جديدة
+  ProductService get _productService => sl.products;
+  CategoryService get _categoryService => sl.categories;
 
   List<ProductModel> _products = [];
   List<ProductModel> _filteredProducts = [];

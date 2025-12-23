@@ -1,10 +1,10 @@
-// lib/features/sales/screens/sale_details_screen.dart
+﻿// lib/features/sales/screens/sale_details_screen.dart
 // شاشة تفاصيل الفاتورة - تصميم حديث (محدّث)
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import '../../../core/constants/app_constants.dart';
+import '../../../core/theme/app_theme.dart';
 import '../providers/sale_provider.dart';
 import '../models/sale_model.dart';
 
@@ -19,16 +19,16 @@ class SaleDetailsScreen extends StatelessWidget {
     final dateFormatter = DateFormat('dd MMMM yyyy - hh:mm a', 'ar');
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
           icon: const Icon(
             Icons.arrow_back_ios_rounded,
             size: 18,
-            color: Color(0xFF1A1A2E),
+            color: AppColors.primary,
           ),
         ),
         title: Text(
@@ -36,14 +36,14 @@ class SaleDetailsScreen extends StatelessWidget {
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF1A1A2E),
+            color: AppColors.primary,
           ),
         ),
         centerTitle: true,
         actions: [
           if (!sale.isCancelled)
             PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, color: Color(0xFF1A1A2E)),
+              icon: const Icon(Icons.more_vert, color: AppColors.primary),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -66,12 +66,12 @@ class SaleDetailsScreen extends StatelessWidget {
                         Icon(
                           Icons.cancel_outlined,
                           size: 20,
-                          color: Color(0xFFEF4444),
+                          color: AppColors.error,
                         ),
                         SizedBox(width: 12),
                         Text(
                           'إلغاء',
-                          style: TextStyle(color: Color(0xFFEF4444)),
+                          style: TextStyle(color: AppColors.error),
                         ),
                       ],
                     ),
@@ -91,7 +91,7 @@ class SaleDetailsScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               decoration: BoxDecoration(
-                color: _statusColor().withOpacity(0.1),
+                color: _statusColor().withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
@@ -247,15 +247,15 @@ class SaleDetailsScreen extends StatelessWidget {
                     _summaryRow(
                       'الخصم${sale.discountPercent > 0 ? ' (${sale.discountPercent}%)' : ''}',
                       '- ${formatter.format(sale.discount)} ر.س',
-                      color: const Color(0xFFEF4444),
+                      color: AppColors.error,
                     ),
                   ],
-                  Divider(height: 24, color: Colors.grey.shade100),
+                  Divider(height: 24, color: AppColors.border),
                   _summaryRow(
                     'الإجمالي',
                     '${formatter.format(sale.total)} ر.س',
                     isBold: true,
-                    color: const Color(0xFF1A1A2E),
+                    color: AppColors.primary,
                   ),
                 ],
               ),
@@ -346,11 +346,11 @@ class SaleDetailsScreen extends StatelessWidget {
   Color _statusColor() {
     switch (sale.status) {
       case 'مكتمل':
-        return const Color(0xFF10B981);
+        return AppColors.success;
       case 'ملغي':
-        return const Color(0xFFEF4444);
+        return AppColors.error;
       case 'معلق':
-        return const Color(0xFFD97706);
+        return AppColors.warning;
       default:
         return Colors.grey;
     }
@@ -383,12 +383,12 @@ class SaleDetailsScreen extends StatelessWidget {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFEE2E2),
+                  color: AppColors.errorLight,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Icon(
                   Icons.cancel_outlined,
-                  color: Color(0xFFEF4444),
+                  color: AppColors.error,
                   size: 28,
                 ),
               ),
@@ -434,7 +434,7 @@ class SaleDetailsScreen extends StatelessWidget {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: const Text('تم إلغاء الفاتورة'),
-                              backgroundColor: const Color(0xFF10B981),
+                              backgroundColor: AppColors.success,
                               behavior: SnackBarBehavior.floating,
                               margin: const EdgeInsets.all(20),
                               shape: RoundedRectangleBorder(
@@ -445,7 +445,7 @@ class SaleDetailsScreen extends StatelessWidget {
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFEF4444),
+                        backgroundColor: AppColors.error,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
@@ -464,3 +464,6 @@ class SaleDetailsScreen extends StatelessWidget {
     );
   }
 }
+
+
+

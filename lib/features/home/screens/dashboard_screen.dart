@@ -1,4 +1,4 @@
-// lib/features/home/screens/dashboard_screen.dart
+﻿// lib/features/home/screens/dashboard_screen.dart
 // شاشة لوحة التحكم - تصميم حديث
 
 import 'package:flutter/material.dart';
@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../products/providers/product_provider.dart';
 import '../../sales/providers/sale_provider.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/widgets.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -32,7 +34,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     return RefreshIndicator(
       onRefresh: _loadData,
-      color: const Color(0xFF1A1A2E),
+      color: AppColors.primary,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(20),
@@ -71,12 +73,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
         ),
         const SizedBox(height: 4),
-        const Text(
+        Text(
           'نظرة عامة على المبيعات',
           style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF1A1A2E),
+            color: AppColors.primary,
           ),
         ),
       ],
@@ -93,20 +95,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Row(
               children: [
                 Expanded(
-                  child: _StatCard(
+                  child: StatCard(
                     title: 'مبيعات اليوم',
                     value: '${formatter.format(saleProvider.todayTotal)} ر.س',
                     icon: Icons.trending_up_rounded,
-                    color: const Color(0xFF10B981),
+                    color: AppColors.success,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _StatCard(
+                  child: StatCard(
                     title: 'فواتير اليوم',
                     value: '${saleProvider.todayOrdersCount}',
                     icon: Icons.receipt_long_rounded,
-                    color: const Color(0xFF3B82F6),
+                    color: AppColors.info,
                   ),
                 ),
               ],
@@ -115,23 +117,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Row(
               children: [
                 Expanded(
-                  child: _StatCard(
+                  child: StatCard(
                     title: 'المنتجات',
                     value:
                         '${productProvider.allProducts.where((p) => p.isActive).length}',
                     icon: Icons.inventory_2_rounded,
-                    color: const Color(0xFF8B5CF6),
+                    color: AppColors.purple,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _StatCard(
+                  child: StatCard(
                     title: 'منخفض المخزون',
                     value: '${productProvider.lowStockProducts.length}',
                     icon: Icons.warning_rounded,
                     color: productProvider.lowStockProducts.isEmpty
                         ? Colors.grey.shade400
-                        : const Color(0xFFD97706),
+                        : AppColors.warning,
                   ),
                 ),
               ],
@@ -156,12 +158,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFEF3C7),
+                    color: AppColors.warningLight,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(
                     Icons.warning_rounded,
-                    color: Color(0xFFD97706),
+                    color: AppColors.warning,
                     size: 18,
                   ),
                 ),
@@ -171,7 +173,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF1A1A2E),
+                    color: AppColors.primary,
                   ),
                 ),
                 const Spacer(),
@@ -181,13 +183,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFEF3C7),
+                    color: AppColors.warningLight,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     '${lowStock.length}',
                     style: const TextStyle(
-                      color: Color(0xFFD97706),
+                      color: AppColors.warning,
                       fontWeight: FontWeight.w600,
                       fontSize: 13,
                     ),
@@ -256,8 +258,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                           decoration: BoxDecoration(
                             color: product.isOutOfStock
-                                ? const Color(0xFFFEE2E2)
-                                : const Color(0xFFFEF3C7),
+                                ? AppColors.errorLight
+                                : AppColors.warningLight,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -266,8 +268,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 : '${product.totalQuantity}',
                             style: TextStyle(
                               color: product.isOutOfStock
-                                  ? const Color(0xFFEF4444)
-                                  : const Color(0xFFD97706),
+                                  ? AppColors.error
+                                  : AppColors.warning,
                               fontWeight: FontWeight.w600,
                               fontSize: 12,
                             ),
@@ -298,12 +300,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEDE9FE),
+                    color: AppColors.purpleLight,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(
                     Icons.history_rounded,
-                    color: Color(0xFF8B5CF6),
+                    color: AppColors.purple,
                     size: 18,
                   ),
                 ),
@@ -313,7 +315,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF1A1A2E),
+                    color: AppColors.primary,
                   ),
                 ),
               ],
@@ -326,28 +328,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 border: Border.all(color: Colors.grey.shade100),
               ),
               child: recentSales.isEmpty
-                  ? Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Center(
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.receipt_long_outlined,
-                              size: 40,
-                              color: Colors.grey.shade300,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'لا توجد فواتير بعد',
-                              style: TextStyle(
-                                color: Colors.grey.shade500,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
+                  ? EmptyState.sales()
                   : ListView.separated(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
@@ -372,7 +353,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 decoration: BoxDecoration(
                                   color: _getStatusColor(
                                     sale.status,
-                                  ).withOpacity(0.1),
+                                  ).withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Icon(
@@ -438,66 +419,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Color _getStatusColor(String status) {
     switch (status) {
       case 'مكتمل':
-        return const Color(0xFF10B981);
+        return AppColors.success;
       case 'ملغي':
-        return const Color(0xFFEF4444);
+        return AppColors.error;
       case 'معلق':
-        return const Color(0xFFD97706);
+        return AppColors.warning;
       default:
         return Colors.grey.shade500;
     }
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final IconData icon;
-  final Color color;
-
-  const _StatCard({
-    required this.title,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade100),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(icon, color: color, size: 20),
-          ),
-          const SizedBox(height: 14),
-          Text(
-            title,
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

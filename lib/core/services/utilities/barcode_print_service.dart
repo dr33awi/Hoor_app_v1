@@ -1,4 +1,4 @@
-// lib/core/services/barcode_print_service.dart
+// lib/core/services/utilities/barcode_print_service.dart
 // ✅ خدمة طباعة الباركود - بسيطة وفعالة
 
 import 'package:pdf/pdf.dart';

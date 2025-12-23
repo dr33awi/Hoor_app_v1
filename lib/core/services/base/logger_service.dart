@@ -1,7 +1,10 @@
-// lib/core/services/logger_service.dart
+// lib/core/services/base/logger_service.dart
+// خدمة السجلات - تسجيل الأحداث والأخطاء
+
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 
+/// خدمة تسجيل الأحداث
 class AppLogger {
   static final DateFormat _timeFormat = DateFormat('HH:mm:ss.SSS');
   static final Map<String, DateTime> _operations = {};

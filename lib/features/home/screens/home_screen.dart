@@ -1,4 +1,4 @@
-// lib/features/home/screens/home_screen.dart
+﻿// lib/features/home/screens/home_screen.dart
 // الشاشة الرئيسية - تصميم حديث
 
 import 'package:flutter/material.dart';
@@ -12,6 +12,7 @@ import '../../sales/screens/sales_screen.dart';
 import '../../sales/screens/new_sale_screen.dart';
 import '../../reports/screens/reports_screen.dart';
 import 'dashboard_screen.dart';
+import '../../../core/theme/app_theme.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -49,7 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final authProvider = context.watch<AuthProvider>();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: AppColors.scaffoldBg,
       appBar: _buildAppBar(authProvider),
       body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: _buildBottomNav(),
@@ -63,10 +64,10 @@ class _HomeScreenState extends State<HomeScreen> {
       surfaceTintColor: Colors.transparent,
       title: Text(
         _getTitle(),
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.w700,
-          color: Color(0xFF1A1A2E),
+          color: AppColors.primary,
         ),
       ),
       centerTitle: true,
@@ -79,10 +80,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.people_outline,
                 size: 20,
-                color: Color(0xFF1A1A2E),
+                color: AppColors.primary,
               ),
             ),
             onPressed: () => Navigator.push(
@@ -97,10 +98,10 @@ class _HomeScreenState extends State<HomeScreen> {
               color: Colors.grey.shade100,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.refresh_rounded,
               size: 20,
-              color: Color(0xFF1A1A2E),
+              color: AppColors.primary,
             ),
           ),
           onPressed: _loadData,
@@ -119,7 +120,7 @@ class _HomeScreenState extends State<HomeScreen> {
         width: 36,
         height: 36,
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1A2E),
+          color: AppColors.primary,
           borderRadius: BorderRadius.circular(10),
         ),
         child: authProvider.userPhoto != null
@@ -157,7 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: authProvider.isAdmin
-                          ? const Color(0xFF1A1A2E).withOpacity(0.1)
+                          ? AppColors.primary.withValues(alpha: 0.1)
                           : Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(6),
                     ),
@@ -167,7 +168,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                         color: authProvider.isAdmin
-                            ? const Color(0xFF1A1A2E)
+                            ? AppColors.primary
                             : Colors.grey.shade600,
                       ),
                     ),
@@ -180,13 +181,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         vertical: 3,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEA4335).withOpacity(0.1),
+                        color: AppColors.google.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: const Icon(
                         Icons.g_mobiledata,
                         size: 14,
-                        color: Color(0xFFEA4335),
+                        color: AppColors.google,
                       ),
                     ),
                   ],
@@ -240,9 +241,9 @@ class _HomeScreenState extends State<HomeScreen> {
           value: 'logout',
           child: Row(
             children: [
-              Icon(Icons.logout_rounded, size: 20, color: Color(0xFFEF4444)),
+              Icon(Icons.logout_rounded, size: 20, color: AppColors.error),
               SizedBox(width: 12),
-              Text('تسجيل الخروج', style: TextStyle(color: Color(0xFFEF4444))),
+              Text('تسجيل الخروج', style: TextStyle(color: AppColors.error)),
             ],
           ),
         ),
@@ -340,7 +341,7 @@ class _HomeScreenState extends State<HomeScreen> {
           width: 56,
           height: 56,
           decoration: BoxDecoration(
-            color: const Color(0xFF1A1A2E),
+            color: AppColors.primary,
             borderRadius: BorderRadius.circular(16),
           ),
           child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
@@ -354,7 +355,7 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFF1A1A2E).withOpacity(0.1)
+              ? AppColors.primary.withValues(alpha: 0.1)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
         ),
@@ -363,9 +364,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Icon(
               isSelected ? activeIcon : icon,
-              color: isSelected
-                  ? const Color(0xFF1A1A2E)
-                  : Colors.grey.shade400,
+              color: isSelected ? AppColors.primary : Colors.grey.shade400,
               size: 24,
             ),
             const SizedBox(height: 4),
@@ -374,9 +373,7 @@ class _HomeScreenState extends State<HomeScreen> {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected
-                    ? const Color(0xFF1A1A2E)
-                    : Colors.grey.shade400,
+                color: isSelected ? AppColors.primary : Colors.grey.shade400,
               ),
             ),
           ],
@@ -406,7 +403,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('$feature - قريباً!'),
-        backgroundColor: const Color(0xFF1A1A2E),
+        backgroundColor: AppColors.primary,
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(20),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -428,12 +425,12 @@ class _HomeScreenState extends State<HomeScreen> {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFEE2E2),
+                  color: AppColors.errorLight,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Icon(
                   Icons.logout_rounded,
-                  color: Color(0xFFEF4444),
+                  color: AppColors.error,
                   size: 28,
                 ),
               ),
@@ -471,7 +468,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: ElevatedButton(
                       onPressed: () => Navigator.pop(context, true),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFEF4444),
+                        backgroundColor: AppColors.error,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
@@ -490,3 +487,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+
+
+

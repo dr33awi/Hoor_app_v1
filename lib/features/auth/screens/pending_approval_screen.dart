@@ -1,4 +1,4 @@
-// lib/features/auth/screens/pending_approval_screen.dart
+﻿// lib/features/auth/screens/pending_approval_screen.dart
 // شاشة انتظار الموافقة - تصميم حديث
 
 import 'dart:async';
@@ -7,6 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../../home/screens/home_screen.dart';
+import '../../../core/theme/app_theme.dart';
 
 class PendingApprovalScreen extends StatefulWidget {
   final String email;
@@ -110,12 +111,12 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
                   width: 64,
                   height: 64,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withOpacity(0.1),
+                    color: AppColors.success.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: const Icon(
                     Icons.check_circle_rounded,
-                    color: Color(0xFF10B981),
+                    color: AppColors.success,
                     size: 36,
                   ),
                 ),
@@ -125,7 +126,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF1A1A2E),
+                    color: AppColors.primary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -139,7 +140,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
                   height: 28,
                   child: CircularProgressIndicator(
                     strokeWidth: 2.5,
-                    color: Color(0xFF10B981),
+                    color: AppColors.success,
                   ),
                 ),
               ],
@@ -212,8 +213,8 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
       SnackBar(
         content: Text(message),
         backgroundColor: isSuccess
-            ? const Color(0xFF10B981)
-            : const Color(0xFFEF4444),
+            ? AppColors.success
+            : AppColors.error,
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(20),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -283,9 +284,9 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
       height: 32,
       decoration: BoxDecoration(
         color: done
-            ? const Color(0xFF10B981)
+            ? AppColors.success
             : active
-            ? const Color(0xFF1A1A2E)
+            ? AppColors.primary
             : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(10),
       ),
@@ -309,7 +310,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
       width: 40,
       height: 2,
       margin: const EdgeInsets.symmetric(horizontal: 8),
-      color: active ? const Color(0xFF10B981) : Colors.grey.shade200,
+      color: active ? AppColors.success : Colors.grey.shade200,
     );
   }
 
@@ -321,13 +322,13 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
           width: 72,
           height: 72,
           decoration: BoxDecoration(
-            color: const Color(0xFFFEF3C7),
+            color: AppColors.warningLight,
             borderRadius: BorderRadius.circular(20),
           ),
           child: const Icon(
             Icons.hourglass_top_rounded,
             size: 36,
-            color: Color(0xFFD97706),
+            color: AppColors.warning,
           ),
         ),
 
@@ -338,7 +339,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
           style: const TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF1A1A2E),
+            color: AppColors.primary,
           ),
         ),
 
@@ -363,7 +364,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
             style: const TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 14,
-              color: Color(0xFF1A1A2E),
+              color: AppColors.primary,
             ),
             textDirection: TextDirection.ltr,
           ),
@@ -375,7 +376,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: const Color(0xFF10B981).withOpacity(0.08),
+            color: AppColors.success.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Row(
@@ -386,14 +387,14 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
                 height: 14,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: const Color(0xFF10B981),
+                  color: AppColors.success,
                 ),
               ),
               const SizedBox(width: 10),
               const Text(
                 'نراقب حالة طلبك',
                 style: TextStyle(
-                  color: Color(0xFF10B981),
+                  color: AppColors.success,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                 ),
@@ -408,7 +409,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: const Color(0xFFF0F9FF),
+            color: AppColors.skyBlueLight,
             borderRadius: BorderRadius.circular(14),
           ),
           child: Column(
@@ -419,14 +420,14 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
                   Icon(
                     Icons.info_outline,
                     size: 18,
-                    color: const Color(0xFF0369A1),
+                    color: AppColors.skyBlue,
                   ),
                   const SizedBox(width: 8),
                   const Text(
                     'ماذا يحدث الآن؟',
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF0369A1),
+                      color: AppColors.skyBlue,
                       fontSize: 14,
                     ),
                   ),
@@ -465,7 +466,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1A1A2E),
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
@@ -510,16 +511,19 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
           width: 6,
           height: 6,
           decoration: BoxDecoration(
-            color: const Color(0xFF0369A1),
+            color: AppColors.skyBlue,
             borderRadius: BorderRadius.circular(3),
           ),
         ),
         const SizedBox(width: 10),
         Text(
           text,
-          style: const TextStyle(fontSize: 13, color: Color(0xFF374151)),
+          style: const TextStyle(fontSize: 13, color: AppColors.gray700),
         ),
       ],
     );
   }
 }
+
+
+

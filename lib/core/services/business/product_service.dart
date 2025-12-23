@@ -1,14 +1,15 @@
-// lib/features/products/services/product_service.dart
-// خدمة المنتجات - بدون صور
+// lib/core/services/business/product_service.dart
+// خدمة المنتجات - إدارة المنتجات والمخزون
 
 import 'package:uuid/uuid.dart';
-import '../constants/app_constants.dart';
-import 'base_service.dart';
-import 'firebase_service.dart';
-import '../../features/products/models/product_model.dart';
+import '../../constants/app_constants.dart';
+import '../base/base_service.dart';
+import '../infrastructure/firebase_service.dart';
+import '../../../features/products/models/product_model.dart';
 
+/// خدمة المنتجات
 class ProductService extends BaseService {
-  final FirebaseService _firebase = FirebaseService();
+  FirebaseService get _firebase => FirebaseService();
   final String _collection = AppConstants.productsCollection;
 
   // Singleton
@@ -165,7 +166,6 @@ class ProductService extends BaseService {
   ) async {
     try {
       final result = await getAllProducts();
-
       if (!result.success) {
         return ServiceResult.failure(result.error!);
       }
@@ -259,7 +259,7 @@ class ProductService extends BaseService {
     }
   }
 
-  /// زيادة المخزون (إرجاع أو استلام)
+  /// زيادة المخزون
   Future<ServiceResult<void>> increaseInventory(
     String productId,
     String color,

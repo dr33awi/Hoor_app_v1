@@ -1,11 +1,25 @@
-// lib/core/services/audit_service.dart
-// خدمة سجل التدقيق - تتبع جميع العمليات
+// lib/core/services/business/audit_service.dart
+// خدمة التدقيق - تتبع جميع العمليات
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../constants/app_constants.dart';
-import 'firebase_service.dart';
-import 'base_service.dart';
-import 'logger_service.dart';
+import '../../constants/app_constants.dart';
+import '../base/base_service.dart';
+import '../base/logger_service.dart';
+import '../infrastructure/firebase_service.dart';
+
+/// أنواع الأحداث
+class AuditAction {
+  static const String login = 'login';
+  static const String logout = 'logout';
+  static const String sale = 'sale';
+  static const String cancelSale = 'cancel_sale';
+  static const String addProduct = 'add_product';
+  static const String updateProduct = 'update_product';
+  static const String deleteProduct = 'delete_product';
+  static const String updateStock = 'update_stock';
+  static const String approveUser = 'approve_user';
+  static const String rejectUser = 'reject_user';
+}
 
 /// نموذج سجل التدقيق
 class AuditLog {
@@ -71,9 +85,9 @@ class AuditLog {
   }
 }
 
-/// خدمة سجل التدقيق
+/// خدمة التدقيق
 class AuditService extends BaseService {
-  final FirebaseService _firebase = FirebaseService();
+  FirebaseService get _firebase => FirebaseService();
   final String _collection = AppConstants.auditLogsCollection;
 
   // Singleton
@@ -81,17 +95,14 @@ class AuditService extends BaseService {
   factory AuditService() => _instance;
   AuditService._internal();
 
-  // معلومات المستخدم الحالي
   String? _currentUserId;
   String? _currentUserName;
 
-  /// تعيين المستخدم الحالي
   void setCurrentUser(String userId, String userName) {
     _currentUserId = userId;
     _currentUserName = userName;
   }
 
-  /// مسح المستخدم الحالي
   void clearCurrentUser() {
     _currentUserId = null;
     _currentUserName = null;
@@ -108,11 +119,10 @@ class AuditService extends BaseService {
   }) async {
     try {
       if (_currentUserId == null) {
-        AppLogger.w('محاولة تسجيل حدث بدون مستخدم');
-        return ServiceResult.success(); // لا نفشل العملية
+        return ServiceResult.success();
       }
 
-      final log = AuditLog(
+      final auditLog = AuditLog(
         id: '',
         action: action,
         userId: _currentUserId!,
@@ -125,32 +135,26 @@ class AuditService extends BaseService {
         timestamp: DateTime.now(),
       );
 
-      await _firebase.add(_collection, log.toMap());
+      await _firebase.add(_collection, auditLog.toMap());
       AppLogger.d('تم تسجيل حدث: $action');
       return ServiceResult.success();
     } catch (e) {
       AppLogger.e('خطأ في تسجيل الحدث', error: e);
-      return ServiceResult.success(); // لا نفشل العملية الأصلية
+      return ServiceResult.success();
     }
   }
 
-  /// تنظيف البيانات الحساسة
   Map<String, dynamic>? _sanitizeData(Map<String, dynamic>? data) {
     if (data == null) return null;
-
     final sanitized = Map<String, dynamic>.from(data);
-
-    // إزالة البيانات الحساسة
     sanitized.remove('password');
     sanitized.remove('token');
     sanitized.remove('secret');
-
     return sanitized;
   }
 
   // ==================== سجلات محددة ====================
 
-  /// تسجيل دخول
   Future<void> logLogin() async {
     await log(
       action: AuditAction.login,
@@ -158,7 +162,6 @@ class AuditService extends BaseService {
     );
   }
 
-  /// تسجيل خروج
   Future<void> logLogout() async {
     await log(
       action: AuditAction.logout,
@@ -166,7 +169,6 @@ class AuditService extends BaseService {
     );
   }
 
-  /// تسجيل عملية بيع
   Future<void> logSale({
     required String saleId,
     required String invoiceNumber,
@@ -185,7 +187,6 @@ class AuditService extends BaseService {
     );
   }
 
-  /// تسجيل إلغاء بيع
   Future<void> logCancelSale({
     required String saleId,
     required String invoiceNumber,
@@ -199,7 +200,6 @@ class AuditService extends BaseService {
     );
   }
 
-  /// تسجيل تحديث المخزون
   Future<void> logStockUpdate({
     required String productId,
     required String productName,
@@ -223,7 +223,6 @@ class AuditService extends BaseService {
     );
   }
 
-  /// تسجيل الموافقة على مستخدم
   Future<void> logApproveUser({
     required String userId,
     required String userName,
@@ -236,7 +235,6 @@ class AuditService extends BaseService {
     );
   }
 
-  /// تسجيل رفض مستخدم
   Future<void> logRejectUser({
     required String userId,
     required String userName,
@@ -252,7 +250,6 @@ class AuditService extends BaseService {
 
   // ==================== استعلامات ====================
 
-  /// جلب سجلات المستخدم
   Future<ServiceResult<List<AuditLog>>> getUserLogs(
     String userId, {
     int limit = 50,
@@ -280,54 +277,6 @@ class AuditService extends BaseService {
     }
   }
 
-  /// جلب سجلات حسب النوع
-  Future<ServiceResult<List<AuditLog>>> getLogsByAction(
-    String action, {
-    DateTime? startDate,
-    DateTime? endDate,
-    int limit = 100,
-  }) async {
-    try {
-      final result = await _firebase.getAll(
-        _collection,
-        queryBuilder: (ref) {
-          var query = ref
-              .where('action', isEqualTo: action)
-              .orderBy('timestamp', descending: true);
-
-          if (startDate != null) {
-            query = query.where(
-              'timestamp',
-              isGreaterThanOrEqualTo: Timestamp.fromDate(startDate),
-            );
-          }
-
-          if (endDate != null) {
-            query = query.where(
-              'timestamp',
-              isLessThanOrEqualTo: Timestamp.fromDate(endDate),
-            );
-          }
-
-          return query.limit(limit);
-        },
-      );
-
-      if (!result.success) {
-        return ServiceResult.failure(result.error!);
-      }
-
-      final logs = result.data!.docs
-          .map((doc) => AuditLog.fromMap(doc.id, doc.data()))
-          .toList();
-
-      return ServiceResult.success(logs);
-    } catch (e) {
-      return ServiceResult.failure(handleError(e));
-    }
-  }
-
-  /// جلب آخر السجلات
   Future<ServiceResult<List<AuditLog>>> getRecentLogs({int limit = 50}) async {
     try {
       final result = await _firebase.getAll(

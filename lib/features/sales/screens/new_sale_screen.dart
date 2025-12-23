@@ -1,10 +1,11 @@
-// lib/features/sales/screens/new_sale_screen.dart
+﻿// lib/features/sales/screens/new_sale_screen.dart
 // شاشة إنشاء فاتورة جديدة - مع دعم الباركود
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../products/providers/product_provider.dart';
 import '../../products/models/product_model.dart';
 import '../../products/widgets/barcode_scanner_widget.dart';
@@ -53,14 +54,14 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
           children: [
             // شريط البحث بالباركود
             _buildBarcodeSearchBar(productProvider, saleProvider),
-            
+
             // قائمة المنتجات
             Expanded(
               child: saleProvider.isCartEmpty
                   ? _buildEmpty()
                   : _buildCart(saleProvider, formatter),
             ),
-            
+
             // شريط الأسفل
             _buildBottom(saleProvider, productProvider, formatter),
           ],
@@ -69,7 +70,10 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     );
   }
 
-  Widget _buildBarcodeSearchBar(ProductProvider productProvider, SaleProvider saleProvider) {
+  Widget _buildBarcodeSearchBar(
+    ProductProvider productProvider,
+    SaleProvider saleProvider,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -97,11 +101,18 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                 focusNode: _focusNode,
                 decoration: InputDecoration(
                   hintText: 'امسح أو أدخل الباركود...',
-                  hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                  hintStyle: TextStyle(
+                    color: Colors.grey.shade400,
+                    fontSize: 14,
+                  ),
                   prefixIcon: Icon(Icons.qr_code, color: Colors.grey.shade400),
                   suffixIcon: _barcodeController.text.isNotEmpty
                       ? IconButton(
-                          icon: Icon(Icons.close, color: Colors.grey.shade400, size: 20),
+                          icon: Icon(
+                            Icons.close,
+                            color: Colors.grey.shade400,
+                            size: 20,
+                          ),
                           onPressed: () {
                             _barcodeController.clear();
                             setState(() {});
@@ -109,39 +120,43 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                         )
                       : null,
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
                 ),
                 onChanged: (value) => setState(() {}),
-                onSubmitted: (value) => _searchByBarcode(value, productProvider, saleProvider),
+                onSubmitted: (value) =>
+                    _searchByBarcode(value, productProvider, saleProvider),
                 textInputAction: TextInputAction.search,
               ),
             ),
           ),
-          
+
           const SizedBox(width: 8),
-          
+
           // زر المسح بالكاميرا
           GestureDetector(
             onTap: () => _openBarcodeScanner(productProvider, saleProvider),
             child: Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFF3B82F6),
+                color: AppColors.info,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(Icons.qr_code_scanner, color: Colors.white),
             ),
           ),
-          
+
           const SizedBox(width: 8),
-          
+
           // زر البحث اليدوي
           GestureDetector(
             onTap: () => _showProductsList(productProvider, saleProvider),
             child: Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: const Color(0xFF1A1A2E),
+                color: AppColors.primary,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(Icons.search, color: Colors.white),
@@ -191,7 +206,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
               _buildQuickAction(
                 icon: Icons.qr_code_scanner,
                 label: 'مسح',
-                color: const Color(0xFF3B82F6),
+                color: AppColors.info,
                 onTap: () => _openBarcodeScanner(
                   context.read<ProductProvider>(),
                   context.read<SaleProvider>(),
@@ -201,7 +216,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
               _buildQuickAction(
                 icon: Icons.search,
                 label: 'بحث',
-                color: const Color(0xFF1A1A2E),
+                color: AppColors.primary,
                 onTap: () => _showProductsList(
                   context.read<ProductProvider>(),
                   context.read<SaleProvider>(),
@@ -225,9 +240,9 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
@@ -235,10 +250,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
             const SizedBox(width: 8),
             Text(
               label,
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(color: color, fontWeight: FontWeight.w600),
             ),
           ],
         ),
@@ -259,7 +271,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
             alignment: Alignment.centerLeft,
             padding: const EdgeInsets.only(left: 20),
             decoration: BoxDecoration(
-              color: const Color(0xFFEF4444),
+              color: AppColors.error,
               borderRadius: BorderRadius.circular(14),
             ),
             child: const Icon(Icons.delete_outline, color: Colors.white),
@@ -289,7 +301,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                
+
                 // معلومات المنتج
                 Expanded(
                   child: Column(
@@ -308,26 +320,38 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                       Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.grey.shade100,
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
                               item.color,
-                              style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey.shade600,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 4),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.grey.shade100,
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
                               'مقاس ${item.size}',
-                              style: TextStyle(fontSize: 10, color: Colors.grey.shade600),
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey.shade600,
+                              ),
                             ),
                           ),
                         ],
@@ -336,7 +360,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                       Text(
                         '${formatter.format(item.unitPrice)} ر.س',
                         style: const TextStyle(
-                          color: Color(0xFF1A1A2E),
+                          color: AppColors.primary,
                           fontWeight: FontWeight.w500,
                           fontSize: 13,
                         ),
@@ -344,7 +368,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                     ],
                   ),
                 ),
-                
+
                 // التحكم بالكمية
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
@@ -365,16 +389,16 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          _qtyBtn(
-                            Icons.remove,
-                            () {
-                              if (item.quantity > 1) {
-                                saleProvider.updateCartItemQuantity(i, item.quantity - 1);
-                              } else {
-                                saleProvider.removeFromCart(i);
-                              }
-                            },
-                          ),
+                          _qtyBtn(Icons.remove, () {
+                            if (item.quantity > 1) {
+                              saleProvider.updateCartItemQuantity(
+                                i,
+                                item.quantity - 1,
+                              );
+                            } else {
+                              saleProvider.removeFromCart(i);
+                            }
+                          }),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             child: Text(
@@ -387,7 +411,10 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                           ),
                           _qtyBtn(
                             Icons.add,
-                            () => saleProvider.updateCartItemQuantity(i, item.quantity + 1),
+                            () => saleProvider.updateCartItemQuantity(
+                              i,
+                              item.quantity + 1,
+                            ),
                           ),
                         ],
                       ),
@@ -407,7 +434,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(6),
-        child: Icon(icon, size: 18, color: const Color(0xFF1A1A2E)),
+        child: Icon(icon, size: 18, color: AppColors.primary),
       ),
     );
   }
@@ -448,7 +475,10 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                       children: [
                         Text(
                           'عدد المنتجات',
-                          style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 13,
+                          ),
                         ),
                         Text(
                           '${saleProvider.cartItemsCount} قطعة',
@@ -462,7 +492,10 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                       children: [
                         Text(
                           'المجموع',
-                          style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 13,
+                          ),
                         ),
                         Text('${formatter.format(saleProvider.subtotal)} ر.س'),
                       ],
@@ -474,11 +507,14 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                         children: [
                           const Text(
                             'الخصم',
-                            style: TextStyle(color: Color(0xFFEF4444), fontSize: 13),
+                            style: TextStyle(
+                              color: AppColors.error,
+                              fontSize: 13,
+                            ),
                           ),
                           Text(
                             '- ${formatter.format(saleProvider.discount)} ر.س',
-                            style: const TextStyle(color: Color(0xFFEF4444)),
+                            style: const TextStyle(color: AppColors.error),
                           ),
                         ],
                       ),
@@ -489,14 +525,17 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                       children: [
                         const Text(
                           'الإجمالي',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                         Text(
                           '${formatter.format(saleProvider.total)} ر.س',
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF1A1A2E),
+                            color: AppColors.primary,
                           ),
                         ),
                       ],
@@ -505,7 +544,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              
+
               // صف الخصم
               Row(
                 children: [
@@ -520,10 +559,20 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                         keyboardType: TextInputType.number,
                         decoration: InputDecoration(
                           hintText: 'خصم %',
-                          hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 13),
-                          prefixIcon: Icon(Icons.discount_outlined, size: 20, color: Colors.grey.shade400),
+                          hintStyle: TextStyle(
+                            color: Colors.grey.shade400,
+                            fontSize: 13,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.discount_outlined,
+                            size: 20,
+                            color: Colors.grey.shade400,
+                          ),
                           border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
                         ),
                         onChanged: (v) {
                           final discount = double.tryParse(v) ?? 0;
@@ -538,12 +587,12 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEF4444).withOpacity(0.1),
+                        color: AppColors.error.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Icon(
                         Icons.delete_outline,
-                        color: Color(0xFFEF4444),
+                        color: AppColors.error,
                       ),
                     ),
                   ),
@@ -551,15 +600,17 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
               ),
               const SizedBox(height: 16),
             ],
-            
+
             // زر إتمام البيع
             SizedBox(
               width: double.infinity,
               height: 54,
               child: ElevatedButton(
-                onPressed: saleProvider.isCartEmpty ? null : () => _completeSale(saleProvider),
+                onPressed: saleProvider.isCartEmpty
+                    ? null
+                    : () => _completeSale(saleProvider),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF10B981),
+                  backgroundColor: AppColors.success,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   elevation: 0,
                   shape: RoundedRectangleBorder(
@@ -591,9 +642,13 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     );
   }
 
-  void _searchByBarcode(String barcode, ProductProvider productProvider, SaleProvider saleProvider) {
+  void _searchByBarcode(
+    String barcode,
+    ProductProvider productProvider,
+    SaleProvider saleProvider,
+  ) {
     if (barcode.isEmpty) return;
-    
+
     // البحث في المنتجات
     for (final product in productProvider.allProducts) {
       // البحث في الباركود الأساسي
@@ -602,7 +657,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
         _barcodeController.clear();
         return;
       }
-      
+
       // البحث في باركودات المتغيرات
       final variant = product.findVariantByBarcode(barcode);
       if (variant != null) {
@@ -611,13 +666,16 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
         return;
       }
     }
-    
+
     // لم يتم العثور على المنتج
     _showSnackBar('لم يتم العثور على منتج بهذا الباركود', isError: true);
     _barcodeController.clear();
   }
 
-  void _openBarcodeScanner(ProductProvider productProvider, SaleProvider saleProvider) {
+  void _openBarcodeScanner(
+    ProductProvider productProvider,
+    SaleProvider saleProvider,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -631,7 +689,10 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     );
   }
 
-  void _showProductsList(ProductProvider productProvider, SaleProvider saleProvider) {
+  void _showProductsList(
+    ProductProvider productProvider,
+    SaleProvider saleProvider,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -662,9 +723,11 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
           final availableQty = selectedColor != null && selectedSize != null
               ? product.getQuantity(selectedColor!, selectedSize!)
               : 0;
-          
+
           return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             title: Row(
               children: [
                 Container(
@@ -673,7 +736,11 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                     color: Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(Icons.shopping_bag_outlined, color: Colors.grey.shade600, size: 20),
+                  child: Icon(
+                    Icons.shopping_bag_outlined,
+                    color: Colors.grey.shade600,
+                    size: 20,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -682,13 +749,19 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                     children: [
                       Text(
                         product.name,
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
                         '${product.price.toStringAsFixed(0)} ر.س',
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
                       ),
                     ],
                   ),
@@ -700,28 +773,40 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('اللون:', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
+                  const Text(
+                    'اللون:',
+                    style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                  ),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: product.colors.map((c) => ChoiceChip(
-                      label: Text(c),
-                      selected: selectedColor == c,
-                      onSelected: (s) => setState(() {
-                        selectedColor = s ? c : null;
-                        qty = 1;
-                      }),
-                    )).toList(),
+                    children: product.colors
+                        .map(
+                          (c) => ChoiceChip(
+                            label: Text(c),
+                            selected: selectedColor == c,
+                            onSelected: (s) => setState(() {
+                              selectedColor = s ? c : null;
+                              qty = 1;
+                            }),
+                          ),
+                        )
+                        .toList(),
                   ),
                   const SizedBox(height: 16),
-                  const Text('المقاس:', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
+                  const Text(
+                    'المقاس:',
+                    style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                  ),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: product.sizes.map((s) {
-                      final q = selectedColor != null ? product.getQuantity(selectedColor!, s) : 0;
+                      final q = selectedColor != null
+                          ? product.getQuantity(selectedColor!, s)
+                          : 0;
                       return ChoiceChip(
                         label: Text('$s${q == 0 ? ' (نفذ)' : ''}'),
                         selected: selectedSize == s,
@@ -750,12 +835,22 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                             children: [
                               IconButton(
                                 icon: const Icon(Icons.remove_circle_outline),
-                                onPressed: qty > 1 ? () => setState(() => qty--) : null,
+                                onPressed: qty > 1
+                                    ? () => setState(() => qty--)
+                                    : null,
                               ),
-                              Text('$qty', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18)),
+                              Text(
+                                '$qty',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 18,
+                                ),
+                              ),
                               IconButton(
                                 icon: const Icon(Icons.add_circle_outline),
-                                onPressed: qty < availableQty ? () => setState(() => qty++) : null,
+                                onPressed: qty < availableQty
+                                    ? () => setState(() => qty++)
+                                    : null,
                               ),
                             ],
                           ),
@@ -766,7 +861,10 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
                         'متوفر: $availableQty قطعة',
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade500,
+                        ),
                       ),
                     ),
                   ],
@@ -779,13 +877,22 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                 child: const Text('إلغاء'),
               ),
               ElevatedButton(
-                onPressed: selectedColor != null && selectedSize != null && qty > 0
+                onPressed:
+                    selectedColor != null && selectedSize != null && qty > 0
                     ? () {
-                        _addToCart(product, selectedColor!, selectedSize!, saleProvider, qty: qty);
+                        _addToCart(
+                          product,
+                          selectedColor!,
+                          selectedSize!,
+                          saleProvider,
+                          qty: qty,
+                        );
                         Navigator.pop(ctx);
                       }
                     : null,
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1A1A2E)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                ),
                 child: const Text('إضافة'),
               ),
             ],
@@ -795,7 +902,13 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     );
   }
 
-  void _addToCart(ProductModel product, String color, int size, SaleProvider saleProvider, {int qty = 1}) {
+  void _addToCart(
+    ProductModel product,
+    String color,
+    int size,
+    SaleProvider saleProvider, {
+    int qty = 1,
+  }) {
     final result = saleProvider.addToCart(
       SaleItem(
         productId: product.id,
@@ -826,7 +939,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     }
 
     final sale = await saleProvider.createSale();
-    
+
     if (sale != null) {
       _discountController.clear();
       _notesController.clear();
@@ -838,7 +951,7 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
 
   void _showSuccessDialog(SaleModel sale) {
     final formatter = NumberFormat('#,##0.00', 'ar');
-    
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -853,12 +966,12 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                 width: 72,
                 height: 72,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withOpacity(0.1),
+                  color: AppColors.success.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Icon(
                   Icons.check_circle,
-                  color: Color(0xFF10B981),
+                  color: AppColors.success,
                   size: 40,
                 ),
               ),
@@ -879,16 +992,28 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('رقم الفاتورة:', style: TextStyle(color: Colors.grey.shade600)),
-                        Text(sale.invoiceNumber, style: const TextStyle(fontWeight: FontWeight.w600)),
+                        Text(
+                          'رقم الفاتورة:',
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
+                        Text(
+                          sale.invoiceNumber,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('عدد المنتجات:', style: TextStyle(color: Colors.grey.shade600)),
-                        Text('${sale.itemsCount}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                        Text(
+                          'عدد المنتجات:',
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
+                        Text(
+                          '${sale.itemsCount}',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
                       ],
                     ),
                     Divider(height: 20, color: Colors.grey.shade300),
@@ -898,10 +1023,10 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                         const Text('الإجمالي:', style: TextStyle(fontSize: 16)),
                         Text(
                           '${formatter.format(sale.total)} ر.س',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF1A1A2E),
+                            color: AppColors.primary,
                           ),
                         ),
                       ],
@@ -923,7 +1048,9 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         side: BorderSide(color: Colors.grey.shade300),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     ),
                   ),
@@ -932,9 +1059,11 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
                     child: ElevatedButton(
                       onPressed: () => Navigator.pop(context),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1A1A2E),
+                        backgroundColor: AppColors.primary,
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       child: const Text('بيع جديد'),
                     ),
@@ -959,7 +1088,9 @@ class _NewSaleScreenState extends State<NewSaleScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+        backgroundColor: isError
+            ? AppColors.error
+            : AppColors.success,
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(20),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -992,10 +1123,12 @@ class _ProductSelectorState extends State<_ProductSelector> {
   Widget build(BuildContext context) {
     final products = widget.productProvider.allProducts
         .where((p) => p.isActive && p.totalQuantity > 0)
-        .where((p) =>
-            _search.isEmpty ||
-            p.name.toLowerCase().contains(_search.toLowerCase()) ||
-            p.barcode.contains(_search))
+        .where(
+          (p) =>
+              _search.isEmpty ||
+              p.name.toLowerCase().contains(_search.toLowerCase()) ||
+              p.barcode.contains(_search),
+        )
         .toList();
 
     return Container(
@@ -1032,7 +1165,10 @@ class _ProductSelectorState extends State<_ProductSelector> {
                     decoration: InputDecoration(
                       hintText: 'بحث بالاسم أو الباركود...',
                       hintStyle: TextStyle(color: Colors.grey.shade400),
-                      prefixIcon: Icon(Icons.search, color: Colors.grey.shade400),
+                      prefixIcon: Icon(
+                        Icons.search,
+                        color: Colors.grey.shade400,
+                      ),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(vertical: 14),
                     ),
@@ -1048,9 +1184,16 @@ class _ProductSelectorState extends State<_ProductSelector> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.inventory_2_outlined, size: 48, color: Colors.grey.shade300),
+                        Icon(
+                          Icons.inventory_2_outlined,
+                          size: 48,
+                          color: Colors.grey.shade300,
+                        ),
                         const SizedBox(height: 12),
-                        Text('لا توجد منتجات', style: TextStyle(color: Colors.grey.shade500)),
+                        Text(
+                          'لا توجد منتجات',
+                          style: TextStyle(color: Colors.grey.shade500),
+                        ),
                       ],
                     ),
                   )
@@ -1067,22 +1210,35 @@ class _ProductSelectorState extends State<_ProductSelector> {
                             color: Colors.grey.shade100,
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: Icon(Icons.inventory_2_outlined, color: Colors.grey.shade400),
+                          child: Icon(
+                            Icons.inventory_2_outlined,
+                            color: Colors.grey.shade400,
+                          ),
                         ),
                         title: Text(
                           p.name,
-                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
                         ),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               '${p.totalQuantity} متوفر',
-                              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade500,
+                              ),
                             ),
                             Text(
                               p.barcode,
-                              style: TextStyle(fontSize: 10, color: Colors.grey.shade400, fontFamily: 'monospace'),
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey.shade400,
+                                fontFamily: 'monospace',
+                              ),
                             ),
                           ],
                         ),
@@ -1118,39 +1274,61 @@ class _ProductSelectorState extends State<_ProductSelector> {
               : 0;
 
           return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: Text(product.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: Text(
+              product.name,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('اللون:', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
+                  const Text(
+                    'اللون:',
+                    style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                  ),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: product.colors.map((c) => ChoiceChip(
-                      label: Text(c),
-                      selected: selectedColor == c,
-                      onSelected: (s) => setState(() {
-                        selectedColor = s ? c : null;
-                        qty = 1;
-                      }),
-                    )).toList(),
+                    children: product.colors
+                        .map(
+                          (c) => ChoiceChip(
+                            label: Text(c),
+                            selected: selectedColor == c,
+                            onSelected: (s) => setState(() {
+                              selectedColor = s ? c : null;
+                              qty = 1;
+                            }),
+                          ),
+                        )
+                        .toList(),
                   ),
                   const SizedBox(height: 16),
-                  const Text('المقاس:', style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
+                  const Text(
+                    'المقاس:',
+                    style: TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
+                  ),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: product.sizes.map((s) {
-                      final q = selectedColor != null ? product.getQuantity(selectedColor!, s) : 0;
+                      final q = selectedColor != null
+                          ? product.getQuantity(selectedColor!, s)
+                          : 0;
                       return ChoiceChip(
                         label: Text('$s${q == 0 ? ' (نفذ)' : ''}'),
                         selected: selectedSize == s,
-                        onSelected: q > 0 ? (sel) => setState(() { selectedSize = sel ? s : null; qty = 1; }) : null,
+                        onSelected: q > 0
+                            ? (sel) => setState(() {
+                                selectedSize = sel ? s : null;
+                                qty = 1;
+                              })
+                            : null,
                       );
                     }).toList(),
                   ),
@@ -1162,24 +1340,44 @@ class _ProductSelectorState extends State<_ProductSelector> {
                         const Spacer(),
                         IconButton(
                           icon: const Icon(Icons.remove_circle_outline),
-                          onPressed: qty > 1 ? () => setState(() => qty--) : null,
+                          onPressed: qty > 1
+                              ? () => setState(() => qty--)
+                              : null,
                         ),
-                        Text('$qty', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                        Text(
+                          '$qty',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                        ),
                         IconButton(
                           icon: const Icon(Icons.add_circle_outline),
-                          onPressed: qty < availableQty ? () => setState(() => qty++) : null,
+                          onPressed: qty < availableQty
+                              ? () => setState(() => qty++)
+                              : null,
                         ),
                       ],
                     ),
-                    Text('متوفر: $availableQty', style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                    Text(
+                      'متوفر: $availableQty',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade500,
+                      ),
+                    ),
                   ],
                 ],
               ),
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('إلغاء'),
+              ),
               ElevatedButton(
-                onPressed: selectedColor != null && selectedSize != null && qty > 0
+                onPressed:
+                    selectedColor != null && selectedSize != null && qty > 0
                     ? () {
                         widget.saleProvider.addToCart(
                           SaleItem(
@@ -1196,16 +1394,20 @@ class _ProductSelectorState extends State<_ProductSelector> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: const Text('تمت الإضافة'),
-                            backgroundColor: const Color(0xFF10B981),
+                            backgroundColor: AppColors.success,
                             behavior: SnackBarBehavior.floating,
                             margin: const EdgeInsets.all(20),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             duration: const Duration(seconds: 1),
                           ),
                         );
                       }
                     : null,
-                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1A1A2E)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                ),
                 child: const Text('إضافة'),
               ),
             ],
@@ -1215,3 +1417,5 @@ class _ProductSelectorState extends State<_ProductSelector> {
     );
   }
 }
+
+

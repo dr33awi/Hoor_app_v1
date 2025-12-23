@@ -4,12 +4,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../core/services/base_service.dart';
+import '../../../core/services/base/base_service.dart';
+import '../../../core/services/service_locator.dart';
+import '../../../core/services/business/sale_service.dart';
 import '../models/sale_model.dart';
-import '../../../core/services/sale_service.dart';
 
 class SaleProvider with ChangeNotifier {
-  final SaleService _saleService = SaleService();
+  // استخدام Service Locator بدلاً من إنشاء instance جديد
+  SaleService get _saleService => sl.sales;
 
   List<SaleModel> _sales = [];
   List<SaleItem> _cartItems = [];

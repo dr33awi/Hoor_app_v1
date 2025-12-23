@@ -1,8 +1,9 @@
-// lib/core/widgets/barcode_display_widget.dart
+﻿// lib/core/widgets/barcode_display_widget.dart
 // ✅ ويدجت عرض الباركود الحقيقي
 
 import 'package:flutter/material.dart';
 import 'package:barcode_widget/barcode_widget.dart';
+import '../../../core/theme/app_theme.dart';
 
 /// ويدجت عرض الباركود بأنواع مختلفة
 class BarcodeDisplayWidget extends StatelessWidget {
@@ -87,8 +88,6 @@ class BarcodeDisplayWidget extends StatelessWidget {
         return Barcode.pdf417();
       case BarcodeType.Codabar:
         return Barcode.codabar();
-      default:
-        return Barcode.code128();
     }
   }
 }
@@ -138,10 +137,10 @@ class BarcodePreviewDialog extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF3B82F6).withOpacity(0.1),
+                    color: AppColors.info.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.qr_code_2, color: Color(0xFF3B82F6)),
+                  child: const Icon(Icons.qr_code_2, color: AppColors.info),
                 ),
                 const SizedBox(width: 12),
                 const Expanded(
@@ -195,7 +194,7 @@ class BarcodePreviewDialog extends StatelessWidget {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1A1A2E),
+                        color: AppColors.primary,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -279,7 +278,7 @@ class BarcodePreviewDialog extends StatelessWidget {
                     icon: const Icon(Icons.print, size: 18),
                     label: const Text('طباعة'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1A1A2E),
+                      backgroundColor: AppColors.primary,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -350,7 +349,7 @@ class CompactBarcodeLabel extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFF1A1A2E),
+                color: AppColors.primary,
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(

@@ -1,10 +1,10 @@
-// lib/core/services/barcode_service.dart
+// lib/core/services/utilities/barcode_service.dart
 // خدمة الباركود - المسح والإنشاء
 
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../constants/app_constants.dart';
+import '../../constants/app_constants.dart';
 
 /// خدمة إدارة الباركود
 class BarcodeService {

@@ -1,12 +1,13 @@
-// lib/core/services/firebase_service.dart
-// خدمة Firebase الكاملة - بدون Storage
+// lib/core/services/infrastructure/firebase_service.dart
+// خدمة Firebase - الاتصال بـ Firestore و Auth
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'base_service.dart';
-import 'logger_service.dart';
+import '../base/base_service.dart';
+import '../base/logger_service.dart';
 
+/// خدمة Firebase الكاملة
 class FirebaseService extends BaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;

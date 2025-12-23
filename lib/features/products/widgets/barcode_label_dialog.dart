@@ -1,8 +1,9 @@
-// lib/features/products/widgets/barcode_label_dialog.dart
+﻿// lib/features/products/widgets/barcode_label_dialog.dart
 // ✅ حوار طباعة ملصق الباركود - محدّث
 
 import 'package:flutter/material.dart';
 import 'package:hoor_manager/features/products/widgets/barcode_display_widget.dart';
+import '../../../core/theme/app_theme.dart';
 
 class BarcodeLabelDialog extends StatefulWidget {
   final String barcode;
@@ -44,10 +45,10 @@ class _BarcodeLabelDialogState extends State<BarcodeLabelDialog> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF8B5CF6).withOpacity(0.1),
+                      color: AppColors.purple.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.print, color: Color(0xFF8B5CF6)),
+                    child: const Icon(Icons.print, color: AppColors.purple),
                   ),
                   const SizedBox(width: 12),
                   const Expanded(
@@ -197,7 +198,7 @@ class _BarcodeLabelDialogState extends State<BarcodeLabelDialog> {
                           ),
                           decoration: BoxDecoration(
                             color: _copies == n
-                                ? const Color(0xFF1A1A2E)
+                                ? AppColors.primary
                                 : Colors.grey.shade200,
                             borderRadius: BorderRadius.circular(16),
                           ),
@@ -237,7 +238,7 @@ class _BarcodeLabelDialogState extends State<BarcodeLabelDialog> {
                     _isPrinting ? 'جاري الطباعة...' : 'طباعة $_copies نسخة',
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1A1A2E),
+                    backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -325,7 +326,7 @@ class _BarcodeLabelDialogState extends State<BarcodeLabelDialog> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFF1A1A2E),
+              color: AppColors.primary,
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
@@ -375,7 +376,7 @@ class _BarcodeLabelDialogState extends State<BarcodeLabelDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('تم إرسال $_copies ملصق للطباعة'),
-            backgroundColor: const Color(0xFF10B981),
+            backgroundColor: AppColors.success,
             behavior: SnackBarBehavior.floating,
             margin: const EdgeInsets.all(20),
             shape: RoundedRectangleBorder(
@@ -389,7 +390,7 @@ class _BarcodeLabelDialogState extends State<BarcodeLabelDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('خطأ في الطباعة: $e'),
-            backgroundColor: const Color(0xFFEF4444),
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -398,3 +399,6 @@ class _BarcodeLabelDialogState extends State<BarcodeLabelDialog> {
     }
   }
 }
+
+
+

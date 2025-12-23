@@ -1,11 +1,13 @@
-// lib/features/auth/screens/user_management_screen.dart
+﻿// lib/features/auth/screens/user_management_screen.dart
 // شاشة إدارة المستخدمين - تصميم حديث
 
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
-import '../../../core/services/auth_service.dart';
+import '../../../core/services/business/auth_service.dart';
 import '../models/user_model.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/widgets.dart';
 
 class UserManagementScreen extends StatefulWidget {
   const UserManagementScreen({super.key});
@@ -70,9 +72,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: isError
-            ? const Color(0xFFEF4444)
-            : const Color(0xFF10B981),
+        backgroundColor: isError ? AppColors.error : AppColors.success,
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(20),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -101,7 +101,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF1A1A2E),
+            color: AppColors.primary,
           ),
         ),
         centerTitle: true,
@@ -122,7 +122,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
             child: TabBar(
               controller: _tabController,
               indicator: BoxDecoration(
-                color: const Color(0xFF1A1A2E),
+                color: AppColors.primary,
                 borderRadius: BorderRadius.circular(8),
               ),
               indicatorPadding: const EdgeInsets.all(4),
@@ -146,7 +146,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFD97706),
+                            color: AppColors.warning,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -168,9 +168,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
         ),
       ),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF1A1A2E)),
-            )
+          ? const Center(child: LoadingIndicator())
           : TabBarView(
               controller: _tabController,
               children: [_buildPendingList(), _buildAllList()],
@@ -182,7 +180,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
     if (_pendingUsers.isEmpty) {
       return _emptyState(
         icon: Icons.check_circle_outline_rounded,
-        color: const Color(0xFF10B981),
+        color: AppColors.success,
         title: 'لا يوجد طلبات',
         subtitle: 'جميع الطلبات تمت معالجتها',
       );
@@ -190,7 +188,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
 
     return RefreshIndicator(
       onRefresh: _loadUsers,
-      color: const Color(0xFF1A1A2E),
+      color: AppColors.primary,
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: _pendingUsers.length,
@@ -215,7 +213,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
 
     return RefreshIndicator(
       onRefresh: _loadUsers,
-      color: const Color(0xFF1A1A2E),
+      color: AppColors.primary,
       child: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: _allUsers.length,
@@ -241,7 +239,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
             width: 72,
             height: 72,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Icon(icon, size: 36, color: color),
@@ -272,7 +270,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
       title: 'موافقة',
       message: 'الموافقة على "${user.name}"؟',
       confirmText: 'موافقة',
-      confirmColor: const Color(0xFF10B981),
+      confirmColor: AppColors.success,
     );
 
     if (confirm == true) {
@@ -291,7 +289,7 @@ class _UserManagementScreenState extends State<UserManagementScreen>
       title: 'رفض',
       message: 'رفض "${user.name}"؟',
       confirmText: 'رفض',
-      confirmColor: const Color(0xFFEF4444),
+      confirmColor: AppColors.error,
     );
 
     if (confirm == true) {
@@ -416,7 +414,7 @@ class _PendingCard extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFEF3C7),
+                  color: AppColors.warningLight,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(
@@ -425,7 +423,7 @@ class _PendingCard extends StatelessWidget {
                     style: const TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 18,
-                      color: Color(0xFFD97706),
+                      color: AppColors.warning,
                     ),
                   ),
                 ),
@@ -459,13 +457,13 @@ class _PendingCard extends StatelessWidget {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFEF3C7),
+                  color: AppColors.warningLight,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: const Text(
                   'جديد',
                   style: TextStyle(
-                    color: Color(0xFFD97706),
+                    color: AppColors.warning,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                   ),
@@ -493,8 +491,8 @@ class _PendingCard extends StatelessWidget {
                   child: OutlinedButton(
                     onPressed: onReject,
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFEF4444),
-                      side: const BorderSide(color: Color(0xFFEF4444)),
+                      foregroundColor: AppColors.error,
+                      side: const BorderSide(color: AppColors.error),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -513,7 +511,7 @@ class _PendingCard extends StatelessWidget {
                   child: ElevatedButton(
                     onPressed: onApprove,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF10B981),
+                      backgroundColor: AppColors.success,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
@@ -559,7 +557,7 @@ class _UserCard extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: _statusColor().withOpacity(0.1),
+                color: _statusColor().withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: user.photoUrl != null
@@ -617,22 +615,22 @@ class _UserCard extends StatelessWidget {
 
     if (user.isPending) {
       text = 'معلق';
-      color = const Color(0xFFD97706);
+      color = AppColors.warning;
     } else if (user.isRejected) {
       text = 'مرفوض';
-      color = const Color(0xFFEF4444);
+      color = AppColors.error;
     } else if (!user.isActive) {
       text = 'معطل';
       color = Colors.grey.shade500;
     } else {
       text = 'نشط';
-      color = const Color(0xFF10B981);
+      color = AppColors.success;
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
@@ -647,10 +645,10 @@ class _UserCard extends StatelessWidget {
   }
 
   Color _statusColor() {
-    if (user.isPending) return const Color(0xFFD97706);
-    if (user.isRejected) return const Color(0xFFEF4444);
+    if (user.isPending) return AppColors.warning;
+    if (user.isRejected) return AppColors.error;
     if (!user.isActive) return Colors.grey.shade500;
-    return const Color(0xFF10B981);
+    return AppColors.success;
   }
 }
 
@@ -696,7 +694,7 @@ class _UserSheet extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF1A1A2E),
+                        color: AppColors.primary,
                       ),
                     ),
                   ),
@@ -752,7 +750,7 @@ class _UserSheet extends StatelessWidget {
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: color ?? const Color(0xFF1A1A2E),
+            color: color ?? AppColors.primary,
           ),
         ),
       ],
@@ -767,10 +765,10 @@ class _UserSheet extends StatelessWidget {
   }
 
   Color _statusColor() {
-    if (user.isPending) return const Color(0xFFD97706);
-    if (user.isRejected) return const Color(0xFFEF4444);
+    if (user.isPending) return AppColors.warning;
+    if (user.isRejected) return AppColors.error;
     if (!user.isActive) return Colors.grey.shade500;
-    return const Color(0xFF10B981);
+    return AppColors.success;
   }
 
   Widget _buildActions(BuildContext context) {
@@ -780,23 +778,17 @@ class _UserSheet extends StatelessWidget {
       alignment: WrapAlignment.center,
       children: [
         if (user.isActive && !user.isPending && !user.isRejected)
-          _actionBtn(
-            context,
-            'تعطيل',
-            Icons.block,
-            const Color(0xFFEF4444),
-            () async {
-              Navigator.pop(context);
-              await authService.deactivateUser(user.id);
-              onRefresh();
-            },
-          ),
+          _actionBtn(context, 'تعطيل', Icons.block, AppColors.error, () async {
+            Navigator.pop(context);
+            await authService.deactivateUser(user.id);
+            onRefresh();
+          }),
         if (!user.isActive)
           _actionBtn(
             context,
             'تفعيل',
             Icons.check_circle,
-            const Color(0xFF10B981),
+            AppColors.success,
             () async {
               Navigator.pop(context);
               await authService.activateUser(user.id);
@@ -808,7 +800,7 @@ class _UserSheet extends StatelessWidget {
             context,
             'موافقة',
             Icons.check,
-            const Color(0xFF10B981),
+            AppColors.success,
             () async {
               Navigator.pop(context);
               await authService.approveUser(user.id);

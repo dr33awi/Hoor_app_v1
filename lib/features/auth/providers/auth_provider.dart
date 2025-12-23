@@ -4,8 +4,9 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:hoor_manager/core/services/auth_service.dart';
-import '../../../core/services/logger_service.dart';
+import '../../../core/services/service_locator.dart';
+import '../../../core/services/business/auth_service.dart';
+import '../../../core/services/base/logger_service.dart';
 import '../models/user_model.dart';
 
 /// حالات المصادقة
@@ -65,7 +66,8 @@ class AuthError {
 }
 
 class AuthProvider extends ChangeNotifier {
-  final AuthService _authService = AuthService();
+  // استخدام Service Locator بدلاً من إنشاء instances جديدة
+  AuthService get _authService => sl.auth;
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
 
   // الحالة - تم تغييرها من initial إلى loading لمنع ظهور شاشة تسجيل الدخول مؤقتاً

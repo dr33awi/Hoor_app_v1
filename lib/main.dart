@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:firebase_core/firebase_core.dart';
 
 import 'core/theme/app_theme.dart';
-import 'core/services/logger_service.dart';
+import 'core/services/base/logger_service.dart';
+import 'core/services/service_locator.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/home/screens/home_screen.dart';
@@ -16,12 +16,12 @@ import 'features/sales/providers/sale_provider.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // تهيئة Firebase
+  // تهيئة جميع الخدمات من مكان واحد
   try {
-    await Firebase.initializeApp();
-    AppLogger.i('✅ Firebase initialized successfully');
+    await ServiceLocator.instance.initialize();
+    AppLogger.i('✅ All services initialized successfully');
   } catch (e) {
-    AppLogger.e('❌ Firebase initialization failed', error: e);
+    AppLogger.e('❌ Services initialization failed', error: e);
   }
 
   // إعدادات النظام

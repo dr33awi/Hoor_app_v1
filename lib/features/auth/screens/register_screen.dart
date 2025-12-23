@@ -1,4 +1,4 @@
-// lib/features/auth/screens/register_screen.dart
+﻿// lib/features/auth/screens/register_screen.dart
 // شاشة التسجيل - تصميم حديث ونظيف
 
 import 'package:flutter/material.dart';
@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'email_verification_screen.dart';
+import '../../../core/theme/app_theme.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -78,8 +79,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       SnackBar(
         content: Text(message),
         backgroundColor: isError
-            ? const Color(0xFFEF4444)
-            : const Color(0xFF10B981),
+            ? AppColors.error
+            : AppColors.success,
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(20),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -135,7 +136,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF1A1A2E),
+            color: AppColors.primary,
           ),
         ),
         const SizedBox(height: 6),
@@ -165,7 +166,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       width: 32,
       height: 32,
       decoration: BoxDecoration(
-        color: active ? const Color(0xFF1A1A2E) : Colors.grey.shade100,
+        color: active ? AppColors.primary : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Center(
@@ -186,7 +187,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       width: 40,
       height: 2,
       margin: const EdgeInsets.symmetric(horizontal: 8),
-      color: active ? const Color(0xFF10B981) : Colors.grey.shade200,
+      color: active ? AppColors.success : Colors.grey.shade200,
     );
   }
 
@@ -278,7 +279,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: Checkbox(
                   value: _acceptTerms,
                   onChanged: (v) => setState(() => _acceptTerms = v ?? false),
-                  activeColor: const Color(0xFF1A1A2E),
+                  activeColor: AppColors.primary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(5),
                   ),
@@ -300,7 +301,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         TextSpan(
                           text: 'الشروط والأحكام',
                           style: TextStyle(
-                            color: Color(0xFF1A1A2E),
+                            color: AppColors.primary,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -321,7 +322,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: ElevatedButton(
               onPressed: _isLoading ? null : _register,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1A1A2E),
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
@@ -329,7 +330,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 disabledBackgroundColor: const Color(
                   0xFF1A1A2E,
-                ).withOpacity(0.5),
+                ).withValues(alpha: 0.5),
               ),
               child: _isLoading
                   ? const SizedBox(
@@ -360,7 +361,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       style: const TextStyle(
         fontSize: 13,
         fontWeight: FontWeight.w600,
-        color: Color(0xFF4B5563),
+        color: AppColors.gray600,
       ),
     );
   }
@@ -386,7 +387,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         suffixIcon: suffix,
         suffixIconConstraints: const BoxConstraints(minWidth: 44),
         filled: true,
-        fillColor: const Color(0xFFF9FAFB),
+        fillColor: AppColors.inputFill,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 14,
@@ -401,11 +402,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFF1A1A2E), width: 1.5),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0xFFEF4444)),
+          borderSide: const BorderSide(color: AppColors.error),
         ),
         errorStyle: const TextStyle(fontSize: 11),
       ),
@@ -443,7 +444,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF1A1A2E),
+              color: AppColors.primary,
             ),
           ),
         ),
@@ -451,3 +452,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 }
+
+
+

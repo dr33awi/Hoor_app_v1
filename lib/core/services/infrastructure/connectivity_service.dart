@@ -1,9 +1,9 @@
-// lib/core/services/connectivity_service.dart
+// lib/core/services/infrastructure/connectivity_service.dart
 // خدمة مراقبة الاتصال بالإنترنت
 
 import 'dart:async';
 import 'dart:io';
-import 'logger_service.dart';
+import '../base/logger_service.dart';
 
 /// خدمة مراقبة الاتصال بالإنترنت
 class ConnectivityService {
@@ -93,7 +93,6 @@ class ConnectivityService {
     final completer = Completer<void>();
     StreamSubscription? subscription;
 
-    // Timer للمهلة
     final timer = Timer(timeout, () {
       subscription?.cancel();
       if (!completer.isCompleted) {

@@ -1,10 +1,10 @@
-// lib/features/sales/widgets/invoice_print_dialog.dart
+﻿// lib/features/sales/widgets/invoice_print_dialog.dart
 // حوار طباعة الفاتورة
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/sale_model.dart';
-import '../../../core/services/print_service.dart';
+import '../../../core/theme/app_theme.dart';
 
 class InvoicePrintDialog extends StatefulWidget {
   final SaleModel sale;
@@ -34,8 +34,10 @@ class _InvoicePrintDialogState extends State<InvoicePrintDialog> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: const Color(0xFF1A1A2E),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                color: AppColors.primary,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
               ),
               child: Row(
                 children: [
@@ -58,7 +60,7 @@ class _InvoicePrintDialogState extends State<InvoicePrintDialog> {
                 ],
               ),
             ),
-            
+
             // معاينة الفاتورة
             Flexible(
               child: SingleChildScrollView(
@@ -66,13 +68,15 @@ class _InvoicePrintDialogState extends State<InvoicePrintDialog> {
                 child: _buildInvoicePreview(formatter),
               ),
             ),
-            
+
             // أزرار الإجراءات
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.grey.shade50,
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(20),
+                ),
               ),
               child: Row(
                 children: [
@@ -109,7 +113,7 @@ class _InvoicePrintDialogState extends State<InvoicePrintDialog> {
                           : const Icon(Icons.print, size: 20),
                       label: Text(_isPrinting ? 'جاري الطباعة...' : 'طباعة'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1A1A2E),
+                        backgroundColor: AppColors.primary,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -146,49 +150,42 @@ class _InvoicePrintDialogState extends State<InvoicePrintDialog> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1A1A2E).withOpacity(0.1),
+                    color: AppColors.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(
-                    Icons.store,
-                    color: Color(0xFF1A1A2E),
-                    size: 28,
-                  ),
+                  child: Icon(Icons.store, color: AppColors.primary, size: 28),
                 ),
               ],
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'متجر الأحذية',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF1A1A2E),
+                color: AppColors.primary,
               ),
             ),
             const SizedBox(height: 4),
             Text(
               'فاتورة مبيعات',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey.shade600,
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
             ),
-            
+
             const SizedBox(height: 16),
             Divider(color: Colors.grey.shade200),
             const SizedBox(height: 12),
-            
+
             // معلومات الفاتورة
             _buildInfoRow('رقم الفاتورة:', widget.sale.invoiceNumber),
             const SizedBox(height: 8),
             _buildInfoRow('التاريخ:', _formatDate(widget.sale.saleDate)),
             const SizedBox(height: 8),
             _buildInfoRow('البائع:', widget.sale.userName),
-            
+
             const SizedBox(height: 16),
             Divider(color: Colors.grey.shade200),
-            
+
             // المنتجات
             const SizedBox(height: 12),
             Row(
@@ -229,71 +226,76 @@ class _InvoicePrintDialogState extends State<InvoicePrintDialog> {
               ],
             ),
             Divider(color: Colors.grey.shade100),
-            
-            ...widget.sale.items.map((item) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.productName,
-                          style: const TextStyle(fontSize: 13),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          '${item.color} - مقاس ${item.size}',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey.shade500,
+
+            ...widget.sale.items.map(
+              (item) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.productName,
+                            style: const TextStyle(fontSize: 13),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ),
-                      ],
+                          Text(
+                            '${item.color} - مقاس ${item.size}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      '${item.quantity}',
-                      style: const TextStyle(fontSize: 13),
-                      textAlign: TextAlign.center,
+                    Expanded(
+                      child: Text(
+                        '${item.quantity}',
+                        style: const TextStyle(fontSize: 13),
+                        textAlign: TextAlign.center,
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      '${item.totalPrice.toStringAsFixed(0)}',
-                      style: const TextStyle(fontSize: 13),
-                      textAlign: TextAlign.left,
+                    Expanded(
+                      child: Text(
+                        item.totalPrice.toStringAsFixed(0),
+                        style: const TextStyle(fontSize: 13),
+                        textAlign: TextAlign.left,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            )),
-            
+            ),
+
             const SizedBox(height: 12),
             Divider(color: Colors.grey.shade200),
             const SizedBox(height: 12),
-            
+
             // المجموع
-            _buildInfoRow('المجموع الفرعي:', '${formatter.format(widget.sale.subtotal)} ر.س'),
+            _buildInfoRow(
+              'المجموع الفرعي:',
+              '${formatter.format(widget.sale.subtotal)} ر.س',
+            ),
             if (widget.sale.discount > 0) ...[
               const SizedBox(height: 4),
               _buildInfoRow(
                 'الخصم:',
                 '- ${formatter.format(widget.sale.discount)} ر.س',
-                valueColor: const Color(0xFFEF4444),
+                valueColor: AppColors.error,
               ),
             ],
-            
+
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFF1A1A2E),
+                color: AppColors.primary,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
@@ -318,7 +320,7 @@ class _InvoicePrintDialogState extends State<InvoicePrintDialog> {
                 ],
               ),
             ),
-            
+
             if (widget.sale.notes?.isNotEmpty == true) ...[
               const SizedBox(height: 12),
               Container(
@@ -330,33 +332,24 @@ class _InvoicePrintDialogState extends State<InvoicePrintDialog> {
                 ),
                 child: Text(
                   'ملاحظات: ${widget.sale.notes}',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
                 ),
               ),
             ],
-            
+
             const SizedBox(height: 20),
             Divider(color: Colors.grey.shade200),
             const SizedBox(height: 12),
-            
+
             // التذييل
             const Text(
               'شكراً لتسوقكم معنا',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-              ),
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
             ),
             const SizedBox(height: 4),
             Text(
               'البضاعة المباعة لا ترد ولا تستبدل',
-              style: TextStyle(
-                fontSize: 10,
-                color: Colors.grey.shade500,
-              ),
+              style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
             ),
           ],
         ),
@@ -370,10 +363,7 @@ class _InvoicePrintDialogState extends State<InvoicePrintDialog> {
       children: [
         Text(
           label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade600,
-          ),
+          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
         ),
         Text(
           value,
@@ -393,17 +383,17 @@ class _InvoicePrintDialogState extends State<InvoicePrintDialog> {
 
   Future<void> _printInvoice() async {
     setState(() => _isPrinting = true);
-    
+
     try {
       // محاكاة الطباعة - في الإنتاج استخدم مكتبة printing
       await Future.delayed(const Duration(seconds: 2));
-      
+
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('تم إرسال الفاتورة للطباعة'),
-            backgroundColor: const Color(0xFF10B981),
+            backgroundColor: AppColors.success,
             behavior: SnackBarBehavior.floating,
             margin: const EdgeInsets.all(20),
             shape: RoundedRectangleBorder(
@@ -417,7 +407,7 @@ class _InvoicePrintDialogState extends State<InvoicePrintDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('خطأ في الطباعة: $e'),
-            backgroundColor: const Color(0xFFEF4444),
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -428,21 +418,21 @@ class _InvoicePrintDialogState extends State<InvoicePrintDialog> {
 
   void _shareInvoice() {
     // مشاركة الفاتورة
-    final text = '''
+    // ignore: unused_local_variable
+    final text =
+        '''
 فاتورة: ${widget.sale.invoiceNumber}
 التاريخ: ${_formatDate(widget.sale.saleDate)}
 الإجمالي: ${widget.sale.total.toStringAsFixed(0)} ر.س
 ''';
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text('تم نسخ بيانات الفاتورة'),
-        backgroundColor: const Color(0xFF10B981),
+        backgroundColor: AppColors.success,
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(20),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }

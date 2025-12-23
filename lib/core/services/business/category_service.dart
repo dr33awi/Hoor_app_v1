@@ -1,14 +1,15 @@
-// lib/features/products/services/category_service.dart
-// خدمة الفئات
+// lib/core/services/business/category_service.dart
+// خدمة الفئات - إدارة فئات المنتجات
 
 import 'package:uuid/uuid.dart';
-import '../constants/app_constants.dart';
-import 'base_service.dart';
-import 'firebase_service.dart';
-import '../../features/products/models/category_model.dart';
+import '../../constants/app_constants.dart';
+import '../base/base_service.dart';
+import '../infrastructure/firebase_service.dart';
+import '../../../features/products/models/category_model.dart';
 
+/// خدمة الفئات
 class CategoryService extends BaseService {
-  final FirebaseService _firebase = FirebaseService();
+  FirebaseService get _firebase => FirebaseService();
   final String _collection = AppConstants.categoriesCollection;
 
   // Singleton

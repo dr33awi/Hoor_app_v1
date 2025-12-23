@@ -1,4 +1,4 @@
-// lib/features/products/screens/products_screen.dart
+﻿// lib/features/products/screens/products_screen.dart
 // شاشة المنتجات - تصميم حديث
 
 import 'package:flutter/material.dart';
@@ -7,6 +7,8 @@ import '../providers/product_provider.dart';
 import '../models/product_model.dart';
 import 'add_edit_product_screen.dart';
 import 'product_details_screen.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/widgets.dart';
 
 class ProductsScreen extends StatefulWidget {
   const ProductsScreen({super.key});
@@ -38,16 +40,14 @@ class _ProductsScreenState extends State<ProductsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: AppColors.scaffoldBg,
       body: RefreshIndicator(
         onRefresh: _loadData,
-        color: const Color(0xFF1A1A2E),
+        color: AppColors.primary,
         child: Consumer<ProductProvider>(
           builder: (context, provider, _) {
             if (provider.isLoading && provider.products.isEmpty) {
-              return const Center(
-                child: CircularProgressIndicator(color: Color(0xFF1A1A2E)),
-              );
+              return const Center(child: LoadingIndicator());
             }
 
             return CustomScrollView(
@@ -83,7 +83,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
           context,
           MaterialPageRoute(builder: (_) => const AddEditProductScreen()),
         ),
-        backgroundColor: const Color(0xFF1A1A2E),
+        backgroundColor: AppColors.primary,
         child: const Icon(Icons.add_rounded),
       ),
     );
@@ -230,12 +230,10 @@ class _CategoryChip extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF1A1A2E) : Colors.white,
+            color: isSelected ? AppColors.primary : Colors.white,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: isSelected
-                  ? const Color(0xFF1A1A2E)
-                  : Colors.grey.shade200,
+              color: isSelected ? AppColors.primary : Colors.grey.shade200,
             ),
           ),
           child: Text(
@@ -306,8 +304,8 @@ class _ProductCard extends StatelessWidget {
                           ),
                           decoration: BoxDecoration(
                             color: product.isOutOfStock
-                                ? const Color(0xFFEF4444)
-                                : const Color(0xFFD97706),
+                                ? AppColors.error
+                                : AppColors.warning,
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -357,8 +355,8 @@ class _ProductCard extends StatelessWidget {
                       children: [
                         Text(
                           '${product.price.toStringAsFixed(0)} ر.س',
-                          style: const TextStyle(
-                            color: Color(0xFF1A1A2E),
+                          style: TextStyle(
+                            color: AppColors.primary,
                             fontWeight: FontWeight.w700,
                             fontSize: 14,
                           ),

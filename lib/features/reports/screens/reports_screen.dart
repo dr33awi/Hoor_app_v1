@@ -1,4 +1,4 @@
-// lib/features/reports/screens/reports_screen.dart
+﻿// lib/features/reports/screens/reports_screen.dart
 // شاشة التقارير - تصميم حديث
 
 import 'package:flutter/material.dart';
@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../products/providers/product_provider.dart';
 import '../../sales/providers/sale_provider.dart';
+import '../../../core/theme/app_theme.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -132,7 +133,7 @@ class _ReportsScreenState extends State<ReportsScreen>
       child: TabBar(
         controller: _tabController,
         indicator: BoxDecoration(
-          color: const Color(0xFF1A1A2E),
+          color: AppColors.primary,
           borderRadius: BorderRadius.circular(8),
         ),
         indicatorPadding: const EdgeInsets.all(4),
@@ -175,7 +176,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                       'إجمالي المبيعات',
                       '${total.toStringAsFixed(0)} ر.س',
                       Icons.trending_up_rounded,
-                      const Color(0xFF10B981),
+                      AppColors.success,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -184,7 +185,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                       'الفواتير',
                       '${sales.length}',
                       Icons.receipt_long_rounded,
-                      const Color(0xFF3B82F6),
+                      AppColors.info,
                     ),
                   ),
                 ],
@@ -197,7 +198,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                       'مكتملة',
                       '$completed',
                       Icons.check_circle_rounded,
-                      const Color(0xFF10B981),
+                      AppColors.success,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -206,7 +207,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                       'ملغية',
                       '$cancelled',
                       Icons.cancel_rounded,
-                      const Color(0xFFEF4444),
+                      AppColors.error,
                     ),
                   ),
                 ],
@@ -238,7 +239,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                                 decoration: BoxDecoration(
                                   color: _statusColor(
                                     s.status,
-                                  ).withOpacity(0.1),
+                                  ).withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Icon(
@@ -319,7 +320,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                       'المنتجات',
                       '${products.length}',
                       Icons.inventory_2_rounded,
-                      const Color(0xFF8B5CF6),
+                      AppColors.purple,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -328,7 +329,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                       'الفئات',
                       '${provider.categories.length}',
                       Icons.category_rounded,
-                      const Color(0xFF3B82F6),
+                      AppColors.info,
                     ),
                   ),
                 ],
@@ -354,12 +355,12 @@ class _ReportsScreenState extends State<ReportsScreen>
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF8B5CF6).withOpacity(0.1),
+                          color: AppColors.purple.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: const Icon(
                           Icons.category_outlined,
-                          color: Color(0xFF8B5CF6),
+                          color: AppColors.purple,
                           size: 20,
                         ),
                       ),
@@ -467,7 +468,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                       'إجمالي',
                       '$total قطعة',
                       Icons.inventory_rounded,
-                      const Color(0xFF3B82F6),
+                      AppColors.info,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -476,7 +477,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                       'منخفض',
                       '${low.length}',
                       Icons.warning_rounded,
-                      const Color(0xFFD97706),
+                      AppColors.warning,
                     ),
                   ),
                 ],
@@ -486,7 +487,7 @@ class _ReportsScreenState extends State<ReportsScreen>
                 'نفذ',
                 '${out.length}',
                 Icons.error_rounded,
-                const Color(0xFFEF4444),
+                AppColors.error,
               ),
               if (out.isNotEmpty) ...[
                 const SizedBox(height: 24),
@@ -512,12 +513,12 @@ class _ReportsScreenState extends State<ReportsScreen>
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: (isOut ? const Color(0xFFEF4444) : const Color(0xFFD97706))
-            .withOpacity(0.05),
+        color: (isOut ? AppColors.error : AppColors.warning)
+            .withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: (isOut ? const Color(0xFFEF4444) : const Color(0xFFD97706))
-              .withOpacity(0.2),
+          color: (isOut ? AppColors.error : AppColors.warning)
+              .withValues(alpha: 0.2),
         ),
       ),
       child: Row(
@@ -526,13 +527,13 @@ class _ReportsScreenState extends State<ReportsScreen>
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: (isOut ? const Color(0xFFEF4444) : const Color(0xFFD97706))
-                  .withOpacity(0.1),
+              color: (isOut ? AppColors.error : AppColors.warning)
+                  .withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
               isOut ? Icons.error_outline : Icons.warning_amber_rounded,
-              color: isOut ? const Color(0xFFEF4444) : const Color(0xFFD97706),
+              color: isOut ? AppColors.error : AppColors.warning,
               size: 20,
             ),
           ),
@@ -558,7 +559,7 @@ class _ReportsScreenState extends State<ReportsScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: isOut ? const Color(0xFFEF4444) : const Color(0xFFD97706),
+              color: isOut ? AppColors.error : AppColors.warning,
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
@@ -588,7 +589,7 @@ class _ReportsScreenState extends State<ReportsScreen>
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: color, size: 20),
@@ -644,11 +645,14 @@ class _ReportsScreenState extends State<ReportsScreen>
   Color _statusColor(String s) {
     switch (s) {
       case 'مكتمل':
-        return const Color(0xFF10B981);
+        return AppColors.success;
       case 'ملغي':
-        return const Color(0xFFEF4444);
+        return AppColors.error;
       default:
-        return const Color(0xFFD97706);
+        return AppColors.warning;
     }
   }
 }
+
+
+

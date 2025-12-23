@@ -1,10 +1,12 @@
-// lib/features/sales/screens/sales_screen.dart
+﻿// lib/features/sales/screens/sales_screen.dart
 // شاشة قائمة الفواتير - تصميم حديث (محدّث)
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/widgets.dart';
 import '../providers/sale_provider.dart';
 import '../models/sale_model.dart';
 import 'sale_details_screen.dart';
@@ -34,9 +36,7 @@ class _SalesScreenState extends State<SalesScreen> {
           child: Consumer<SaleProvider>(
             builder: (context, provider, _) {
               if (provider.isLoading) {
-                return const Center(
-                  child: CircularProgressIndicator(color: Color(0xFF1A1A2E)),
-                );
+                return const Center(child: LoadingIndicator());
               }
 
               final sales = provider.sales;
@@ -46,7 +46,7 @@ class _SalesScreenState extends State<SalesScreen> {
 
               return RefreshIndicator(
                 onRefresh: () => provider.loadSales(),
-                color: const Color(0xFF1A1A2E),
+                color: AppColors.primary,
                 child: ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: sales.length,
@@ -123,21 +123,21 @@ class _SalesScreenState extends State<SalesScreen> {
                     ),
                     _FilterChip(
                       label: 'مكتمل',
-                      color: const Color(0xFF10B981),
+                      color: AppColors.success,
                       onTap: () => provider.setFilterStatus(
                         AppConstants.saleStatusCompleted,
                       ),
                     ),
                     _FilterChip(
                       label: 'معلق',
-                      color: const Color(0xFFD97706),
+                      color: AppColors.warning,
                       onTap: () => provider.setFilterStatus(
                         AppConstants.saleStatusPending,
                       ),
                     ),
                     _FilterChip(
                       label: 'ملغي',
-                      color: const Color(0xFFEF4444),
+                      color: AppColors.error,
                       onTap: () => provider.setFilterStatus(
                         AppConstants.saleStatusCancelled,
                       ),
@@ -213,12 +213,10 @@ class _FilterChip extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF1A1A2E) : Colors.white,
+            color: isSelected ? AppColors.primary : AppColors.surface,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: isSelected
-                  ? const Color(0xFF1A1A2E)
-                  : Colors.grey.shade200,
+              color: isSelected ? AppColors.primary : AppColors.border,
             ),
           ),
           child: Text(
@@ -227,8 +225,8 @@ class _FilterChip extends StatelessWidget {
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: isSelected
-                  ? Colors.white
-                  : (color ?? Colors.grey.shade600),
+                  ? AppColors.textOnPrimary
+                  : (color ?? AppColors.textSecondary),
             ),
           ),
         ),
@@ -266,7 +264,7 @@ class _SaleCard extends StatelessWidget {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: _statusColor().withOpacity(0.1),
+                    color: _statusColor().withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
@@ -304,7 +302,7 @@ class _SaleCard extends StatelessWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: _statusColor().withOpacity(0.1),
+                    color: _statusColor().withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
@@ -348,7 +346,7 @@ class _SaleCard extends StatelessWidget {
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF1A1A2E),
+                        color: AppColors.primary,
                       ),
                     ),
                     Text(
@@ -371,11 +369,11 @@ class _SaleCard extends StatelessWidget {
   Color _statusColor() {
     switch (sale.status) {
       case 'مكتمل':
-        return const Color(0xFF10B981);
+        return AppColors.success;
       case 'ملغي':
-        return const Color(0xFFEF4444);
+        return AppColors.error;
       case 'معلق':
-        return const Color(0xFFD97706);
+        return AppColors.warning;
       default:
         return Colors.grey;
     }

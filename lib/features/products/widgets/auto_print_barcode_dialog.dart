@@ -1,8 +1,9 @@
-// lib/features/products/widgets/auto_print_barcode_dialog.dart
+﻿// lib/features/products/widgets/auto_print_barcode_dialog.dart
 // ✅ حوار طباعة مبسط جداً - باركود فقط
 
 import 'package:flutter/material.dart';
-import '../../../core/services/barcode_print_service.dart';
+import '../../../core/services/utilities/barcode_print_service.dart';
+import '../../../core/theme/app_theme.dart';
 import 'package:barcode_widget/barcode_widget.dart';
 
 /// حوار طباعة بسيط - باركود فقط
@@ -46,12 +47,12 @@ class _AutoPrintBarcodeDialogState extends State<AutoPrintBarcodeDialog> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withOpacity(0.1),
+                    color: AppColors.success.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
                     Icons.print,
-                    color: Color(0xFF10B981),
+                    color: AppColors.success,
                     size: 28,
                   ),
                 ),
@@ -226,7 +227,7 @@ class _AutoPrintBarcodeDialogState extends State<AutoPrintBarcodeDialog> {
                   child: ElevatedButton(
                     onPressed: _isPrinting ? null : _handlePrint,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF10B981),
+                      backgroundColor: AppColors.success,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -319,7 +320,7 @@ class _AutoPrintBarcodeDialogState extends State<AutoPrintBarcodeDialog> {
                 Text('تم إرسال $_copies ملصق للطباعة'),
               ],
             ),
-            backgroundColor: const Color(0xFF10B981),
+            backgroundColor: AppColors.success,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),

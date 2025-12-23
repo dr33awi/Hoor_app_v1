@@ -1,4 +1,4 @@
-// lib/features/auth/screens/email_verification_screen.dart
+﻿// lib/features/auth/screens/email_verification_screen.dart
 // شاشة التحقق من البريد - تصميم حديث
 
 import 'dart:async';
@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import 'pending_approval_screen.dart';
+import '../../../core/theme/app_theme.dart';
 
 class EmailVerificationScreen extends StatefulWidget {
   final String email;
@@ -134,8 +135,8 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
       SnackBar(
         content: Text(message),
         backgroundColor: isSuccess
-            ? const Color(0xFF10B981)
-            : const Color(0xFFEF4444),
+            ? AppColors.success
+            : AppColors.error,
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(20),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -201,9 +202,9 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
       height: 32,
       decoration: BoxDecoration(
         color: done
-            ? const Color(0xFF10B981)
+            ? AppColors.success
             : active
-            ? const Color(0xFF1A1A2E)
+            ? AppColors.primary
             : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(10),
       ),
@@ -227,7 +228,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
       width: 40,
       height: 2,
       margin: const EdgeInsets.symmetric(horizontal: 8),
-      color: active ? const Color(0xFF10B981) : Colors.grey.shade200,
+      color: active ? AppColors.success : Colors.grey.shade200,
     );
   }
 
@@ -239,13 +240,13 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
           width: 72,
           height: 72,
           decoration: BoxDecoration(
-            color: const Color(0xFFFEF3C7),
+            color: AppColors.warningLight,
             borderRadius: BorderRadius.circular(20),
           ),
           child: const Icon(
             Icons.mark_email_unread_rounded,
             size: 36,
-            color: Color(0xFFD97706),
+            color: AppColors.warning,
           ),
         ),
 
@@ -256,7 +257,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF1A1A2E),
+            color: AppColors.primary,
           ),
         ),
 
@@ -280,7 +281,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
             style: const TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 14,
-              color: Color(0xFF1A1A2E),
+              color: AppColors.primary,
             ),
             textDirection: TextDirection.ltr,
           ),
@@ -292,7 +293,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: const Color(0xFFF0F9FF),
+            color: AppColors.skyBlueLight,
             borderRadius: BorderRadius.circular(14),
           ),
           child: Column(
@@ -315,7 +316,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
           child: ElevatedButton(
             onPressed: _isChecking ? null : _checkVerification,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF10B981),
+              backgroundColor: AppColors.success,
               foregroundColor: Colors.white,
               elevation: 0,
               shape: RoundedRectangleBorder(
@@ -359,7 +360,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                       height: 14,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Color(0xFF1A1A2E),
+                        color: AppColors.primary,
                       ),
                     )
                   : Text(
@@ -371,7 +372,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
                         fontWeight: FontWeight.w600,
                         color: _resendCooldown > 0
                             ? Colors.grey.shade400
-                            : const Color(0xFF1A1A2E),
+                            : AppColors.primary,
                       ),
                     ),
             ),
@@ -407,7 +408,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
           width: 24,
           height: 24,
           decoration: BoxDecoration(
-            color: const Color(0xFF1A1A2E),
+            color: AppColors.primary,
             borderRadius: BorderRadius.circular(6),
           ),
           child: Center(
@@ -424,9 +425,11 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen> {
         const SizedBox(width: 12),
         Text(
           text,
-          style: const TextStyle(fontSize: 14, color: Color(0xFF374151)),
+          style: const TextStyle(fontSize: 14, color: AppColors.gray700),
         ),
       ],
     );
   }
 }
+
+

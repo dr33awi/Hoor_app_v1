@@ -1,15 +1,16 @@
-// lib/features/auth/screens/login_screen.dart
+﻿// lib/features/auth/screens/login_screen.dart
 // شاشة تسجيل الدخول - تصميم حديث وأنيق
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import '../../../core/services/auth_service.dart';
+import '../../../core/services/business/auth_service.dart';
 import '../providers/auth_provider.dart';
 import 'register_screen.dart';
 import 'pending_approval_screen.dart';
 import 'email_verification_screen.dart';
 import 'account_status_screen.dart';
+import '../../../core/theme/app_theme.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -137,7 +138,7 @@ class _LoginScreenState extends State<LoginScreen> {
     messenger.showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: const Color(0xFF1A1A2E),
+        backgroundColor: AppColors.primary,
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(20),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -192,8 +193,8 @@ class _LoginScreenState extends State<LoginScreen> {
           success ? 'تم إرسال رابط الاستعادة' : authProvider.error ?? 'حدث خطأ',
         ),
         backgroundColor: success
-            ? const Color(0xFF10B981)
-            : const Color(0xFFEF4444),
+            ? AppColors.success
+            : AppColors.error,
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(20),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -239,7 +240,7 @@ class _LoginScreenState extends State<LoginScreen> {
           width: 64,
           height: 64,
           decoration: BoxDecoration(
-            color: const Color(0xFF1A1A2E),
+            color: AppColors.primary,
             borderRadius: BorderRadius.circular(16),
           ),
           child: const Icon(Icons.store_rounded, size: 32, color: Colors.white),
@@ -250,7 +251,7 @@ class _LoginScreenState extends State<LoginScreen> {
           style: TextStyle(
             fontSize: 26,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF1A1A2E),
+            color: AppColors.primary,
           ),
         ),
         const SizedBox(height: 4),
@@ -274,7 +275,7 @@ class _LoginScreenState extends State<LoginScreen> {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF4B5563),
+              color: AppColors.gray600,
             ),
           ),
           const SizedBox(height: 8),
@@ -304,7 +305,7 @@ class _LoginScreenState extends State<LoginScreen> {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF4B5563),
+              color: AppColors.gray600,
             ),
           ),
           const SizedBox(height: 8),
@@ -361,7 +362,7 @@ class _LoginScreenState extends State<LoginScreen> {
             child: ElevatedButton(
               onPressed: _isLoading ? null : _login,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1A1A2E),
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
@@ -369,7 +370,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 disabledBackgroundColor: const Color(
                   0xFF1A1A2E,
-                ).withOpacity(0.5),
+                ).withValues(alpha: 0.5),
               ),
               child: _isLoading
                   ? const SizedBox(
@@ -399,7 +400,7 @@ class _LoginScreenState extends State<LoginScreen> {
       hintText: hint,
       hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
       filled: true,
-      fillColor: const Color(0xFFF9FAFB),
+      fillColor: AppColors.inputFill,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
@@ -411,11 +412,11 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFF1A1A2E), width: 1.5),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFFEF4444)),
+        borderSide: const BorderSide(color: AppColors.error),
       ),
       errorStyle: const TextStyle(fontSize: 11),
     );
@@ -458,7 +459,7 @@ class _LoginScreenState extends State<LoginScreen> {
               errorBuilder: (_, __, ___) => const Icon(
                 Icons.g_mobiledata,
                 size: 22,
-                color: Color(0xFFEA4335),
+                color: AppColors.google,
               ),
             ),
             const SizedBox(width: 10),
@@ -495,7 +496,7 @@ class _LoginScreenState extends State<LoginScreen> {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF1A1A2E),
+              color: AppColors.primary,
             ),
           ),
         ),
@@ -544,13 +545,13 @@ class _ForgotPasswordSheetState extends State<_ForgotPasswordSheet> {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF3F4F6),
+                  color: AppColors.inputFillAlt,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
                   Icons.lock_reset_rounded,
                   size: 24,
-                  color: Color(0xFF1A1A2E),
+                  color: AppColors.primary,
                 ),
               ),
               const SizedBox(height: 16),
@@ -559,7 +560,7 @@ class _ForgotPasswordSheetState extends State<_ForgotPasswordSheet> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF1A1A2E),
+                  color: AppColors.primary,
                 ),
               ),
               const SizedBox(height: 6),
@@ -574,7 +575,7 @@ class _ForgotPasswordSheetState extends State<_ForgotPasswordSheet> {
                 decoration: InputDecoration(
                   hintText: 'البريد الإلكتروني',
                   filled: true,
-                  fillColor: const Color(0xFFF9FAFB),
+                  fillColor: AppColors.inputFill,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 14,
@@ -590,7 +591,7 @@ class _ForgotPasswordSheetState extends State<_ForgotPasswordSheet> {
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                     borderSide: const BorderSide(
-                      color: Color(0xFF1A1A2E),
+                      color: AppColors.primary,
                       width: 1.5,
                     ),
                   ),
@@ -643,7 +644,7 @@ class _ForgotPasswordSheetState extends State<_ForgotPasswordSheet> {
                                 if (mounted) setState(() => _isLoading = false);
                               },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1A1A2E),
+                          backgroundColor: AppColors.primary,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -673,3 +674,6 @@ class _ForgotPasswordSheetState extends State<_ForgotPasswordSheet> {
     );
   }
 }
+
+
+

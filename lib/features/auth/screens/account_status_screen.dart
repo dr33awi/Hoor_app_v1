@@ -1,7 +1,8 @@
-// lib/features/auth/screens/account_status_screen.dart
+﻿// lib/features/auth/screens/account_status_screen.dart
 // شاشة حالة الحساب - تصميم حديث
 
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_theme.dart';
 
 enum AccountStatusType { rejected, disabled, pending }
 
@@ -37,7 +38,7 @@ class AccountStatusScreen extends StatelessWidget {
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: _getColor().withOpacity(0.1),
+                      color: _getColor().withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(24),
                     ),
                     child: Icon(_getIcon(), size: 40, color: _getColor()),
@@ -108,7 +109,7 @@ class AccountStatusScreen extends StatelessWidget {
                     width: double.infinity,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF0F9FF),
+                      color: AppColors.skyBlueLight,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -116,7 +117,7 @@ class AccountStatusScreen extends StatelessWidget {
                         Icon(
                           Icons.info_outline_rounded,
                           size: 20,
-                          color: const Color(0xFF0369A1),
+                          color: AppColors.skyBlue,
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -124,7 +125,7 @@ class AccountStatusScreen extends StatelessWidget {
                             _getInfoMessage(),
                             style: const TextStyle(
                               fontSize: 13,
-                              color: Color(0xFF0369A1),
+                              color: AppColors.skyBlue,
                               height: 1.4,
                             ),
                           ),
@@ -142,7 +143,7 @@ class AccountStatusScreen extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: onBackToLogin,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1A1A2E),
+                        backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(
@@ -170,11 +171,11 @@ class AccountStatusScreen extends StatelessWidget {
   Color _getColor() {
     switch (status) {
       case AccountStatusType.rejected:
-        return const Color(0xFFEF4444);
+        return AppColors.error;
       case AccountStatusType.disabled:
-        return const Color(0xFFD97706);
+        return AppColors.warning;
       case AccountStatusType.pending:
-        return const Color(0xFF3B82F6);
+        return AppColors.info;
     }
   }
 
@@ -211,3 +212,6 @@ class AccountStatusScreen extends StatelessWidget {
     }
   }
 }
+
+
+

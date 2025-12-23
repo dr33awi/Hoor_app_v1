@@ -1,4 +1,4 @@
-// lib/features/products/screens/add_edit_product_screen.dart
+﻿// lib/features/products/screens/add_edit_product_screen.dart
 // شاشة إضافة/تعديل منتج - مع دعم الطباعة التلقائية ✅
 
 import 'package:flutter/material.dart';
@@ -6,10 +6,11 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/product_provider.dart';
 import '../models/product_model.dart';
-import '../../../core/services/barcode_service.dart';
+import '../../../core/services/utilities/barcode_service.dart';
 import '../widgets/barcode_scanner_widget.dart';
 import '../widgets/barcode_label_dialog.dart';
 import '../widgets/auto_print_barcode_dialog.dart'; // ✅ إضافة حوار الطباعة التلقائي
+import '../../../core/theme/app_theme.dart';
 
 class AddEditProductScreen extends StatefulWidget {
   final ProductModel? product;
@@ -100,8 +101,8 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
       SnackBar(
         content: Text(msg),
         backgroundColor: isError
-            ? const Color(0xFFEF4444)
-            : const Color(0xFF10B981),
+            ? AppColors.error
+            : AppColors.success,
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(20),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -128,7 +129,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Color(0xFF1A1A2E), width: 1.5),
+        borderSide: BorderSide(color: AppColors.primary, width: 1.5),
       ),
     );
   }
@@ -136,24 +137,24 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: AppColors.scaffoldBg,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
           onPressed: () => Navigator.pop(context),
-          icon: const Icon(
+          icon: Icon(
             Icons.arrow_back_ios_rounded,
             size: 18,
-            color: Color(0xFF1A1A2E),
+            color: AppColors.primary,
           ),
         ),
         title: Text(
           isEditing ? 'تعديل المنتج' : 'إضافة منتج',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF1A1A2E),
+            color: AppColors.primary,
           ),
         ),
         centerTitle: true,
@@ -183,7 +184,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _saveProduct,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1A1A2E),
+                    backgroundColor: AppColors.primary,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -260,12 +261,12 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF3B82F6).withOpacity(0.1),
+                    color: AppColors.info.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Icon(
                     Icons.qr_code_scanner,
-                    color: Color(0xFF3B82F6),
+                    color: AppColors.info,
                   ),
                 ),
               ),
@@ -277,10 +278,10 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withOpacity(0.1),
+                    color: AppColors.success.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.refresh, color: Color(0xFF10B981)),
+                  child: const Icon(Icons.refresh, color: AppColors.success),
                 ),
               ),
             ],
@@ -393,12 +394,12 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                           child: Container(
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF1A1A2E).withOpacity(0.1),
+                              color: AppColors.primary.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: const Icon(
                               Icons.add,
-                              color: Color(0xFF1A1A2E),
+                              color: AppColors.primary,
                             ),
                           ),
                         ),
@@ -484,7 +485,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1A1A2E),
+                    color: AppColors.primary,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Text(
@@ -558,9 +559,9 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
       'أخضر': Colors.green,
       'بني': Colors.brown,
       'رمادي': Colors.grey,
-      'بيج': const Color(0xFFF5F5DC),
-      'كحلي': const Color(0xFF000080),
-      'عنابي': const Color(0xFF800020),
+      'بيج': AppColors.beige,
+      'كحلي': AppColors.navy,
+      'عنابي': AppColors.burgundy,
     };
     return colorMap[name] ?? Colors.grey.shade400;
   }
@@ -620,7 +621,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1A1A2E),
+                        color: AppColors.primary,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Text(
@@ -716,7 +717,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF8B5CF6).withOpacity(0.1),
+                    color: AppColors.purple.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -725,13 +726,13 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                       Icon(
                         Icons.qr_code,
                         size: 14,
-                        color: const Color(0xFF8B5CF6),
+                        color: AppColors.purple,
                       ),
                       const SizedBox(width: 4),
                       const Text(
                         'توليد باركود',
                         style: TextStyle(
-                          color: Color(0xFF8B5CF6),
+                          color: AppColors.purple,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
@@ -842,7 +843,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                     Icons.print,
                     size: 20,
                     color: _variantBarcodes[key] != null
-                        ? const Color(0xFF1A1A2E)
+                        ? AppColors.primary
                         : Colors.grey,
                   ),
                   onPressed: _variantBarcodes[key] != null
@@ -1051,7 +1052,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: _getColorFromName(c).withOpacity(0.2),
+                          color: _getColorFromName(c).withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: _getColorFromName(c)),
                         ),
@@ -1236,3 +1237,6 @@ class SimpleBarcodePreviewPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+
+
+

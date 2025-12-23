@@ -1,4 +1,4 @@
-// lib/features/products/screens/product_details_screen.dart
+﻿// lib/features/products/screens/product_details_screen.dart
 // شاشة تفاصيل المنتج - تصميم حديث
 
 import 'package:flutter/material.dart';
@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../models/product_model.dart';
 import '../providers/product_provider.dart';
 import 'add_edit_product_screen.dart';
+import '../../../core/theme/app_theme.dart';
 
 class ProductDetailsScreen extends StatelessWidget {
   final ProductModel product;
@@ -16,7 +17,7 @@ class ProductDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: AppColors.scaffoldBg,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -29,19 +30,19 @@ class ProductDetailsScreen extends StatelessWidget {
               color: Colors.grey.shade100,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.arrow_back_ios_rounded,
               size: 18,
-              color: Color(0xFF1A1A2E),
+              color: AppColors.primary,
             ),
           ),
         ),
         title: Text(
           product.name,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF1A1A2E),
+            color: AppColors.primary,
           ),
         ),
         centerTitle: true,
@@ -53,10 +54,10 @@ class ProductDetailsScreen extends StatelessWidget {
                 color: Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.edit_outlined,
                 size: 18,
-                color: Color(0xFF1A1A2E),
+                color: AppColors.primary,
               ),
             ),
             onPressed: () => Navigator.push(
@@ -70,13 +71,13 @@ class ProductDetailsScreen extends StatelessWidget {
             icon: Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: const Color(0xFFFEE2E2),
+                color: AppColors.errorLight,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(
                 Icons.delete_outline,
                 size: 18,
-                color: Color(0xFFEF4444),
+                color: AppColors.error,
               ),
             ),
             onPressed: () => _showDeleteDialog(context),
@@ -167,10 +168,10 @@ class ProductDetailsScreen extends StatelessWidget {
                               const SizedBox(height: 4),
                               Text(
                                 '${product.price.toStringAsFixed(2)} ر.س',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF1A1A2E),
+                                  color: AppColors.primary,
                                 ),
                               ),
                             ],
@@ -224,7 +225,7 @@ class ProductDetailsScreen extends StatelessWidget {
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF10B981),
+                                  color: AppColors.success,
                                 ),
                               ),
                             ],
@@ -337,15 +338,15 @@ class ProductDetailsScreen extends StatelessWidget {
     IconData icon;
 
     if (product.isOutOfStock) {
-      color = const Color(0xFFEF4444);
+      color = AppColors.error;
       text = 'نفذ المخزون';
       icon = Icons.error_outline;
     } else if (product.isLowStock) {
-      color = const Color(0xFFD97706);
+      color = AppColors.warning;
       text = 'مخزون منخفض';
       icon = Icons.warning_amber_rounded;
     } else {
-      color = const Color(0xFF10B981);
+      color = AppColors.success;
       text = 'متوفر';
       icon = Icons.check_circle_outline;
     }
@@ -353,7 +354,7 @@ class ProductDetailsScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
@@ -492,9 +493,9 @@ class ProductDetailsScreen extends StatelessWidget {
   }
 
   Color _getStockColor(int qty) {
-    if (qty == 0) return const Color(0xFFEF4444);
-    if (qty <= 5) return const Color(0xFFD97706);
-    return const Color(0xFF1A1A2E);
+    if (qty == 0) return AppColors.error;
+    if (qty <= 5) return AppColors.warning;
+    return AppColors.primary;
   }
 
   Widget _buildDetailRow(String label, String value) {
@@ -527,12 +528,12 @@ class ProductDetailsScreen extends StatelessWidget {
                 width: 56,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFEE2E2),
+                  color: AppColors.errorLight,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Icon(
                   Icons.delete_outline,
-                  color: Color(0xFFEF4444),
+                  color: AppColors.error,
                   size: 28,
                 ),
               ),
@@ -580,7 +581,7 @@ class ProductDetailsScreen extends StatelessWidget {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: const Text('تم حذف المنتج'),
-                              backgroundColor: const Color(0xFF10B981),
+                              backgroundColor: AppColors.success,
                               behavior: SnackBarBehavior.floating,
                               margin: const EdgeInsets.all(20),
                               shape: RoundedRectangleBorder(
@@ -591,7 +592,7 @@ class ProductDetailsScreen extends StatelessWidget {
                         }
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFEF4444),
+                        backgroundColor: AppColors.error,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
@@ -610,3 +611,6 @@ class ProductDetailsScreen extends StatelessWidget {
     );
   }
 }
+
+
+
