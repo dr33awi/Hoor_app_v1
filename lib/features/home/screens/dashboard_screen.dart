@@ -2,22 +2,41 @@
 // شاشة لوحة التحكم - مُصححة
 
 import 'package:flutter/material.dart';
-import 'package:hoor_manager/features/sales/providers/sale_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../products/providers/product_provider.dart';
+import '../../sales/providers/sale_provider.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // ✅ تحميل البيانات بعد الـ build الأول
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+    });
+  }
+
+  Future<void> _loadData() async {
+    if (!mounted) return;
+    final productProvider = context.read<ProductProvider>();
+    final saleProvider = context.read<SaleProvider>();
+
+    await Future.wait([productProvider.loadAll(), saleProvider.loadSales()]);
+  }
 
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
-      onRefresh: () async {
-        await context.read<ProductProvider>().loadAll();
-        await context.read<SaleProvider>().loadSales();
-      },
+      onRefresh: _loadData,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),

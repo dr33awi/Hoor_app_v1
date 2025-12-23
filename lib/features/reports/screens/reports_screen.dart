@@ -1,13 +1,12 @@
 // lib/features/reports/screens/reports_screen.dart
 // شاشة التقارير
 
-import 'package:hoor_manager/features/sales/providers/sale_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../sales/services/sale_service.dart';
 import '../../products/providers/product_provider.dart';
+import '../../sales/providers/sale_provider.dart';
 
 class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
@@ -21,14 +20,11 @@ class _ReportsScreenState extends State<ReportsScreen>
   late TabController _tabController;
   DateTime _startDate = DateTime.now().subtract(const Duration(days: 30));
   DateTime _endDate = DateTime.now();
-  SalesReport? _salesReport;
-  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _loadReport();
   }
 
   @override
@@ -37,321 +33,161 @@ class _ReportsScreenState extends State<ReportsScreen>
     super.dispose();
   }
 
-  Future<void> _loadReport() async {
-    setState(() => _isLoading = true);
-
-    final saleProvider = context.read<SaleProvider>();
-    final report = await saleProvider.getSalesReport(
-      startDate: _startDate,
-      endDate: _endDate,
-    );
-
-    setState(() {
-      _salesReport = report;
-      _isLoading = false;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // اختيار الفترة
-        _buildDateRangeSelector(),
-
-        // التبويبات
-        TabBar(
-          controller: _tabController,
-          labelColor: AppTheme.primaryColor,
-          tabs: const [
-            Tab(text: 'المبيعات', icon: Icon(Icons.attach_money)),
-            Tab(text: 'المخزون', icon: Icon(Icons.inventory)),
-            Tab(text: 'الأرباح', icon: Icon(Icons.trending_up)),
-          ],
-        ),
-
-        // المحتوى
-        Expanded(
-          child: _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildSalesReport(),
-                    _buildInventoryReport(),
-                    _buildProfitReport(),
-                  ],
-                ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDateRangeSelector() {
-    final dateFormatter = DateFormat('dd/MM/yyyy', 'ar');
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      color: AppTheme.surfaceColor,
-      child: Row(
+    return Scaffold(
+      body: Column(
         children: [
-          Expanded(
-            child: InkWell(
-              onTap: () => _selectDateRange(),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  border: Border.all(color: AppTheme.grey300),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.calendar_today, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${dateFormatter.format(_startDate)} - ${dateFormatter.format(_endDate)}',
-                    ),
-                  ],
-                ),
-              ),
-            ),
+          // اختيار الفترة
+          _buildDateRangeSelector(),
+
+          // التبويبات
+          TabBar(
+            controller: _tabController,
+            tabs: const [
+              Tab(text: 'المبيعات'),
+              Tab(text: 'المنتجات'),
+              Tab(text: 'المخزون'),
+            ],
           ),
-          const SizedBox(width: 8),
-          IconButton(
-            onPressed: _loadReport,
-            icon: const Icon(Icons.refresh),
-            tooltip: 'تحديث',
+
+          // المحتوى
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildSalesReport(),
+                _buildProductsReport(),
+                _buildInventoryReport(),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
 
-  Future<void> _selectDateRange() async {
-    final picked = await showDateRangePicker(
+  Widget _buildDateRangeSelector() {
+    final dateFormat = DateFormat('dd/MM/yyyy', 'ar');
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.grey200,
+        border: Border(bottom: BorderSide(color: AppTheme.grey300)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: InkWell(
+              onTap: () => _selectDate(true),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppTheme.grey300),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.calendar_today, size: 18),
+                    const SizedBox(width: 8),
+                    Text(dateFormat.format(_startDate)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Icon(Icons.arrow_forward, color: AppTheme.grey600),
+          ),
+          Expanded(
+            child: InkWell(
+              onTap: () => _selectDate(false),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppTheme.grey300),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.calendar_today, size: 18),
+                    const SizedBox(width: 8),
+                    Text(dateFormat.format(_endDate)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _selectDate(bool isStart) async {
+    final picked = await showDatePicker(
       context: context,
+      initialDate: isStart ? _startDate : _endDate,
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
-      initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
       locale: const Locale('ar'),
     );
 
     if (picked != null) {
       setState(() {
-        _startDate = picked.start;
-        _endDate = picked.end;
+        if (isStart) {
+          _startDate = picked;
+        } else {
+          _endDate = picked;
+        }
       });
-      _loadReport();
     }
   }
 
   Widget _buildSalesReport() {
-    final formatter = NumberFormat('#,##0.00', 'ar');
-
-    if (_salesReport == null) {
-      return const Center(child: Text('لا توجد بيانات'));
-    }
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          // بطاقات الإحصائيات
-          Row(
-            children: [
-              Expanded(
-                child: _StatCard(
-                  title: 'إجمالي المبيعات',
-                  value: '${formatter.format(_salesReport!.totalRevenue)} ر.س',
-                  icon: Icons.attach_money,
-                  color: AppTheme.successColor,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _StatCard(
-                  title: 'عدد الطلبات',
-                  value: '${_salesReport!.totalOrders}',
-                  icon: Icons.receipt,
-                  color: AppTheme.primaryColor,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _StatCard(
-                  title: 'عدد المنتجات المباعة',
-                  value: '${_salesReport!.totalItems}',
-                  icon: Icons.inventory,
-                  color: AppTheme.infoColor,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _StatCard(
-                  title: 'متوسط قيمة الطلب',
-                  value:
-                      '${formatter.format(_salesReport!.averageOrderValue)} ر.س',
-                  icon: Icons.analytics,
-                  color: AppTheme.warningColor,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-
-          // المنتجات الأكثر مبيعاً
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.star, color: AppTheme.warningColor),
-                      const SizedBox(width: 8),
-                      Text(
-                        'المنتجات الأكثر مبيعاً',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  const Divider(),
-                  if (_salesReport!.topProducts.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Center(child: Text('لا توجد بيانات')),
-                    )
-                  else
-                    ...List.generate(
-                      _salesReport!.topProducts.length.clamp(0, 5),
-                      (index) {
-                        final entry = _salesReport!.topProducts.entries
-                            .elementAt(index);
-                        return ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: AppTheme.primaryColor.withOpacity(
-                              0.1,
-                            ),
-                            child: Text(
-                              '${index + 1}',
-                              style: const TextStyle(
-                                color: AppTheme.primaryColor,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          title: Text(entry.key),
-                          trailing: Text(
-                            '${entry.value} قطعة',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                        );
-                      },
-                    ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // المبيعات حسب طريقة الدفع
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.payment, color: AppTheme.primaryColor),
-                      const SizedBox(width: 8),
-                      Text(
-                        'المبيعات حسب طريقة الدفع',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  const Divider(),
-                  if (_salesReport!.salesByPaymentMethod.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Center(child: Text('لا توجد بيانات')),
-                    )
-                  else
-                    ..._salesReport!.salesByPaymentMethod.entries.map((entry) {
-                      return ListTile(
-                        leading: Icon(
-                          _getPaymentIcon(entry.key),
-                          color: AppTheme.primaryColor,
-                        ),
-                        title: Text(entry.key),
-                        trailing: Text(
-                          '${formatter.format(entry.value)} ر.س',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                      );
-                    }),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInventoryReport() {
-    return Consumer<ProductProvider>(
+    return Consumer<SaleProvider>(
       builder: (context, provider, _) {
-        final activeProducts = provider.allProducts
-            .where((p) => p.isActive)
-            .toList();
-        final totalQuantity = activeProducts.fold(
-          0,
-          (sum, p) => sum + p.totalQuantity,
-        );
-        final totalValue = activeProducts.fold(
-          0.0,
-          (sum, p) => sum + (p.costPrice * p.totalQuantity),
-        );
-        final lowStock = provider.lowStockProducts;
-        final outOfStock = provider.outOfStockProducts;
+        final sales = provider.allSales.where((sale) {
+          return sale.saleDate.isAfter(
+                _startDate.subtract(const Duration(days: 1)),
+              ) &&
+              sale.saleDate.isBefore(_endDate.add(const Duration(days: 1)));
+        }).toList();
 
-        final formatter = NumberFormat('#,##0.00', 'ar');
+        final totalRevenue = sales.fold<double>(
+          0,
+          (sum, sale) => sum + sale.total,
+        );
+
+        final completedSales = sales.where((s) => s.status == 'مكتمل').toList();
+        final cancelledSales = sales.where((s) => s.status == 'ملغي').toList();
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // بطاقات الإحصائيات
               Row(
                 children: [
                   Expanded(
-                    child: _StatCard(
-                      title: 'إجمالي المنتجات',
-                      value: '${activeProducts.length}',
-                      icon: Icons.inventory_2,
-                      color: AppTheme.primaryColor,
+                    child: _buildStatCard(
+                      title: 'إجمالي المبيعات',
+                      value: '${totalRevenue.toStringAsFixed(2)} ر.س',
+                      icon: Icons.attach_money,
+                      color: AppTheme.successColor,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: _StatCard(
-                      title: 'إجمالي القطع',
-                      value: '$totalQuantity',
-                      icon: Icons.numbers,
-                      color: AppTheme.infoColor,
+                    child: _buildStatCard(
+                      title: 'عدد الفواتير',
+                      value: '${sales.length}',
+                      icon: Icons.receipt,
+                      color: AppTheme.primaryColor,
                     ),
                   ),
                 ],
@@ -360,113 +196,101 @@ class _ReportsScreenState extends State<ReportsScreen>
               Row(
                 children: [
                   Expanded(
-                    child: _StatCard(
-                      title: 'قيمة المخزون',
-                      value: '${formatter.format(totalValue)} ر.س',
-                      icon: Icons.attach_money,
+                    child: _buildStatCard(
+                      title: 'مكتملة',
+                      value: '${completedSales.length}',
+                      icon: Icons.check_circle,
                       color: AppTheme.successColor,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: _StatCard(
-                      title: 'منخفض المخزون',
-                      value: '${lowStock.length}',
-                      icon: Icons.warning,
-                      color: lowStock.isEmpty
-                          ? AppTheme.grey600
-                          : AppTheme.warningColor,
+                    child: _buildStatCard(
+                      title: 'ملغية',
+                      value: '${cancelledSales.length}',
+                      icon: Icons.cancel,
+                      color: AppTheme.errorColor,
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
 
-              // منتجات نفذت
-              if (outOfStock.isNotEmpty)
-                Card(
-                  color: AppTheme.errorColor.withOpacity(0.1),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.error, color: AppTheme.errorColor),
-                            const SizedBox(width: 8),
-                            Text(
-                              'منتجات نفذت من المخزون (${outOfStock.length})',
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: AppTheme.errorColor,
-                                  ),
-                            ),
-                          ],
-                        ),
-                        const Divider(),
-                        ...outOfStock
-                            .take(5)
-                            .map(
-                              (p) => ListTile(
-                                title: Text(p.name),
-                                subtitle: Text(p.brand),
-                                dense: true,
-                              ),
-                            ),
-                      ],
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 16),
+              // قائمة المبيعات
+              Text(
+                'تفاصيل المبيعات',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
 
-              // منتجات منخفضة المخزون
-              if (lowStock.isNotEmpty)
-                Card(
-                  color: AppTheme.warningColor.withOpacity(0.1),
+              if (sales.isEmpty)
+                Center(
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(32),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.warning,
-                              color: AppTheme.warningColor,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'منتجات منخفضة المخزون (${lowStock.length})',
-                              style: Theme.of(context).textTheme.titleMedium
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: AppTheme.warningColor,
-                                  ),
-                            ),
-                          ],
+                        Icon(
+                          Icons.receipt_long,
+                          size: 64,
+                          color: AppTheme.grey400,
                         ),
-                        const Divider(),
-                        ...lowStock
-                            .take(5)
-                            .map(
-                              (p) => ListTile(
-                                title: Text(p.name),
-                                subtitle: Text(p.brand),
-                                trailing: Text(
-                                  '${p.totalQuantity} قطعة',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: AppTheme.warningColor,
-                                  ),
-                                ),
-                                dense: true,
-                              ),
-                            ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'لا توجد مبيعات في هذه الفترة',
+                          style: TextStyle(color: AppTheme.grey600),
+                        ),
                       ],
                     ),
                   ),
+                )
+              else
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: sales.length,
+                  itemBuilder: (context, index) {
+                    final sale = sales[index];
+                    return Card(
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: _getStatusColor(
+                            sale.status,
+                          ).withOpacity(0.1),
+                          child: Icon(
+                            Icons.receipt,
+                            color: _getStatusColor(sale.status),
+                          ),
+                        ),
+                        title: Text(sale.invoiceNumber),
+                        subtitle: Text(
+                          DateFormat(
+                            'dd/MM/yyyy - hh:mm a',
+                          ).format(sale.saleDate),
+                        ),
+                        trailing: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              '${sale.total.toStringAsFixed(2)} ر.س',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              sale.status,
+                              style: TextStyle(
+                                color: _getStatusColor(sale.status),
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 ),
             ],
           ),
@@ -475,213 +299,320 @@ class _ReportsScreenState extends State<ReportsScreen>
     );
   }
 
-  Widget _buildProfitReport() {
-    final formatter = NumberFormat('#,##0.00', 'ar');
+  Widget _buildProductsReport() {
+    return Consumer<ProductProvider>(
+      builder: (context, provider, _) {
+        final products = provider.allProducts;
 
-    if (_salesReport == null) {
-      return const Center(child: Text('لا توجد بيانات'));
-    }
+        // أكثر المنتجات مخزوناً
+        final sortedByStock = List.of(products)
+          ..sort((a, b) => b.totalQuantity.compareTo(a.totalQuantity));
 
-    final profit = _salesReport!.totalProfit;
-    final profitMargin = _salesReport!.totalRevenue > 0
-        ? (profit / _salesReport!.totalRevenue) * 100
-        : 0.0;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          // بطاقات الإحصائيات
-          Row(
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: _StatCard(
-                  title: 'إجمالي الإيرادات',
-                  value: '${formatter.format(_salesReport!.totalRevenue)} ر.س',
-                  icon: Icons.trending_up,
-                  color: AppTheme.successColor,
-                ),
+              // إحصائيات
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildStatCard(
+                      title: 'إجمالي المنتجات',
+                      value: '${products.length}',
+                      icon: Icons.inventory_2,
+                      color: AppTheme.primaryColor,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildStatCard(
+                      title: 'الفئات',
+                      value: '${provider.categories.length}',
+                      icon: Icons.category,
+                      color: AppTheme.infoColor,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _StatCard(
-                  title: 'إجمالي التكاليف',
-                  value: '${formatter.format(_salesReport!.totalCost)} ر.س',
-                  icon: Icons.trending_down,
-                  color: AppTheme.errorColor,
-                ),
+              const SizedBox(height: 24),
+
+              // المنتجات حسب الفئة
+              Text(
+                'المنتجات حسب الفئة',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+
+              ...provider.categories.map((category) {
+                final categoryProducts = products
+                    .where((p) => p.category == category.name)
+                    .toList();
+                return Card(
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: AppTheme.primaryColor.withOpacity(0.1),
+                      child: const Icon(
+                        Icons.category,
+                        color: AppTheme.primaryColor,
+                      ),
+                    ),
+                    title: Text(category.name),
+                    trailing: Text(
+                      '${categoryProducts.length} منتج',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                );
+              }),
+
+              const SizedBox(height: 24),
+
+              // أعلى المنتجات مخزوناً
+              Text(
+                'أعلى المنتجات مخزوناً',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: sortedByStock.take(10).length,
+                itemBuilder: (context, index) {
+                  final product = sortedByStock[index];
+                  return Card(
+                    child: ListTile(
+                      leading: CircleAvatar(child: Text('${index + 1}')),
+                      title: Text(product.name),
+                      subtitle: Text(product.category),
+                      trailing: Text(
+                        '${product.totalQuantity} قطعة',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Row(
+        );
+      },
+    );
+  }
+
+  Widget _buildInventoryReport() {
+    return Consumer<ProductProvider>(
+      builder: (context, provider, _) {
+        final lowStock = provider.lowStockProducts;
+        final outOfStock = provider.outOfStockProducts;
+        final totalQuantity = provider.allProducts.fold<int>(
+          0,
+          (sum, p) => sum + p.totalQuantity,
+        );
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: _StatCard(
-                  title: 'صافي الربح',
-                  value: '${formatter.format(profit)} ر.س',
-                  icon: Icons.account_balance_wallet,
-                  color: profit >= 0
-                      ? AppTheme.successColor
-                      : AppTheme.errorColor,
-                ),
+              // إحصائيات المخزون
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildStatCard(
+                      title: 'إجمالي المخزون',
+                      value: '$totalQuantity قطعة',
+                      icon: Icons.inventory,
+                      color: AppTheme.primaryColor,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildStatCard(
+                      title: 'منتجات منخفضة',
+                      value: '${lowStock.length}',
+                      icon: Icons.warning,
+                      color: AppTheme.warningColor,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _StatCard(
-                  title: 'هامش الربح',
-                  value: '${profitMargin.toStringAsFixed(1)}%',
-                  icon: Icons.percent,
-                  color: AppTheme.primaryColor,
-                ),
+              const SizedBox(height: 12),
+              _buildStatCard(
+                title: 'نفذ المخزون',
+                value: '${outOfStock.length}',
+                icon: Icons.error,
+                color: AppTheme.errorColor,
               ),
+              const SizedBox(height: 24),
+
+              // المنتجات النافذة
+              if (outOfStock.isNotEmpty) ...[
+                Text(
+                  'منتجات نفذت من المخزون',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: outOfStock.length,
+                  itemBuilder: (context, index) {
+                    final product = outOfStock[index];
+                    return Card(
+                      color: AppTheme.errorColor.withOpacity(0.05),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: AppTheme.errorColor.withOpacity(0.1),
+                          child: const Icon(
+                            Icons.error,
+                            color: AppTheme.errorColor,
+                          ),
+                        ),
+                        title: Text(product.name),
+                        subtitle: Text(product.category),
+                        trailing: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.errorColor,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: const Text(
+                            'نفذ',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 24),
+              ],
+
+              // المنتجات منخفضة المخزون
+              if (lowStock.isNotEmpty) ...[
+                Text(
+                  'منتجات منخفضة المخزون',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: lowStock.length,
+                  itemBuilder: (context, index) {
+                    final product = lowStock[index];
+                    return Card(
+                      color: AppTheme.warningColor.withOpacity(0.05),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: AppTheme.warningColor.withOpacity(
+                            0.1,
+                          ),
+                          child: const Icon(
+                            Icons.warning,
+                            color: AppTheme.warningColor,
+                          ),
+                        ),
+                        title: Text(product.name),
+                        subtitle: Text(product.category),
+                        trailing: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.warningColor,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            '${product.totalQuantity} قطعة',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ],
             ],
           ),
-          const SizedBox(height: 24),
+        );
+      },
+    );
+  }
 
-          // تفاصيل إضافية
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
+  Widget _buildStatCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'ملخص الفترة',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    title,
+                    style: TextStyle(color: AppTheme.grey600, fontSize: 12),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    style: const TextStyle(
                       fontWeight: FontWeight.bold,
+                      fontSize: 16,
                     ),
-                  ),
-                  const Divider(),
-                  _buildDetailRow(
-                    'إجمالي الإيرادات',
-                    '${formatter.format(_salesReport!.totalRevenue)} ر.س',
-                  ),
-                  _buildDetailRow(
-                    'إجمالي التكاليف',
-                    '- ${formatter.format(_salesReport!.totalCost)} ر.س',
-                    color: AppTheme.errorColor,
-                  ),
-                  if (_salesReport!.totalDiscount > 0)
-                    _buildDetailRow(
-                      'إجمالي الخصومات',
-                      '- ${formatter.format(_salesReport!.totalDiscount)} ر.س',
-                      color: AppTheme.errorColor,
-                    ),
-                  if (_salesReport!.totalTax > 0)
-                    _buildDetailRow(
-                      'إجمالي الضرائب المحصلة',
-                      '${formatter.format(_salesReport!.totalTax)} ر.س',
-                    ),
-                  const Divider(),
-                  _buildDetailRow(
-                    'صافي الربح',
-                    '${formatter.format(profit)} ر.س',
-                    isBold: true,
-                    color: profit >= 0
-                        ? AppTheme.successColor
-                        : AppTheme.errorColor,
                   ),
                 ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(
-    String label,
-    String value, {
-    bool isBold = false,
-    Color? color,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(fontWeight: isBold ? FontWeight.bold : null),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontWeight: isBold ? FontWeight.bold : null,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  IconData _getPaymentIcon(String method) {
-    switch (method) {
-      case 'نقدي':
-        return Icons.payments;
-      case 'بطاقة':
-        return Icons.credit_card;
-      case 'آجل':
-        return Icons.schedule;
-      default:
-        return Icons.payment;
-    }
-  }
-}
-
-/// بطاقة الإحصائيات
-class _StatCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final IconData icon;
-  final Color color;
-
-  const _StatCard({
-    required this.title,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: color, size: 24),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: TextStyle(fontSize: 12, color: AppTheme.grey600),
-            ),
-            const SizedBox(height: 4),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(
-                value,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'مكتمل':
+        return AppTheme.successColor;
+      case 'ملغي':
+        return AppTheme.errorColor;
+      default:
+        return AppTheme.grey600;
+    }
   }
 }

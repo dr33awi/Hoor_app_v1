@@ -2,13 +2,13 @@
 // الشاشة الرئيسية - مُصححة
 
 import 'package:flutter/material.dart';
-import 'package:hoor_manager/features/sales/providers/sale_provider.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../auth/screens/user_management_screen.dart';
 import '../../products/providers/product_provider.dart';
 import '../../products/screens/products_screen.dart';
+import '../../sales/providers/sale_provider.dart';
 import '../../sales/screens/sales_screen.dart';
 import '../../sales/screens/new_sale_screen.dart';
 import '../../reports/screens/reports_screen.dart';
@@ -35,10 +35,15 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    // ✅ تحميل البيانات بعد الـ build الأول
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+    });
   }
 
   Future<void> _loadData() async {
+    if (!mounted) return;
+
     final productProvider = context.read<ProductProvider>();
     final saleProvider = context.read<SaleProvider>();
 
@@ -213,11 +218,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   }
                   break;
                 case 'settings':
-                  // TODO: الإعدادات
                   _showComingSoon('الإعدادات');
                   break;
                 case 'profile':
-                  // TODO: الملف الشخصي
                   _showComingSoon('الملف الشخصي');
                   break;
                 case 'users':

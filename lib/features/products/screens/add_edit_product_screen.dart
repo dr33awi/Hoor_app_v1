@@ -1,11 +1,9 @@
 // lib/features/products/screens/add_edit_product_screen.dart
-// شاشة إضافة/تعديل منتج - مُصحح
+// شاشة إضافة/تعديل منتج - بدون صور
 
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_theme.dart';
 import '../providers/product_provider.dart';
 import '../models/product_model.dart';
@@ -28,10 +26,9 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   final _costPriceController = TextEditingController();
 
   String? _selectedCategory;
-  List<String> _colors = [];
-  List<int> _sizes = [];
-  Map<String, int> _inventory = {};
-  File? _imageFile;
+  late List<String> _colors;
+  late List<int> _sizes;
+  late Map<String, int> _inventory;
   bool _isLoading = false;
   bool _isCategoriesLoading = true;
 
@@ -40,16 +37,24 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   @override
   void initState() {
     super.initState();
-    _loadCategories();
+    _colors = [];
+    _sizes = [];
+    _inventory = {};
+
     if (isEditing) {
       _loadProductData();
     }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadCategories();
+    });
   }
 
   Future<void> _loadCategories() async {
+    if (!mounted) return;
+
     final provider = context.read<ProductProvider>();
 
-    // تحميل الفئات إذا لم تكن محملة
     if (provider.categories.isEmpty) {
       await provider.loadCategories();
     }
@@ -57,13 +62,11 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     if (mounted) {
       setState(() {
         _isCategoriesLoading = false;
-        // التحقق من أن الفئة المحددة موجودة في القائمة
         _validateSelectedCategory(provider);
       });
     }
   }
 
-  /// التحقق من صحة الفئة المحددة
   void _validateSelectedCategory(ProductProvider provider) {
     if (_selectedCategory != null) {
       final categoryNames = provider.categories.map((c) => c.name).toList();
@@ -81,8 +84,8 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     _priceController.text = product.price.toString();
     _costPriceController.text = product.costPrice.toString();
     _selectedCategory = product.category;
-    _colors = List.from(product.colors);
-    _sizes = List.from(product.sizes);
+    _colors = product.colors.toSet().toList();
+    _sizes = (product.sizes.toSet().toList())..sort();
     _inventory = Map.from(product.inventory);
   }
 
@@ -117,10 +120,6 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // الصورة
-              _buildImageSection(),
-              const SizedBox(height: 24),
-
               // المعلومات الأساسية
               _buildBasicInfoSection(),
               const SizedBox(height: 24),
@@ -163,59 +162,14 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     );
   }
 
-  Widget _buildImageSection() {
-    return Center(
-      child: GestureDetector(
-        onTap: _pickImage,
-        child: Container(
-          width: 150,
-          height: 150,
-          decoration: BoxDecoration(
-            color: AppTheme.grey200,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppTheme.grey300),
-          ),
-          child: _imageFile != null
-              ? ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.file(_imageFile!, fit: BoxFit.cover),
-                )
-              : widget.product?.imageUrl != null
-              ? ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    widget.product!.imageUrl!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _buildImagePlaceholder(),
-                  ),
-                )
-              : _buildImagePlaceholder(),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildImagePlaceholder() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(Icons.add_photo_alternate, size: 48, color: AppTheme.grey400),
-        const SizedBox(height: 8),
-        Text('إضافة صورة', style: TextStyle(color: AppTheme.grey600)),
-      ],
-    );
-  }
-
   Widget _buildBasicInfoSection() {
     return Consumer<ProductProvider>(
       builder: (context, provider, _) {
-        // إزالة الفئات المكررة وإنشاء قائمة فريدة
         final uniqueCategories = provider.categories
             .map((c) => c.name)
             .toSet()
             .toList();
 
-        // التحقق من أن القيمة المحددة موجودة في القائمة
         final safeSelectedCategory =
             (_selectedCategory != null &&
                 uniqueCategories.contains(_selectedCategory))
@@ -260,7 +214,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
             ),
             const SizedBox(height: 16),
 
-            // الفئة - مُصحح
+            // الفئة
             _isCategoriesLoading
                 ? const Center(child: CircularProgressIndicator())
                 : Row(
@@ -295,7 +249,6 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      // زر إضافة فئة جديدة
                       IconButton(
                         onPressed: _showAddCategoryDialog,
                         icon: const Icon(Icons.add_circle_outline),
@@ -305,7 +258,6 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                     ],
                   ),
 
-            // رسالة إذا لم توجد فئات
             if (!_isCategoriesLoading && uniqueCategories.isEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
@@ -385,7 +337,6 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     );
   }
 
-  /// ✅ دالة إضافة فئة جديدة - مُصححة
   void _showAddCategoryDialog() {
     final controller = TextEditingController();
     bool isAdding = false;
@@ -437,7 +388,6 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                       if (success) {
                         Navigator.pop(dialogContext);
 
-                        // ✅ تحديث الفئة المحددة بعد الإضافة
                         setState(() {
                           _selectedCategory = name;
                         });
@@ -476,14 +426,6 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   }
 
   Widget _buildColorsSection() {
-    // إزالة الألوان المكررة
-    final uniqueColors = _colors.toSet().toList();
-    if (uniqueColors.length != _colors.length) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) setState(() => _colors = uniqueColors);
-      });
-    }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -507,7 +449,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: uniqueColors
+          children: _colors
               .map(
                 (color) => Chip(
                   label: Text(color),
@@ -515,7 +457,6 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                   onDeleted: () {
                     setState(() {
                       _colors.remove(color);
-                      // حذف المخزون المرتبط
                       _inventory.removeWhere(
                         (key, _) => key.startsWith('$color-'),
                       );
@@ -525,7 +466,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
               )
               .toList(),
         ),
-        if (uniqueColors.isEmpty)
+        if (_colors.isEmpty)
           Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
@@ -538,14 +479,6 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   }
 
   Widget _buildSizesSection() {
-    // إزالة المقاسات المكررة
-    final uniqueSizes = _sizes.toSet().toList()..sort();
-    if (uniqueSizes.length != _sizes.length) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) setState(() => _sizes = uniqueSizes);
-      });
-    }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -569,7 +502,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: uniqueSizes
+          children: _sizes
               .map(
                 (size) => Chip(
                   label: Text('$size'),
@@ -577,7 +510,6 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                   onDeleted: () {
                     setState(() {
                       _sizes.remove(size);
-                      // حذف المخزون المرتبط
                       _inventory.removeWhere(
                         (key, _) => key.endsWith('-$size'),
                       );
@@ -587,7 +519,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
               )
               .toList(),
         ),
-        if (uniqueSizes.isEmpty)
+        if (_sizes.isEmpty)
           Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
@@ -600,10 +532,6 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
   }
 
   Widget _buildInventorySection() {
-    // استخدام القوائم الفريدة
-    final uniqueColors = _colors.toSet().toList();
-    final uniqueSizes = _sizes.toSet().toList()..sort();
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -631,7 +559,7 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
-                    ...uniqueSizes.map(
+                    ..._sizes.map(
                       (size) => Padding(
                         padding: const EdgeInsets.all(8),
                         child: Text(
@@ -644,14 +572,14 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
                   ],
                 ),
                 // الصفوف
-                ...uniqueColors.map(
+                ..._colors.map(
                   (color) => TableRow(
                     children: [
                       Padding(
                         padding: const EdgeInsets.all(8),
                         child: Text(color),
                       ),
-                      ...uniqueSizes.map((size) {
+                      ..._sizes.map((size) {
                         final key = '$color-$size';
                         return Padding(
                           padding: const EdgeInsets.all(4),
@@ -686,45 +614,6 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     );
   }
 
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final source = await showModalBottomSheet<ImageSource>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('الكاميرا'),
-              onTap: () => Navigator.pop(context, ImageSource.camera),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('المعرض'),
-              onTap: () => Navigator.pop(context, ImageSource.gallery),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (source != null) {
-      final pickedFile = await picker.pickImage(
-        source: source,
-        maxWidth: 800,
-        maxHeight: 800,
-        imageQuality: 80,
-      );
-
-      if (pickedFile != null) {
-        setState(() {
-          _imageFile = File(pickedFile.path);
-        });
-      }
-    }
-  }
-
   void _showAddColorDialog() {
     final controller = TextEditingController();
     showDialog(
@@ -748,7 +637,6 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
             onPressed: () {
               final colorName = controller.text.trim();
               if (colorName.isNotEmpty) {
-                // التحقق من عدم وجود اللون مسبقاً
                 if (_colors.contains(colorName)) {
                   Navigator.pop(dialogContext);
                   _showError('اللون "$colorName" موجود بالفعل');
@@ -792,7 +680,6 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
             onPressed: () {
               final size = int.tryParse(controller.text);
               if (size != null) {
-                // التحقق من عدم وجود المقاس مسبقاً
                 if (_sizes.contains(size)) {
                   Navigator.pop(dialogContext);
                   _showError('المقاس "$size" موجود بالفعل');
@@ -838,7 +725,6 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
       colors: _colors.toSet().toList(),
       sizes: _sizes.toSet().toList()..sort(),
       inventory: _inventory,
-      imageUrl: widget.product?.imageUrl,
       createdAt: widget.product?.createdAt ?? DateTime.now(),
       updatedAt: DateTime.now(),
     );
@@ -847,9 +733,9 @@ class _AddEditProductScreenState extends State<AddEditProductScreen> {
     bool success;
 
     if (isEditing) {
-      success = await provider.updateProduct(product, imageFile: _imageFile);
+      success = await provider.updateProduct(product);
     } else {
-      success = await provider.addProduct(product, imageFile: _imageFile);
+      success = await provider.addProduct(product);
     }
 
     setState(() => _isLoading = false);

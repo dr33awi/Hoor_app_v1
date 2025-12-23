@@ -2,9 +2,9 @@
 // خدمة الفئات
 
 import 'package:uuid/uuid.dart';
-import '../../../../core/constants/app_constants.dart';
-import '../../../../core/services/base_service.dart';
-import '../../../../core/services/firebase_service.dart';
+import '../../../core/constants/app_constants.dart';
+import '../../../core/services/base_service.dart';
+import '../../../core/services/firebase_service.dart';
 import '../models/category_model.dart';
 
 class CategoryService extends BaseService {
@@ -61,11 +61,7 @@ class CategoryService extends BaseService {
       final result = await _firebase.getAll(
         _collection,
         queryBuilder: (ref) {
-          var query = ref.orderBy('order');
-          if (activeOnly) {
-            query = query.where('isActive', isEqualTo: true);
-          }
-          return query;
+          return ref.orderBy('order');
         },
       );
 
@@ -73,9 +69,13 @@ class CategoryService extends BaseService {
         return ServiceResult.failure(result.error!);
       }
 
-      final categories = result.data!.docs
+      var categories = result.data!.docs
           .map((doc) => CategoryModel.fromFirestore(doc))
           .toList();
+
+      if (activeOnly) {
+        categories = categories.where((c) => c.isActive).toList();
+      }
 
       return ServiceResult.success(categories);
     } catch (e) {
@@ -89,21 +89,23 @@ class CategoryService extends BaseService {
         .streamCollection(
           _collection,
           queryBuilder: (ref) {
-            var query = ref.orderBy('order');
-            if (activeOnly) {
-              query = query.where('isActive', isEqualTo: true);
-            }
-            return query;
+            return ref.orderBy('order');
           },
         )
-        .map(
-          (snapshot) => snapshot.docs
+        .map((snapshot) {
+          var categories = snapshot.docs
               .map((doc) => CategoryModel.fromFirestore(doc))
-              .toList(),
-        );
+              .toList();
+
+          if (activeOnly) {
+            categories = categories.where((c) => c.isActive).toList();
+          }
+
+          return categories;
+        });
   }
 
-  /// إضافة فئات افتراضية (للتهيئة الأولى)
+  /// إضافة فئات افتراضية
   Future<ServiceResult<void>> addDefaultCategories() async {
     try {
       final defaults = ['رياضي', 'رسمي', 'كاجوال', 'أطفال', 'نسائي', 'صنادل'];

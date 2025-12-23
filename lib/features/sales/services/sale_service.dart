@@ -1,6 +1,4 @@
 // lib/features/sales/services/sale_service.dart
-// خدمة المبيعات - محسنة
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/base_service.dart';
@@ -30,7 +28,7 @@ class SaleService extends BaseService {
       final newSale = sale.copyWith(
         invoiceNumber: invoiceNumber,
         userId: _auth.currentUserId ?? '',
-        userName: _auth.currentUser?.name ?? '',
+        userName: _auth.currentUser?.name ?? 'غير معروف',
         createdAt: DateTime.now(),
       );
 
@@ -174,36 +172,42 @@ class SaleService extends BaseService {
     try {
       final result = await _firebase.getAll(
         _collection,
-        limit: limit ?? AppConstants.salesPageSize,
+        limit: limit ?? 500,
         startAfter: startAfter,
         queryBuilder: (ref) {
-          Query<Map<String, dynamic>> query = ref.orderBy(
-            'saleDate',
-            descending: true,
-          );
-          if (startDate != null) {
-            query = query.where(
-              'saleDate',
-              isGreaterThanOrEqualTo: Timestamp.fromDate(startDate),
-            );
-          }
-          if (endDate != null) {
-            query = query.where(
-              'saleDate',
-              isLessThanOrEqualTo: Timestamp.fromDate(endDate),
-            );
-          }
-          if (status != null) {
-            query = query.where('status', isEqualTo: status);
-          }
-          return query;
+          return ref.orderBy('saleDate', descending: true);
         },
       );
 
       if (!result.success) return ServiceResult.failure(result.error!);
-      final sales = result.data!.docs
+
+      var sales = result.data!.docs
           .map((doc) => SaleModel.fromFirestore(doc))
           .toList();
+
+      if (startDate != null) {
+        sales = sales
+            .where(
+              (s) =>
+                  s.saleDate.isAfter(startDate) ||
+                  s.saleDate.isAtSameMomentAs(startDate),
+            )
+            .toList();
+      }
+      if (endDate != null) {
+        sales = sales
+            .where(
+              (s) =>
+                  s.saleDate.isBefore(endDate) ||
+                  s.saleDate.isAtSameMomentAs(endDate),
+            )
+            .toList();
+      }
+
+      if (status != null) {
+        sales = sales.where((s) => s.status == status).toList();
+      }
+
       return ServiceResult.success(sales);
     } catch (e) {
       return ServiceResult.failure(handleError(e));
@@ -218,31 +222,37 @@ class SaleService extends BaseService {
     return _firebase
         .streamCollection(
           _collection,
-          limit: 100,
+          limit: 500,
           queryBuilder: (ref) {
-            Query<Map<String, dynamic>> query = ref.orderBy(
-              'saleDate',
-              descending: true,
-            );
-            if (startDate != null) {
-              query = query.where(
-                'saleDate',
-                isGreaterThanOrEqualTo: Timestamp.fromDate(startDate),
-              );
-            }
-            if (endDate != null) {
-              query = query.where(
-                'saleDate',
-                isLessThanOrEqualTo: Timestamp.fromDate(endDate),
-              );
-            }
-            return query;
+            return ref.orderBy('saleDate', descending: true);
           },
         )
-        .map(
-          (snapshot) =>
-              snapshot.docs.map((doc) => SaleModel.fromFirestore(doc)).toList(),
-        );
+        .map((snapshot) {
+          var sales = snapshot.docs
+              .map((doc) => SaleModel.fromFirestore(doc))
+              .toList();
+
+          if (startDate != null) {
+            sales = sales
+                .where(
+                  (s) =>
+                      s.saleDate.isAfter(startDate) ||
+                      s.saleDate.isAtSameMomentAs(startDate),
+                )
+                .toList();
+          }
+          if (endDate != null) {
+            sales = sales
+                .where(
+                  (s) =>
+                      s.saleDate.isBefore(endDate) ||
+                      s.saleDate.isAtSameMomentAs(endDate),
+                )
+                .toList();
+          }
+
+          return sales;
+        });
   }
 
   /// تقرير المبيعات
@@ -251,14 +261,21 @@ class SaleService extends BaseService {
     required DateTime endDate,
   }) async {
     try {
-      final result = await getAllSales(
-        startDate: startDate,
-        endDate: endDate,
-        status: AppConstants.saleStatusCompleted,
-        limit: 1000,
-      );
+      final result = await getAllSales(limit: 1000);
+
       if (!result.success) return ServiceResult.failure(result.error!);
-      return ServiceResult.success(SalesReport.fromSales(result.data!));
+
+      final filteredSales = result.data!.where((sale) {
+        final isInDateRange =
+            (sale.saleDate.isAfter(startDate) ||
+                sale.saleDate.isAtSameMomentAs(startDate)) &&
+            (sale.saleDate.isBefore(endDate) ||
+                sale.saleDate.isAtSameMomentAs(endDate));
+        final isCompleted = sale.status == AppConstants.saleStatusCompleted;
+        return isInDateRange && isCompleted;
+      }).toList();
+
+      return ServiceResult.success(SalesReport.fromSales(filteredSales));
     } catch (e) {
       return ServiceResult.failure(handleError(e));
     }

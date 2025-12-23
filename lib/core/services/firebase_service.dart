@@ -1,240 +1,173 @@
 // lib/core/services/firebase_service.dart
-// خدمة Firebase الموحدة - محسنة مع دعم Offline
+// خدمة Firebase الكاملة - بدون Storage
 
-import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'dart:async';
-import 'dart:typed_data';
+import 'package:firebase_core/firebase_core.dart';
 import 'base_service.dart';
 import 'logger_service.dart';
-import 'connectivity_service.dart';
 
-/// خدمة Firebase الموحدة
-/// تستخدم Singleton Pattern لضمان وجود نسخة واحدة فقط
-class FirebaseService extends BaseService with SubscriptionMixin {
+class FirebaseService extends BaseService {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  bool _isInitialized = false;
+
   // Singleton
   static final FirebaseService _instance = FirebaseService._internal();
   factory FirebaseService() => _instance;
   FirebaseService._internal();
 
-  // Firebase instances
-  FirebaseFirestore? _firestore;
-  FirebaseAuth? _auth;
-  FirebaseStorage? _storage;
+  // ==================== Getters ====================
 
-  bool _initialized = false;
-  bool _offlineMode = false;
+  /// Firebase Auth instance
+  FirebaseAuth get auth => _auth;
 
-  // Getters
-  FirebaseFirestore get firestore {
-    _checkInitialized();
-    return _firestore!;
-  }
+  /// Firestore instance
+  FirebaseFirestore get firestore => _firestore;
 
-  FirebaseAuth get auth {
-    _checkInitialized();
-    return _auth!;
-  }
+  /// هل تم التهيئة؟
+  bool get isInitialized => _isInitialized;
 
-  FirebaseStorage get storage {
-    _checkInitialized();
-    return _storage!;
-  }
-
-  bool get isInitialized => _initialized;
-  bool get isOfflineMode => _offlineMode;
-
-  void _checkInitialized() {
-    if (!_initialized) {
-      throw StateError(
-        'Firebase لم يتم تهيئته بعد. قم بتشغيل initialize() أولاً',
-      );
-    }
-  }
+  // ==================== Initialization ====================
 
   /// تهيئة Firebase
   Future<ServiceResult<void>> initialize() async {
-    if (_initialized) {
-      AppLogger.d('Firebase مهيأ مسبقاً');
-      return ServiceResult.success();
-    }
-
     try {
-      AppLogger.startOperation('تهيئة Firebase');
+      if (_isInitialized) {
+        return ServiceResult.success();
+      }
 
       await Firebase.initializeApp();
 
-      _firestore = FirebaseFirestore.instance;
-      _auth = FirebaseAuth.instance;
-      _storage = FirebaseStorage.instance;
-
-      // إعدادات Firestore للـ Offline
-      _firestore!.settings = const Settings(
+      // إعدادات Firestore
+      _firestore.settings = const Settings(
         persistenceEnabled: true,
         cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
       );
 
-      // الاستماع لحالة الاتصال
-      _setupConnectivityListener();
-
-      _initialized = true;
-      AppLogger.endOperation('تهيئة Firebase', success: true);
+      _isInitialized = true;
+      AppLogger.i('✅ Firebase initialized successfully');
       return ServiceResult.success();
-    } catch (e, stackTrace) {
-      AppLogger.firebaseError('initialize', e, stackTrace);
-      return ServiceResult.failure(handleError(e, 'Firebase initialization'));
+    } catch (e) {
+      AppLogger.e('❌ Firebase initialization failed', error: e);
+      return ServiceResult.failure(handleError(e));
     }
   }
 
-  /// إعداد مستمع الاتصال
-  void _setupConnectivityListener() {
-    final subscription = ConnectivityService().onConnectivityChanged.listen((
-      isConnected,
-    ) {
-      _offlineMode = !isConnected;
-      if (isConnected) {
-        AppLogger.i('🌐 تم استعادة الاتصال بالإنترنت');
-      } else {
-        AppLogger.w('📴 تم فقدان الاتصال - الوضع Offline');
-      }
-    });
-    addSubscription(subscription);
-  }
-
-  // ==================== Firestore Operations ====================
+  // ==================== Firestore ====================
 
   /// الحصول على مرجع Collection
   CollectionReference<Map<String, dynamic>> collection(String path) {
-    return firestore.collection(path);
+    return _firestore.collection(path);
   }
 
   /// الحصول على مرجع Document
   DocumentReference<Map<String, dynamic>> document(
-    String collectionPath,
+    String collection,
     String docId,
   ) {
-    return firestore.collection(collectionPath).doc(docId);
+    return _firestore.collection(collection).doc(docId);
   }
 
-  /// إضافة document جديد مع ID تلقائي
+  /// إضافة مستند جديد (ID تلقائي)
   Future<ServiceResult<String>> add(
-    String collectionPath,
+    String collection,
     Map<String, dynamic> data,
   ) async {
     try {
-      AppLogger.database('ADD', collectionPath);
-      final docRef = await collection(collectionPath).add({
-        ...data,
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      AppLogger.d('💾 DB ADD: $collection');
+      final docRef = await _firestore.collection(collection).add(data);
       return ServiceResult.success(docRef.id);
     } catch (e) {
-      return ServiceResult.failure(handleError(e, 'add to $collectionPath'));
+      AppLogger.e('❌ DB ADD Error', error: e);
+      return ServiceResult.failure(handleError(e));
     }
   }
 
-  /// إضافة document مع ID محدد
+  /// إضافة/تحديث مستند بـ ID محدد
   Future<ServiceResult<void>> set(
-    String collectionPath,
+    String collection,
     String docId,
     Map<String, dynamic> data, {
     bool merge = false,
   }) async {
     try {
-      AppLogger.database('SET', collectionPath, docId: docId);
-      await document(collectionPath, docId).set({
-        ...data,
-        if (!merge) 'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      }, SetOptions(merge: merge));
+      AppLogger.d('💾 DB SET: $collection/$docId');
+      await _firestore
+          .collection(collection)
+          .doc(docId)
+          .set(data, SetOptions(merge: merge));
       return ServiceResult.success();
     } catch (e) {
-      return ServiceResult.failure(
-        handleError(e, 'set $collectionPath/$docId'),
-      );
+      AppLogger.e('❌ DB SET Error', error: e);
+      return ServiceResult.failure(handleError(e));
     }
   }
 
-  /// تحديث document
+  /// تحديث مستند
   Future<ServiceResult<void>> update(
-    String collectionPath,
+    String collection,
     String docId,
     Map<String, dynamic> data,
   ) async {
     try {
-      AppLogger.database('UPDATE', collectionPath, docId: docId);
-      await document(
-        collectionPath,
-        docId,
-      ).update({...data, 'updatedAt': FieldValue.serverTimestamp()});
+      AppLogger.d('💾 DB UPDATE: $collection/$docId');
+      await _firestore.collection(collection).doc(docId).update(data);
       return ServiceResult.success();
     } catch (e) {
-      return ServiceResult.failure(
-        handleError(e, 'update $collectionPath/$docId'),
-      );
+      AppLogger.e('❌ DB UPDATE Error', error: e);
+      return ServiceResult.failure(handleError(e));
     }
   }
 
-  /// حذف document
-  Future<ServiceResult<void>> delete(
-    String collectionPath,
+  /// حذف مستند
+  Future<ServiceResult<void>> delete(String collection, String docId) async {
+    try {
+      AppLogger.d('💾 DB DELETE: $collection/$docId');
+      await _firestore.collection(collection).doc(docId).delete();
+      return ServiceResult.success();
+    } catch (e) {
+      AppLogger.e('❌ DB DELETE Error', error: e);
+      return ServiceResult.failure(handleError(e));
+    }
+  }
+
+  /// الحصول على مستند واحد
+  Future<ServiceResult<DocumentSnapshot<Map<String, dynamic>>>> get(
+    String collection,
     String docId,
   ) async {
     try {
-      AppLogger.database('DELETE', collectionPath, docId: docId);
-      await document(collectionPath, docId).delete();
-      return ServiceResult.success();
-    } catch (e) {
-      return ServiceResult.failure(
-        handleError(e, 'delete $collectionPath/$docId'),
-      );
-    }
-  }
-
-  /// الحصول على document واحد
-  Future<ServiceResult<DocumentSnapshot<Map<String, dynamic>>>> get(
-    String collectionPath,
-    String docId, {
-    Source source = Source.serverAndCache,
-  }) async {
-    try {
-      AppLogger.database('GET', collectionPath, docId: docId);
-      final doc = await document(
-        collectionPath,
-        docId,
-      ).get(GetOptions(source: source));
-
+      AppLogger.d('💾 DB GET: $collection/$docId');
+      final doc = await _firestore.collection(collection).doc(docId).get();
       if (!doc.exists) {
-        return ServiceResult.failure('البيانات غير موجودة', 'not-found');
+        return ServiceResult.failure('المستند غير موجود');
       }
       return ServiceResult.success(doc);
     } catch (e) {
-      return ServiceResult.failure(
-        handleError(e, 'get $collectionPath/$docId'),
-      );
+      AppLogger.e('❌ DB GET Error', error: e);
+      return ServiceResult.failure(handleError(e));
     }
   }
 
-  /// الحصول على جميع documents في collection مع Pagination
+  /// الحصول على جميع المستندات
   Future<ServiceResult<QuerySnapshot<Map<String, dynamic>>>> getAll(
-    String collectionPath, {
+    String collection, {
     Query<Map<String, dynamic>> Function(
       CollectionReference<Map<String, dynamic>>,
     )?
     queryBuilder,
     int? limit,
     DocumentSnapshot? startAfter,
-    Source source = Source.serverAndCache,
   }) async {
     try {
-      AppLogger.database('GET_ALL', collectionPath);
-      Query<Map<String, dynamic>> query = collection(collectionPath);
+      AppLogger.d('💾 DB GET_ALL: $collection');
+
+      Query<Map<String, dynamic>> query = _firestore.collection(collection);
 
       if (queryBuilder != null) {
-        query = queryBuilder(collection(collectionPath));
+        query = queryBuilder(_firestore.collection(collection));
       }
 
       if (startAfter != null) {
@@ -245,47 +178,35 @@ class FirebaseService extends BaseService with SubscriptionMixin {
         query = query.limit(limit);
       }
 
-      final snapshot = await query.get(GetOptions(source: source));
+      final snapshot = await query.get();
       return ServiceResult.success(snapshot);
     } catch (e) {
-      return ServiceResult.failure(handleError(e, 'getAll $collectionPath'));
+      AppLogger.e('❌ DB GET_ALL Error', error: e);
+      return ServiceResult.failure(handleError(e));
     }
   }
 
-  /// عد documents
-  Future<ServiceResult<int>> count(
-    String collectionPath, {
-    Query<Map<String, dynamic>> Function(
-      CollectionReference<Map<String, dynamic>>,
-    )?
-    queryBuilder,
-  }) async {
-    try {
-      Query<Map<String, dynamic>> query = collection(collectionPath);
-      if (queryBuilder != null) {
-        query = queryBuilder(collection(collectionPath));
-      }
-
-      final snapshot = await query.count().get();
-      return ServiceResult.success(snapshot.count ?? 0);
-    } catch (e) {
-      return ServiceResult.failure(handleError(e, 'count $collectionPath'));
-    }
+  /// Stream لمستند واحد
+  Stream<DocumentSnapshot<Map<String, dynamic>>> streamDocument(
+    String collection,
+    String docId,
+  ) {
+    return _firestore.collection(collection).doc(docId).snapshots();
   }
 
-  /// Stream لـ collection
+  /// Stream لـ Collection
   Stream<QuerySnapshot<Map<String, dynamic>>> streamCollection(
-    String collectionPath, {
+    String collection, {
     Query<Map<String, dynamic>> Function(
       CollectionReference<Map<String, dynamic>>,
     )?
     queryBuilder,
     int? limit,
   }) {
-    Query<Map<String, dynamic>> query = collection(collectionPath);
+    Query<Map<String, dynamic>> query = _firestore.collection(collection);
 
     if (queryBuilder != null) {
-      query = queryBuilder(collection(collectionPath));
+      query = queryBuilder(_firestore.collection(collection));
     }
 
     if (limit != null) {
@@ -295,158 +216,63 @@ class FirebaseService extends BaseService with SubscriptionMixin {
     return query.snapshots();
   }
 
-  /// Stream لـ document
-  Stream<DocumentSnapshot<Map<String, dynamic>>> streamDocument(
-    String collectionPath,
-    String docId,
-  ) {
-    return document(collectionPath, docId).snapshots();
-  }
-
   /// تنفيذ Transaction
   Future<ServiceResult<T>> runTransaction<T>(
-    Future<T> Function(Transaction transaction) handler, {
-    Duration timeout = const Duration(seconds: 30),
-    int maxAttempts = 5,
-  }) async {
-    try {
-      AppLogger.d('بدء Transaction');
-      final result = await firestore.runTransaction(
-        handler,
-        timeout: timeout,
-        maxAttempts: maxAttempts,
-      );
-      AppLogger.d('اكتمل Transaction بنجاح');
-      return ServiceResult.success(result);
-    } catch (e) {
-      AppLogger.e('فشل Transaction', error: e);
-      return ServiceResult.failure(handleError(e, 'transaction'));
-    }
-  }
-
-  /// تنفيذ Batch Write
-  Future<ServiceResult<void>> runBatch(
-    void Function(WriteBatch batch) handler,
+    Future<T> Function(Transaction transaction) transactionHandler,
   ) async {
     try {
-      AppLogger.d('بدء Batch Write');
-      final batch = firestore.batch();
-      handler(batch);
-      await batch.commit();
-      AppLogger.d('اكتمل Batch Write بنجاح');
-      return ServiceResult.success();
+      final result = await _firestore.runTransaction(transactionHandler);
+      return ServiceResult.success(result);
     } catch (e) {
-      AppLogger.e('فشل Batch Write', error: e);
-      return ServiceResult.failure(handleError(e, 'batch'));
+      AppLogger.e('❌ Transaction Error', error: e);
+      return ServiceResult.failure(handleError(e));
     }
   }
 
-  /// التحقق من وجود document
-  Future<bool> exists(String collectionPath, String docId) async {
+  /// Batch Write
+  Future<ServiceResult<void>> batchWrite(
+    void Function(WriteBatch batch) batchHandler,
+  ) async {
     try {
-      final doc = await document(collectionPath, docId).get();
+      final batch = _firestore.batch();
+      batchHandler(batch);
+      await batch.commit();
+      return ServiceResult.success();
+    } catch (e) {
+      AppLogger.e('❌ Batch Write Error', error: e);
+      return ServiceResult.failure(handleError(e));
+    }
+  }
+
+  /// التحقق من وجود مستند
+  Future<bool> exists(String collection, String docId) async {
+    try {
+      final doc = await _firestore.collection(collection).doc(docId).get();
       return doc.exists;
     } catch (e) {
       return false;
     }
   }
 
-  // ==================== Storage Operations ====================
-
-  /// رفع ملف من Bytes
-  Future<ServiceResult<String>> uploadFile(
-    String path,
-    Uint8List data,
-    String contentType,
-  ) async {
+  /// عد المستندات
+  Future<int> count(
+    String collection, {
+    Query<Map<String, dynamic>> Function(
+      CollectionReference<Map<String, dynamic>>,
+    )?
+    queryBuilder,
+  }) async {
     try {
-      AppLogger.d('رفع ملف: $path');
-      final ref = storage.ref().child(path);
-      final uploadTask = ref.putData(
-        data,
-        SettableMetadata(contentType: contentType),
-      );
+      Query<Map<String, dynamic>> query = _firestore.collection(collection);
 
-      // تتبع التقدم
-      uploadTask.snapshotEvents.listen((snapshot) {
-        final progress = snapshot.bytesTransferred / snapshot.totalBytes;
-        AppLogger.d('تقدم الرفع: ${(progress * 100).toStringAsFixed(1)}%');
-      });
-
-      final snapshot = await uploadTask;
-      final downloadUrl = await snapshot.ref.getDownloadURL();
-      AppLogger.d('تم رفع الملف بنجاح: $downloadUrl');
-      return ServiceResult.success(downloadUrl);
-    } catch (e) {
-      return ServiceResult.failure(handleError(e, 'upload file'));
-    }
-  }
-
-  /// حذف ملف
-  Future<ServiceResult<void>> deleteFile(String path) async {
-    try {
-      AppLogger.d('حذف ملف: $path');
-      await storage.ref().child(path).delete();
-      return ServiceResult.success();
-    } catch (e) {
-      // تجاهل الخطأ إذا كان الملف غير موجود
-      if (e is FirebaseException && e.code == 'object-not-found') {
-        return ServiceResult.success();
+      if (queryBuilder != null) {
+        query = queryBuilder(_firestore.collection(collection));
       }
-      return ServiceResult.failure(handleError(e, 'delete file'));
-    }
-  }
 
-  /// الحصول على رابط الملف
-  Future<ServiceResult<String>> getFileUrl(String path) async {
-    try {
-      final url = await storage.ref().child(path).getDownloadURL();
-      return ServiceResult.success(url);
+      final snapshot = await query.count().get();
+      return snapshot.count ?? 0;
     } catch (e) {
-      return ServiceResult.failure(handleError(e, 'get file url'));
+      return 0;
     }
-  }
-
-  /// الحصول على metadata الملف
-  Future<ServiceResult<FullMetadata>> getFileMetadata(String path) async {
-    try {
-      final metadata = await storage.ref().child(path).getMetadata();
-      return ServiceResult.success(metadata);
-    } catch (e) {
-      return ServiceResult.failure(handleError(e, 'get file metadata'));
-    }
-  }
-
-  // ==================== Utility Methods ====================
-
-  /// تمكين الوضع Offline
-  Future<void> enableOfflineMode() async {
-    await firestore.disableNetwork();
-    _offlineMode = true;
-    AppLogger.i('تم تفعيل الوضع Offline');
-  }
-
-  /// تعطيل الوضع Offline
-  Future<void> disableOfflineMode() async {
-    await firestore.enableNetwork();
-    _offlineMode = false;
-    AppLogger.i('تم تعطيل الوضع Offline');
-  }
-
-  /// مسح الـ Cache
-  Future<void> clearCache() async {
-    await firestore.clearPersistence();
-    AppLogger.i('تم مسح Cache');
-  }
-
-  /// الانتظار حتى تتم المزامنة
-  Future<void> waitForPendingWrites() async {
-    await firestore.waitForPendingWrites();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
-    AppLogger.d('تم تنظيف FirebaseService');
   }
 }

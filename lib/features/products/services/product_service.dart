@@ -1,8 +1,6 @@
 // lib/features/products/services/product_service.dart
-// خدمة المنتجات
+// خدمة المنتجات - بدون صور
 
-import 'dart:io';
-import 'dart:typed_data';
 import 'package:uuid/uuid.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/base_service.dart';
@@ -96,11 +94,7 @@ class ProductService extends BaseService {
       final result = await _firebase.getAll(
         _collection,
         queryBuilder: (ref) {
-          var query = ref.orderBy('createdAt', descending: true);
-          if (activeOnly) {
-            query = query.where('isActive', isEqualTo: true);
-          }
-          return query;
+          return ref.orderBy('createdAt', descending: true);
         },
       );
 
@@ -108,9 +102,13 @@ class ProductService extends BaseService {
         return ServiceResult.failure(result.error!);
       }
 
-      final products = result.data!.docs
+      var products = result.data!.docs
           .map((doc) => ProductModel.fromFirestore(doc))
           .toList();
+
+      if (activeOnly) {
+        products = products.where((p) => p.isActive).toList();
+      }
 
       return ServiceResult.success(products);
     } catch (e) {
@@ -124,24 +122,25 @@ class ProductService extends BaseService {
         .streamCollection(
           _collection,
           queryBuilder: (ref) {
-            var query = ref.orderBy('createdAt', descending: true);
-            if (activeOnly) {
-              query = query.where('isActive', isEqualTo: true);
-            }
-            return query;
+            return ref.orderBy('createdAt', descending: true);
           },
         )
-        .map(
-          (snapshot) => snapshot.docs
+        .map((snapshot) {
+          var products = snapshot.docs
               .map((doc) => ProductModel.fromFirestore(doc))
-              .toList(),
-        );
+              .toList();
+
+          if (activeOnly) {
+            products = products.where((p) => p.isActive).toList();
+          }
+
+          return products;
+        });
   }
 
   /// البحث عن منتجات
   Future<ServiceResult<List<ProductModel>>> searchProducts(String query) async {
     try {
-      // Firebase لا يدعم البحث النصي الكامل، لذلك نجلب الكل ونفلتر
       final result = await getAllProducts();
       if (!result.success) {
         return ServiceResult.failure(result.error!);
@@ -165,23 +164,17 @@ class ProductService extends BaseService {
     String category,
   ) async {
     try {
-      final result = await _firebase.getAll(
-        _collection,
-        queryBuilder: (ref) => ref
-            .where('category', isEqualTo: category)
-            .where('isActive', isEqualTo: true)
-            .orderBy('name'),
-      );
+      final result = await getAllProducts();
 
       if (!result.success) {
         return ServiceResult.failure(result.error!);
       }
 
-      final products = result.data!.docs
-          .map((doc) => ProductModel.fromFirestore(doc))
-          .toList();
+      final filtered =
+          result.data!.where((p) => p.category == category).toList()
+            ..sort((a, b) => a.name.compareTo(b.name));
 
-      return ServiceResult.success(products);
+      return ServiceResult.success(filtered);
     } catch (e) {
       return ServiceResult.failure(handleError(e));
     }
@@ -212,8 +205,9 @@ class ProductService extends BaseService {
     String productId,
     String color,
     int size,
-    int quantity, {String? reason}
-  ) async {
+    int quantity, {
+    String? reason,
+  }) async {
     try {
       final key = ProductModel.inventoryKey(color, size);
       return await _firebase.update(_collection, productId, {
@@ -233,7 +227,6 @@ class ProductService extends BaseService {
     int quantity,
   ) async {
     try {
-      // استخدام Transaction لضمان الاتساق
       final result = await _firebase.runTransaction((transaction) async {
         final docRef = _firebase.document(_collection, productId);
         final snapshot = await transaction.get(docRef);
@@ -297,59 +290,6 @@ class ProductService extends BaseService {
       }
 
       return ServiceResult.success();
-    } catch (e) {
-      return ServiceResult.failure(handleError(e));
-    }
-  }
-
-  /// رفع صورة المنتج
-  Future<ServiceResult<String>> uploadProductImage(
-    String productId,
-    File imageFile,
-  ) async {
-    try {
-      final bytes = await imageFile.readAsBytes();
-      final path =
-          '${AppConstants.productsImagesPath}/$productId/${DateTime.now().millisecondsSinceEpoch}.jpg';
-
-      final result = await _firebase.uploadFile(path, bytes, 'image/jpeg');
-      if (!result.success) {
-        return ServiceResult.failure(result.error!);
-      }
-
-      // تحديث رابط الصورة في المنتج
-      await _firebase.update(_collection, productId, {
-        'imageUrl': result.data,
-        'updatedAt': DateTime.now(),
-      });
-
-      return result;
-    } catch (e) {
-      return ServiceResult.failure(handleError(e));
-    }
-  }
-
-  /// رفع صورة من Bytes
-  Future<ServiceResult<String>> uploadProductImageBytes(
-    String productId,
-    Uint8List bytes,
-  ) async {
-    try {
-      final path =
-          '${AppConstants.productsImagesPath}/$productId/${DateTime.now().millisecondsSinceEpoch}.jpg';
-
-      final result = await _firebase.uploadFile(path, bytes, 'image/jpeg');
-      if (!result.success) {
-        return ServiceResult.failure(result.error!);
-      }
-
-      // تحديث رابط الصورة في المنتج
-      await _firebase.update(_collection, productId, {
-        'imageUrl': result.data,
-        'updatedAt': DateTime.now(),
-      });
-
-      return result;
     } catch (e) {
       return ServiceResult.failure(handleError(e));
     }
