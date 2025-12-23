@@ -68,8 +68,8 @@ class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
 
-  // الحالة
-  AuthState _state = AuthState.initial;
+  // الحالة - تم تغييرها من initial إلى loading لمنع ظهور شاشة تسجيل الدخول مؤقتاً
+  AuthState _state = AuthState.loading;
   UserModel? _currentUser;
   AuthError? _lastError;
   String? _pendingEmail;

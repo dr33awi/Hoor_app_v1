@@ -505,17 +505,84 @@ class AuthService extends BaseService {
     }
   }
 
+  /// ==================== التحقق من وجود البريد الإلكتروني ====================
+  Future<bool> isEmailRegistered(String email) async {
+    try {
+      // البحث في Firestore
+      final querySnapshot = await _firestore
+          .collection(_usersCollection)
+          .where('email', isEqualTo: email.trim().toLowerCase())
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        return true;
+      }
+
+      // البحث بالإيميل الأصلي (بدون تحويل لأحرف صغيرة)
+      final querySnapshot2 = await _firestore
+          .collection(_usersCollection)
+          .where('email', isEqualTo: email.trim())
+          .limit(1)
+          .get();
+
+      return querySnapshot2.docs.isNotEmpty;
+    } catch (e) {
+      AppLogger.e('❌ خطأ في التحقق من البريد الإلكتروني', error: e);
+      // في حالة الخطأ، نعيد true للسماح بالمتابعة (لتجنب حظر المستخدمين الشرعيين)
+      return true;
+    }
+  }
+
   /// ==================== إعادة تعيين كلمة المرور ====================
   Future<AuthResult<void>> resetPassword(String email) async {
     try {
-      await _auth.sendPasswordResetEmail(email: email.trim());
-      AppLogger.i('📧 تم إرسال رابط إعادة تعيين كلمة المرور');
+      final trimmedEmail = email.trim();
+
+      // التحقق من صحة صيغة البريد الإلكتروني
+      if (!_isValidEmail(trimmedEmail)) {
+        return AuthResult.failure(
+          message: 'البريد الإلكتروني غير صالح',
+          type: AuthErrorType.invalidEmail,
+          code: 'invalid-email',
+        );
+      }
+
+      // التحقق من وجود البريد الإلكتروني في النظام
+      final isRegistered = await isEmailRegistered(trimmedEmail);
+
+      if (!isRegistered) {
+        AppLogger.w(
+          '⚠️ محاولة إعادة تعيين كلمة مرور لبريد غير مسجل: $trimmedEmail',
+        );
+        return AuthResult.failure(
+          message: 'لا يوجد حساب مسجل بهذا البريد الإلكتروني',
+          type: AuthErrorType.userNotFound,
+          code: 'user-not-found',
+        );
+      }
+
+      // إرسال رابط إعادة تعيين كلمة المرور
+      await _auth.sendPasswordResetEmail(email: trimmedEmail);
+      AppLogger.i(
+        '📧 تم إرسال رابط إعادة تعيين كلمة المرور إلى: $trimmedEmail',
+      );
       return AuthResult.success();
     } on FirebaseAuthException catch (e) {
+      AppLogger.e(
+        '❌ خطأ Firebase في إعادة تعيين كلمة المرور: ${e.code}',
+        error: e,
+      );
       return _handleFirebaseAuthError(e);
     } catch (e) {
+      AppLogger.e('❌ خطأ في إعادة تعيين كلمة المرور', error: e);
       return _handleGenericError(e);
     }
+  }
+
+  /// التحقق من صحة صيغة البريد الإلكتروني
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
   }
 
   /// ==================== جلب بيانات المستخدم ====================
