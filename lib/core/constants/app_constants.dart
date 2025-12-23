@@ -176,3 +176,89 @@ class NotificationType {
   static const String accountRejected = 'account_rejected';
   static const String systemAlert = 'system_alert';
 }
+
+class BarcodeConstants {
+  BarcodeConstants._();
+
+  // ==================== إعدادات الباركود ====================
+  static const String defaultStoreCode = 'SHO';
+  static const int barcodeLength = 12;
+  static const int variantBarcodeMaxLength = 20;
+
+  // ==================== ألوان افتراضية للأحذية ====================
+  static const List<String> defaultColors = [
+    'أسود',
+    'أبيض',
+    'بني',
+    'رمادي',
+    'كحلي',
+    'بيج',
+    'أحمر',
+    'أزرق',
+    'عنابي',
+    'ذهبي',
+    'فضي',
+  ];
+
+  // ==================== أكواد الألوان للباركود ====================
+  static const Map<String, String> colorCodes = {
+    'أسود': 'BK',
+    'أبيض': 'WH',
+    'أحمر': 'RD',
+    'أزرق': 'BL',
+    'أخضر': 'GR',
+    'بني': 'BR',
+    'رمادي': 'GY',
+    'بيج': 'BG',
+    'كحلي': 'NV',
+    'عنابي': 'MR',
+    'ذهبي': 'GD',
+    'فضي': 'SL',
+  };
+
+  // ==================== مقاسات افتراضية ====================
+  static const List<int> menSizes = [40, 41, 42, 43, 44, 45, 46];
+  static const List<int> womenSizes = [36, 37, 38, 39, 40, 41];
+  static const List<int> childrenSizes = [
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+  ];
+
+  // ==================== فئات افتراضية للأحذية ====================
+  static const List<String> defaultCategories = [
+    'رياضي',
+    'رسمي',
+    'كاجوال',
+    'أطفال',
+    'نسائي',
+    'صنادل',
+    'شتوي',
+    'صيفي',
+  ];
+}
+
+/// سجل حركات المخزون
+class InventoryLogCollection {
+  static const String collectionName = 'inventory_log';
+}
+
+/// أنواع حركات المخزون
+class InventoryAction {
+  InventoryAction._();
+
+  static const String add = 'add';
+  static const String remove = 'remove';
+  static const String sale = 'sale';
+  static const String refund = 'refund';
+  static const String adjustment = 'adjustment';
+  static const String transfer = 'transfer';
+}

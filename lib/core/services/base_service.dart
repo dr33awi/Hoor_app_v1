@@ -1,12 +1,37 @@
 // lib/core/services/base_service.dart
+// الخدمة القاعدية
 
-/// نتيجة الخدمة
+abstract class BaseService {
+  /// معالجة الأخطاء
+  String handleError(dynamic error) {
+    if (error is Exception) {
+      final message = error.toString();
+      if (message.contains('network')) {
+        return 'خطأ في الاتصال بالشبكة';
+      }
+      if (message.contains('permission')) {
+        return 'ليس لديك صلاحية لهذا الإجراء';
+      }
+      if (message.contains('not-found')) {
+        return 'العنصر غير موجود';
+      }
+      return message.replaceAll('Exception: ', '');
+    }
+    return 'حدث خطأ غير متوقع';
+  }
+}
+
+/// نتيجة العملية
 class ServiceResult<T> {
   final bool success;
   final T? data;
   final String? error;
 
-  ServiceResult._({required this.success, this.data, this.error});
+  ServiceResult._({
+    required this.success,
+    this.data,
+    this.error,
+  });
 
   factory ServiceResult.success([T? data]) {
     return ServiceResult._(success: true, data: data);
@@ -15,38 +40,12 @@ class ServiceResult<T> {
   factory ServiceResult.failure(String error) {
     return ServiceResult._(success: false, error: error);
   }
-}
 
-/// الخدمة الأساسية
-abstract class BaseService {
-  /// معالجة الأخطاء
-  String handleError(dynamic error) {
-    if (error is String) {
-      return error;
+  /// تحويل النتيجة
+  ServiceResult<R> map<R>(R Function(T data) mapper) {
+    if (success && data != null) {
+      return ServiceResult.success(mapper(data as T));
     }
-
-    final message = error.toString();
-
-    // ترجمة رسائل Firebase
-    if (message.contains('permission-denied')) {
-      return 'ليس لديك صلاحية للقيام بهذا الإجراء';
-    }
-    if (message.contains('not-found')) {
-      return 'العنصر غير موجود';
-    }
-    if (message.contains('already-exists')) {
-      return 'العنصر موجود بالفعل';
-    }
-    if (message.contains('network')) {
-      return 'خطأ في الاتصال بالإنترنت';
-    }
-    if (message.contains('unavailable')) {
-      return 'الخدمة غير متاحة حالياً';
-    }
-    if (message.contains('failed-precondition')) {
-      return 'الشروط المسبقة غير متوفرة';
-    }
-
-    return 'حدث خطأ غير متوقع';
+    return ServiceResult.failure(error ?? 'Unknown error');
   }
 }

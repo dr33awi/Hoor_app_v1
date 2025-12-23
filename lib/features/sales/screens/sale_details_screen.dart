@@ -1,5 +1,5 @@
 // lib/features/sales/screens/sale_details_screen.dart
-// شاشة تفاصيل الفاتورة - تصميم حديث
+// شاشة تفاصيل الفاتورة - تصميم حديث (محدّث)
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -134,17 +134,13 @@ class SaleDetailsScreen extends StatelessWidget {
                     dateFormatter.format(sale.saleDate),
                   ),
                   Divider(height: 20, color: Colors.grey.shade100),
-                  _infoRow(_paymentIcon(), 'طريقة الدفع', sale.paymentMethod),
+                  _infoRow(
+                    Icons.payments_outlined,
+                    'طريقة الدفع',
+                    'نقدي', // ثابت - نقدي فقط
+                  ),
                   Divider(height: 20, color: Colors.grey.shade100),
                   _infoRow(Icons.person_outline, 'البائع', sale.userName),
-                  if (sale.buyerName != null) ...[
-                    Divider(height: 20, color: Colors.grey.shade100),
-                    _infoRow(Icons.person_outline, 'المشتري', sale.buyerName!),
-                  ],
-                  if (sale.buyerPhone != null) ...[
-                    Divider(height: 20, color: Colors.grey.shade100),
-                    _infoRow(Icons.phone_outlined, 'الهاتف', sale.buyerPhone!),
-                  ],
                 ],
               ),
             ),
@@ -252,13 +248,6 @@ class SaleDetailsScreen extends StatelessWidget {
                       'الخصم${sale.discountPercent > 0 ? ' (${sale.discountPercent}%)' : ''}',
                       '- ${formatter.format(sale.discount)} ر.س',
                       color: const Color(0xFFEF4444),
-                    ),
-                  ],
-                  if (sale.tax > 0) ...[
-                    const SizedBox(height: 8),
-                    _summaryRow(
-                      'الضريبة (${(AppConstants.defaultTaxRate * 100).toInt()}%)',
-                      '${formatter.format(sale.tax)} ر.س',
                     ),
                   ],
                   Divider(height: 24, color: Colors.grey.shade100),
@@ -377,19 +366,6 @@ class SaleDetailsScreen extends StatelessWidget {
         return Icons.access_time;
       default:
         return Icons.help;
-    }
-  }
-
-  IconData _paymentIcon() {
-    switch (sale.paymentMethod) {
-      case 'نقدي':
-        return Icons.payments_outlined;
-      case 'بطاقة':
-        return Icons.credit_card;
-      case 'آجل':
-        return Icons.schedule;
-      default:
-        return Icons.payment;
     }
   }
 

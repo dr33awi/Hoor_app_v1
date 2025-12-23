@@ -1,5 +1,5 @@
 // lib/features/products/models/product_model.dart
-// نموذج المنتج - بدون صور
+// نموذج المنتج - مع دعم الباركود المحسّن
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -11,9 +11,11 @@ class ProductModel {
   final String brand;
   final double price;
   final double costPrice;
+  final String barcode; // باركود المنتج الأساسي
   final List<String> colors;
   final List<int> sizes;
   final Map<String, int> inventory; // {"أسود-42": 5, "أبيض-43": 3}
+  final Map<String, String> variantBarcodes; // {"أسود-42": "SHO2506...", ...}
   final bool isActive;
   final DateTime createdAt;
   final DateTime? updatedAt;
@@ -26,9 +28,11 @@ class ProductModel {
     this.brand = '',
     required this.price,
     required this.costPrice,
+    required this.barcode,
     required this.colors,
     required this.sizes,
     required this.inventory,
+    this.variantBarcodes = const {},
     this.isActive = true,
     required this.createdAt,
     this.updatedAt,
@@ -45,11 +49,17 @@ class ProductModel {
       brand: data['brand'] ?? '',
       price: (data['price'] ?? 0).toDouble(),
       costPrice: (data['costPrice'] ?? 0).toDouble(),
+      barcode: data['barcode'] ?? '',
       colors: List<String>.from(data['colors'] ?? []),
       sizes: List<int>.from((data['sizes'] ?? []).map((e) => e as int)),
       inventory: Map<String, int>.from(
         (data['inventory'] ?? {}).map(
           (key, value) => MapEntry(key.toString(), (value as num).toInt()),
+        ),
+      ),
+      variantBarcodes: Map<String, String>.from(
+        (data['variantBarcodes'] ?? {}).map(
+          (key, value) => MapEntry(key.toString(), value.toString()),
         ),
       ),
       isActive: data['isActive'] ?? true,
@@ -67,9 +77,11 @@ class ProductModel {
       'brand': brand,
       'price': price,
       'costPrice': costPrice,
+      'barcode': barcode,
       'colors': colors,
       'sizes': sizes,
       'inventory': inventory,
+      'variantBarcodes': variantBarcodes,
       'isActive': isActive,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
@@ -85,9 +97,11 @@ class ProductModel {
     String? brand,
     double? price,
     double? costPrice,
+    String? barcode,
     List<String>? colors,
     List<int>? sizes,
     Map<String, int>? inventory,
+    Map<String, String>? variantBarcodes,
     bool? isActive,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -100,9 +114,11 @@ class ProductModel {
       brand: brand ?? this.brand,
       price: price ?? this.price,
       costPrice: costPrice ?? this.costPrice,
+      barcode: barcode ?? this.barcode,
       colors: colors ?? this.colors,
       sizes: sizes ?? this.sizes,
       inventory: inventory ?? this.inventory,
+      variantBarcodes: variantBarcodes ?? this.variantBarcodes,
       isActive: isActive ?? this.isActive,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -115,13 +131,19 @@ class ProductModel {
   /// هل نفذ المخزون؟
   bool get isOutOfStock => totalQuantity == 0;
 
-  /// هل المخزون منخفض؟ (property not method)
+  /// هل المخزون منخفض؟
   bool get isLowStock => totalQuantity > 0 && totalQuantity <= 5;
 
   /// الحصول على كمية محددة
   int getQuantity(String color, int size) {
     final key = inventoryKey(color, size);
     return inventory[key] ?? 0;
+  }
+
+  /// الحصول على باركود متغير
+  String? getVariantBarcode(String color, int size) {
+    final key = inventoryKey(color, size);
+    return variantBarcodes[key];
   }
 
   /// مفتاح المخزون
@@ -134,8 +156,63 @@ class ProductModel {
   double get profitPercentage =>
       costPrice > 0 ? ((price - costPrice) / costPrice) * 100 : 0;
 
+  /// البحث عن متغير بالباركود
+  VariantInfo? findVariantByBarcode(String searchBarcode) {
+    // البحث في باركودات المتغيرات
+    for (final entry in variantBarcodes.entries) {
+      if (entry.value == searchBarcode) {
+        final parts = entry.key.split('-');
+        if (parts.length >= 2) {
+          final color = parts.sublist(0, parts.length - 1).join('-');
+          final size = int.tryParse(parts.last);
+          if (size != null) {
+            return VariantInfo(
+              color: color,
+              size: size,
+              quantity: getQuantity(color, size),
+              barcode: entry.value,
+            );
+          }
+        }
+      }
+    }
+    
+    // البحث في الباركود الأساسي
+    if (barcode == searchBarcode) {
+      if (colors.isNotEmpty && sizes.isNotEmpty) {
+        return VariantInfo(
+          color: colors.first,
+          size: sizes.first,
+          quantity: getQuantity(colors.first, sizes.first),
+          barcode: barcode,
+        );
+      }
+    }
+    
+    return null;
+  }
+
+  /// جميع المتغيرات المتوفرة
+  List<VariantInfo> get availableVariants {
+    final variants = <VariantInfo>[];
+    for (final color in colors) {
+      for (final size in sizes) {
+        final qty = getQuantity(color, size);
+        if (qty > 0) {
+          variants.add(VariantInfo(
+            color: color,
+            size: size,
+            quantity: qty,
+            barcode: getVariantBarcode(color, size),
+          ));
+        }
+      }
+    }
+    return variants;
+  }
+
   @override
-  String toString() => 'ProductModel(id: $id, name: $name)';
+  String toString() => 'ProductModel(id: $id, name: $name, barcode: $barcode)';
 
   @override
   bool operator ==(Object other) =>
@@ -146,4 +223,22 @@ class ProductModel {
 
   @override
   int get hashCode => id.hashCode;
+}
+
+/// معلومات المتغير
+class VariantInfo {
+  final String color;
+  final int size;
+  final int quantity;
+  final String? barcode;
+
+  VariantInfo({
+    required this.color,
+    required this.size,
+    required this.quantity,
+    this.barcode,
+  });
+
+  String get key => '$color-$size';
+  String get displayName => '$color - مقاس $size';
 }

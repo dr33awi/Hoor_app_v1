@@ -1,5 +1,5 @@
 // lib/features/sales/providers/sale_provider.dart
-// مزود حالة المبيعات - محسن
+// مزود حالة المبيعات - مبسط
 
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -20,14 +20,9 @@ class SaleProvider with ChangeNotifier {
   StreamSubscription? _salesSubscription;
 
   // بيانات الفاتورة الحالية
-  String? _buyerName;
-  String? _buyerPhone;
   String? _notes;
-  String _paymentMethod = AppConstants.paymentCash;
   double _discountPercent = 0;
   double _discountAmount = 0;
-  bool _applyTax = true;
-  double? _amountPaid;
 
   // Getters
   List<SaleModel> get sales => _getFilteredSales();
@@ -36,14 +31,9 @@ class SaleProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get error => _error;
   String get searchQuery => _searchQuery;
-  String? get buyerName => _buyerName;
-  String? get buyerPhone => _buyerPhone;
   String? get notes => _notes;
-  String get paymentMethod => _paymentMethod;
   double get discountPercent => _discountPercent;
   double get discountAmount => _discountAmount;
-  bool get applyTax => _applyTax;
-  double? get amountPaid => _amountPaid;
 
   /// المجموع الفرعي
   double get subtotal {
@@ -56,20 +46,8 @@ class SaleProvider with ChangeNotifier {
     return (subtotal * (_discountPercent / 100)).clamp(0, subtotal);
   }
 
-  /// قيمة الضريبة
-  double get tax {
-    if (!_applyTax) return 0;
-    return (subtotal - discount) * AppConstants.defaultTaxRate;
-  }
-
-  /// الإجمالي النهائي
-  double get total => subtotal - discount + tax;
-
-  /// الباقي
-  double get changeGiven {
-    if (_amountPaid == null) return 0;
-    return (_amountPaid! - total).clamp(0, double.infinity);
-  }
+  /// الإجمالي النهائي (بدون ضريبة)
+  double get total => subtotal - discount;
 
   /// عدد العناصر
   int get cartItemsCount =>
@@ -77,15 +55,6 @@ class SaleProvider with ChangeNotifier {
 
   /// هل السلة فارغة
   bool get isCartEmpty => _cartItems.isEmpty;
-
-  /// هل يمكن إتمام البيع
-  bool get canCheckout {
-    if (_cartItems.isEmpty) return false;
-    if (_paymentMethod == AppConstants.paymentCash && _amountPaid != null) {
-      return _amountPaid! >= total;
-    }
-    return true;
-  }
 
   /// المبيعات المفلترة
   List<SaleModel> _getFilteredSales() {
@@ -95,8 +64,9 @@ class SaleProvider with ChangeNotifier {
       final query = _searchQuery.toLowerCase();
       filtered = filtered.where((s) {
         return s.invoiceNumber.toLowerCase().contains(query) ||
-            (s.buyerName?.toLowerCase().contains(query) ?? false) ||
-            (s.buyerPhone?.contains(query) ?? false);
+            s.items.any(
+              (item) => item.productName.toLowerCase().contains(query),
+            );
       }).toList();
     }
 
@@ -156,7 +126,7 @@ class SaleProvider with ChangeNotifier {
 
       if (currentQty + item.quantity > availableQuantity) {
         return ServiceResult.failure(
-          'الكمية المطلوبة (${currentQty + item.quantity}) أكبر من المتوفر ($availableQuantity)',
+          'الكمية المطلوبة أكبر من المتوفر ($availableQuantity)',
         );
       }
     }
@@ -164,12 +134,6 @@ class SaleProvider with ChangeNotifier {
     // التحقق من الحد الأقصى
     if (cartItemsCount + item.quantity > AppConstants.maxCartItems) {
       return ServiceResult.failure('تم الوصول للحد الأقصى لعناصر السلة');
-    }
-
-    if (item.quantity > AppConstants.maxQuantityPerItem) {
-      return ServiceResult.failure(
-        'الحد الأقصى للكمية هو ${AppConstants.maxQuantityPerItem}',
-      );
     }
 
     final existingIndex = _findCartItemIndex(
@@ -237,33 +201,13 @@ class SaleProvider with ChangeNotifier {
   }
 
   void _resetCheckoutData() {
-    _buyerName = null;
-    _buyerPhone = null;
     _notes = null;
-    _paymentMethod = AppConstants.paymentCash;
     _discountPercent = 0;
     _discountAmount = 0;
-    _applyTax = true;
-    _amountPaid = null;
-  }
-
-  /// تحديث بيانات المشتري
-  void setBuyerInfo({String? name, String? phone}) {
-    _buyerName = name?.trim().isEmpty == true ? null : name?.trim();
-    _buyerPhone = phone?.trim().isEmpty == true ? null : phone?.trim();
-    notifyListeners();
   }
 
   void setNotes(String? notes) {
     _notes = notes?.trim().isEmpty == true ? null : notes?.trim();
-    notifyListeners();
-  }
-
-  void setPaymentMethod(String method) {
-    _paymentMethod = method;
-    if (method != AppConstants.paymentCash) {
-      _amountPaid = null;
-    }
     notifyListeners();
   }
 
@@ -279,16 +223,6 @@ class SaleProvider with ChangeNotifier {
   void setDiscountAmount(double amount) {
     _discountAmount = amount.clamp(0, subtotal);
     _discountPercent = 0;
-    notifyListeners();
-  }
-
-  void setApplyTax(bool apply) {
-    _applyTax = apply;
-    notifyListeners();
-  }
-
-  void setAmountPaid(double? amount) {
-    _amountPaid = amount;
     notifyListeners();
   }
 
@@ -311,19 +245,13 @@ class SaleProvider with ChangeNotifier {
       subtotal: subtotal,
       discount: discount,
       discountPercent: _discountPercent,
-      tax: tax,
       total: total,
-      paymentMethod: _paymentMethod,
       status: AppConstants.saleStatusCompleted,
-      buyerName: _buyerName,
-      buyerPhone: _buyerPhone,
       notes: _notes,
       userId: '',
       userName: '',
       saleDate: DateTime.now(),
       createdAt: DateTime.now(),
-      amountPaid: _amountPaid,
-      changeGiven: changeGiven > 0 ? changeGiven : null,
     );
 
     final result = await _saleService.createSale(sale);
@@ -382,25 +310,6 @@ class SaleProvider with ChangeNotifier {
     _searchQuery = '';
     _filterStatus = null;
     notifyListeners();
-  }
-
-  /// تقرير المبيعات
-  Future<SalesReport?> getSalesReport({
-    required DateTime startDate,
-    required DateTime endDate,
-  }) async {
-    final result = await _saleService.getSalesReport(
-      startDate: startDate,
-      endDate: endDate,
-    );
-
-    if (result.success) {
-      return result.data;
-    } else {
-      _error = result.error;
-      notifyListeners();
-      return null;
-    }
   }
 
   void clearError() {

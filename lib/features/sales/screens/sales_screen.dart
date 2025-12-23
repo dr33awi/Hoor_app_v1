@@ -1,5 +1,5 @@
 // lib/features/sales/screens/sales_screen.dart
-// شاشة قائمة الفواتير - تصميم حديث
+// شاشة قائمة الفواتير - تصميم حديث (محدّث)
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -322,33 +322,21 @@ class _SaleCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                // عرض اسم البائع بدلاً من المشتري
+                Row(
                   children: [
-                    if (sale.buyerName != null)
-                      Text(
-                        sale.buyerName!,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey.shade600,
-                        ),
+                    Icon(
+                      Icons.person_outline,
+                      size: 14,
+                      color: Colors.grey.shade400,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      sale.userName,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade500,
                       ),
-                    Row(
-                      children: [
-                        Icon(
-                          _paymentIcon(),
-                          size: 14,
-                          color: Colors.grey.shade400,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          sale.paymentMethod,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade500,
-                          ),
-                        ),
-                      ],
                     ),
                   ],
                 ),
@@ -390,19 +378,6 @@ class _SaleCard extends StatelessWidget {
         return const Color(0xFFD97706);
       default:
         return Colors.grey;
-    }
-  }
-
-  IconData _paymentIcon() {
-    switch (sale.paymentMethod) {
-      case 'نقدي':
-        return Icons.payments_outlined;
-      case 'بطاقة':
-        return Icons.credit_card;
-      case 'آجل':
-        return Icons.schedule;
-      default:
-        return Icons.payment;
     }
   }
 }

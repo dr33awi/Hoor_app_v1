@@ -1,5 +1,5 @@
 // lib/features/sales/models/sale_model.dart
-// نموذج المبيعات - محسن
+// نموذج المبيعات - مبسط (نقدي فقط، بدون ضريبة)
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/constants/app_constants.dart';
@@ -55,7 +55,6 @@ class SaleItem {
   double get totalPrice => unitPrice * quantity;
   double get totalCost => costPrice * quantity;
   double get profit => totalPrice - totalCost;
-  double get profitPercentage => totalCost > 0 ? (profit / totalCost) * 100 : 0;
 
   String get variant => '$color - مقاس $size';
   String get inventoryKey => '$color-$size';
@@ -94,7 +93,7 @@ class SaleItem {
   int get hashCode => Object.hash(productId, color, size);
 }
 
-/// نموذج الفاتورة
+/// نموذج الفاتورة المبسط
 class SaleModel {
   final String id;
   final String invoiceNumber;
@@ -102,22 +101,16 @@ class SaleModel {
   final double subtotal;
   final double discount;
   final double discountPercent;
-  final double tax;
   final double total;
-  final String paymentMethod;
-  final String status;
-  final String? buyerName;
-  final String? buyerPhone;
+  final String status; // مكتمل، ملغي، معلق
   final String? notes;
   final String userId;
   final String userName;
   final DateTime saleDate;
   final DateTime createdAt;
-  final double? amountPaid;
-  final double? changeGiven;
-  final String? refundReason;
-  final DateTime? refundedAt;
-  final String? refundedBy;
+  final String? cancelReason;
+  final DateTime? cancelledAt;
+  final String? cancelledBy;
 
   SaleModel({
     required this.id,
@@ -126,22 +119,16 @@ class SaleModel {
     required this.subtotal,
     this.discount = 0,
     this.discountPercent = 0,
-    this.tax = 0,
     required this.total,
-    this.paymentMethod = AppConstants.paymentCash,
     this.status = AppConstants.saleStatusCompleted,
-    this.buyerName,
-    this.buyerPhone,
     this.notes,
     required this.userId,
     required this.userName,
     required this.saleDate,
     required this.createdAt,
-    this.amountPaid,
-    this.changeGiven,
-    this.refundReason,
-    this.refundedAt,
-    this.refundedBy,
+    this.cancelReason,
+    this.cancelledAt,
+    this.cancelledBy,
   });
 
   factory SaleModel.fromFirestore(DocumentSnapshot doc) {
@@ -161,22 +148,16 @@ class SaleModel {
       subtotal: (map['subtotal'] ?? 0).toDouble(),
       discount: (map['discount'] ?? 0).toDouble(),
       discountPercent: (map['discountPercent'] ?? 0).toDouble(),
-      tax: (map['tax'] ?? 0).toDouble(),
       total: (map['total'] ?? 0).toDouble(),
-      paymentMethod: map['paymentMethod'] ?? AppConstants.paymentCash,
       status: map['status'] ?? AppConstants.saleStatusCompleted,
-      buyerName: map['buyerName'],
-      buyerPhone: map['buyerPhone'],
       notes: map['notes'],
       userId: map['userId'] ?? '',
       userName: map['userName'] ?? '',
       saleDate: _parseDateTime(map['saleDate']),
       createdAt: _parseDateTime(map['createdAt']),
-      amountPaid: (map['amountPaid'] as num?)?.toDouble(),
-      changeGiven: (map['changeGiven'] as num?)?.toDouble(),
-      refundReason: map['refundReason'],
-      refundedAt: _parseDateTimeNullable(map['refundedAt']),
-      refundedBy: map['refundedBy'],
+      cancelReason: map['cancelReason'],
+      cancelledAt: _parseDateTimeNullable(map['cancelledAt']),
+      cancelledBy: map['cancelledBy'],
     );
   }
 
@@ -201,22 +182,18 @@ class SaleModel {
       'subtotal': subtotal,
       'discount': discount,
       'discountPercent': discountPercent,
-      'tax': tax,
       'total': total,
-      'paymentMethod': paymentMethod,
       'status': status,
-      'buyerName': buyerName,
-      'buyerPhone': buyerPhone,
       'notes': notes,
       'userId': userId,
       'userName': userName,
       'saleDate': Timestamp.fromDate(saleDate),
       'createdAt': Timestamp.fromDate(createdAt),
-      'amountPaid': amountPaid,
-      'changeGiven': changeGiven,
-      'refundReason': refundReason,
-      'refundedAt': refundedAt != null ? Timestamp.fromDate(refundedAt!) : null,
-      'refundedBy': refundedBy,
+      'cancelReason': cancelReason,
+      'cancelledAt': cancelledAt != null
+          ? Timestamp.fromDate(cancelledAt!)
+          : null,
+      'cancelledBy': cancelledBy,
     };
   }
 
@@ -227,22 +204,16 @@ class SaleModel {
     double? subtotal,
     double? discount,
     double? discountPercent,
-    double? tax,
     double? total,
-    String? paymentMethod,
     String? status,
-    String? buyerName,
-    String? buyerPhone,
     String? notes,
     String? userId,
     String? userName,
     DateTime? saleDate,
     DateTime? createdAt,
-    double? amountPaid,
-    double? changeGiven,
-    String? refundReason,
-    DateTime? refundedAt,
-    String? refundedBy,
+    String? cancelReason,
+    DateTime? cancelledAt,
+    String? cancelledBy,
   }) {
     return SaleModel(
       id: id ?? this.id,
@@ -251,22 +222,16 @@ class SaleModel {
       subtotal: subtotal ?? this.subtotal,
       discount: discount ?? this.discount,
       discountPercent: discountPercent ?? this.discountPercent,
-      tax: tax ?? this.tax,
       total: total ?? this.total,
-      paymentMethod: paymentMethod ?? this.paymentMethod,
       status: status ?? this.status,
-      buyerName: buyerName ?? this.buyerName,
-      buyerPhone: buyerPhone ?? this.buyerPhone,
       notes: notes ?? this.notes,
       userId: userId ?? this.userId,
       userName: userName ?? this.userName,
       saleDate: saleDate ?? this.saleDate,
       createdAt: createdAt ?? this.createdAt,
-      amountPaid: amountPaid ?? this.amountPaid,
-      changeGiven: changeGiven ?? this.changeGiven,
-      refundReason: refundReason ?? this.refundReason,
-      refundedAt: refundedAt ?? this.refundedAt,
-      refundedBy: refundedBy ?? this.refundedBy,
+      cancelReason: cancelReason ?? this.cancelReason,
+      cancelledAt: cancelledAt ?? this.cancelledAt,
+      cancelledBy: cancelledBy ?? this.cancelledBy,
     );
   }
 
@@ -280,17 +245,9 @@ class SaleModel {
   bool get isCompleted => status == AppConstants.saleStatusCompleted;
   bool get isCancelled => status == AppConstants.saleStatusCancelled;
   bool get isPending => status == AppConstants.saleStatusPending;
-  bool get isRefunded => status == AppConstants.saleStatusRefunded;
-
-  bool get isCash => paymentMethod == AppConstants.paymentCash;
-  bool get isCard => paymentMethod == AppConstants.paymentCard;
-  bool get isCredit => paymentMethod == AppConstants.paymentCredit;
 
   /// هل يمكن إلغاء الفاتورة
-  bool get canBeCancelled => isCompleted && !isRefunded;
-
-  /// هل يمكن استرجاع الفاتورة
-  bool get canBeRefunded => isCompleted && !isRefunded;
+  bool get canBeCancelled => isCompleted;
 
   @override
   bool operator ==(Object other) =>

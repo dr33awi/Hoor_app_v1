@@ -1,4 +1,6 @@
 // lib/features/sales/services/sale_service.dart
+// خدمة المبيعات (محدّث - بدون ضريبة وطريقة دفع)
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/base_service.dart';
@@ -138,9 +140,9 @@ class SaleService extends BaseService {
 
         transaction.update(saleRef, {
           'status': AppConstants.saleStatusCancelled,
-          'refundReason': reason,
-          'refundedAt': FieldValue.serverTimestamp(),
-          'refundedBy': _auth.currentUserId,
+          'cancelReason': reason,
+          'cancelledAt': FieldValue.serverTimestamp(),
+          'cancelledBy': _auth.currentUserId,
         });
       });
 
@@ -308,7 +310,7 @@ class SaleService extends BaseService {
   }
 }
 
-/// تقرير المبيعات
+/// تقرير المبيعات (مبسّط - بدون ضريبة وطرق دفع)
 class SalesReport {
   final int totalOrders;
   final int totalItems;
@@ -316,10 +318,8 @@ class SalesReport {
   final double totalCost;
   final double totalProfit;
   final double totalDiscount;
-  final double totalTax;
   final double averageOrderValue;
   final Map<String, int> topProducts;
-  final Map<String, double> salesByPaymentMethod;
 
   SalesReport({
     required this.totalOrders,
@@ -328,10 +328,8 @@ class SalesReport {
     required this.totalCost,
     required this.totalProfit,
     required this.totalDiscount,
-    required this.totalTax,
     required this.averageOrderValue,
     required this.topProducts,
-    required this.salesByPaymentMethod,
   });
 
   factory SalesReport.fromSales(List<SaleModel> sales) {
@@ -343,31 +341,25 @@ class SalesReport {
         totalCost: 0,
         totalProfit: 0,
         totalDiscount: 0,
-        totalTax: 0,
         averageOrderValue: 0,
         topProducts: {},
-        salesByPaymentMethod: {},
       );
     }
 
     int totalItems = 0;
-    double totalRevenue = 0, totalCost = 0, totalDiscount = 0, totalTax = 0;
+    double totalRevenue = 0, totalCost = 0, totalDiscount = 0;
     final productCount = <String, int>{};
-    final paymentMethods = <String, double>{};
 
     for (final sale in sales) {
       totalItems += sale.itemsCount;
       totalRevenue += sale.total;
       totalCost += sale.totalCost;
       totalDiscount += sale.discount;
-      totalTax += sale.tax;
 
       for (final item in sale.items) {
         productCount[item.productName] =
             (productCount[item.productName] ?? 0) + item.quantity;
       }
-      paymentMethods[sale.paymentMethod] =
-          (paymentMethods[sale.paymentMethod] ?? 0) + sale.total;
     }
 
     final sortedProducts = productCount.entries.toList()
@@ -380,10 +372,8 @@ class SalesReport {
       totalCost: totalCost,
       totalProfit: totalRevenue - totalCost,
       totalDiscount: totalDiscount,
-      totalTax: totalTax,
       averageOrderValue: totalRevenue / sales.length,
       topProducts: Map.fromEntries(sortedProducts.take(10)),
-      salesByPaymentMethod: paymentMethods,
     );
   }
 }
