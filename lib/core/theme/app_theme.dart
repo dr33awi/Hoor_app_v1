@@ -46,6 +46,18 @@ class AppTheme {
         ),
       ),
 
+      // TabBar Theme
+      tabBarTheme: TabBarThemeData(
+        labelColor: AppColors.textLight,
+        unselectedLabelColor: AppColors.textLight.withValues(alpha: 0.7),
+        indicatorColor: AppColors.secondary,
+        indicatorSize: TabBarIndicatorSize.tab,
+        labelStyle: AppTextStyles.labelLarge.copyWith(
+          fontWeight: FontWeight.bold,
+        ),
+        unselectedLabelStyle: AppTextStyles.labelLarge,
+      ),
+
       // Card Theme
       cardTheme: const CardThemeData(
         elevation: 2,
@@ -97,7 +109,8 @@ class AppTheme {
             horizontal: AppSizes.md,
             vertical: AppSizes.sm,
           ),
-          textStyle: AppTextStyles.labelLarge.copyWith(color: AppColors.primary),
+          textStyle:
+              AppTextStyles.labelLarge.copyWith(color: AppColors.primary),
         ),
       ),
 

@@ -109,56 +109,6 @@ class SettingsScreen extends ConsumerWidget {
 
           const Divider(),
 
-          // إعدادات المتجر
-          _SettingsHeader(title: 'إعدادات المتجر'),
-
-          _SettingsTile(
-            icon: Icons.store_outlined,
-            title: 'معلومات المتجر',
-            subtitle: 'الاسم والعنوان ومعلومات التواصل',
-            onTap: () => _showStoreInfoSheet(context),
-          ),
-
-          _SettingsTile(
-            icon: Icons.receipt_long_outlined,
-            title: 'إعدادات الفواتير',
-            subtitle: 'تخصيص شكل الفاتورة',
-            onTap: () {},
-          ),
-
-          _SettingsTile(
-            icon: Icons.inventory_2_outlined,
-            title: 'تنبيهات المخزون',
-            subtitle: 'حد التنبيه للمخزون المنخفض',
-            trailing: const Text('5'),
-            onTap: () => _showLowStockThresholdDialog(context),
-          ),
-
-          const Divider(),
-
-          // إعدادات التطبيق
-          _SettingsHeader(title: 'إعدادات التطبيق'),
-
-          _SettingsTile(
-            icon: Icons.notifications_outlined,
-            title: 'الإشعارات',
-            subtitle: 'تفعيل إشعارات التطبيق',
-            trailing: Switch(
-              value: true,
-              onChanged: (value) {},
-            ),
-            onTap: () {},
-          ),
-
-          _SettingsTile(
-            icon: Icons.language_outlined,
-            title: 'اللغة',
-            subtitle: 'العربية',
-            onTap: () {},
-          ),
-
-          const Divider(),
-
           // حول التطبيق
           _SettingsHeader(title: 'حول'),
 
@@ -167,18 +117,6 @@ class SettingsScreen extends ConsumerWidget {
             title: 'حول التطبيق',
             subtitle: 'الإصدار 1.0.0',
             onTap: () => _showAboutDialog(context),
-          ),
-
-          _SettingsTile(
-            icon: Icons.help_outline,
-            title: 'المساعدة والدعم',
-            onTap: () {},
-          ),
-
-          _SettingsTile(
-            icon: Icons.privacy_tip_outlined,
-            title: 'سياسة الخصوصية',
-            onTap: () {},
           ),
 
           const Divider(),
@@ -202,93 +140,6 @@ class SettingsScreen extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       builder: (context) => const CategoriesManagementSheet(),
-    );
-  }
-
-  void _showStoreInfoSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(AppSizes.lg),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'معلومات المتجر',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: AppSizes.lg),
-              TextFormField(
-                initialValue: 'متجر حور',
-                decoration: const InputDecoration(
-                  labelText: 'اسم المتجر',
-                  prefixIcon: Icon(Icons.store),
-                ),
-              ),
-              const SizedBox(height: AppSizes.md),
-              TextFormField(
-                initialValue: '',
-                decoration: const InputDecoration(
-                  labelText: 'العنوان',
-                  prefixIcon: Icon(Icons.location_on),
-                ),
-              ),
-              const SizedBox(height: AppSizes.md),
-              TextFormField(
-                initialValue: '',
-                decoration: const InputDecoration(
-                  labelText: 'رقم الهاتف',
-                  prefixIcon: Icon(Icons.phone),
-                ),
-                keyboardType: TextInputType.phone,
-              ),
-              const SizedBox(height: AppSizes.lg),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('حفظ'),
-                ),
-              ),
-              const SizedBox(height: AppSizes.md),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showLowStockThresholdDialog(BuildContext context) {
-    final controller = TextEditingController(text: '5');
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('حد المخزون المنخفض'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(
-            labelText: 'الحد الأدنى',
-            suffixText: 'قطعة',
-          ),
-          keyboardType: TextInputType.number,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(AppStrings.cancel),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('حفظ'),
-          ),
-        ],
-      ),
     );
   }
 

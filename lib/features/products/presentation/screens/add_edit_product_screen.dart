@@ -711,10 +711,10 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
     try {
       // الحصول على اسم الفئة
       final categories = await ref.read(categoriesProvider.future);
-      final category = categories.firstWhere(
-        (c) => c.id == _selectedCategoryId,
-        orElse: () => categories.first,
-      );
+      final category = categories.cast<CategoryEntity>().firstWhere(
+            (c) => c.id == _selectedCategoryId,
+            orElse: () => categories.first,
+          );
 
       final product = ProductEntity(
         id: widget.productId ?? '',
