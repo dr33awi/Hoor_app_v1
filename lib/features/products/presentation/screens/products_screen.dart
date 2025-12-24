@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hoor_manager/core/services/barcode_service.dart';
 
 import '../../../../config/routes/app_router.dart';
 import '../../../../core/constants/constants.dart';
@@ -184,10 +185,29 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
   }
 
   Future<void> _scanBarcode() async {
-    // سيتم تنفيذها لاحقاً مع مكتبة الباركود
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('سيتم تفعيل الماسح قريباً')),
-    );
+    final barcode = await BarcodeScannerService.scan(context);
+
+    if (barcode != null && barcode.isNotEmpty && mounted) {
+      // البحث عن المنتج بالباركود
+      final productAsync =
+          await ref.read(productByBarcodeProvider(barcode).future);
+
+      if (mounted) {
+        if (productAsync != null) {
+          context.push('/products/${productAsync.id}');
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('لم يتم العثور على منتج بالباركود: $barcode'),
+              action: SnackBarAction(
+                label: 'إضافة منتج',
+                onPressed: () => context.push('/products/add'),
+              ),
+            ),
+          );
+        }
+      }
+    }
   }
 
   Future<void> _confirmDelete(ProductEntity product) async {

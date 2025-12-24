@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hoor_manager/core/services/barcode_service.dart';
 
 import '../../../../core/constants/constants.dart';
 import '../../../../core/extensions/extensions.dart';
@@ -155,7 +156,7 @@ class DashboardScreen extends ConsumerWidget {
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: AppSizes.sm),
-          _buildQuickActions(context),
+          _buildQuickActions(context, ref),
 
           const SizedBox(height: AppSizes.lg),
 
@@ -250,7 +251,7 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildQuickActions(BuildContext context) {
+  Widget _buildQuickActions(BuildContext context, WidgetRef ref) {
     return Row(
       children: [
         Expanded(
@@ -276,7 +277,7 @@ class DashboardScreen extends ConsumerWidget {
             icon: Icons.qr_code_scanner,
             label: 'مسح باركود',
             color: AppColors.info,
-            onTap: () => _showBarcodeScanner(context),
+            onTap: () => _showBarcodeScanner(context, ref),
           ),
         ),
       ],
@@ -333,12 +334,30 @@ class DashboardScreen extends ConsumerWidget {
     context.push('/reports/inventory');
   }
 
-  void _showBarcodeScanner(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => const BarcodeScannerSheet(),
-    );
+  Future<void> _showBarcodeScanner(BuildContext context, WidgetRef ref) async {
+    final barcode = await BarcodeScannerService.scan(context);
+
+    if (barcode != null && barcode.isNotEmpty && context.mounted) {
+      // البحث عن المنتج بالباركود
+      final productAsync =
+          await ref.read(productByBarcodeProvider(barcode).future);
+
+      if (context.mounted) {
+        if (productAsync != null) {
+          context.push('/products/${productAsync.id}');
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('لم يتم العثور على منتج بالباركود: $barcode'),
+              action: SnackBarAction(
+                label: 'إضافة منتج',
+                onPressed: () => context.push('/products/add'),
+              ),
+            ),
+          );
+        }
+      }
+    }
   }
 }
 
@@ -449,130 +468,6 @@ class _QuickActionButton extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-/// شيت ماسح الباركود
-class BarcodeScannerSheet extends ConsumerStatefulWidget {
-  const BarcodeScannerSheet({super.key});
-
-  @override
-  ConsumerState<BarcodeScannerSheet> createState() =>
-      _BarcodeScannerSheetState();
-}
-
-class _BarcodeScannerSheetState extends ConsumerState<BarcodeScannerSheet> {
-  final _barcodeController = TextEditingController();
-  bool _isSearching = false;
-
-  @override
-  void dispose() {
-    _barcodeController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-        left: AppSizes.md,
-        right: AppSizes.md,
-        top: AppSizes.md,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'البحث بالباركود',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: AppSizes.lg),
-
-          // حقل إدخال الباركود
-          TextField(
-            controller: _barcodeController,
-            decoration: InputDecoration(
-              labelText: 'رقم الباركود',
-              prefixIcon: const Icon(Icons.qr_code),
-              suffixIcon: IconButton(
-                icon: const Icon(Icons.qr_code_scanner),
-                onPressed: _scanBarcode,
-              ),
-            ),
-            autofocus: true,
-            onSubmitted: (_) => _searchByBarcode(),
-          ),
-
-          const SizedBox(height: AppSizes.lg),
-
-          // زر البحث
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _isSearching ? null : _searchByBarcode,
-              child: _isSearching
-                  ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('بحث'),
-            ),
-          ),
-
-          const SizedBox(height: AppSizes.md),
-
-          // ملاحظة
-          Text(
-            'يمكنك إدخال الباركود يدوياً أو استخدام الكاميرا للمسح',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-            textAlign: TextAlign.center,
-          ),
-
-          const SizedBox(height: AppSizes.lg),
-        ],
-      ),
-    );
-  }
-
-  void _scanBarcode() {
-    // TODO: تفعيل mobile_scanner
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('سيتم تفعيل الماسح قريباً')),
-    );
-  }
-
-  Future<void> _searchByBarcode() async {
-    final barcode = _barcodeController.text.trim();
-    if (barcode.isEmpty) return;
-
-    setState(() => _isSearching = true);
-
-    final productAsync = ref.read(productByBarcodeProvider(barcode));
-
-    productAsync.when(
-      data: (product) {
-        setState(() => _isSearching = false);
-        if (product != null) {
-          Navigator.pop(context);
-          context.push('/products/${product.id}');
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('المنتج غير موجود')),
-          );
-        }
-      },
-      loading: () {},
-      error: (e, _) {
-        setState(() => _isSearching = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: $e')),
-        );
-      },
     );
   }
 }

@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hoor_manager/core/services/barcode_service.dart';
 
 import '../../../../core/constants/constants.dart';
 import '../../../../core/extensions/extensions.dart';
-import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../products/domain/entities/entities.dart';
 import '../../../products/presentation/providers/product_providers.dart';
-import '../../domain/entities/entities.dart';
 import '../providers/sales_providers.dart';
 import '../widgets/widgets.dart';
 
@@ -208,11 +207,28 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
     );
   }
 
-  void _scanBarcode() {
-    // سيتم تنفيذها لاحقاً
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('سيتم تفعيل الماسح قريباً')),
-    );
+  Future<void> _scanBarcode() async {
+    final barcode = await BarcodeScannerService.scan(context);
+
+    if (barcode != null && barcode.isNotEmpty && mounted) {
+      // البحث عن المنتج بالباركود
+      final productAsync =
+          await ref.read(productByBarcodeProvider(barcode).future);
+
+      if (mounted) {
+        if (productAsync != null) {
+          // إذا وجد المنتج، افتح نافذة اختيار اللون والمقاس
+          _showVariantSelector(productAsync);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('لم يتم العثور على منتج بالباركود: $barcode'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+    }
   }
 
   void _showVariantSelector(ProductEntity product) {
