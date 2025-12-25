@@ -19,18 +19,26 @@ class UserManagementRepositoryImpl implements UserManagementRepository {
   @override
   Future<Result<List<UserEntity>>> getUsers() async {
     try {
-      final snapshot = await _usersCollection
-          .orderBy('createdAt', descending: true)
-          .get();
+      final snapshot =
+          await _usersCollection.orderBy('createdAt', descending: true).get();
 
-      final users = snapshot.docs
-          .map((doc) => UserModel.fromDocument(doc))
-          .toList();
+      final users =
+          snapshot.docs.map((doc) => UserModel.fromDocument(doc)).toList();
 
       return Success(users);
     } catch (e) {
       return Failure('فشل جلب قائمة المستخدمين: $e');
     }
+  }
+
+  @override
+  Stream<List<UserEntity>> watchUsers() {
+    return _usersCollection
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) => UserModel.fromDocument(doc)).toList();
+    });
   }
 
   /// جلب جميع المستخدمين
@@ -46,9 +54,8 @@ class UserManagementRepositoryImpl implements UserManagementRepository {
           .orderBy('createdAt', descending: true)
           .get();
 
-      final users = snapshot.docs
-          .map((doc) => UserModel.fromDocument(doc))
-          .toList();
+      final users =
+          snapshot.docs.map((doc) => UserModel.fromDocument(doc)).toList();
 
       return Success(users);
     } catch (e) {

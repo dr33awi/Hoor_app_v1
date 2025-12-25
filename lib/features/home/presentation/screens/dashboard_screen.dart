@@ -18,7 +18,8 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider);
-    final summaryAsync = ref.watch(dashboardSummaryProvider);
+    // استخدام StreamProvider للتحديث التلقائي
+    final summaryAsync = ref.watch(dashboardSummaryStreamProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -59,7 +60,7 @@ class DashboardScreen extends ConsumerWidget {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          ref.invalidate(dashboardSummaryProvider);
+          ref.invalidate(dashboardSummaryStreamProvider);
         },
         child: summaryAsync.when(
           data: (summary) => _buildDashboard(context, ref, summary),

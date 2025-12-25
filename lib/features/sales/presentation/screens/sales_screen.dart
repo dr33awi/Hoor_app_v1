@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../config/routes/app_router.dart';
 import '../../../../core/constants/constants.dart';
 import '../../../../core/extensions/extensions.dart';
-import '../../domain/entities/entities.dart';
 import '../../domain/repositories/sales_repository.dart';
 import '../providers/sales_providers.dart';
 import '../widgets/widgets.dart';
@@ -22,15 +21,6 @@ class SalesScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text(AppStrings.sales),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.history),
-            onPressed: () {
-              // عرض تاريخ المبيعات
-            },
-            tooltip: 'سجل المبيعات',
-          ),
-        ],
       ),
       body: RefreshIndicator(
         onRefresh: () async {

@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 /// إضافات على num (int و double)
 extension NumExtensions on num {
   // تنسيق كعملة
-  String toCurrency({String symbol = 'ل.س', int decimalDigits = 0}) {
+  String toCurrency({String symbol = ' ل.س', int decimalDigits = 0}) {
     final formatter = NumberFormat.currency(
       symbol: symbol,
       decimalDigits: decimalDigits,

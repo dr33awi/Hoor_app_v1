@@ -14,17 +14,12 @@ class SalesReportScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(salesReportStateProvider);
-    final reportAsync = ref.watch(salesReportProvider);
+    // استخدام StreamProvider للتحديث التلقائي
+    final reportAsync = ref.watch(salesReportStreamProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('تقرير المبيعات'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => ref.invalidate(salesReportProvider),
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -76,7 +71,9 @@ class SalesReportScreen extends ConsumerWidget {
                     label: Text(period.arabicName),
                     selected: isSelected,
                     onSelected: (_) {
-                      ref.read(salesReportStateProvider.notifier).setPeriod(period);
+                      ref
+                          .read(salesReportStateProvider.notifier)
+                          .setPeriod(period);
                     },
                   ),
                 );
@@ -177,11 +174,16 @@ class SalesReportScreen extends ConsumerWidget {
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const Divider(),
-                  _buildDetailRow(context, 'إجمالي التكلفة', report.totalCost.toCurrency()),
-                  _buildDetailRow(context, 'إجمالي الخصومات', report.totalDiscount.toCurrency()),
-                  _buildDetailRow(context, 'نسبة الربح', '${report.profitMargin.toStringAsFixed(1)}%'),
-                  _buildDetailRow(context, 'متوسط الفاتورة', report.averageInvoiceValue.toCurrency()),
-                  _buildDetailRow(context, 'متوسط المبيعات اليومية', report.averageDailySales.toCurrency()),
+                  _buildDetailRow(
+                      context, 'إجمالي التكلفة', report.totalCost.toCurrency()),
+                  _buildDetailRow(context, 'إجمالي الخصومات',
+                      report.totalDiscount.toCurrency()),
+                  _buildDetailRow(context, 'نسبة الربح',
+                      '${report.profitMargin.toStringAsFixed(1)}%'),
+                  _buildDetailRow(context, 'متوسط الفاتورة',
+                      report.averageInvoiceValue.toCurrency()),
+                  _buildDetailRow(context, 'متوسط المبيعات اليومية',
+                      report.averageDailySales.toCurrency()),
                   if (report.cancelledInvoices > 0) ...[
                     const Divider(),
                     _buildDetailRow(

@@ -12,7 +12,8 @@ class UsersManagementScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final usersAsync = ref.watch(allUsersProvider);
+    // استخدام StreamProvider للتحديث التلقائي
+    final usersAsync = ref.watch(allUsersStreamProvider);
     final currentUser = ref.watch(currentUserProvider);
 
     return DefaultTabController(
@@ -32,7 +33,8 @@ class UsersManagementScreen extends ConsumerWidget {
           data: (users) {
             final pending = users.where((u) => u.isPending).toList();
             final active = users.where((u) => u.isActive).toList();
-            final inactive = users.where((u) => !u.isActive && !u.isPending).toList();
+            final inactive =
+                users.where((u) => !u.isActive && !u.isPending).toList();
 
             return TabBarView(
               children: [
@@ -155,7 +157,9 @@ class _UserCard extends ConsumerWidget {
                   radius: 25,
                   backgroundColor: _getRoleColor(user.role).withOpacity(0.2),
                   child: Text(
-                    user.fullName.isNotEmpty ? user.fullName[0].toUpperCase() : '؟',
+                    user.fullName.isNotEmpty
+                        ? user.fullName[0].toUpperCase()
+                        : '؟',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -186,7 +190,8 @@ class _UserCard extends ConsumerWidget {
                               ),
                               decoration: BoxDecoration(
                                 color: AppColors.info.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+                                borderRadius:
+                                    BorderRadius.circular(AppSizes.radiusSm),
                               ),
                               child: const Text(
                                 'أنت',
@@ -215,7 +220,8 @@ class _UserCard extends ConsumerWidget {
                             ),
                             decoration: BoxDecoration(
                               color: _getRoleColor(user.role).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+                              borderRadius:
+                                  BorderRadius.circular(AppSizes.radiusSm),
                             ),
                             child: Text(
                               user.role.arabicName,
@@ -235,7 +241,8 @@ class _UserCard extends ConsumerWidget {
                             ),
                             decoration: BoxDecoration(
                               color: _getStatusColor(user).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+                              borderRadius:
+                                  BorderRadius.circular(AppSizes.radiusSm),
                             ),
                             child: Text(
                               _getStatusText(user),
@@ -261,7 +268,8 @@ class _UserCard extends ConsumerWidget {
                           value: 'approve',
                           child: Row(
                             children: [
-                              Icon(Icons.check_circle, color: AppColors.success),
+                              Icon(Icons.check_circle,
+                                  color: AppColors.success),
                               SizedBox(width: AppSizes.sm),
                               Text('الموافقة'),
                             ],
@@ -284,8 +292,12 @@ class _UserCard extends ConsumerWidget {
                           child: Row(
                             children: [
                               Icon(
-                                user.isActive ? Icons.block : Icons.check_circle,
-                                color: user.isActive ? AppColors.error : AppColors.success,
+                                user.isActive
+                                    ? Icons.block
+                                    : Icons.check_circle,
+                                color: user.isActive
+                                    ? AppColors.error
+                                    : AppColors.success,
                               ),
                               const SizedBox(width: AppSizes.sm),
                               Text(user.isActive ? 'تعطيل' : 'تفعيل'),
@@ -309,7 +321,8 @@ class _UserCard extends ConsumerWidget {
                           children: [
                             Icon(Icons.delete, color: AppColors.error),
                             SizedBox(width: AppSizes.sm),
-                            Text('حذف', style: TextStyle(color: AppColors.error)),
+                            Text('حذف',
+                                style: TextStyle(color: AppColors.error)),
                           ],
                         ),
                       ),
@@ -327,7 +340,8 @@ class _UserCard extends ConsumerWidget {
                     child: OutlinedButton.icon(
                       onPressed: () => _rejectUser(context, ref),
                       icon: const Icon(Icons.close, color: AppColors.error),
-                      label: const Text('رفض', style: TextStyle(color: AppColors.error)),
+                      label: const Text('رفض',
+                          style: TextStyle(color: AppColors.error)),
                     ),
                   ),
                   const SizedBox(width: AppSizes.md),
@@ -347,7 +361,8 @@ class _UserCard extends ConsumerWidget {
               const SizedBox(height: AppSizes.sm),
               Row(
                 children: [
-                  Icon(Icons.calendar_today, size: 12, color: AppColors.textHint),
+                  Icon(Icons.calendar_today,
+                      size: 12, color: AppColors.textHint),
                   const SizedBox(width: AppSizes.xs),
                   Text(
                     'انضم ${user.createdAt!.toRelativeDate()}',
@@ -408,11 +423,13 @@ class _UserCard extends ConsumerWidget {
   }
 
   Future<void> _approveUser(BuildContext context, WidgetRef ref) async {
-    final success = await ref.read(userManagementProvider.notifier).approveUser(user.id);
+    final success =
+        await ref.read(userManagementProvider.notifier).approveUser(user.id);
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(success ? 'تمت الموافقة على المستخدم' : 'فشل في الموافقة'),
+          content:
+              Text(success ? 'تمت الموافقة على المستخدم' : 'فشل في الموافقة'),
           backgroundColor: success ? AppColors.success : AppColors.error,
         ),
       );
@@ -440,7 +457,8 @@ class _UserCard extends ConsumerWidget {
     );
 
     if (confirmed == true) {
-      final success = await ref.read(userManagementProvider.notifier).rejectUser(user.id);
+      final success =
+          await ref.read(userManagementProvider.notifier).rejectUser(user.id);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -453,7 +471,9 @@ class _UserCard extends ConsumerWidget {
   }
 
   Future<void> _toggleUserStatus(BuildContext context, WidgetRef ref) async {
-    final success = await ref.read(userManagementProvider.notifier).toggleUserStatus(user.id);
+    final success = await ref
+        .read(userManagementProvider.notifier)
+        .toggleUserStatus(user.id);
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -500,8 +520,10 @@ class _UserCard extends ConsumerWidget {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(success ? 'تم تغيير الدور' : 'فشل في التغيير'),
-                      backgroundColor: success ? AppColors.success : AppColors.error,
+                      content:
+                          Text(success ? 'تم تغيير الدور' : 'فشل في التغيير'),
+                      backgroundColor:
+                          success ? AppColors.success : AppColors.error,
                     ),
                   );
                 }
@@ -546,7 +568,8 @@ class _UserCard extends ConsumerWidget {
     );
 
     if (confirmed == true) {
-      final success = await ref.read(userManagementProvider.notifier).deleteUser(user.id);
+      final success =
+          await ref.read(userManagementProvider.notifier).deleteUser(user.id);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

@@ -5,10 +5,10 @@ import 'discount.dart';
 enum InvoiceStatus {
   /// مكتملة
   completed('completed', 'مكتملة'),
-  
+
   /// ملغاة
   cancelled('cancelled', 'ملغاة'),
-  
+
   /// مسترجعة
   refunded('refunded', 'مسترجعة');
 
@@ -58,8 +58,6 @@ class InvoiceEntity {
   final double amountPaid;
   final double change;
   final InvoiceStatus status;
-  final String? customerName;
-  final String? customerPhone;
   final String? notes;
   final DateTime saleDate;
   final String soldBy;
@@ -82,8 +80,6 @@ class InvoiceEntity {
     required this.amountPaid,
     required this.change,
     required this.status,
-    this.customerName,
-    this.customerPhone,
     this.notes,
     required this.saleDate,
     required this.soldBy,
@@ -121,14 +117,14 @@ class InvoiceEntity {
     required double amountPaid,
     required String soldBy,
     String? soldByName,
-    String? customerName,
-    String? customerPhone,
     String? notes,
   }) {
-    final subtotal = items.fold<double>(0, (sum, item) => sum + item.totalPrice);
+    final subtotal =
+        items.fold<double>(0, (sum, item) => sum + item.totalPrice);
     final discountAmount = discount.calculate(subtotal);
     final total = subtotal - discountAmount;
-    final totalCost = items.fold<double>(0, (sum, item) => sum + item.totalCost);
+    final totalCost =
+        items.fold<double>(0, (sum, item) => sum + item.totalCost);
     final profit = total - totalCost;
     final change = amountPaid - total;
 
@@ -146,8 +142,6 @@ class InvoiceEntity {
       amountPaid: amountPaid,
       change: change > 0 ? change : 0,
       status: InvoiceStatus.completed,
-      customerName: customerName,
-      customerPhone: customerPhone,
       notes: notes,
       saleDate: DateTime.now(),
       soldBy: soldBy,
@@ -169,8 +163,6 @@ class InvoiceEntity {
     double? amountPaid,
     double? change,
     InvoiceStatus? status,
-    String? customerName,
-    String? customerPhone,
     String? notes,
     DateTime? saleDate,
     String? soldBy,
@@ -193,8 +185,6 @@ class InvoiceEntity {
       amountPaid: amountPaid ?? this.amountPaid,
       change: change ?? this.change,
       status: status ?? this.status,
-      customerName: customerName ?? this.customerName,
-      customerPhone: customerPhone ?? this.customerPhone,
       notes: notes ?? this.notes,
       saleDate: saleDate ?? this.saleDate,
       soldBy: soldBy ?? this.soldBy,

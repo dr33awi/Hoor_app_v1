@@ -31,27 +31,12 @@ class _NewSaleScreenState extends ConsumerState<NewSaleScreen> {
   @override
   Widget build(BuildContext context) {
     final cart = ref.watch(cartProvider);
-    final productsAsync = ref.watch(allProductsProvider);
+    // استخدام StreamProvider للتحديث التلقائي
+    final productsAsync = ref.watch(allProductsStreamProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text(AppStrings.newSale),
-        actions: [
-          // عدد العناصر في السلة
-          if (cart.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSizes.sm),
-              child: Center(
-                child: Badge(
-                  label: Text('${cart.itemCount}'),
-                  child: IconButton(
-                    icon: const Icon(Icons.shopping_cart),
-                    onPressed: () => _showCartSheet(context),
-                  ),
-                ),
-              ),
-            ),
-        ],
       ),
       body: Column(
         children: [

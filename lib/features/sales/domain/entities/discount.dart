@@ -2,7 +2,7 @@
 enum DiscountType {
   /// نسبة مئوية
   percentage('percentage', 'نسبة مئوية'),
-  
+
   /// قيمة ثابتة
   fixed('fixed', 'قيمة ثابتة');
 
@@ -54,7 +54,7 @@ class Discount {
     if (type == DiscountType.percentage) {
       return '$value%';
     }
-    return '$value ر.ي';
+    return '$value ل.س';
   }
 
   Discount copyWith({

@@ -15,17 +15,16 @@ class InventoryReportScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final reportAsync = ref.watch(inventoryReportProvider);
+    // استخدام StreamProvider للتحديث التلقائي
+    final reportAsync = ref.watch(inventoryReportStreamProvider);
+
+    // تحميل مسبق لبيانات المخزون لتسريع عرضها لاحقاً
+    ref.watch(lowStockProductsStreamProvider);
+    ref.watch(outOfStockProductsStreamProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('تقرير المخزون'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => ref.invalidate(inventoryReportProvider),
-          ),
-        ],
       ),
       body: reportAsync.when(
         data: (report) => _buildReportContent(context, ref, report),
@@ -307,7 +306,8 @@ class InventoryReportScreen extends ConsumerWidget {
         maxChildSize: 0.95,
         expand: false,
         builder: (context, scrollController) {
-          final productsAsync = ref.watch(outOfStockProductsProvider);
+          // استخدام StreamProvider للتحديث التلقائي وتحميل أسرع
+          final productsAsync = ref.watch(outOfStockProductsStreamProvider);
           return Column(
             children: [
               Container(
@@ -338,7 +338,8 @@ class InventoryReportScreen extends ConsumerWidget {
                       );
                     },
                   ),
-                  loading: () => const Center(child: CircularProgressIndicator()),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
                   error: (e, _) => Center(child: Text('خطأ: $e')),
                 ),
               ),
@@ -359,7 +360,8 @@ class InventoryReportScreen extends ConsumerWidget {
         maxChildSize: 0.95,
         expand: false,
         builder: (context, scrollController) {
-          final productsAsync = ref.watch(lowStockProductsProvider);
+          // استخدام StreamProvider للتحديث التلقائي وتحميل أسرع
+          final productsAsync = ref.watch(lowStockProductsStreamProvider);
           return Column(
             children: [
               Container(
@@ -403,7 +405,8 @@ class InventoryReportScreen extends ConsumerWidget {
                       );
                     },
                   ),
-                  loading: () => const Center(child: CircularProgressIndicator()),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
                   error: (e, _) => Center(child: Text('خطأ: $e')),
                 ),
               ),

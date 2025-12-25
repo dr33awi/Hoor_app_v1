@@ -63,6 +63,9 @@ abstract class UserManagementRepository {
   /// الحصول على قائمة المستخدمين
   Future<Result<List<UserEntity>>> getUsers();
 
+  /// مراقبة قائمة المستخدمين (تحديث تلقائي)
+  Stream<List<UserEntity>> watchUsers();
+
   /// الحصول على المستخدمين في انتظار الموافقة
   Future<Result<List<UserEntity>>> getPendingUsers();
 

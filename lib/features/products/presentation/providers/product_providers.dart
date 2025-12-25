@@ -57,6 +57,12 @@ final allProductsProvider = FutureProvider<List<ProductEntity>>((ref) async {
   return result.valueOrNull ?? [];
 });
 
+/// مزود مراقبة جميع المنتجات (Stream) - للتحديث التلقائي
+final allProductsStreamProvider = StreamProvider<List<ProductEntity>>((ref) {
+  final repository = ref.watch(productRepositoryProvider);
+  return repository.watchProducts();
+});
+
 /// مزود مراقبة المنتجات (Stream)
 final productsStreamProvider =
     StreamProvider.family<List<ProductEntity>, String?>(
@@ -100,12 +106,30 @@ final lowStockProductsProvider =
   return result.valueOrNull ?? [];
 });
 
+/// مزود المنتجات منخفضة المخزون (Stream - للتحديث التلقائي)
+final lowStockProductsStreamProvider =
+    StreamProvider<List<ProductEntity>>((ref) {
+  // الحفاظ على الـ Stream في الذاكرة لتحميل أسرع
+  ref.keepAlive();
+  final repository = ref.watch(productRepositoryProvider);
+  return repository.watchLowStockProducts();
+});
+
 /// مزود المنتجات النافدة
 final outOfStockProductsProvider =
     FutureProvider<List<ProductEntity>>((ref) async {
   final repository = ref.watch(productRepositoryProvider);
   final result = await repository.getOutOfStockProducts();
   return result.valueOrNull ?? [];
+});
+
+/// مزود المنتجات النافدة (Stream - للتحديث التلقائي)
+final outOfStockProductsStreamProvider =
+    StreamProvider<List<ProductEntity>>((ref) {
+  // الحفاظ على الـ Stream في الذاكرة لتحميل أسرع
+  ref.keepAlive();
+  final repository = ref.watch(productRepositoryProvider);
+  return repository.watchOutOfStockProducts();
 });
 
 // ==================== Search & Filter Providers ====================

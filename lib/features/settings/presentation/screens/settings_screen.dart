@@ -292,7 +292,8 @@ class _CategoriesManagementSheetState
     extends ConsumerState<CategoriesManagementSheet> {
   @override
   Widget build(BuildContext context) {
-    final categoriesAsync = ref.watch(categoriesProvider);
+    // استخدام StreamProvider للتحديث التلقائي
+    final categoriesAsync = ref.watch(categoriesStreamProvider);
 
     return DraggableScrollableSheet(
       initialChildSize: 0.7,

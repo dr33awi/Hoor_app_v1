@@ -592,7 +592,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
                     ButtonSegment(
                         value: DiscountType.percentage, label: Text('%')),
                     ButtonSegment(
-                        value: DiscountType.fixed, label: Text('ر.ي')),
+                        value: DiscountType.fixed, label: Text('ل.س')),
                   ],
                   selected: {_discountType},
                   onSelectionChanged: (set) {
@@ -610,7 +610,7 @@ class _CheckoutSheetState extends ConsumerState<CheckoutSheet> {
               controller: _amountController,
               decoration: const InputDecoration(
                 labelText: 'المبلغ المدفوع',
-                suffixText: 'ر.ي',
+                suffixText: 'ل.س',
               ),
               keyboardType: TextInputType.number,
               onChanged: (_) => setState(() {}),

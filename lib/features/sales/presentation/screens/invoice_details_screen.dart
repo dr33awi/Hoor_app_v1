@@ -16,7 +16,8 @@ class InvoiceDetailsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final invoiceAsync = ref.watch(invoiceProvider(invoiceId));
+    // استخدام StreamProvider للتحديث التلقائي
+    final invoiceAsync = ref.watch(invoiceStreamProvider(invoiceId));
 
     return invoiceAsync.when(
       data: (invoice) {
@@ -39,7 +40,8 @@ class InvoiceDetailsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildContent(BuildContext context, WidgetRef ref, InvoiceEntity invoice) {
+  Widget _buildContent(
+      BuildContext context, WidgetRef ref, InvoiceEntity invoice) {
     return Scaffold(
       appBar: AppBar(
         title: Text('#${invoice.invoiceNumber}'),
@@ -68,7 +70,8 @@ class InvoiceDetailsScreen extends ConsumerWidget {
                     children: [
                       Icon(Icons.cancel_outlined, color: AppColors.error),
                       SizedBox(width: AppSizes.sm),
-                      Text('إلغاء الفاتورة', style: TextStyle(color: AppColors.error)),
+                      Text('إلغاء الفاتورة',
+                          style: TextStyle(color: AppColors.error)),
                     ],
                   ),
                 ),
@@ -153,19 +156,13 @@ class InvoiceDetailsScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(AppSizes.md),
         child: Column(
           children: [
-            _buildInfoRow(context, 'التاريخ', invoice.saleDate.toArabicDateTime()),
+            _buildInfoRow(
+                context, 'التاريخ', invoice.saleDate.toArabicDateTime()),
             const Divider(),
             _buildInfoRow(context, 'البائع', invoice.soldByName ?? '-'),
             const Divider(),
-            _buildInfoRow(context, 'طريقة الدفع', invoice.paymentMethod.arabicName),
-            if (invoice.customerName != null) ...[
-              const Divider(),
-              _buildInfoRow(context, 'العميل', invoice.customerName!),
-            ],
-            if (invoice.customerPhone != null) ...[
-              const Divider(),
-              _buildInfoRow(context, 'الهاتف', invoice.customerPhone!),
-            ],
+            _buildInfoRow(
+                context, 'طريقة الدفع', invoice.paymentMethod.arabicName),
             if (invoice.notes != null) ...[
               const Divider(),
               _buildInfoRow(context, 'ملاحظات', invoice.notes!),
@@ -291,7 +288,8 @@ class InvoiceDetailsScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(AppSizes.md),
         child: Column(
           children: [
-            _buildTotalRow(context, 'المجموع الفرعي', invoice.subtotal.toCurrency()),
+            _buildTotalRow(
+                context, 'المجموع الفرعي', invoice.subtotal.toCurrency()),
             if (invoice.hasDiscount) ...[
               const SizedBox(height: AppSizes.sm),
               _buildTotalRow(
@@ -309,7 +307,8 @@ class InvoiceDetailsScreen extends ConsumerWidget {
               isLarge: true,
             ),
             const Divider(),
-            _buildTotalRow(context, 'المبلغ المدفوع', invoice.amountPaid.toCurrency()),
+            _buildTotalRow(
+                context, 'المبلغ المدفوع', invoice.amountPaid.toCurrency()),
             if (invoice.change > 0)
               _buildTotalRow(context, 'الباقي', invoice.change.toCurrency()),
             const Divider(),
@@ -393,7 +392,8 @@ class InvoiceDetailsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _printInvoice(BuildContext context, InvoiceEntity invoice) async {
+  Future<void> _printInvoice(
+      BuildContext context, InvoiceEntity invoice) async {
     try {
       await InvoicePdfService.printInvoice(invoice);
     } catch (e) {
@@ -405,7 +405,8 @@ class InvoiceDetailsScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _shareInvoice(BuildContext context, InvoiceEntity invoice) async {
+  Future<void> _shareInvoice(
+      BuildContext context, InvoiceEntity invoice) async {
     try {
       await InvoicePdfService.shareInvoice(invoice);
     } catch (e) {
@@ -463,11 +464,14 @@ class InvoiceDetailsScreen extends ConsumerWidget {
 
     if (confirmed == true) {
       final user = ref.read(currentUserProvider);
-      final success = await ref.read(salesActionsProvider.notifier).cancelInvoice(
-            invoiceId: invoice.id,
-            cancelledBy: user?.id ?? '',
-            reason: reasonController.text.trim().isEmpty ? null : reasonController.text.trim(),
-          );
+      final success =
+          await ref.read(salesActionsProvider.notifier).cancelInvoice(
+                invoiceId: invoice.id,
+                cancelledBy: user?.id ?? '',
+                reason: reasonController.text.trim().isEmpty
+                    ? null
+                    : reasonController.text.trim(),
+              );
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

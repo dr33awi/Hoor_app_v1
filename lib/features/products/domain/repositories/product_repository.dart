@@ -55,6 +55,12 @@ abstract class ProductRepository {
   /// الحصول على المنتجات النافدة
   Future<Result<List<ProductEntity>>> getOutOfStockProducts();
 
+  /// مراقبة المنتجات منخفضة المخزون (Stream)
+  Stream<List<ProductEntity>> watchLowStockProducts();
+
+  /// مراقبة المنتجات النافدة (Stream)
+  Stream<List<ProductEntity>> watchOutOfStockProducts();
+
   /// مراقبة المنتجات (Stream)
   Stream<List<ProductEntity>> watchProducts({String? categoryId});
 

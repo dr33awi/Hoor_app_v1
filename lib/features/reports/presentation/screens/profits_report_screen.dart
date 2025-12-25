@@ -14,17 +14,12 @@ class ProfitsReportScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(salesReportStateProvider);
-    final reportAsync = ref.watch(salesReportProvider);
+    // استخدام StreamProvider للتحديث التلقائي
+    final reportAsync = ref.watch(salesReportStreamProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('تقرير الأرباح'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => ref.invalidate(salesReportProvider),
-          ),
-        ],
       ),
       body: Column(
         children: [

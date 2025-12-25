@@ -21,15 +21,11 @@ final salesRepositoryProvider = Provider<SalesRepository>((ref) {
 class CartState {
   final List<CartItem> items;
   final Discount discount;
-  final String? customerName;
-  final String? customerPhone;
   final String? notes;
 
   const CartState({
     this.items = const [],
     this.discount = Discount.none,
-    this.customerName,
-    this.customerPhone,
     this.notes,
   });
 
@@ -60,15 +56,11 @@ class CartState {
   CartState copyWith({
     List<CartItem>? items,
     Discount? discount,
-    String? customerName,
-    String? customerPhone,
     String? notes,
   }) {
     return CartState(
       items: items ?? this.items,
       discount: discount ?? this.discount,
-      customerName: customerName ?? this.customerName,
-      customerPhone: customerPhone ?? this.customerPhone,
       notes: notes ?? this.notes,
     );
   }
@@ -153,14 +145,6 @@ class CartNotifier extends Notifier<CartState> {
     state = state.copyWith(discount: Discount.none);
   }
 
-  /// تعيين معلومات العميل
-  void setCustomerInfo({String? name, String? phone}) {
-    state = state.copyWith(
-      customerName: name,
-      customerPhone: phone,
-    );
-  }
-
   /// تعيين ملاحظات
   void setNotes(String? notes) {
     state = state.copyWith(notes: notes);
@@ -198,12 +182,20 @@ final invoicesProvider = FutureProvider.family<List<InvoiceEntity>,
   },
 );
 
-/// مزود فاتورة واحدة
+/// مزود فاتورة واحدة (Future - للاستخدام مرة واحدة)
 final invoiceProvider = FutureProvider.family<InvoiceEntity?, String>(
   (ref, invoiceId) async {
     final repository = ref.watch(salesRepositoryProvider);
     final result = await repository.getInvoiceById(invoiceId);
     return result.valueOrNull;
+  },
+);
+
+/// مزود فاتورة واحدة (Stream - للتحديث التلقائي)
+final invoiceStreamProvider = StreamProvider.family<InvoiceEntity?, String>(
+  (ref, invoiceId) {
+    final repository = ref.watch(salesRepositoryProvider);
+    return repository.watchInvoice(invoiceId);
   },
 );
 
@@ -216,9 +208,15 @@ final dailyStatsProvider = FutureProvider.family<DailySalesStats, DateTime>(
   },
 );
 
-/// مزود إحصائيات اليوم الحالي
-final todayStatsProvider = FutureProvider<DailySalesStats>((ref) async {
-  return ref.watch(dailyStatsProvider(DateTime.now()).future);
+/// مزود إحصائيات اليوم الحالي (يتحدث تلقائياً من فواتير اليوم)
+final todayStatsProvider = Provider<AsyncValue<DailySalesStats>>((ref) {
+  final invoicesAsync = ref.watch(todayInvoicesProvider);
+  return invoicesAsync.when(
+    data: (invoices) =>
+        AsyncValue.data(DailySalesStats.fromInvoices(DateTime.now(), invoices)),
+    loading: () => const AsyncValue.loading(),
+    error: (e, st) => AsyncValue.error(e, st),
+  );
 });
 
 // ==================== Sales Actions ====================
@@ -273,8 +271,6 @@ class SalesActionsNotifier extends Notifier<AsyncValue<void>> {
         amountPaid: paid,
         change: change > 0 ? change : 0,
         status: InvoiceStatus.completed,
-        customerName: cart.customerName,
-        customerPhone: cart.customerPhone,
         notes: cart.notes,
         soldBy: soldBy,
         soldByName: soldByName,
@@ -329,4 +325,92 @@ class SalesActionsNotifier extends Notifier<AsyncValue<void>> {
 final salesActionsProvider =
     NotifierProvider<SalesActionsNotifier, AsyncValue<void>>(() {
   return SalesActionsNotifier();
+});
+
+// ==================== Direct Sale Provider ====================
+
+/// إدارة البيع المباشر (بدون سلة)
+class DirectSaleNotifier extends Notifier<AsyncValue<void>> {
+  @override
+  AsyncValue<void> build() {
+    return const AsyncValue.data(null);
+  }
+
+  /// إنشاء فاتورة بيع مباشر
+  Future<InvoiceEntity?> createDirectSale({
+    required CartItem item,
+    required Discount discount,
+    required double amountPaid,
+    required String soldBy,
+    String? soldByName,
+    String? notes,
+  }) async {
+    final repository = ref.read(salesRepositoryProvider);
+    state = const AsyncValue.loading();
+
+    try {
+      // حساب القيم
+      final subtotal = item.totalPrice;
+      final discountAmount = discount.calculate(subtotal);
+      final total = subtotal - discountAmount;
+      final totalCost = item.totalCost;
+      final profit = total - totalCost;
+      final change = amountPaid - total;
+
+      // توليد رقم الفاتورة
+      final invoiceNumberResult = await repository.generateInvoiceNumber();
+      if (!invoiceNumberResult.isSuccess) {
+        state = AsyncValue.error(
+            invoiceNumberResult.errorOrNull!, StackTrace.current);
+        return null;
+      }
+
+      final invoiceNumber = invoiceNumberResult.valueOrNull!;
+
+      // إنشاء الفاتورة
+      final invoice = InvoiceEntity(
+        id: '',
+        invoiceNumber: invoiceNumber,
+        items: [item],
+        subtotal: subtotal,
+        discount: discount,
+        discountAmount: discountAmount,
+        total: total,
+        totalCost: totalCost,
+        profit: profit,
+        paymentMethod: PaymentMethod.cash,
+        amountPaid: amountPaid,
+        change: change > 0 ? change : 0,
+        status: InvoiceStatus.completed,
+        notes: notes,
+        soldBy: soldBy,
+        soldByName: soldByName,
+        saleDate: DateTime.now(),
+      );
+
+      final result = await repository.createInvoice(invoice);
+
+      if (result.isSuccess) {
+        state = const AsyncValue.data(null);
+        // تحديث البيانات
+        ref.invalidate(todayStatsProvider);
+        ref.invalidate(todayInvoicesProvider);
+        return result.valueOrNull;
+      } else {
+        print('❌ خطأ في إنشاء الفاتورة: ${result.errorOrNull}');
+        state = AsyncValue.error(result.errorOrNull!, StackTrace.current);
+        return null;
+      }
+    } catch (e) {
+      print('❌ استثناء في إنشاء الفاتورة: $e');
+      state = AsyncValue.error(e.toString(), StackTrace.current);
+      return null;
+    }
+  }
+}
+
+/// مزود البيع المباشر
+final directSaleProvider =
+    NotifierProvider<DirectSaleNotifier, AsyncValue<void>>(() {
+  return DirectSaleNotifier();
 });

@@ -13,11 +13,17 @@ final reportsRepositoryProvider = Provider<ReportsRepository>((ref) {
 
 // ==================== Dashboard Providers ====================
 
-/// مزود ملخص لوحة التحكم
+/// مزود ملخص لوحة التحكم (Future - للاستخدام مرة واحدة)
 final dashboardSummaryProvider = FutureProvider<DashboardSummary>((ref) async {
   final repository = ref.watch(reportsRepositoryProvider);
   final result = await repository.getDashboardSummary();
   return result.valueOrNull ?? DashboardSummary.empty();
+});
+
+/// مزود ملخص لوحة التحكم (Stream - للتحديث التلقائي)
+final dashboardSummaryStreamProvider = StreamProvider<DashboardSummary>((ref) {
+  final repository = ref.watch(reportsRepositoryProvider);
+  return repository.watchDashboardSummary();
 });
 
 // ==================== Sales Report Providers ====================
@@ -93,7 +99,21 @@ final salesReportProvider = FutureProvider<SalesReport>((ref) async {
     endDate: range.end,
   );
 
-  return result.valueOrNull ?? SalesReport.empty(start: range.start, end: range.end);
+  return result.valueOrNull ??
+      SalesReport.empty(start: range.start, end: range.end);
+});
+
+/// مزود تقرير المبيعات (Stream - للتحديث التلقائي)
+final salesReportStreamProvider = StreamProvider<SalesReport>((ref) {
+  ref.keepAlive();
+  final repository = ref.watch(reportsRepositoryProvider);
+  final state = ref.watch(salesReportStateProvider);
+  final range = state.dateRange;
+
+  return repository.watchSalesReport(
+    startDate: range.start,
+    endDate: range.end,
+  );
 });
 
 // ==================== Inventory Report Provider ====================
@@ -105,11 +125,18 @@ final inventoryReportProvider = FutureProvider<InventoryReport>((ref) async {
   return result.valueOrNull ?? InventoryReport.empty();
 });
 
+/// مزود تقرير المخزون (Stream - للتحديث التلقائي)
+final inventoryReportStreamProvider = StreamProvider<InventoryReport>((ref) {
+  ref.keepAlive();
+  final repository = ref.watch(reportsRepositoryProvider);
+  return repository.watchInventoryReport();
+});
+
 // ==================== Top Products Provider ====================
 
 /// مزود المنتجات الأكثر مبيعاً
-final topSellingProductsProvider =
-    FutureProvider.family<List<TopSellingProduct>, ({DateTime start, DateTime end, int limit})>(
+final topSellingProductsProvider = FutureProvider.family<
+    List<TopSellingProduct>, ({DateTime start, DateTime end, int limit})>(
   (ref, params) async {
     final repository = ref.watch(reportsRepositoryProvider);
     final result = await repository.getTopSellingProducts(
@@ -121,8 +148,23 @@ final topSellingProductsProvider =
   },
 );
 
+/// مزود المنتجات الأكثر مبيعاً (Stream - للتحديث التلقائي)
+final topSellingProductsStreamProvider = StreamProvider.family<
+    List<TopSellingProduct>, ({DateTime start, DateTime end, int limit})>(
+  (ref, params) {
+    ref.keepAlive();
+    final repository = ref.watch(reportsRepositoryProvider);
+    return repository.watchTopSellingProducts(
+      startDate: params.start,
+      endDate: params.end,
+      limit: params.limit,
+    );
+  },
+);
+
 /// مزود أفضل المنتجات لهذا الشهر
-final monthlyTopProductsProvider = FutureProvider<List<TopSellingProduct>>((ref) async {
+final monthlyTopProductsProvider =
+    FutureProvider<List<TopSellingProduct>>((ref) async {
   final now = DateTime.now();
   final monthStart = DateTime(now.year, now.month, 1);
   final repository = ref.watch(reportsRepositoryProvider);
@@ -136,11 +178,25 @@ final monthlyTopProductsProvider = FutureProvider<List<TopSellingProduct>>((ref)
   return result.valueOrNull ?? [];
 });
 
+/// مزود أفضل المنتجات لهذا الشهر (Stream - للتحديث التلقائي)
+final monthlyTopProductsStreamProvider =
+    StreamProvider<List<TopSellingProduct>>((ref) {
+  final now = DateTime.now();
+  final monthStart = DateTime(now.year, now.month, 1);
+  final repository = ref.watch(reportsRepositoryProvider);
+
+  return repository.watchTopSellingProducts(
+    startDate: monthStart,
+    endDate: now,
+    limit: 10,
+  );
+});
+
 // ==================== Daily Sales Data Provider ====================
 
 /// مزود بيانات المبيعات اليومية
-final dailySalesDataProvider =
-    FutureProvider.family<List<DailySalesData>, ({DateTime start, DateTime end})>(
+final dailySalesDataProvider = FutureProvider.family<List<DailySalesData>,
+    ({DateTime start, DateTime end})>(
   (ref, params) async {
     final repository = ref.watch(reportsRepositoryProvider);
     final result = await repository.getDailySalesData(

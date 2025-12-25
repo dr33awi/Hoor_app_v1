@@ -21,8 +21,10 @@ class _TopProductsScreenState extends ConsumerState<TopProductsScreen> {
   @override
   Widget build(BuildContext context) {
     final range = _selectedPeriod.dateRange;
+    // استخدام StreamProvider للتحديث التلقائي
     final topProductsAsync = ref.watch(
-      topSellingProductsProvider((start: range.start, end: range.end, limit: 20)),
+      topSellingProductsStreamProvider(
+          (start: range.start, end: range.end, limit: 20)),
     );
 
     return Scaffold(
@@ -158,9 +160,10 @@ class _TopProductsScreenState extends ConsumerState<TopProductsScreen> {
                     ? Icon(badgeIcon, color: badgeColor, size: 24)
                     : Text(
                         '$rank',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                       ),
               ),
             ),
@@ -177,7 +180,8 @@ class _TopProductsScreenState extends ConsumerState<TopProductsScreen> {
               child: product.productImage != null
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(AppSizes.radiusSm),
-                      child: Image.network(product.productImage!, fit: BoxFit.cover),
+                      child: Image.network(product.productImage!,
+                          fit: BoxFit.cover),
                     )
                   : const Icon(Icons.image, color: AppColors.textHint),
             ),

@@ -122,7 +122,8 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
       );
     }
 
-    final categoriesAsync = ref.watch(categoriesProvider);
+    // استخدام StreamProvider للتحديث التلقائي
+    final categoriesAsync = ref.watch(categoriesStreamProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -621,21 +622,8 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
         if (mounted) {
           if (existingProduct != null &&
               existingProduct.id != widget.productId) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  'هذا الباركود مستخدم للمنتج: ${existingProduct.name}',
-                ),
-                backgroundColor: AppColors.error,
-                action: SnackBarAction(
-                  label: 'عرض',
-                  textColor: Colors.white,
-                  onPressed: () {
-                    context.push('/products/${existingProduct.id}');
-                  },
-                ),
-              ),
-            );
+            // عرض خيارات للمستخدم
+            _showExistingProductDialog(existingProduct, barcode);
           } else {
             setState(() {
               _barcodeController.text = barcode;
@@ -657,6 +645,112 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
         }
       }
     }
+  }
+
+  /// عرض حوار المنتج الموجود مسبقاً
+  void _showExistingProductDialog(
+      ProductEntity existingProduct, String barcode) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.info_outline, color: AppColors.warning),
+            SizedBox(width: AppSizes.sm),
+            Text('منتج موجود'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'هذا الباركود مستخدم للمنتج:',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: AppSizes.sm),
+            Container(
+              padding: const EdgeInsets.all(AppSizes.sm),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    existingProduct.name,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const SizedBox(height: AppSizes.xs),
+                  Text(
+                    'السعر: ${existingProduct.price.toStringAsFixed(2)} ر.س',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  Text(
+                    'المخزون: ${existingProduct.totalStock} قطعة',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSizes.md),
+            const Text(
+              'ماذا تريد أن تفعل؟',
+              style: TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
+        actions: [
+          // إلغاء
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('إلغاء'),
+          ),
+          // عرض المنتج
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.push('/products/${existingProduct.id}');
+            },
+            child: const Text('عرض المنتج'),
+          ),
+          // ملء البيانات
+          FilledButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              _fillProductData(existingProduct);
+            },
+            icon: const Icon(Icons.auto_fix_high),
+            label: const Text('ملء البيانات'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// ملء بيانات المنتج من منتج موجود
+  void _fillProductData(ProductEntity product) {
+    setState(() {
+      _nameController.text = product.name;
+      _descriptionController.text = product.description ?? '';
+      _priceController.text = product.price.toString();
+      _costController.text = product.cost.toString();
+      _barcodeController.text = product.barcode ?? '';
+      _selectedCategoryId = product.categoryId;
+      _variants = List.from(product.variants);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('تم ملء بيانات المنتج بنجاح'),
+        backgroundColor: AppColors.success,
+        duration: Duration(seconds: 2),
+      ),
+    );
   }
 
   /// توليد باركود جديد

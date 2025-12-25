@@ -23,31 +23,81 @@ class SalesRepositoryImpl implements SalesRepository {
   CollectionReference<Map<String, dynamic>> get _countersCollection =>
       _firestore.collection('counters');
 
+  CollectionReference<Map<String, dynamic>> get _productsCollection =>
+      _firestore.collection('products');
+
   @override
   Future<Result<InvoiceEntity>> createInvoice(InvoiceEntity invoice) async {
     try {
-      return _firestore.runTransaction((transaction) async {
-        // 1. خصم المخزون لكل عنصر
+      return await _firestore.runTransaction((transaction) async {
+        // ========== مرحلة القراءة (يجب أن تكون أولاً) ==========
+
+        // 1. قراءة جميع المنتجات
+        final Map<String, DocumentSnapshot<Map<String, dynamic>>>
+            productSnapshots = {};
         for (final item in invoice.items) {
-          await _productRepository.deductStock(
-            productId: item.productId,
-            variantId: item.variantId,
-            quantity: item.quantity,
-          );
+          final productRef = _productsCollection.doc(item.productId);
+          productSnapshots[item.productId] = await transaction.get(productRef);
         }
 
-        // 2. حفظ الفاتورة
+        // 2. قراءة العداد
+        final counterRef = _countersCollection.doc('invoices');
+        final counterSnap = await transaction.get(counterRef);
+
+        // ========== مرحلة التحقق ==========
+
+        // 3. التحقق من المخزون وتجهيز التحديثات
+        final Map<String, Map<String, dynamic>> productUpdates = {};
+
+        for (final item in invoice.items) {
+          final productSnap = productSnapshots[item.productId]!;
+
+          if (!productSnap.exists) {
+            throw Exception('المنتج ${item.productName} غير موجود');
+          }
+
+          final productData = productSnap.data()!;
+          final variants =
+              List<Map<String, dynamic>>.from(productData['variants'] ?? []);
+          final variantIndex =
+              variants.indexWhere((v) => v['id'] == item.variantId);
+
+          if (variantIndex == -1) {
+            throw Exception('المتغير غير موجود للمنتج ${item.productName}');
+          }
+
+          final currentQty = variants[variantIndex]['quantity'] as int? ?? 0;
+          if (currentQty < item.quantity) {
+            throw Exception(
+                'الكمية المطلوبة (${item.quantity}) غير متوفرة للمنتج ${item.productName}. المتوفر: $currentQty');
+          }
+
+          // تجهيز التحديث
+          variants[variantIndex]['quantity'] = currentQty - item.quantity;
+          productUpdates[item.productId] = {'variants': variants};
+        }
+
+        // ========== مرحلة الكتابة ==========
+
+        // 4. تحديث المخزون لجميع المنتجات
+        for (final entry in productUpdates.entries) {
+          final productRef = _productsCollection.doc(entry.key);
+          transaction.update(productRef, {
+            'variants': entry.value['variants'],
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+
+        // 5. حفظ الفاتورة
         final model = InvoiceModel.fromEntity(invoice);
         final docRef = _salesCollection.doc();
         transaction.set(docRef, model.toMap());
 
-        // 3. تحديث العداد
-        final counterRef = _countersCollection.doc('invoices');
-        final counterSnap = await transaction.get(counterRef);
-        final currentCount = counterSnap.exists 
-            ? (counterSnap.data()?['count'] ?? 0) 
-            : 0;
-        transaction.set(counterRef, {'count': currentCount + 1}, SetOptions(merge: true));
+        // 6. تحديث العداد
+        final currentCount =
+            counterSnap.exists ? (counterSnap.data()?['count'] ?? 0) : 0;
+        transaction.set(
+            counterRef, {'count': currentCount + 1}, SetOptions(merge: true));
 
         return Success(model.copyWith(id: docRef.id));
       });
@@ -99,11 +149,13 @@ class SalesRepositoryImpl implements SalesRepository {
       Query<Map<String, dynamic>> query = _salesCollection;
 
       if (startDate != null) {
-        query = query.where('saleDate', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate));
+        query = query.where('saleDate',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(startDate));
       }
 
       if (endDate != null) {
-        query = query.where('saleDate', isLessThanOrEqualTo: Timestamp.fromDate(endDate));
+        query = query.where('saleDate',
+            isLessThanOrEqualTo: Timestamp.fromDate(endDate));
       }
 
       if (status != null) {
@@ -122,9 +174,8 @@ class SalesRepositoryImpl implements SalesRepository {
 
       final snapshot = await query.get();
 
-      final invoices = snapshot.docs
-          .map((doc) => InvoiceModel.fromDocument(doc))
-          .toList();
+      final invoices =
+          snapshot.docs.map((doc) => InvoiceModel.fromDocument(doc)).toList();
 
       return Success(invoices);
     } catch (e) {
@@ -190,7 +241,8 @@ class SalesRepositoryImpl implements SalesRepository {
   Future<Result<String>> generateInvoiceNumber() async {
     try {
       final now = DateTime.now();
-      final datePrefix = '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
+      final datePrefix =
+          '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
 
       // الحصول على عدد فواتير اليوم
       final startOfDay = DateTime(now.year, now.month, now.day);
@@ -199,7 +251,8 @@ class SalesRepositoryImpl implements SalesRepository {
           .get();
 
       final todayCount = snapshot.docs.length + 1;
-      final invoiceNumber = 'INV-$datePrefix-${todayCount.toString().padLeft(4, '0')}';
+      final invoiceNumber =
+          'INV-$datePrefix-${todayCount.toString().padLeft(4, '0')}';
 
       return Success(invoiceNumber);
     } catch (e) {
@@ -217,11 +270,13 @@ class SalesRepositoryImpl implements SalesRepository {
     Query<Map<String, dynamic>> query = _salesCollection;
 
     if (startDate != null) {
-      query = query.where('saleDate', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate));
+      query = query.where('saleDate',
+          isGreaterThanOrEqualTo: Timestamp.fromDate(startDate));
     }
 
     if (endDate != null) {
-      query = query.where('saleDate', isLessThanOrEqualTo: Timestamp.fromDate(endDate));
+      query = query.where('saleDate',
+          isLessThanOrEqualTo: Timestamp.fromDate(endDate));
     }
 
     query = query.orderBy('saleDate', descending: true);
@@ -250,17 +305,24 @@ class SalesRepositoryImpl implements SalesRepository {
   }
 
   @override
+  Stream<InvoiceEntity?> watchInvoice(String invoiceId) {
+    return _salesCollection.doc(invoiceId).snapshots().map((snapshot) {
+      if (!snapshot.exists) return null;
+      return InvoiceModel.fromDocument(snapshot);
+    });
+  }
+
+  @override
   Future<Result<DailySalesStats>> getDailySalesStats(DateTime date) async {
     try {
       final startOfDay = DateTime(date.year, date.month, date.day);
-      
+
       final snapshot = await _salesCollection
           .where('saleDateDay', isEqualTo: Timestamp.fromDate(startOfDay))
           .get();
 
-      final invoices = snapshot.docs
-          .map((doc) => InvoiceModel.fromDocument(doc))
-          .toList();
+      final invoices =
+          snapshot.docs.map((doc) => InvoiceModel.fromDocument(doc)).toList();
 
       return Success(DailySalesStats.fromInvoices(date, invoices));
     } catch (e) {
@@ -269,17 +331,16 @@ class SalesRepositoryImpl implements SalesRepository {
   }
 
   @override
-  Future<Result<MonthlySalesStats>> getMonthlySalesStats(int year, int month) async {
+  Future<Result<MonthlySalesStats>> getMonthlySalesStats(
+      int year, int month) async {
     try {
       final monthStr = '$year-${month.toString().padLeft(2, '0')}';
-      
-      final snapshot = await _salesCollection
-          .where('saleMonth', isEqualTo: monthStr)
-          .get();
 
-      final invoices = snapshot.docs
-          .map((doc) => InvoiceModel.fromDocument(doc))
-          .toList();
+      final snapshot =
+          await _salesCollection.where('saleMonth', isEqualTo: monthStr).get();
+
+      final invoices =
+          snapshot.docs.map((doc) => InvoiceModel.fromDocument(doc)).toList();
 
       final completedInvoices = invoices.where((i) => i.isCompleted).toList();
       final cancelledInvoices = invoices.where((i) => i.isCancelled).toList();
@@ -304,7 +365,8 @@ class SalesRepositoryImpl implements SalesRepository {
         totalSales: completedInvoices.fold(0, (sum, i) => sum + i.total),
         totalCost: completedInvoices.fold(0, (sum, i) => sum + i.totalCost),
         totalProfit: completedInvoices.fold(0, (sum, i) => sum + i.profit),
-        totalDiscount: completedInvoices.fold(0, (sum, i) => sum + i.discountAmount),
+        totalDiscount:
+            completedInvoices.fold(0, (sum, i) => sum + i.discountAmount),
         cancelledCount: cancelledInvoices.length,
         dailyStats: dailyStats,
       ));

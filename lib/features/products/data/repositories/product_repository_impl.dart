@@ -36,9 +36,8 @@ class ProductRepositoryImpl implements ProductRepository {
 
       final snapshot = await query.get();
 
-      List<ProductEntity> products = snapshot.docs
-          .map((doc) => ProductModel.fromDocument(doc))
-          .toList();
+      List<ProductEntity> products =
+          snapshot.docs.map((doc) => ProductModel.fromDocument(doc)).toList();
 
       // البحث محلياً إذا كان هناك نص بحث
       if (searchQuery != null && searchQuery.isNotEmpty) {
@@ -104,7 +103,7 @@ class ProductRepositoryImpl implements ProductRepository {
     try {
       final model = ProductModel.fromEntity(product);
       final docRef = await _productsCollection.add(model.toMap());
-      
+
       final newProduct = model.copyWith(id: docRef.id);
       return Success(newProduct);
     } catch (e) {
@@ -187,14 +186,15 @@ class ProductRepositoryImpl implements ProductRepository {
       return _firestore.runTransaction((transaction) async {
         final docRef = _productsCollection.doc(productId);
         final snapshot = await transaction.get(docRef);
-        
+
         if (!snapshot.exists) {
           throw Exception('المنتج غير موجود');
         }
 
         final product = ProductModel.fromDocument(snapshot);
-        final variantIndex = product.variants.indexWhere((v) => v.id == variantId);
-        
+        final variantIndex =
+            product.variants.indexWhere((v) => v.id == variantId);
+
         if (variantIndex == -1) {
           throw Exception('المتغير غير موجود');
         }
@@ -209,7 +209,7 @@ class ProductRepositoryImpl implements ProductRepository {
 
         final updatedProduct = product.copyWith(variants: updatedVariants);
         final model = ProductModel.fromEntity(updatedProduct);
-        
+
         transaction.update(docRef, model.toUpdateMap());
       }).then((_) => const Success(null));
     } catch (e) {
@@ -256,9 +256,8 @@ class ProductRepositoryImpl implements ProductRepository {
           .where('isLowStock', isEqualTo: true)
           .get();
 
-      final products = snapshot.docs
-          .map((doc) => ProductModel.fromDocument(doc))
-          .toList();
+      final products =
+          snapshot.docs.map((doc) => ProductModel.fromDocument(doc)).toList();
 
       return Success(products);
     } catch (e) {
@@ -274,14 +273,39 @@ class ProductRepositoryImpl implements ProductRepository {
           .where('isOutOfStock', isEqualTo: true)
           .get();
 
-      final products = snapshot.docs
-          .map((doc) => ProductModel.fromDocument(doc))
-          .toList();
+      final products =
+          snapshot.docs.map((doc) => ProductModel.fromDocument(doc)).toList();
 
       return Success(products);
     } catch (e) {
       return Failure('فشل جلب المنتجات النافدة: $e');
     }
+  }
+
+  @override
+  Stream<List<ProductEntity>> watchLowStockProducts() {
+    return _productsCollection
+        .where('isActive', isEqualTo: true)
+        .where('isLowStock', isEqualTo: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs
+          .map((doc) => ProductModel.fromDocument(doc))
+          .toList();
+    });
+  }
+
+  @override
+  Stream<List<ProductEntity>> watchOutOfStockProducts() {
+    return _productsCollection
+        .where('isActive', isEqualTo: true)
+        .where('isOutOfStock', isEqualTo: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs
+          .map((doc) => ProductModel.fromDocument(doc))
+          .toList();
+    });
   }
 
   @override

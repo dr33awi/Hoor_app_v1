@@ -19,8 +19,6 @@ class InvoiceModel extends InvoiceEntity {
     required super.amountPaid,
     required super.change,
     required super.status,
-    super.customerName,
-    super.customerPhone,
     super.notes,
     required super.saleDate,
     required super.soldBy,
@@ -53,8 +51,6 @@ class InvoiceModel extends InvoiceEntity {
       amountPaid: (map['amountPaid'] ?? 0).toDouble(),
       change: (map['change'] ?? 0).toDouble(),
       status: InvoiceStatus.fromString(map['status']),
-      customerName: map['customerName'],
-      customerPhone: map['customerPhone'],
       notes: map['notes'],
       saleDate: (map['saleDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
       soldBy: map['soldBy'] ?? '',
@@ -86,8 +82,6 @@ class InvoiceModel extends InvoiceEntity {
       amountPaid: entity.amountPaid,
       change: entity.change,
       status: entity.status,
-      customerName: entity.customerName,
-      customerPhone: entity.customerPhone,
       notes: entity.notes,
       saleDate: entity.saleDate,
       soldBy: entity.soldBy,
@@ -102,9 +96,8 @@ class InvoiceModel extends InvoiceEntity {
   Map<String, dynamic> toMap() {
     return {
       'invoiceNumber': invoiceNumber,
-      'items': items
-          .map((item) => CartItemModel.fromEntity(item).toMap())
-          .toList(),
+      'items':
+          items.map((item) => CartItemModel.fromEntity(item).toMap()).toList(),
       'subtotal': subtotal,
       'discount': discount.toMap(),
       'discountAmount': discountAmount,
@@ -115,13 +108,12 @@ class InvoiceModel extends InvoiceEntity {
       'amountPaid': amountPaid,
       'change': change,
       'status': status.value,
-      'customerName': customerName,
-      'customerPhone': customerPhone,
       'notes': notes,
       'saleDate': Timestamp.fromDate(saleDate),
       'soldBy': soldBy,
       'soldByName': soldByName,
-      'cancelledAt': cancelledAt != null ? Timestamp.fromDate(cancelledAt!) : null,
+      'cancelledAt':
+          cancelledAt != null ? Timestamp.fromDate(cancelledAt!) : null,
       'cancelledBy': cancelledBy,
       'cancellationReason': cancellationReason,
       // حقول للفلترة
@@ -130,7 +122,8 @@ class InvoiceModel extends InvoiceEntity {
         saleDate.month,
         saleDate.day,
       )),
-      'saleMonth': '${saleDate.year}-${saleDate.month.toString().padLeft(2, '0')}',
+      'saleMonth':
+          '${saleDate.year}-${saleDate.month.toString().padLeft(2, '0')}',
       'itemCount': itemCount,
     };
   }
@@ -150,8 +143,6 @@ class InvoiceModel extends InvoiceEntity {
     double? amountPaid,
     double? change,
     InvoiceStatus? status,
-    String? customerName,
-    String? customerPhone,
     String? notes,
     DateTime? saleDate,
     String? soldBy,
@@ -174,8 +165,6 @@ class InvoiceModel extends InvoiceEntity {
       amountPaid: amountPaid ?? this.amountPaid,
       change: change ?? this.change,
       status: status ?? this.status,
-      customerName: customerName ?? this.customerName,
-      customerPhone: customerPhone ?? this.customerPhone,
       notes: notes ?? this.notes,
       saleDate: saleDate ?? this.saleDate,
       soldBy: soldBy ?? this.soldBy,

@@ -62,17 +62,22 @@ class ReportsRepositoryImpl implements ReportsRepository {
 
       // حساب إحصائيات اليوم
       final todayCompleted = todayInvoices.where((i) => i.isCompleted).toList();
-      final todaySales = todayCompleted.fold<double>(0, (sum, i) => sum + i.total);
-      final todayProfit = todayCompleted.fold<double>(0, (sum, i) => sum + i.profit);
+      final todaySales =
+          todayCompleted.fold<double>(0, (sum, i) => sum + i.total);
+      final todayProfit =
+          todayCompleted.fold<double>(0, (sum, i) => sum + i.profit);
 
       // حساب إحصائيات الأسبوع
       final weekCompleted = weekInvoices.where((i) => i.isCompleted).toList();
-      final weekSales = weekCompleted.fold<double>(0, (sum, i) => sum + i.total);
+      final weekSales =
+          weekCompleted.fold<double>(0, (sum, i) => sum + i.total);
 
       // حساب إحصائيات الشهر
       final monthCompleted = monthInvoices.where((i) => i.isCompleted).toList();
-      final monthSales = monthCompleted.fold<double>(0, (sum, i) => sum + i.total);
-      final monthProfit = monthCompleted.fold<double>(0, (sum, i) => sum + i.profit);
+      final monthSales =
+          monthCompleted.fold<double>(0, (sum, i) => sum + i.total);
+      final monthProfit =
+          monthCompleted.fold<double>(0, (sum, i) => sum + i.profit);
 
       // المنتجات الأكثر مبيعاً
       final topProducts = await _calculateTopProducts(monthInvoices, 5);
@@ -95,6 +100,26 @@ class ReportsRepositoryImpl implements ReportsRepository {
     } catch (e) {
       return Failure('فشل جلب ملخص لوحة التحكم: $e');
     }
+  }
+
+  @override
+  Stream<DashboardSummary> watchDashboardSummary() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    // مراقبة فواتير اليوم فقط للتحديث التلقائي
+    return _salesCollection
+        .where('saleDateDay', isEqualTo: Timestamp.fromDate(today))
+        .snapshots()
+        .asyncMap((snapshot) async {
+      try {
+        // جلب بيانات لوحة التحكم الكاملة
+        final result = await getDashboardSummary();
+        return result.valueOrNull ?? DashboardSummary.empty();
+      } catch (e) {
+        return DashboardSummary.empty();
+      }
+    });
   }
 
   @override
@@ -126,6 +151,41 @@ class ReportsRepositoryImpl implements ReportsRepository {
     } catch (e) {
       return Failure('فشل جلب تقرير المبيعات: $e');
     }
+  }
+
+  @override
+  Stream<SalesReport> watchSalesReport({
+    required DateTime startDate,
+    required DateTime endDate,
+  }) {
+    // مراقبة فواتير الفترة المحددة
+    return _salesCollection
+        .where('saleDate',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+        .where('saleDate', isLessThan: Timestamp.fromDate(endDate))
+        .snapshots()
+        .map((snapshot) {
+      final invoices =
+          snapshot.docs.map((doc) => InvoiceModel.fromDocument(doc)).toList();
+
+      final completed = invoices.where((i) => i.isCompleted).toList();
+      final cancelled = invoices.where((i) => i.isCancelled).toList();
+      final dailyData = _calculateDailyData(invoices, startDate, endDate);
+
+      return SalesReport(
+        startDate: startDate,
+        endDate: endDate,
+        totalInvoices: completed.length,
+        totalItems: completed.fold(0, (sum, i) => sum + i.itemCount),
+        totalSales: completed.fold(0, (sum, i) => sum + i.total),
+        totalCost: completed.fold(0, (sum, i) => sum + i.totalCost),
+        totalProfit: completed.fold(0, (sum, i) => sum + i.profit),
+        totalDiscount: completed.fold(0, (sum, i) => sum + i.discountAmount),
+        cancelledInvoices: cancelled.length,
+        cancelledAmount: cancelled.fold(0, (sum, i) => sum + i.total),
+        dailyData: dailyData,
+      );
+    });
   }
 
   @override
@@ -172,7 +232,8 @@ class ReportsRepositoryImpl implements ReportsRepository {
             categoryName: categoryName,
             productCount: existing.productCount + 1,
             totalStock: existing.totalStock + product.totalStock,
-            stockValue: existing.stockValue + (product.totalStock * product.price),
+            stockValue:
+                existing.stockValue + (product.totalStock * product.price),
           );
         } else {
           categoryStocksMap[categoryId] = CategoryStock(
@@ -203,6 +264,19 @@ class ReportsRepositoryImpl implements ReportsRepository {
   }
 
   @override
+  Stream<InventoryReport> watchInventoryReport() {
+    // مراقبة المنتجات للتحديث التلقائي
+    return _productsCollection.snapshots().asyncMap((snapshot) async {
+      try {
+        final result = await getInventoryReport();
+        return result.valueOrNull ?? InventoryReport.empty();
+      } catch (e) {
+        return InventoryReport.empty();
+      }
+    });
+  }
+
+  @override
   Future<Result<List<TopSellingProduct>>> getTopSellingProducts({
     required DateTime startDate,
     required DateTime endDate,
@@ -215,6 +289,25 @@ class ReportsRepositoryImpl implements ReportsRepository {
     } catch (e) {
       return Failure('فشل جلب المنتجات الأكثر مبيعاً: $e');
     }
+  }
+
+  @override
+  Stream<List<TopSellingProduct>> watchTopSellingProducts({
+    required DateTime startDate,
+    required DateTime endDate,
+    int limit = 10,
+  }) {
+    // مراقبة فواتير الفترة المحددة
+    return _salesCollection
+        .where('saleDate',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+        .where('saleDate', isLessThan: Timestamp.fromDate(endDate))
+        .snapshots()
+        .asyncMap((snapshot) async {
+      final invoices =
+          snapshot.docs.map((doc) => InvoiceModel.fromDocument(doc)).toList();
+      return await _calculateTopProducts(invoices, limit);
+    });
   }
 
   @override
@@ -242,9 +335,7 @@ class ReportsRepositoryImpl implements ReportsRepository {
         .where('saleDate', isLessThan: Timestamp.fromDate(end))
         .get();
 
-    return snapshot.docs
-        .map((doc) => InvoiceModel.fromDocument(doc))
-        .toList();
+    return snapshot.docs.map((doc) => InvoiceModel.fromDocument(doc)).toList();
   }
 
   List<DailySalesData> _calculateDailyData(
@@ -287,8 +378,7 @@ class ReportsRepositoryImpl implements ReportsRepository {
       }
     }
 
-    return dailyMap.values.toList()
-      ..sort((a, b) => a.date.compareTo(b.date));
+    return dailyMap.values.toList()..sort((a, b) => a.date.compareTo(b.date));
   }
 
   Future<List<TopSellingProduct>> _calculateTopProducts(
@@ -322,7 +412,8 @@ class ReportsRepositoryImpl implements ReportsRepository {
 
     // ترتيب حسب الكمية المباعة
     final sorted = productSales.values.toList()
-      ..sort((a, b) => (b['quantitySold'] as int).compareTo(a['quantitySold'] as int));
+      ..sort((a, b) =>
+          (b['quantitySold'] as int).compareTo(a['quantitySold'] as int));
 
     // جلب أسماء الفئات
     final topList = sorted.take(limit).toList();
@@ -331,11 +422,13 @@ class ReportsRepositoryImpl implements ReportsRepository {
     for (final item in topList) {
       String categoryName = '';
       try {
-        final productDoc = await _productsCollection.doc(item['productId']).get();
+        final productDoc =
+            await _productsCollection.doc(item['productId']).get();
         if (productDoc.exists) {
           final categoryId = productDoc.data()?['categoryId'];
           if (categoryId != null) {
-            final categoryDoc = await _categoriesCollection.doc(categoryId).get();
+            final categoryDoc =
+                await _categoriesCollection.doc(categoryId).get();
             categoryName = categoryDoc.data()?['name'] ?? '';
           }
         }

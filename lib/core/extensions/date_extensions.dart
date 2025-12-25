@@ -5,32 +5,38 @@ extension DateTimeExtensions on DateTime {
   // تنسيقات التاريخ
   String get toDateString => DateFormat('yyyy-MM-dd', 'ar').format(this);
   String get toTimeString => DateFormat('HH:mm', 'ar').format(this);
-  String get toDateTimeString => DateFormat('yyyy-MM-dd HH:mm', 'ar').format(this);
-  
+  String get toDateTimeString =>
+      DateFormat('yyyy-MM-dd HH:mm', 'ar').format(this);
+
+  // تنسيق الوقت فقط
+  String toTime() => DateFormat('hh:mm a', 'ar').format(this);
+
   // تنسيقات عربية
   String toArabicDate() => DateFormat('d MMMM yyyy', 'ar').format(this);
-  String toArabicDateTime() => DateFormat('d MMMM yyyy - HH:mm', 'ar').format(this);
-  String get toArabicDayDate => DateFormat('EEEE، d MMMM yyyy', 'ar').format(this);
-  
+  String toArabicDateTime() =>
+      DateFormat('d MMMM yyyy - HH:mm', 'ar').format(this);
+  String get toArabicDayDate =>
+      DateFormat('EEEE، d MMMM yyyy', 'ar').format(this);
+
   // تنسيق مختصر
   String get toShortDate => DateFormat('d/M/yyyy', 'ar').format(this);
   String get toShortDateTime => DateFormat('d/M/yyyy HH:mm', 'ar').format(this);
 
   // بداية اليوم
   DateTime get startOfDay => DateTime(year, month, day);
-  
+
   // نهاية اليوم
   DateTime get endOfDay => DateTime(year, month, day, 23, 59, 59, 999);
 
   // بداية الشهر
   DateTime get startOfMonth => DateTime(year, month, 1);
-  
+
   // نهاية الشهر
   DateTime get endOfMonth => DateTime(year, month + 1, 0, 23, 59, 59, 999);
 
   // بداية السنة
   DateTime get startOfYear => DateTime(year, 1, 1);
-  
+
   // نهاية السنة
   DateTime get endOfYear => DateTime(year, 12, 31, 23, 59, 59, 999);
 
@@ -43,13 +49,17 @@ extension DateTimeExtensions on DateTime {
   // هل أمس
   bool get isYesterday {
     final yesterday = DateTime.now().subtract(const Duration(days: 1));
-    return year == yesterday.year && month == yesterday.month && day == yesterday.day;
+    return year == yesterday.year &&
+        month == yesterday.month &&
+        day == yesterday.day;
   }
 
   // هل غداً
   bool get isTomorrow {
     final tomorrow = DateTime.now().add(const Duration(days: 1));
-    return year == tomorrow.year && month == tomorrow.month && day == tomorrow.day;
+    return year == tomorrow.year &&
+        month == tomorrow.month &&
+        day == tomorrow.day;
   }
 
   // هل هذا الأسبوع
@@ -74,7 +84,7 @@ extension DateTimeExtensions on DateTime {
 
   // إضافة أيام
   DateTime addDays(int days) => add(Duration(days: days));
-  
+
   // طرح أيام
   DateTime subtractDays(int days) => subtract(Duration(days: days));
 

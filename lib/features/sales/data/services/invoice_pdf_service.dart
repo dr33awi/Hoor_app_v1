@@ -132,19 +132,21 @@ class InvoicePdfService {
           pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              _buildInfoRow(font, fontBold, 'التاريخ:', dateFormat.format(invoice.saleDate)),
+              _buildInfoRow(font, fontBold, 'التاريخ:',
+                  dateFormat.format(invoice.saleDate)),
               pw.SizedBox(height: 4),
-              _buildInfoRow(font, fontBold, 'البائع:', invoice.soldByName ?? '-'),
+              _buildInfoRow(
+                  font, fontBold, 'البائع:', invoice.soldByName ?? '-'),
             ],
           ),
           pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.start,
             children: [
-              _buildInfoRow(font, fontBold, 'العميل:', invoice.customerName ?? 'عميل نقدي'),
-              if (invoice.customerPhone != null) ...[
-                pw.SizedBox(height: 4),
-                _buildInfoRow(font, fontBold, 'الهاتف:', invoice.customerPhone!),
-              ],
+              _buildInfoRow(
+                  font, fontBold, 'الحالة:', invoice.status.arabicName),
+              pw.SizedBox(height: 4),
+              _buildInfoRow(font, fontBold, 'طريقة الدفع:',
+                  invoice.paymentMethod.arabicName),
             ],
           ),
         ],
@@ -153,7 +155,8 @@ class InvoicePdfService {
   }
 
   /// صف معلومات
-  static pw.Widget _buildInfoRow(pw.Font font, pw.Font fontBold, String label, String value) {
+  static pw.Widget _buildInfoRow(
+      pw.Font font, pw.Font fontBold, String label, String value) {
     return pw.Row(
       children: [
         pw.Text(label, style: pw.TextStyle(font: fontBold, fontSize: 10)),
@@ -198,8 +201,10 @@ class InvoicePdfService {
                 _buildTableCell(font, item.productName),
                 _buildTableCell(font, '${item.color} / ${item.size}'),
                 _buildTableCell(font, '${item.quantity}'),
-                _buildTableCell(font, '${item.unitPrice.toStringAsFixed(0)} ر.ي'),
-                _buildTableCell(font, '${item.totalPrice.toStringAsFixed(0)} ر.ي'),
+                _buildTableCell(
+                    font, '${item.unitPrice.toStringAsFixed(0)} ل.س'),
+                _buildTableCell(
+                    font, '${item.totalPrice.toStringAsFixed(0)} ل.س'),
               ],
             )),
       ],
@@ -251,13 +256,14 @@ class InvoicePdfService {
         ),
         child: pw.Column(
           children: [
-            _buildTotalRow(font, 'المجموع الفرعي:', '${invoice.subtotal.toStringAsFixed(0)} ر.ي'),
+            _buildTotalRow(font, 'المجموع الفرعي:',
+                '${invoice.subtotal.toStringAsFixed(0)} ل.س'),
             if (invoice.hasDiscount) ...[
               pw.SizedBox(height: 4),
               _buildTotalRow(
                 font,
                 'الخصم (${invoice.discount.description}):',
-                '- ${invoice.discountAmount.toStringAsFixed(0)} ر.ي',
+                '- ${invoice.discountAmount.toStringAsFixed(0)} ل.س',
                 color: PdfColors.red,
               ),
             ],
@@ -265,13 +271,15 @@ class InvoicePdfService {
             _buildTotalRow(
               fontBold,
               'الإجمالي:',
-              '${invoice.total.toStringAsFixed(0)} ر.ي',
+              '${invoice.total.toStringAsFixed(0)} ل.س',
               fontSize: 14,
             ),
             pw.SizedBox(height: 8),
-            _buildTotalRow(font, 'المبلغ المدفوع:', '${invoice.amountPaid.toStringAsFixed(0)} ر.ي'),
+            _buildTotalRow(font, 'المبلغ المدفوع:',
+                '${invoice.amountPaid.toStringAsFixed(0)} ل.س'),
             if (invoice.change > 0)
-              _buildTotalRow(font, 'الباقي:', '${invoice.change.toStringAsFixed(0)} ر.ي'),
+              _buildTotalRow(
+                  font, 'الباقي:', '${invoice.change.toStringAsFixed(0)} ل.س'),
           ],
         ),
       ),
@@ -318,7 +326,8 @@ class InvoicePdfService {
           pw.SizedBox(height: 4),
           pw.Text(
             'متجر حور - للأحذية النسائية والولادية',
-            style: pw.TextStyle(font: font, fontSize: 10, color: PdfColors.grey600),
+            style: pw.TextStyle(
+                font: font, fontSize: 10, color: PdfColors.grey600),
           ),
         ],
       ),

@@ -43,6 +43,9 @@ abstract class SalesRepository {
   /// مراقبة فواتير اليوم
   Stream<List<InvoiceEntity>> watchTodayInvoices();
 
+  /// مراقبة فاتورة واحدة
+  Stream<InvoiceEntity?> watchInvoice(String invoiceId);
+
   /// إحصائيات المبيعات اليومية
   Future<Result<DailySalesStats>> getDailySalesStats(DateTime date);
 
@@ -97,7 +100,8 @@ class DailySalesStats {
     );
   }
 
-  factory DailySalesStats.fromInvoices(DateTime date, List<InvoiceEntity> invoices) {
+  factory DailySalesStats.fromInvoices(
+      DateTime date, List<InvoiceEntity> invoices) {
     final completedInvoices = invoices.where((i) => i.isCompleted).toList();
     final cancelledInvoices = invoices.where((i) => i.isCancelled).toList();
 
@@ -108,7 +112,8 @@ class DailySalesStats {
       totalSales: completedInvoices.fold(0, (sum, i) => sum + i.total),
       totalCost: completedInvoices.fold(0, (sum, i) => sum + i.totalCost),
       totalProfit: completedInvoices.fold(0, (sum, i) => sum + i.profit),
-      totalDiscount: completedInvoices.fold(0, (sum, i) => sum + i.discountAmount),
+      totalDiscount:
+          completedInvoices.fold(0, (sum, i) => sum + i.discountAmount),
       cancelledCount: cancelledInvoices.length,
     );
   }

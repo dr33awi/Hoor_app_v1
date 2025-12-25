@@ -52,7 +52,8 @@ class ReportsScreen extends ConsumerWidget {
   }
 
   Widget _buildDashboardSummary(BuildContext context, WidgetRef ref) {
-    final summaryAsync = ref.watch(dashboardSummaryProvider);
+    // استخدام StreamProvider للتحديث التلقائي
+    final summaryAsync = ref.watch(dashboardSummaryStreamProvider);
 
     return summaryAsync.when(
       data: (summary) => Column(
@@ -203,7 +204,8 @@ class ReportsScreen extends ConsumerWidget {
   }
 
   Widget _buildTopProductsSection(BuildContext context, WidgetRef ref) {
-    final topProductsAsync = ref.watch(monthlyTopProductsProvider);
+    // استخدام StreamProvider للتحديث التلقائي
+    final topProductsAsync = ref.watch(monthlyTopProductsStreamProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

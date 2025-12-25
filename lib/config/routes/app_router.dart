@@ -28,6 +28,7 @@ class AppRoutes {
 
   static const String sales = '/sales';
   static const String newSale = '/sales/new';
+  static const String directSale = '/sales/direct';
   static const String invoiceDetails = '/sales/:id';
 
   static const String reports = '/reports';
@@ -123,7 +124,12 @@ class AppRouter {
           GoRoute(
             path: 'new',
             name: 'newSale',
-            builder: (context, state) => const NewSaleScreen(),
+            builder: (context, state) => const DirectSaleScreen(),
+          ),
+          GoRoute(
+            path: 'direct',
+            name: 'directSale',
+            builder: (context, state) => const DirectSaleScreen(),
           ),
           GoRoute(
             path: ':id',

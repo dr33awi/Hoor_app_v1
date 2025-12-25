@@ -41,11 +41,17 @@ final isAuthenticatedProvider = Provider<bool>((ref) {
   return state is AuthAuthenticated;
 });
 
-/// مزود جميع المستخدمين
+/// مزود جميع المستخدمين (Future - للاستخدام مرة واحدة)
 final allUsersProvider = FutureProvider<List<UserEntity>>((ref) async {
   final repository = ref.watch(userManagementRepositoryProvider);
   final result = await repository.getAllUsers();
   return result.valueOrNull ?? [];
+});
+
+/// مزود جميع المستخدمين (Stream - للتحديث التلقائي)
+final allUsersStreamProvider = StreamProvider<List<UserEntity>>((ref) {
+  final repository = ref.watch(userManagementRepositoryProvider);
+  return repository.watchUsers();
 });
 
 /// مزود المستخدمين بانتظار الموافقة
@@ -181,13 +187,23 @@ class AuthNotifier extends Notifier<AuthState> {
 }
 
 /// مزود عملية تسجيل الدخول
-final signInProvider = FutureProvider.family<void, ({String email, String password})>((ref, params) async {
+final signInProvider =
+    FutureProvider.family<void, ({String email, String password})>(
+        (ref, params) async {
   final notifier = ref.read(authStateProvider.notifier);
-  await notifier.signInWithEmail(email: params.email, password: params.password);
+  await notifier.signInWithEmail(
+      email: params.email, password: params.password);
 });
 
 /// مزود عملية إنشاء الحساب
-final signUpProvider = FutureProvider.family<void, ({String email, String password, String fullName, String? phone})>((ref, params) async {
+final signUpProvider = FutureProvider.family<
+    void,
+    ({
+      String email,
+      String password,
+      String fullName,
+      String? phone
+    })>((ref, params) async {
   final notifier = ref.read(authStateProvider.notifier);
   await notifier.signUp(
     email: params.email,
