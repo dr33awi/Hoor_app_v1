@@ -10,6 +10,8 @@ import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/widgets/invoice_widgets.dart';
+import '../../../core/widgets/print_menu_button.dart';
+import '../../../core/services/export/invoice_pdf_generator.dart';
 import '../../../data/database/app_database.dart';
 import '../../../data/repositories/product_repository.dart';
 import '../../../data/repositories/invoice_repository.dart';
@@ -17,7 +19,6 @@ import '../../../data/repositories/shift_repository.dart';
 import '../../../data/repositories/cash_repository.dart';
 import '../../../data/repositories/customer_repository.dart';
 import '../../../data/repositories/supplier_repository.dart';
-import 'print_settings_screen.dart';
 
 class InvoiceFormScreen extends ConsumerStatefulWidget {
   final String type;
@@ -35,7 +36,6 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
   final _cashRepo = getIt<CashRepository>();
   final _customerRepo = getIt<CustomerRepository>();
   final _supplierRepo = getIt<SupplierRepository>();
-  final _database = getIt<AppDatabase>();
 
   final _searchController = TextEditingController();
   final _discountController = TextEditingController(text: '0');
@@ -46,9 +46,6 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
   String _paymentMethod = 'cash';
   bool _isLoading = false;
   Shift? _currentShift;
-
-  // إعدادات الطباعة
-  bool _autoPrint = false;
 
   // العميل والمورد (اختياري)
   Customer? _selectedCustomer;
@@ -61,14 +58,6 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
     super.initState();
     _loadCurrentShift();
     _loadCustomersAndSuppliers();
-    _loadPrintSettings();
-  }
-
-  Future<void> _loadPrintSettings() async {
-    final autoPrint = await _database.getSetting('auto_print');
-    setState(() {
-      _autoPrint = autoPrint == 'true';
-    });
   }
 
   Future<void> _loadCurrentShift() async {
@@ -610,72 +599,24 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
       }
 
       if (mounted) {
-        bool shouldPrint = false;
+        // إظهار dialog للطباعة
+        final shouldPrint = await _showPrintDialog(invoiceId);
 
-        // إذا كانت الطباعة التلقائية مفعلة، طباعة مباشرة
-        if (_autoPrint) {
-          shouldPrint = true;
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Row(
                 children: [
                   Icon(Icons.check_circle, color: Colors.white, size: 20),
                   SizedBox(width: 8),
-                  Text('تم حفظ الفاتورة - جاري الطباعة...'),
+                  Text('تم حفظ الفاتورة بنجاح'),
                 ],
               ),
               backgroundColor: AppColors.success,
               duration: Duration(seconds: 2),
             ),
           );
-        } else {
-          // عرض ديالوغ للسؤال عن الطباعة
-          shouldPrint = await showDialog<bool>(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) => AlertDialog(
-                  title: const Row(
-                    children: [
-                      Icon(Icons.check_circle,
-                          color: AppColors.success, size: 28),
-                      SizedBox(width: 12),
-                      Text('تم حفظ الفاتورة'),
-                    ],
-                  ),
-                  content: const Text('هل تريد طباعة الفاتورة؟'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('لا'),
-                    ),
-                    ElevatedButton.icon(
-                      onPressed: () => Navigator.pop(context, true),
-                      icon: const Icon(Icons.print, size: 18),
-                      label: const Text('طباعة'),
-                    ),
-                  ],
-                ),
-              ) ??
-              false;
-        }
 
-        if (shouldPrint == true && mounted) {
-          final invoice = await _invoiceRepo.getInvoiceById(invoiceId);
-          if (invoice != null) {
-            // فتح صفحة إعدادات الطباعة
-            await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => PrintSettingsScreen(
-                  invoice: invoice,
-                  invoiceId: invoiceId,
-                ),
-              ),
-            );
-          }
-        }
-
-        if (mounted) {
           context.pop();
         }
       }
@@ -689,6 +630,113 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
     } finally {
       setState(() => _isLoading = false);
     }
+  }
+
+  /// إظهار dialog للطباعة بعد حفظ الفاتورة
+  Future<bool> _showPrintDialog(String invoiceId) async {
+    final invoice = await _invoiceRepo.getInvoiceById(invoiceId);
+    if (invoice == null) return false;
+
+    final items = await _invoiceRepo.getInvoiceItems(invoiceId);
+
+    if (!mounted) return false;
+
+    final result = await showDialog<PrintType>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.print, color: AppColors.primary),
+            SizedBox(width: 8.w),
+            const Text('طباعة الفاتورة'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'تم حفظ الفاتورة رقم ${invoice.invoiceNumber}',
+              style: TextStyle(fontSize: 14.sp),
+            ),
+            SizedBox(height: 16.h),
+            const Text('هل تريد طباعة الفاتورة؟'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('لاحقاً'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.pop(context, PrintType.share),
+            icon: const Icon(Icons.share, size: 18),
+            label: const Text('مشاركة'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.pop(context, PrintType.print),
+            icon: const Icon(Icons.print, size: 18),
+            label: const Text('طباعة'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && mounted) {
+      try {
+        final customer = _selectedCustomer;
+        final supplier = _selectedSupplier;
+
+        switch (result) {
+          case PrintType.print:
+            await InvoicePdfGenerator.printInvoiceDirectly(
+              invoice: invoice,
+              items: items,
+              customer: customer,
+              supplier: supplier,
+            );
+            break;
+          case PrintType.share:
+            await InvoicePdfGenerator.shareInvoiceAsPdf(
+              invoice: invoice,
+              items: items,
+              customer: customer,
+              supplier: supplier,
+            );
+            break;
+          case PrintType.save:
+            final path = await InvoicePdfGenerator.saveInvoiceAsPdf(
+              invoice: invoice,
+              items: items,
+              customer: customer,
+              supplier: supplier,
+            );
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('تم حفظ الفاتورة في: $path')),
+              );
+            }
+            break;
+          case PrintType.preview:
+            // يمكن إضافة معاينة لاحقاً
+            break;
+        }
+        return true;
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('خطأ في الطباعة: $e'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      }
+    }
+
+    return false;
   }
 }
 

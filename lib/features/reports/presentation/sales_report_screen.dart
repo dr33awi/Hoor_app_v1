@@ -5,12 +5,12 @@ import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:printing/printing.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/services/export_service.dart';
+import '../../../core/services/export/export_services.dart';
 import '../../../core/widgets/invoice_widgets.dart';
+import '../../../core/widgets/export_menu_button.dart';
 import '../../../data/database/app_database.dart';
 
 class SalesReportScreen extends ConsumerStatefulWidget {
@@ -24,7 +24,6 @@ class SalesReportScreen extends ConsumerStatefulWidget {
 
 class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
   final _db = getIt<AppDatabase>();
-  final _exportService = getIt<ExportService>();
 
   late DateTimeRange _dateRange;
   bool _isExporting = false;
@@ -49,41 +48,9 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
             icon: const Icon(Icons.date_range),
             onPressed: _selectDateRange,
           ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
-            onSelected: (value) => _handleExport(value),
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'excel',
-                child: Row(
-                  children: [
-                    Icon(Icons.table_chart, color: Colors.green),
-                    SizedBox(width: 8),
-                    Text('تصدير Excel'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'pdf',
-                child: Row(
-                  children: [
-                    Icon(Icons.picture_as_pdf, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('تصدير PDF'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'share',
-                child: Row(
-                  children: [
-                    Icon(Icons.share, color: Colors.blue),
-                    SizedBox(width: 8),
-                    Text('مشاركة'),
-                  ],
-                ),
-              ),
-            ],
+          ExportMenuButton(
+            onExport: _handleExport,
+            isLoading: _isExporting,
           ),
         ],
       ),
@@ -218,7 +185,6 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                   Gap(12.h),
                   ...invoices.take(10).map((i) => InvoiceCard(
                         invoice: i,
-                        onTap: () => context.push('/invoices/${i.id}'),
                       )),
                 ],
               );
@@ -310,7 +276,7 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
     }
   }
 
-  Future<void> _handleExport(String type) async {
+  Future<void> _handleExport(ExportType type) async {
     if (_isExporting) return;
 
     setState(() => _isExporting = true);
@@ -326,8 +292,8 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
       String? filePath;
 
       switch (type) {
-        case 'excel':
-          filePath = await _exportService.exportSalesReportToExcel(
+        case ExportType.excel:
+          filePath = await ExcelExportService.exportSalesReport(
             invoices: salesInvoices,
             startDate: _dateRange.start,
             endDate: _dateRange.end,
@@ -340,15 +306,15 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                 action: SnackBarAction(
                   label: 'مشاركة',
                   textColor: Colors.white,
-                  onPressed: () => _exportService.shareExcelFile(filePath!),
+                  onPressed: () => ExcelExportService.shareFile(filePath!),
                 ),
               ),
             );
           }
           break;
 
-        case 'pdf':
-          final pdfBytes = await _exportService.generateSalesReportPdf(
+        case ExportType.pdf:
+          final pdfBytes = await PdfExportService.generateSalesReport(
             invoices: salesInvoices,
             summary: summary,
             startDate: _dateRange.start,
@@ -358,13 +324,24 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
           await Printing.layoutPdf(onLayout: (format) async => pdfBytes);
           break;
 
-        case 'share':
-          filePath = await _exportService.exportSalesReportToExcel(
+        case ExportType.sharePdf:
+          final pdfBytes = await PdfExportService.generateSalesReport(
+            invoices: salesInvoices,
+            summary: summary,
+            startDate: _dateRange.start,
+            endDate: _dateRange.end,
+          );
+          await Printing.sharePdf(
+              bytes: pdfBytes, filename: 'sales_report.pdf');
+          break;
+
+        case ExportType.shareExcel:
+          filePath = await ExcelExportService.exportSalesReport(
             invoices: salesInvoices,
             startDate: _dateRange.start,
             endDate: _dateRange.end,
           );
-          await _exportService.shareExcelFile(filePath);
+          await ExcelExportService.shareFile(filePath);
           break;
       }
     } catch (e) {

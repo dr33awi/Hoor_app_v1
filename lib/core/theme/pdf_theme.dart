@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -8,22 +9,43 @@ import 'package:printing/printing.dart';
 class PdfFonts {
   static pw.Font? _regular;
   static pw.Font? _bold;
+  static bool _initialized = false;
 
   static Future<void> init() async {
-    _regular = await PdfGoogleFonts.cairoRegular();
-    _bold = await PdfGoogleFonts.cairoBold();
+    if (_initialized) return;
+
+    try {
+      // محاولة تحميل الخطوط من الـ assets المحلية أولاً
+      final fontData = await rootBundle.load('assets/fonts/Cairo-Variable.ttf');
+      _regular = pw.Font.ttf(fontData);
+      _bold = pw.Font.ttf(fontData); // نفس الخط للـ bold
+      _initialized = true;
+    } catch (e) {
+      try {
+        // محاولة تحميل من Google Fonts إذا لم تتوفر محلياً
+        _regular = await PdfGoogleFonts.cairoRegular();
+        _bold = await PdfGoogleFonts.cairoBold();
+        _initialized = true;
+      } catch (e2) {
+        // استخدام Helvetica كـ fallback
+        _regular = pw.Font.helvetica();
+        _bold = pw.Font.helveticaBold();
+        _initialized = true;
+      }
+    }
   }
 
   static pw.Font get regular {
-    if (_regular == null) {
-      throw Exception('PDF Fonts not initialized. Call PdfFonts.init() first.');
+    if (!_initialized) {
+      // إذا لم يتم تهيئة الخطوط، استخدم Helvetica مؤقتاً
+      return pw.Font.helvetica();
     }
     return _regular!;
   }
 
   static pw.Font get bold {
-    if (_bold == null) {
-      throw Exception('PDF Fonts not initialized. Call PdfFonts.init() first.');
+    if (!_initialized) {
+      return pw.Font.helveticaBold();
     }
     return _bold!;
   }

@@ -4,12 +4,12 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
-import 'package:pdf/pdf.dart';
 
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/invoice_widgets.dart';
-import '../../../core/services/export_service.dart';
+import '../../../core/widgets/export_menu_button.dart';
+import '../../../core/services/export/export_services.dart';
 import '../../../data/database/app_database.dart';
 import '../../../data/repositories/inventory_repository.dart';
 import '../../../data/repositories/product_repository.dart';
@@ -25,7 +25,6 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
     with SingleTickerProviderStateMixin {
   final _inventoryRepo = getIt<InventoryRepository>();
   final _productRepo = getIt<ProductRepository>();
-  final _exportService = getIt<ExportService>();
   final _db = getIt<AppDatabase>();
 
   late TabController _tabController;
@@ -48,41 +47,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
       appBar: AppBar(
         title: const Text('إدارة المخزون'),
         actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
-            onSelected: _handleExport,
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'excel',
-                child: Row(
-                  children: [
-                    Icon(Icons.table_chart, color: Colors.green),
-                    SizedBox(width: 8),
-                    Text('تصدير Excel'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'pdf',
-                child: Row(
-                  children: [
-                    Icon(Icons.picture_as_pdf, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('تصدير PDF'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'share',
-                child: Row(
-                  children: [
-                    Icon(Icons.share, color: Colors.blue),
-                    SizedBox(width: 8),
-                    Text('مشاركة'),
-                  ],
-                ),
-              ),
-            ],
+          ExportMenuButton(
+            onExport: _handleExport,
           ),
         ],
         bottom: TabBar(
@@ -112,7 +78,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
     );
   }
 
-  Future<void> _handleExport(String type) async {
+  Future<void> _handleExport(ExportType type) async {
     final products = await _productRepo.getAllProducts();
     final soldQuantities = await _db.getProductSoldQuantities();
 
@@ -127,8 +93,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
 
     try {
       switch (type) {
-        case 'excel':
-          final filePath = await _exportService.exportInventoryReportToExcel(
+        case ExportType.excel:
+          final filePath = await ExcelExportService.exportInventoryReport(
             products: products,
           );
           if (mounted) {
@@ -139,29 +105,38 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
                 action: SnackBarAction(
                   label: 'مشاركة',
                   textColor: Colors.white,
-                  onPressed: () => _exportService.shareExcelFile(filePath),
+                  onPressed: () => ExcelExportService.shareFile(filePath),
                 ),
               ),
             );
           }
           break;
 
-        case 'pdf':
-          final pdfBytes = await _exportService.generateInventoryReportPdf(
+        case ExportType.pdf:
+          final pdfBytes = await PdfExportService.generateInventoryReport(
             products: products,
             soldQuantities: soldQuantities,
           );
           await Printing.layoutPdf(
-            onLayout: (PdfPageFormat format) async => pdfBytes,
+            onLayout: (format) async => pdfBytes,
             name: 'inventory_report.pdf',
           );
           break;
 
-        case 'share':
-          final filePath = await _exportService.exportInventoryReportToExcel(
+        case ExportType.sharePdf:
+          final pdfBytes = await PdfExportService.generateInventoryReport(
+            products: products,
+            soldQuantities: soldQuantities,
+          );
+          await Printing.sharePdf(
+              bytes: pdfBytes, filename: 'inventory_report.pdf');
+          break;
+
+        case ExportType.shareExcel:
+          final filePath = await ExcelExportService.exportInventoryReport(
             products: products,
           );
-          await _exportService.shareExcelFile(filePath);
+          await ExcelExportService.shareFile(filePath);
           break;
       }
     } catch (e) {

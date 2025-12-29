@@ -3,12 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gap/gap.dart';
 import 'package:printing/printing.dart';
-import 'package:pdf/pdf.dart';
 
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/services/export_service.dart';
+import '../../../core/services/export/export_services.dart';
 import '../../../core/widgets/invoice_widgets.dart';
+import '../../../core/widgets/export_menu_button.dart';
 import '../../../data/database/app_database.dart';
 
 class InventoryReportScreen extends ConsumerStatefulWidget {
@@ -23,10 +23,9 @@ class InventoryReportScreen extends ConsumerStatefulWidget {
 
 class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
   final _db = getIt<AppDatabase>();
-  final _exportService = getIt<ExportService>();
   bool _isExporting = false;
 
-  Future<void> _handleExport(String type) async {
+  Future<void> _handleExport(ExportType type) async {
     if (_isExporting) return;
 
     setState(() => _isExporting = true);
@@ -38,8 +37,8 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
       String? filePath;
 
       switch (type) {
-        case 'excel':
-          filePath = await _exportService.exportInventoryReportToExcel(
+        case ExportType.excel:
+          filePath = await ExcelExportService.exportInventoryReport(
             products: products,
           );
           if (mounted) {
@@ -50,29 +49,38 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
                 action: SnackBarAction(
                   label: 'مشاركة',
                   textColor: Colors.white,
-                  onPressed: () => _exportService.shareExcelFile(filePath!),
+                  onPressed: () => ExcelExportService.shareFile(filePath!),
                 ),
               ),
             );
           }
           break;
 
-        case 'pdf':
-          final pdfBytes = await _exportService.generateInventoryReportPdf(
+        case ExportType.pdf:
+          final pdfBytes = await PdfExportService.generateInventoryReport(
             products: products,
             soldQuantities: soldQuantities,
           );
           await Printing.layoutPdf(
-            onLayout: (PdfPageFormat format) async => pdfBytes,
+            onLayout: (format) async => pdfBytes,
             name: 'inventory_report.pdf',
           );
           break;
 
-        case 'share':
-          filePath = await _exportService.exportInventoryReportToExcel(
+        case ExportType.sharePdf:
+          final pdfBytes = await PdfExportService.generateInventoryReport(
+            products: products,
+            soldQuantities: soldQuantities,
+          );
+          await Printing.sharePdf(
+              bytes: pdfBytes, filename: 'inventory_report.pdf');
+          break;
+
+        case ExportType.shareExcel:
+          filePath = await ExcelExportService.exportInventoryReport(
             products: products,
           );
-          await _exportService.shareExcelFile(filePath);
+          await ExcelExportService.shareFile(filePath);
           break;
       }
     } catch (e) {
@@ -97,41 +105,9 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
       appBar: AppBar(
         title: const Text('تقرير المخزون'),
         actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
-            onSelected: (value) => _handleExport(value),
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'excel',
-                child: Row(
-                  children: [
-                    Icon(Icons.table_chart, color: Colors.green),
-                    SizedBox(width: 8),
-                    Text('تصدير Excel'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'pdf',
-                child: Row(
-                  children: [
-                    Icon(Icons.picture_as_pdf, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('تصدير PDF'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'share',
-                child: Row(
-                  children: [
-                    Icon(Icons.share, color: Colors.blue),
-                    SizedBox(width: 8),
-                    Text('مشاركة'),
-                  ],
-                ),
-              ),
-            ],
+          ExportMenuButton(
+            onExport: _handleExport,
+            isLoading: _isExporting,
           ),
         ],
       ),

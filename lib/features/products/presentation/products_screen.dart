@@ -3,13 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gap/gap.dart';
-import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/invoice_widgets.dart';
-import '../../../core/services/export_service.dart';
+import '../../../core/widgets/export_menu_button.dart';
+import '../../../core/services/export/export_services.dart';
 import '../../../data/database/app_database.dart';
 import '../../../data/repositories/product_repository.dart';
 
@@ -22,7 +22,6 @@ class ProductsScreen extends ConsumerStatefulWidget {
 
 class _ProductsScreenState extends ConsumerState<ProductsScreen> {
   final _productRepo = getIt<ProductRepository>();
-  final _exportService = getIt<ExportService>();
   final _db = getIt<AppDatabase>();
   final _searchController = TextEditingController();
   String _searchQuery = '';
@@ -47,41 +46,8 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
             onPressed: () => setState(() => _showLowStock = !_showLowStock),
             tooltip: 'نقص المخزون',
           ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert),
-            onSelected: _handleExport,
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'excel',
-                child: Row(
-                  children: [
-                    Icon(Icons.table_chart, color: Colors.green),
-                    SizedBox(width: 8),
-                    Text('تصدير Excel'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'pdf',
-                child: Row(
-                  children: [
-                    Icon(Icons.picture_as_pdf, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('تصدير PDF'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'share',
-                child: Row(
-                  children: [
-                    Icon(Icons.share, color: Colors.blue),
-                    SizedBox(width: 8),
-                    Text('مشاركة'),
-                  ],
-                ),
-              ),
-            ],
+          ExportMenuButton(
+            onExport: _handleExport,
           ),
         ],
       ),
@@ -204,7 +170,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
     );
   }
 
-  Future<void> _handleExport(String type) async {
+  Future<void> _handleExport(ExportType type) async {
     final products = await _productRepo.getAllProducts();
     final soldQuantities = await _db.getProductSoldQuantities();
 
@@ -219,8 +185,8 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
 
     try {
       switch (type) {
-        case 'excel':
-          final filePath = await _exportService.exportProductsToExcel(
+        case ExportType.excel:
+          final filePath = await ExcelExportService.exportProducts(
             products: products,
           );
           if (mounted) {
@@ -231,29 +197,38 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                 action: SnackBarAction(
                   label: 'مشاركة',
                   textColor: Colors.white,
-                  onPressed: () => _exportService.shareExcelFile(filePath),
+                  onPressed: () => ExcelExportService.shareFile(filePath),
                 ),
               ),
             );
           }
           break;
 
-        case 'pdf':
-          final pdfBytes = await _exportService.generateProductsPdf(
+        case ExportType.pdf:
+          final pdfBytes = await PdfExportService.generateProductsList(
             products: products,
             soldQuantities: soldQuantities,
           );
           await Printing.layoutPdf(
-            onLayout: (PdfPageFormat format) async => pdfBytes,
+            onLayout: (format) async => pdfBytes,
             name: 'products_list.pdf',
           );
           break;
 
-        case 'share':
-          final filePath = await _exportService.exportProductsToExcel(
+        case ExportType.sharePdf:
+          final pdfBytes = await PdfExportService.generateProductsList(
+            products: products,
+            soldQuantities: soldQuantities,
+          );
+          await Printing.sharePdf(
+              bytes: pdfBytes, filename: 'products_list.pdf');
+          break;
+
+        case ExportType.shareExcel:
+          final filePath = await ExcelExportService.exportProducts(
             products: products,
           );
-          await _exportService.shareExcelFile(filePath);
+          await ExcelExportService.shareFile(filePath);
           break;
       }
     } catch (e) {

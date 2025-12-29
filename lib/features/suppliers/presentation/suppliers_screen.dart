@@ -2,7 +2,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gap/gap.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
@@ -429,10 +428,7 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen> {
                         return InvoiceCard(
                           invoice: invoice,
                           compact: true,
-                          onTap: () {
-                            Navigator.pop(context);
-                            context.push('/invoices/${invoice.id}');
-                          },
+                          onTap: () => Navigator.pop(context),
                         );
                       },
                     );

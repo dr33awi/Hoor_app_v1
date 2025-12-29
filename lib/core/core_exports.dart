@@ -1,6 +1,5 @@
-/// ═══════════════════════════════════════════════════════════════════════════
-/// Core Exports - تصدير جميع الملفات الأساسية
-/// ═══════════════════════════════════════════════════════════════════════════
+// Core Exports - تصدير جميع الملفات الأساسية
+// ═══════════════════════════════════════════════════════════════════════════
 
 // Constants
 export 'constants/invoice_types.dart';
@@ -15,8 +14,10 @@ export 'services/connectivity_service.dart';
 export 'services/sync_service.dart';
 export 'services/backup_service.dart';
 export 'services/currency_service.dart';
-export 'services/export_service.dart';
 export 'services/network_utils.dart';
+
+// Export Services (الخدمات الموحدة الجديدة)
+export 'services/export/export_services.dart';
 
 // Mappers
 export 'mappers/entity_mappers.dart';

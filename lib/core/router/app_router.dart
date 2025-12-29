@@ -8,7 +8,6 @@ import '../../features/products/presentation/product_details_screen.dart';
 import '../../features/categories/presentation/categories_screen.dart';
 import '../../features/invoices/presentation/invoices_screen.dart';
 import '../../features/invoices/presentation/invoice_form_screen.dart';
-import '../../features/invoices/presentation/invoice_details_screen.dart';
 import '../../features/inventory/presentation/inventory_screen.dart';
 import '../../features/inventory/presentation/inventory_count_screen.dart';
 import '../../features/shifts/presentation/shifts_screen.dart';
@@ -81,13 +80,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             name: 'invoice-new',
             builder: (context, state) => InvoiceFormScreen(
               type: state.pathParameters['type']!,
-            ),
-          ),
-          GoRoute(
-            path: ':id',
-            name: 'invoice-details',
-            builder: (context, state) => InvoiceDetailsScreen(
-              invoiceId: state.pathParameters['id']!,
             ),
           ),
         ],
