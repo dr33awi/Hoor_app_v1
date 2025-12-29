@@ -4,9 +4,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:printing/printing.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/services/export_service.dart';
+import '../../../core/widgets/invoice_widgets.dart';
 import '../../../data/database/app_database.dart';
 
 class SalesReportScreen extends ConsumerStatefulWidget {
@@ -20,8 +24,10 @@ class SalesReportScreen extends ConsumerStatefulWidget {
 
 class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
   final _db = getIt<AppDatabase>();
+  final _exportService = getIt<ExportService>();
 
   late DateTimeRange _dateRange;
+  bool _isExporting = false;
 
   @override
   void initState() {
@@ -43,9 +49,41 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
             icon: const Icon(Icons.date_range),
             onPressed: _selectDateRange,
           ),
-          IconButton(
-            icon: const Icon(Icons.share),
-            onPressed: () {},
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) => _handleExport(value),
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'excel',
+                child: Row(
+                  children: [
+                    Icon(Icons.table_chart, color: Colors.green),
+                    SizedBox(width: 8),
+                    Text('تصدير Excel'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'pdf',
+                child: Row(
+                  children: [
+                    Icon(Icons.picture_as_pdf, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('تصدير PDF'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'share',
+                child: Row(
+                  children: [
+                    Icon(Icons.share, color: Colors.blue),
+                    SizedBox(width: 8),
+                    Text('مشاركة'),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -178,7 +216,10 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
                     ],
                   ),
                   Gap(12.h),
-                  ...invoices.take(10).map((i) => _InvoiceItem(invoice: i)),
+                  ...invoices.take(10).map((i) => InvoiceCard(
+                        invoice: i,
+                        onTap: () => context.push('/invoices/${i.id}'),
+                      )),
                 ],
               );
             },
@@ -268,6 +309,79 @@ class _SalesReportScreenState extends ConsumerState<SalesReportScreen> {
       });
     }
   }
+
+  Future<void> _handleExport(String type) async {
+    if (_isExporting) return;
+
+    setState(() => _isExporting = true);
+
+    try {
+      // جلب البيانات
+      final invoices =
+          await _db.getInvoicesByDateRange(_dateRange.start, _dateRange.end);
+      final salesInvoices = invoices.where((i) => i.type == 'sale').toList();
+      final summary =
+          await _db.getSalesSummary(_dateRange.start, _dateRange.end);
+
+      String? filePath;
+
+      switch (type) {
+        case 'excel':
+          filePath = await _exportService.exportSalesReportToExcel(
+            invoices: salesInvoices,
+            startDate: _dateRange.start,
+            endDate: _dateRange.end,
+          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('تم تصدير التقرير بنجاح'),
+                backgroundColor: Colors.green,
+                action: SnackBarAction(
+                  label: 'مشاركة',
+                  textColor: Colors.white,
+                  onPressed: () => _exportService.shareExcelFile(filePath!),
+                ),
+              ),
+            );
+          }
+          break;
+
+        case 'pdf':
+          final pdfBytes = await _exportService.generateSalesReportPdf(
+            invoices: salesInvoices,
+            summary: summary,
+            startDate: _dateRange.start,
+            endDate: _dateRange.end,
+          );
+          // طباعة PDF
+          await Printing.layoutPdf(onLayout: (format) async => pdfBytes);
+          break;
+
+        case 'share':
+          filePath = await _exportService.exportSalesReportToExcel(
+            invoices: salesInvoices,
+            startDate: _dateRange.start,
+            endDate: _dateRange.end,
+          );
+          await _exportService.shareExcelFile(filePath);
+          break;
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('خطأ في التصدير: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isExporting = false);
+      }
+    }
+  }
 }
 
 class _StatCard extends StatelessWidget {
@@ -308,9 +422,7 @@ class _StatCard extends StatelessWidget {
             ),
             Gap(8.h),
             Text(
-              isCurrency
-                  ? '${value.toStringAsFixed(2)} ل.س'
-                  : value.toInt().toString(),
+              isCurrency ? formatPrice(value) : value.toInt().toString(),
               style: TextStyle(
                 fontSize: 20.sp,
                 fontWeight: FontWeight.bold,
@@ -417,7 +529,7 @@ class _PaymentMethodRow extends StatelessWidget {
           children: [
             Text(label),
             Text(
-              '${amount.toStringAsFixed(2)} ل.س (${percentage.toStringAsFixed(1)}%)',
+              '${formatPrice(amount)} (${percentage.toStringAsFixed(1)}%)',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
           ],
@@ -429,39 +541,6 @@ class _PaymentMethodRow extends StatelessWidget {
           color: color,
         ),
       ],
-    );
-  }
-}
-
-class _InvoiceItem extends StatelessWidget {
-  final Invoice invoice;
-
-  const _InvoiceItem({required this.invoice});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.only(bottom: 8.h),
-      child: ListTile(
-        leading: Container(
-          padding: EdgeInsets.all(8.w),
-          decoration: BoxDecoration(
-            color: AppColors.sales.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8.r),
-          ),
-          child: Icon(Icons.receipt, color: AppColors.sales),
-        ),
-        title: Text(invoice.invoiceNumber),
-        subtitle:
-            Text(DateFormat('dd/MM/yyyy HH:mm').format(invoice.createdAt)),
-        trailing: Text(
-          '${invoice.total.toStringAsFixed(2)} ل.س',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: AppColors.success,
-          ),
-        ),
-      ),
     );
   }
 }

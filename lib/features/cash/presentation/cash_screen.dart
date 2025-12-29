@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/invoice_widgets.dart';
 import '../../../data/database/app_database.dart';
 import '../../../data/repositories/shift_repository.dart';
 import '../../../data/repositories/cash_repository.dart';
@@ -124,7 +125,8 @@ class _CashScreenBody extends StatelessWidget {
                     ),
                     Gap(8.h),
                     Text(
-                      '${(currentShift.openingBalance + (summary['netCash'] ?? 0)).toStringAsFixed(2)} ل.س',
+                      formatPrice(currentShift.openingBalance +
+                          (summary['netCash'] ?? 0).toDouble()),
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 32.sp,
@@ -350,7 +352,7 @@ class _BalanceItem extends StatelessWidget {
         Icon(icon, color: Colors.white70, size: 20.sp),
         Gap(4.h),
         Text(
-          '${value.toStringAsFixed(2)}',
+          formatPrice(value, showCurrency: false),
           style: TextStyle(
             color: Colors.white,
             fontSize: 14.sp,
@@ -448,7 +450,7 @@ class _MovementCard extends StatelessWidget {
           ],
         ),
         trailing: Text(
-          '${isPositive ? '+' : '-'}${movement.amount.toStringAsFixed(2)} ل.س',
+          '${isPositive ? '+' : '-'}${formatPrice(movement.amount)}',
           style: TextStyle(
             fontSize: 16.sp,
             fontWeight: FontWeight.bold,

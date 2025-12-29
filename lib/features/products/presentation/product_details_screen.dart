@@ -10,28 +10,10 @@ import 'package:pdf/widgets.dart' as pw;
 
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/invoice_widgets.dart';
 import '../../../data/database/app_database.dart';
 import '../../../data/repositories/product_repository.dart';
 import '../../../data/repositories/inventory_repository.dart';
-
-/// تنسيق السعر بالليرة السورية (بدون أصفار زائدة)
-String _formatSyrianPrice(double price) {
-  if (price == price.roundToDouble()) {
-    return price.toStringAsFixed(0);
-  }
-  // إزالة الأصفار الزائدة في نهاية الأرقام العشرية
-  String formatted = price.toStringAsFixed(2);
-  if (formatted.endsWith('0')) {
-    formatted = formatted.substring(0, formatted.length - 1);
-  }
-  if (formatted.endsWith('0')) {
-    formatted = formatted.substring(0, formatted.length - 1);
-  }
-  if (formatted.endsWith('.')) {
-    formatted = formatted.substring(0, formatted.length - 1);
-  }
-  return formatted;
-}
 
 class ProductDetailsScreen extends ConsumerStatefulWidget {
   final String productId;
@@ -274,16 +256,16 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                     Gap(12.h),
                     _InfoRow(
                       label: 'سعر الشراء',
-                      value: '${_formatSyrianPrice(product.purchasePrice)} ل.س',
+                      value: formatPrice(product.purchasePrice),
                     ),
                     _InfoRow(
                       label: 'سعر البيع',
-                      value: '${_formatSyrianPrice(product.salePrice)} ل.س',
+                      value: formatPrice(product.salePrice),
                     ),
                     _InfoRow(
                       label: 'هامش الربح',
-                      value:
-                          '${_formatSyrianPrice(product.salePrice - product.purchasePrice)} ل.س',
+                      value: formatPrice(
+                          product.salePrice - product.purchasePrice),
                     ),
                   ],
                 ),

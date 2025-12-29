@@ -2,11 +2,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gap/gap.dart';
-import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/invoice_widgets.dart';
 import '../../../data/database/app_database.dart';
 import '../../../data/repositories/supplier_repository.dart';
 
@@ -320,8 +320,8 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen> {
                       Expanded(
                         child: _SummaryItem(
                           label: 'إجمالي المشتريات',
-                          value:
-                              '${(summary['totalPurchases'] ?? 0).toStringAsFixed(0)} ل.س',
+                          value: formatPrice(
+                              (summary['totalPurchases'] ?? 0).toDouble()),
                           color: AppColors.primary,
                         ),
                       ),
@@ -329,8 +329,8 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen> {
                       Expanded(
                         child: _SummaryItem(
                           label: 'المرتجعات',
-                          value:
-                              '${(summary['totalReturns'] ?? 0).toStringAsFixed(0)} ل.س',
+                          value: formatPrice(
+                              (summary['totalReturns'] ?? 0).toDouble()),
                           color: AppColors.warning,
                         ),
                       ),
@@ -367,7 +367,7 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen> {
               _DetailRow(
                 icon: Icons.account_balance_wallet,
                 label: 'المستحق',
-                value: '${supplier.balance.toStringAsFixed(0)} ل.س',
+                value: formatPrice(supplier.balance),
                 valueColor:
                     supplier.balance >= 0 ? AppColors.success : AppColors.error,
               ),
@@ -426,8 +426,9 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen> {
                       itemCount: invoices.length,
                       itemBuilder: (context, index) {
                         final invoice = invoices[index];
-                        return _InvoiceCard(
+                        return InvoiceCard(
                           invoice: invoice,
+                          compact: true,
                           onTap: () {
                             Navigator.pop(context);
                             context.push('/invoices/${invoice.id}');
@@ -607,87 +608,6 @@ class _SummaryItem extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _InvoiceCard extends StatelessWidget {
-  final Invoice invoice;
-  final VoidCallback onTap;
-
-  const _InvoiceCard({
-    required this.invoice,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final isReturn = invoice.type == 'purchase_return';
-    final typeLabel = isReturn ? 'مرتجع مشتريات' : 'فاتورة شراء';
-    final typeColor = isReturn ? AppColors.warning : AppColors.primary;
-
-    return Card(
-      margin: EdgeInsets.only(bottom: 8.h),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12.r),
-        child: Padding(
-          padding: EdgeInsets.all(12.w),
-          child: Row(
-            children: [
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                decoration: BoxDecoration(
-                  color: typeColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(4.r),
-                ),
-                child: Text(
-                  typeLabel,
-                  style: TextStyle(
-                    fontSize: 10.sp,
-                    color: typeColor,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              Gap(12.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '#${invoice.invoiceNumber}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      DateFormat('yyyy/MM/dd').format(invoice.invoiceDate),
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                '${invoice.total.toStringAsFixed(0)} ل.س',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: typeColor,
-                ),
-              ),
-              Gap(8.w),
-              Icon(
-                Icons.arrow_forward_ios,
-                size: 16.sp,
-                color: AppColors.textSecondary,
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

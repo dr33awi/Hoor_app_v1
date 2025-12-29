@@ -90,6 +90,10 @@ class SyncService extends ChangeNotifier {
     _categoryRepo.startRealtimeSync();
     _invoiceRepo.startRealtimeSync();
 
+    // Start real-time sync for shifts and cash
+    _shiftRepo.startRealtimeSync();
+    _cashRepo.startRealtimeSync();
+
     debugPrint('Real-time sync started');
   }
 
@@ -103,6 +107,10 @@ class SyncService extends ChangeNotifier {
     _productRepo.stopRealtimeSync();
     _categoryRepo.stopRealtimeSync();
     _invoiceRepo.stopRealtimeSync();
+
+    // Stop real-time sync for shifts and cash
+    _shiftRepo.stopRealtimeSync();
+    _cashRepo.stopRealtimeSync();
 
     debugPrint('Real-time sync stopped');
   }

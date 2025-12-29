@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/invoice_widgets.dart';
 import '../../../data/database/app_database.dart';
 import '../../../data/repositories/shift_repository.dart';
 
@@ -193,8 +194,7 @@ class _ShiftsScreenState extends ConsumerState<ShiftsScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-                'الرصيد الافتتاحي: ${shift.openingBalance.toStringAsFixed(2)} ل.س'),
+            Text('الرصيد الافتتاحي: ${formatPrice(shift.openingBalance)}'),
             Gap(16.h),
             TextField(
               controller: closingBalanceController,
@@ -297,8 +297,7 @@ class _OpenShiftCard extends StatelessWidget {
           Gap(12.h),
           Text('رقم الوردية: ${shift.shiftNumber}'),
           Text('وقت الفتح: ${dateFormat.format(shift.openedAt)}'),
-          Text(
-              'الرصيد الافتتاحي: ${shift.openingBalance.toStringAsFixed(2)} ل.س'),
+          Text('الرصيد الافتتاحي: ${formatPrice(shift.openingBalance)}'),
         ],
       ),
     );
@@ -435,7 +434,7 @@ class _ShiftCard extends StatelessWidget {
                     if (!isOpen && shift.difference != null) ...[
                       Gap(4.h),
                       Text(
-                        'الفرق: ${shift.difference!.toStringAsFixed(2)} ل.س',
+                        'الفرق: ${formatPrice(shift.difference!)}',
                         style: TextStyle(
                           fontSize: 12.sp,
                           color: shift.difference! >= 0

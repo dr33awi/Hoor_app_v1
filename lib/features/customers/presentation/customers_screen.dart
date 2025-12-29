@@ -2,11 +2,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gap/gap.dart';
-import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/invoice_widgets.dart';
 import '../../../data/database/app_database.dart';
 import '../../../data/repositories/customer_repository.dart';
 
@@ -307,8 +307,8 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                       Expanded(
                         child: _SummaryItem(
                           label: 'إجمالي المشتريات',
-                          value:
-                              '${(summary['totalSales'] ?? 0).toStringAsFixed(0)} ل.س',
+                          value: formatPrice(
+                              (summary['totalSales'] ?? 0).toDouble()),
                           color: AppColors.success,
                         ),
                       ),
@@ -316,8 +316,8 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                       Expanded(
                         child: _SummaryItem(
                           label: 'المرتجعات',
-                          value:
-                              '${(summary['totalReturns'] ?? 0).toStringAsFixed(0)} ل.س',
+                          value: formatPrice(
+                              (summary['totalReturns'] ?? 0).toDouble()),
                           color: AppColors.warning,
                         ),
                       ),
@@ -354,7 +354,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
               _DetailRow(
                 icon: Icons.account_balance_wallet,
                 label: 'الرصيد',
-                value: '${customer.balance.toStringAsFixed(0)} ل.س',
+                value: formatPrice(customer.balance),
                 valueColor:
                     customer.balance >= 0 ? AppColors.success : AppColors.error,
               ),
@@ -409,8 +409,9 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                       itemCount: invoices.length,
                       itemBuilder: (context, index) {
                         final invoice = invoices[index];
-                        return _InvoiceCard(
+                        return InvoiceCard(
                           invoice: invoice,
+                          compact: true,
                           onTap: () {
                             Navigator.pop(context);
                             context.push('/invoices/${invoice.id}');
@@ -593,126 +594,6 @@ class _SummaryItem extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _InvoiceCard extends StatelessWidget {
-  final Invoice invoice;
-  final VoidCallback onTap;
-
-  const _InvoiceCard({
-    required this.invoice,
-    required this.onTap,
-  });
-
-  String _getTypeLabel(String type) {
-    switch (type) {
-      case 'sale':
-        return 'مبيعات';
-      case 'sale_return':
-        return 'مرتجع';
-      case 'purchase':
-        return 'مشتريات';
-      case 'purchase_return':
-        return 'مرتجع مشتريات';
-      default:
-        return type;
-    }
-  }
-
-  Color _getTypeColor(String type) {
-    switch (type) {
-      case 'sale':
-        return AppColors.success;
-      case 'sale_return':
-        return AppColors.warning;
-      case 'purchase':
-        return AppColors.primary;
-      case 'purchase_return':
-        return AppColors.error;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.only(bottom: 8.h),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12.r),
-        child: Padding(
-          padding: EdgeInsets.all(12.w),
-          child: Row(
-            children: [
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-                decoration: BoxDecoration(
-                  color: _getTypeColor(invoice.type).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(4.r),
-                ),
-                child: Text(
-                  _getTypeLabel(invoice.type),
-                  style: TextStyle(
-                    fontSize: 10.sp,
-                    fontWeight: FontWeight.bold,
-                    color: _getTypeColor(invoice.type),
-                  ),
-                ),
-              ),
-              Gap(12.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      invoice.invoiceNumber,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12.sp,
-                      ),
-                    ),
-                    Text(
-                      DateFormat('dd/MM/yyyy - HH:mm')
-                          .format(invoice.createdAt),
-                      style: TextStyle(
-                        fontSize: 10.sp,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '${invoice.total.toStringAsFixed(0)}',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: _getTypeColor(invoice.type),
-                    ),
-                  ),
-                  Text(
-                    'ل.س',
-                    style: TextStyle(
-                      fontSize: 10.sp,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-              Gap(8.w),
-              Icon(
-                Icons.chevron_left,
-                color: AppColors.textSecondary,
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

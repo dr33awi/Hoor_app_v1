@@ -84,15 +84,6 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           Gap(8.h),
 
           _ReportCard(
-            title: 'تقرير المنتجات',
-            subtitle: 'أداء المنتجات والأكثر مبيعاً',
-            icon: Icons.inventory_2,
-            color: AppColors.products,
-            onTap: () => context.push('/reports/products', extra: _dateRange),
-          ),
-          Gap(8.h),
-
-          _ReportCard(
             title: 'تقرير المخزون',
             subtitle: 'حالة المخزون والتنبيهات',
             icon: Icons.warehouse,

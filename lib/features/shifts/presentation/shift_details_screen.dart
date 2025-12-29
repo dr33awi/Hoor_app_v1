@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/invoice_widgets.dart';
 import '../../../data/database/app_database.dart';
 import '../../../data/repositories/shift_repository.dart';
 
@@ -311,7 +312,7 @@ class _SummaryRow extends StatelessWidget {
             ),
           ),
           Text(
-            '${value.toStringAsFixed(2)} ل.س',
+            formatPrice(value),
             style: TextStyle(
               color: color,
               fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
@@ -389,7 +390,7 @@ class _MovementCard extends StatelessWidget {
         title: Text(movement.description),
         subtitle: Text(timeFormat.format(movement.createdAt)),
         trailing: Text(
-          '${isIncome ? '+' : '-'}${movement.amount.toStringAsFixed(2)} ل.س',
+          '${isIncome ? '+' : '-'}${formatPrice(movement.amount)}',
           style: TextStyle(
             color: isIncome ? AppColors.success : AppColors.error,
             fontWeight: FontWeight.bold,

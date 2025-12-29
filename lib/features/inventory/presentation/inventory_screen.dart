@@ -9,27 +9,11 @@ import 'package:pdf/widgets.dart' as pw;
 
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/invoice_widgets.dart';
+import '../../../core/services/export_service.dart';
 import '../../../data/database/app_database.dart';
 import '../../../data/repositories/inventory_repository.dart';
 import '../../../data/repositories/product_repository.dart';
-
-/// تنسيق السعر بالليرة السورية (بدون أصفار زائدة)
-String _formatSyrianPrice(double price) {
-  if (price == price.roundToDouble()) {
-    return price.toStringAsFixed(0);
-  }
-  String formatted = price.toStringAsFixed(2);
-  if (formatted.endsWith('0')) {
-    formatted = formatted.substring(0, formatted.length - 1);
-  }
-  if (formatted.endsWith('0')) {
-    formatted = formatted.substring(0, formatted.length - 1);
-  }
-  if (formatted.endsWith('.')) {
-    formatted = formatted.substring(0, formatted.length - 1);
-  }
-  return formatted;
-}
 
 class InventoryScreen extends ConsumerStatefulWidget {
   const InventoryScreen({super.key});
@@ -42,6 +26,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
     with SingleTickerProviderStateMixin {
   final _inventoryRepo = getIt<InventoryRepository>();
   final _productRepo = getIt<ProductRepository>();
+  final _exportService = getIt<ExportService>();
+  final _db = getIt<AppDatabase>();
 
   late TabController _tabController;
 
@@ -62,6 +48,44 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
     return Scaffold(
       appBar: AppBar(
         title: const Text('إدارة المخزون'),
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: _handleExport,
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'excel',
+                child: Row(
+                  children: [
+                    Icon(Icons.table_chart, color: Colors.green),
+                    SizedBox(width: 8),
+                    Text('تصدير Excel'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'pdf',
+                child: Row(
+                  children: [
+                    Icon(Icons.picture_as_pdf, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('تصدير PDF'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'share',
+                child: Row(
+                  children: [
+                    Icon(Icons.share, color: Colors.blue),
+                    SizedBox(width: 8),
+                    Text('مشاركة'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -87,6 +111,70 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
         child: const Icon(Icons.add),
       ),
     );
+  }
+
+  Future<void> _handleExport(String type) async {
+    final products = await _productRepo.getAllProducts();
+    final soldQuantities = await _db.getProductSoldQuantities();
+
+    if (products.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('لا توجد منتجات للتصدير')),
+        );
+      }
+      return;
+    }
+
+    try {
+      switch (type) {
+        case 'excel':
+          final filePath = await _exportService.exportInventoryReportToExcel(
+            products: products,
+          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('تم تصدير تقرير المخزون بنجاح'),
+                backgroundColor: Colors.green,
+                action: SnackBarAction(
+                  label: 'مشاركة',
+                  textColor: Colors.white,
+                  onPressed: () => _exportService.shareExcelFile(filePath),
+                ),
+              ),
+            );
+          }
+          break;
+
+        case 'pdf':
+          final pdfBytes = await _exportService.generateInventoryReportPdf(
+            products: products,
+            soldQuantities: soldQuantities,
+          );
+          await Printing.layoutPdf(
+            onLayout: (PdfPageFormat format) async => pdfBytes,
+            name: 'inventory_report.pdf',
+          );
+          break;
+
+        case 'share':
+          final filePath = await _exportService.exportInventoryReportToExcel(
+            products: products,
+          );
+          await _exportService.shareExcelFile(filePath);
+          break;
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('خطأ في التصدير: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   void _showAddMovementDialog() {
@@ -584,7 +672,7 @@ class _InventoryCountTabState extends State<_InventoryCountTab> {
                             Text('قيمة التكلفة:',
                                 style: TextStyle(fontSize: 13.sp)),
                             Text(
-                              '${_formatSyrianPrice(_totalCostValue)} ل.س',
+                              formatPrice(_totalCostValue),
                               style: TextStyle(
                                   fontWeight: FontWeight.bold, fontSize: 13.sp),
                             ),
@@ -597,7 +685,7 @@ class _InventoryCountTabState extends State<_InventoryCountTab> {
                             Text('قيمة البيع:',
                                 style: TextStyle(fontSize: 13.sp)),
                             Text(
-                              '${_formatSyrianPrice(_totalSaleValue)} ل.س',
+                              formatPrice(_totalSaleValue),
                               style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 13.sp,
@@ -616,7 +704,7 @@ class _InventoryCountTabState extends State<_InventoryCountTab> {
                                     fontSize: 13.sp,
                                     fontWeight: FontWeight.bold)),
                             Text(
-                              '${_formatSyrianPrice(_totalSaleValue - _totalCostValue)} ل.س',
+                              formatPrice(_totalSaleValue - _totalCostValue),
                               style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14.sp,
@@ -674,13 +762,6 @@ class _InventoryCountTabState extends State<_InventoryCountTab> {
           ),
           child: Row(
             children: [
-              // PDF Export Button
-              OutlinedButton.icon(
-                onPressed: _exportToPdf,
-                icon: const Icon(Icons.picture_as_pdf, size: 18),
-                label: const Text('تصدير PDF'),
-              ),
-              Gap(8.w),
               if (_countedQuantities.isNotEmpty) ...[
                 Text(
                   '${_countedQuantities.length} منتج',
@@ -698,203 +779,6 @@ class _InventoryCountTabState extends State<_InventoryCountTab> {
         ),
       ],
     );
-  }
-
-  Future<void> _exportToPdf() async {
-    try {
-      // Load Arabic font from Google Fonts
-      final arabicFont = await PdfGoogleFonts.cairoRegular();
-      final arabicBoldFont = await PdfGoogleFonts.cairoBold();
-
-      final doc = pw.Document();
-      final dateFormat = DateFormat('yyyy-MM-dd HH:mm');
-      final now = DateTime.now();
-
-      // Calculate totals
-      double totalValue = 0;
-      int totalQuantity = 0;
-      int totalSold = 0;
-      for (final product in _products) {
-        totalQuantity += product.quantity;
-        totalValue += product.quantity * product.purchasePrice;
-        totalSold += _soldQuantities[product.id] ?? 0;
-      }
-
-      doc.addPage(
-        pw.MultiPage(
-          pageFormat: PdfPageFormat.a4,
-          textDirection: pw.TextDirection.rtl,
-          theme: pw.ThemeData.withFont(
-            base: arabicFont,
-            bold: arabicBoldFont,
-          ),
-          header: (context) => pw.Directionality(
-            textDirection: pw.TextDirection.rtl,
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.center,
-              children: [
-                pw.Text(
-                  'تقرير جرد المخزون',
-                  style: pw.TextStyle(
-                    fontSize: 24,
-                    fontWeight: pw.FontWeight.bold,
-                  ),
-                  textDirection: pw.TextDirection.rtl,
-                ),
-                pw.SizedBox(height: 8),
-                pw.Text(
-                  'تاريخ التقرير: ${dateFormat.format(now)}',
-                  style: const pw.TextStyle(fontSize: 12),
-                  textDirection: pw.TextDirection.rtl,
-                ),
-                pw.SizedBox(height: 16),
-                pw.Divider(),
-                pw.SizedBox(height: 8),
-              ],
-            ),
-          ),
-          footer: (context) => pw.Directionality(
-            textDirection: pw.TextDirection.rtl,
-            child: pw.Column(
-              children: [
-                pw.Divider(),
-                pw.SizedBox(height: 8),
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Text(
-                      'إجمالي المنتجات: ${_products.length}',
-                      style: const pw.TextStyle(fontSize: 10),
-                      textDirection: pw.TextDirection.rtl,
-                    ),
-                    pw.Text(
-                      'صفحة ${context.pageNumber} من ${context.pagesCount}',
-                      style: const pw.TextStyle(fontSize: 10),
-                      textDirection: pw.TextDirection.rtl,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          build: (context) => [
-            pw.Directionality(
-              textDirection: pw.TextDirection.rtl,
-              child: pw.Container(
-                padding: const pw.EdgeInsets.all(12),
-                decoration: pw.BoxDecoration(
-                  border: pw.Border.all(color: PdfColors.grey400),
-                  borderRadius: pw.BorderRadius.circular(8),
-                ),
-                child: pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
-                  children: [
-                    pw.Column(
-                      children: [
-                        pw.Text('عدد المنتجات',
-                            style: const pw.TextStyle(fontSize: 10),
-                            textDirection: pw.TextDirection.rtl),
-                        pw.Text('${_products.length}',
-                            style: pw.TextStyle(
-                                fontSize: 16, fontWeight: pw.FontWeight.bold)),
-                      ],
-                    ),
-                    pw.Column(
-                      children: [
-                        pw.Text('إجمالي الكميات',
-                            style: const pw.TextStyle(fontSize: 10),
-                            textDirection: pw.TextDirection.rtl),
-                        pw.Text('$totalQuantity',
-                            style: pw.TextStyle(
-                                fontSize: 16, fontWeight: pw.FontWeight.bold)),
-                      ],
-                    ),
-                    pw.Column(
-                      children: [
-                        pw.Text('إجمالي المباع',
-                            style: const pw.TextStyle(fontSize: 10),
-                            textDirection: pw.TextDirection.rtl),
-                        pw.Text('$totalSold',
-                            style: pw.TextStyle(
-                                fontSize: 16, fontWeight: pw.FontWeight.bold)),
-                      ],
-                    ),
-                    pw.Column(
-                      children: [
-                        pw.Text('قيمة المخزون',
-                            style: const pw.TextStyle(fontSize: 10),
-                            textDirection: pw.TextDirection.rtl),
-                        pw.Text('${_formatSyrianPrice(totalValue)} ل.س',
-                            style: pw.TextStyle(
-                                fontSize: 16, fontWeight: pw.FontWeight.bold),
-                            textDirection: pw.TextDirection.rtl),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            pw.SizedBox(height: 16),
-            // Products Table
-            pw.Directionality(
-              textDirection: pw.TextDirection.rtl,
-              child: pw.TableHelper.fromTextArray(
-                context: context,
-                headerAlignment: pw.Alignment.center,
-                cellAlignment: pw.Alignment.center,
-                headerDecoration: pw.BoxDecoration(
-                  color: PdfColors.grey300,
-                ),
-                headerStyle: pw.TextStyle(
-                  fontWeight: pw.FontWeight.bold,
-                  fontSize: 10,
-                ),
-                cellStyle: const pw.TextStyle(fontSize: 9),
-                headers: [
-                  'القيمة',
-                  'سعر البيع',
-                  'سعر الشراء',
-                  'المباع',
-                  'الكمية',
-                  'الباركود',
-                  'اسم المنتج',
-                  '#',
-                ],
-                data: List.generate(_products.length, (index) {
-                  final product = _products[index];
-                  final value = product.quantity * product.purchasePrice;
-                  final soldQty = _soldQuantities[product.id] ?? 0;
-                  return [
-                    '${_formatSyrianPrice(value)}',
-                    '${_formatSyrianPrice(product.salePrice)}',
-                    '${_formatSyrianPrice(product.purchasePrice)}',
-                    '$soldQty',
-                    '${product.quantity}',
-                    product.barcode ?? '-',
-                    product.name,
-                    '${index + 1}',
-                  ];
-                }),
-              ),
-            ),
-          ],
-        ),
-      );
-
-      await Printing.layoutPdf(
-        onLayout: (format) => doc.save(),
-        name: 'inventory_report_${DateFormat('yyyyMMdd_HHmm').format(now)}.pdf',
-      );
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('حدث خطأ أثناء تصدير PDF: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    }
   }
 
   Future<void> _saveInventoryCount() async {
@@ -1363,13 +1247,13 @@ class _InventoryCountItemWithSales extends StatelessWidget {
             Row(
               children: [
                 Text(
-                  'شراء: ${_formatSyrianPrice(product.purchasePrice)} ل.س',
+                  'شراء: ${formatPrice(product.purchasePrice)}',
                   style: TextStyle(
                       fontSize: 11.sp, color: AppColors.textSecondary),
                 ),
                 Gap(12.w),
                 Text(
-                  'بيع: ${_formatSyrianPrice(product.salePrice)} ل.س',
+                  'بيع: ${formatPrice(product.salePrice)}',
                   style: TextStyle(fontSize: 11.sp, color: AppColors.success),
                 ),
               ],

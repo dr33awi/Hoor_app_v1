@@ -4,11 +4,12 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gap/gap.dart';
 import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/widgets/invoice_widgets.dart';
+import '../../../core/services/export_service.dart';
 import '../../../data/database/app_database.dart';
 import '../../../data/repositories/product_repository.dart';
 
@@ -21,6 +22,8 @@ class ProductsScreen extends ConsumerStatefulWidget {
 
 class _ProductsScreenState extends ConsumerState<ProductsScreen> {
   final _productRepo = getIt<ProductRepository>();
+  final _exportService = getIt<ExportService>();
+  final _db = getIt<AppDatabase>();
   final _searchController = TextEditingController();
   String _searchQuery = '';
   String? _selectedCategory;
@@ -44,10 +47,41 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
             onPressed: () => setState(() => _showLowStock = !_showLowStock),
             tooltip: 'نقص المخزون',
           ),
-          IconButton(
-            icon: const Icon(Icons.file_download),
-            onPressed: _exportProducts,
-            tooltip: 'تصدير',
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: _handleExport,
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'excel',
+                child: Row(
+                  children: [
+                    Icon(Icons.table_chart, color: Colors.green),
+                    SizedBox(width: 8),
+                    Text('تصدير Excel'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'pdf',
+                child: Row(
+                  children: [
+                    Icon(Icons.picture_as_pdf, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('تصدير PDF'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'share',
+                child: Row(
+                  children: [
+                    Icon(Icons.share, color: Colors.blue),
+                    SizedBox(width: 8),
+                    Text('مشاركة'),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -170,161 +204,68 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
     );
   }
 
-  void _showPriceUpdateDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('تعديل الأسعار'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.sell),
-              title: const Text('تعديل أسعار البيع'),
-              onTap: () {
-                Navigator.pop(context);
-                // Navigate to bulk price edit
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.shopping_cart),
-              title: const Text('تعديل أسعار الشراء'),
-              onTap: () {
-                Navigator.pop(context);
-                // Navigate to bulk purchase price edit
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _exportProducts() async {
+  Future<void> _handleExport(String type) async {
     final products = await _productRepo.getAllProducts();
+    final soldQuantities = await _db.getProductSoldQuantities();
 
     if (products.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('لا توجد منتجات للتصدير')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('لا توجد منتجات للتصدير')),
+        );
+      }
       return;
     }
 
-    // تحميل الخط العربي
-    final arabicFont = await PdfGoogleFonts.cairoBold();
-    final arabicFontRegular = await PdfGoogleFonts.cairoRegular();
-
-    final pdf = pw.Document();
-
-    // تقسيم المنتجات إلى صفحات (25 منتج لكل صفحة)
-    const productsPerPage = 25;
-    final totalPages = (products.length / productsPerPage).ceil();
-
-    for (int page = 0; page < totalPages; page++) {
-      final startIndex = page * productsPerPage;
-      final endIndex = (startIndex + productsPerPage > products.length)
-          ? products.length
-          : startIndex + productsPerPage;
-      final pageProducts = products.sublist(startIndex, endIndex);
-
-      pdf.addPage(
-        pw.Page(
-          pageFormat: PdfPageFormat.a4,
-          textDirection: pw.TextDirection.rtl,
-          build: (pw.Context context) {
-            return pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-              children: [
-                // العنوان
-                pw.Center(
-                  child: pw.Text(
-                    'قائمة المنتجات',
-                    style: pw.TextStyle(
-                      font: arabicFont,
-                      fontSize: 24,
-                    ),
-                  ),
+    try {
+      switch (type) {
+        case 'excel':
+          final filePath = await _exportService.exportProductsToExcel(
+            products: products,
+          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('تم تصدير المنتجات بنجاح'),
+                backgroundColor: Colors.green,
+                action: SnackBarAction(
+                  label: 'مشاركة',
+                  textColor: Colors.white,
+                  onPressed: () => _exportService.shareExcelFile(filePath),
                 ),
-                pw.SizedBox(height: 8),
-                pw.Center(
-                  child: pw.Text(
-                    'إجمالي المنتجات: ${products.length}',
-                    style: pw.TextStyle(
-                      font: arabicFontRegular,
-                      fontSize: 12,
-                      color: PdfColors.grey700,
-                    ),
-                  ),
-                ),
-                pw.SizedBox(height: 16),
-                // الجدول
-                pw.TableHelper.fromTextArray(
-                  context: context,
-                  headerStyle: pw.TextStyle(
-                    font: arabicFont,
-                    fontSize: 10,
-                    color: PdfColors.white,
-                  ),
-                  headerDecoration: const pw.BoxDecoration(
-                    color: PdfColors.blue800,
-                  ),
-                  cellStyle: pw.TextStyle(
-                    font: arabicFontRegular,
-                    fontSize: 9,
-                  ),
-                  cellAlignment: pw.Alignment.center,
-                  headerAlignment: pw.Alignment.center,
-                  headers: [
-                    'الكمية',
-                    'سعر البيع',
-                    'سعر الشراء',
-                    'الباركود',
-                    'اسم المنتج',
-                    '#',
-                  ],
-                  data: pageProducts.asMap().entries.map((entry) {
-                    final index = startIndex + entry.key + 1;
-                    final p = entry.value;
-                    return [
-                      '${p.quantity}',
-                      '${p.salePrice.toStringAsFixed(0)}',
-                      '${p.purchasePrice.toStringAsFixed(0)}',
-                      p.barcode ?? '-',
-                      p.name,
-                      '$index',
-                    ];
-                  }).toList(),
-                ),
-                pw.Spacer(),
-                // رقم الصفحة
-                pw.Center(
-                  child: pw.Text(
-                    'صفحة ${page + 1} من $totalPages',
-                    style: pw.TextStyle(
-                      font: arabicFontRegular,
-                      fontSize: 10,
-                      color: PdfColors.grey,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             );
-          },
-        ),
-      );
-    }
+          }
+          break;
 
-    // طباعة أو مشاركة الملف
-    await Printing.layoutPdf(
-      onLayout: (PdfPageFormat format) async => pdf.save(),
-      name: 'products_list.pdf',
-    );
+        case 'pdf':
+          final pdfBytes = await _exportService.generateProductsPdf(
+            products: products,
+            soldQuantities: soldQuantities,
+          );
+          await Printing.layoutPdf(
+            onLayout: (PdfPageFormat format) async => pdfBytes,
+            name: 'products_list.pdf',
+          );
+          break;
+
+        case 'share':
+          final filePath = await _exportService.exportProductsToExcel(
+            products: products,
+          );
+          await _exportService.shareExcelFile(filePath);
+          break;
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('خطأ في التصدير: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }
 
@@ -407,7 +348,7 @@ class _ProductCard extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          '${product.salePrice.toStringAsFixed(2)} ل.س',
+                          formatPrice(product.salePrice),
                           style: TextStyle(
                             fontSize: 14.sp,
                             fontWeight: FontWeight.w600,

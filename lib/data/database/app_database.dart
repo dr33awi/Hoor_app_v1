@@ -392,6 +392,12 @@ class AppDatabase extends _$AppDatabase {
         .get();
   }
 
+  Future<List<InventoryMovement>> getAllInventoryMovements() {
+    return (select(inventoryMovements)
+          ..orderBy([(m) => OrderingTerm.desc(m.createdAt)]))
+        .get();
+  }
+
   Stream<List<InventoryMovement>> watchInventoryMovements() {
     return (select(inventoryMovements)
           ..orderBy([(m) => OrderingTerm.desc(m.createdAt)]))

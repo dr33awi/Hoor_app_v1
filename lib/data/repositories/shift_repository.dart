@@ -72,6 +72,9 @@ class ShiftRepository extends BaseRepository<Shift, ShiftsCompanion> {
       createdAt: Value(now),
     ));
 
+    // Sync immediately to Firestore
+    _syncShiftToFirestore(id);
+
     return id;
   }
 
@@ -155,6 +158,9 @@ class ShiftRepository extends BaseRepository<Shift, ShiftsCompanion> {
       syncStatus: const Value('pending'),
       createdAt: Value(now),
     ));
+
+    // Sync immediately to Firestore
+    _syncShiftToFirestore(shiftId);
   }
 
   Future<String> _generateShiftNumber() async {
@@ -193,6 +199,41 @@ class ShiftRepository extends BaseRepository<Shift, ShiftsCompanion> {
   }
 
   // ==================== Cloud Sync ====================
+
+  /// Sync a specific shift to Firestore immediately
+  Future<void> _syncShiftToFirestore(String shiftId) async {
+    try {
+      final shift = await database.getShiftById(shiftId);
+      if (shift == null) return;
+
+      await collection.doc(shiftId).set(toFirestore(shift));
+
+      await database.updateShift(ShiftsCompanion(
+        id: Value(shift.id),
+        shiftNumber: Value(shift.shiftNumber),
+        openingBalance: Value(shift.openingBalance),
+        closingBalance: Value(shift.closingBalance),
+        expectedBalance: Value(shift.expectedBalance),
+        difference: Value(shift.difference),
+        totalSales: Value(shift.totalSales),
+        totalReturns: Value(shift.totalReturns),
+        totalExpenses: Value(shift.totalExpenses),
+        totalIncome: Value(shift.totalIncome),
+        transactionCount: Value(shift.transactionCount),
+        status: Value(shift.status),
+        notes: Value(shift.notes),
+        syncStatus: const Value('synced'),
+        openedAt: Value(shift.openedAt),
+        closedAt: Value(shift.closedAt),
+        createdAt: Value(shift.createdAt),
+        updatedAt: Value(shift.updatedAt),
+      ));
+
+      debugPrint('Shift $shiftId synced to Firestore');
+    } catch (e) {
+      debugPrint('Error syncing shift $shiftId to Firestore: $e');
+    }
+  }
 
   @override
   Future<void> syncPendingChanges() async {
@@ -317,6 +358,12 @@ class ShiftRepository extends BaseRepository<Shift, ShiftsCompanion> {
         }
       }
     });
+  }
+
+  @override
+  void stopRealtimeSync() {
+    _shiftFirestoreSubscription?.cancel();
+    _shiftFirestoreSubscription = null;
   }
 
   Future<void> _handleRemoteChange(Map<String, dynamic> data, String id) async {

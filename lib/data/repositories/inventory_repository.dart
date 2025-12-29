@@ -21,6 +21,9 @@ class InventoryRepository
   Future<List<InventoryMovement>> getProductMovements(String productId) =>
       database.getInventoryMovements(productId);
 
+  Future<List<InventoryMovement>> getAllMovements() =>
+      database.getAllInventoryMovements();
+
   Stream<List<InventoryMovement>> watchAllMovements() =>
       database.watchInventoryMovements();
 

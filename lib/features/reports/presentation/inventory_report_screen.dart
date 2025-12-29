@@ -2,9 +2,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gap/gap.dart';
+import 'package:printing/printing.dart';
+import 'package:pdf/pdf.dart';
 
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/services/export_service.dart';
+import '../../../core/widgets/invoice_widgets.dart';
 import '../../../data/database/app_database.dart';
 
 class InventoryReportScreen extends ConsumerStatefulWidget {
@@ -19,12 +23,117 @@ class InventoryReportScreen extends ConsumerStatefulWidget {
 
 class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
   final _db = getIt<AppDatabase>();
+  final _exportService = getIt<ExportService>();
+  bool _isExporting = false;
+
+  Future<void> _handleExport(String type) async {
+    if (_isExporting) return;
+
+    setState(() => _isExporting = true);
+
+    try {
+      final products = await _db.getAllProducts();
+      final soldQuantities = await _db.getProductSoldQuantities();
+
+      String? filePath;
+
+      switch (type) {
+        case 'excel':
+          filePath = await _exportService.exportInventoryReportToExcel(
+            products: products,
+          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('تم تصدير التقرير بنجاح'),
+                backgroundColor: Colors.green,
+                action: SnackBarAction(
+                  label: 'مشاركة',
+                  textColor: Colors.white,
+                  onPressed: () => _exportService.shareExcelFile(filePath!),
+                ),
+              ),
+            );
+          }
+          break;
+
+        case 'pdf':
+          final pdfBytes = await _exportService.generateInventoryReportPdf(
+            products: products,
+            soldQuantities: soldQuantities,
+          );
+          await Printing.layoutPdf(
+            onLayout: (PdfPageFormat format) async => pdfBytes,
+            name: 'inventory_report.pdf',
+          );
+          break;
+
+        case 'share':
+          filePath = await _exportService.exportInventoryReportToExcel(
+            products: products,
+          );
+          await _exportService.shareExcelFile(filePath);
+          break;
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('خطأ في التصدير: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isExporting = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('تقرير المخزون'),
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert),
+            onSelected: (value) => _handleExport(value),
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'excel',
+                child: Row(
+                  children: [
+                    Icon(Icons.table_chart, color: Colors.green),
+                    SizedBox(width: 8),
+                    Text('تصدير Excel'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'pdf',
+                child: Row(
+                  children: [
+                    Icon(Icons.picture_as_pdf, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('تصدير PDF'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'share',
+                child: Row(
+                  children: [
+                    Icon(Icons.share, color: Colors.blue),
+                    SizedBox(width: 8),
+                    Text('مشاركة'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       body: StreamBuilder<List<Product>>(
         stream: _db.watchAllProducts(),
@@ -98,7 +207,8 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
                       Text(
-                        '${(inventoryValue['potentialProfit'] ?? 0).toStringAsFixed(2)} ل.س',
+                        formatPrice((inventoryValue['potentialProfit'] ?? 0)
+                            .toDouble()),
                         style: TextStyle(
                           fontSize: 18.sp,
                           fontWeight: FontWeight.bold,
@@ -243,12 +353,13 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
                                 ),
                               )),
                               DataCell(Text('${p.minQuantity}')),
-                              DataCell(Text(
-                                  '${p.purchasePrice.toStringAsFixed(2)}')),
-                              DataCell(
-                                  Text('${p.salePrice.toStringAsFixed(2)}')),
-                              DataCell(Text(
-                                  '${(p.salePrice * p.quantity).toStringAsFixed(2)}')),
+                              DataCell(Text(formatPrice(p.purchasePrice,
+                                  showCurrency: false))),
+                              DataCell(Text(formatPrice(p.salePrice,
+                                  showCurrency: false))),
+                              DataCell(Text(formatPrice(
+                                  p.salePrice * p.quantity,
+                                  showCurrency: false))),
                             ],
                           ))
                       .toList(),
@@ -290,7 +401,7 @@ class _ValueCard extends StatelessWidget {
             ),
             Gap(8.h),
             Text(
-              '${value.toStringAsFixed(2)} ل.س',
+              formatPrice(value),
               style: TextStyle(
                 fontSize: 18.sp,
                 fontWeight: FontWeight.bold,
@@ -365,7 +476,7 @@ class _ProductItem extends StatelessWidget {
         subtitle: Text(
             'الكمية: ${product.quantity} | الحد الأدنى: ${product.minQuantity}'),
         trailing: Text(
-          '${product.salePrice.toStringAsFixed(2)} ل.س',
+          formatPrice(product.salePrice),
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),

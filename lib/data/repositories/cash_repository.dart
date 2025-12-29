@@ -46,6 +46,9 @@ class CashRepository
       createdAt: Value(DateTime.now()),
     ));
 
+    // Sync immediately to Firestore
+    _syncCashMovementToFirestore(id);
+
     return id;
   }
 
@@ -71,6 +74,9 @@ class CashRepository
       createdAt: Value(DateTime.now()),
     ));
 
+    // Sync immediately to Firestore
+    _syncCashMovementToFirestore(id);
+
     return id;
   }
 
@@ -81,8 +87,9 @@ class CashRepository
     required String invoiceId,
     String paymentMethod = 'cash',
   }) async {
+    final id = generateId();
     await database.insertCashMovement(CashMovementsCompanion(
-      id: Value(generateId()),
+      id: Value(id),
       shiftId: Value(shiftId),
       type: const Value('sale'),
       amount: Value(amount),
@@ -93,6 +100,9 @@ class CashRepository
       syncStatus: const Value('pending'),
       createdAt: Value(DateTime.now()),
     ));
+
+    // Sync immediately to Firestore
+    _syncCashMovementToFirestore(id);
   }
 
   /// Record purchase cash movement
@@ -102,8 +112,9 @@ class CashRepository
     required String invoiceId,
     String paymentMethod = 'cash',
   }) async {
+    final id = generateId();
     await database.insertCashMovement(CashMovementsCompanion(
-      id: Value(generateId()),
+      id: Value(id),
       shiftId: Value(shiftId),
       type: const Value('purchase'),
       amount: Value(amount),
@@ -114,6 +125,9 @@ class CashRepository
       syncStatus: const Value('pending'),
       createdAt: Value(DateTime.now()),
     ));
+
+    // Sync immediately to Firestore
+    _syncCashMovementToFirestore(id);
   }
 
   /// Get cash summary for a shift
@@ -188,6 +202,20 @@ class CashRepository
 
   // ==================== Cloud Sync ====================
 
+  /// Sync a single cash movement to Firestore immediately
+  Future<void> _syncCashMovementToFirestore(String movementId) async {
+    try {
+      final movement = await database.getCashMovementById(movementId);
+      if (movement != null) {
+        await collection.doc(movementId).set(toFirestore(movement));
+        await database.updateCashMovementSyncStatus(movementId, 'synced');
+        debugPrint('Cash movement $movementId synced to Firestore');
+      }
+    } catch (e) {
+      debugPrint('Error syncing cash movement $movementId: $e');
+    }
+  }
+
   @override
   Future<void> syncPendingChanges() async {
     final pending = await database.getPendingCashMovements();
@@ -258,6 +286,12 @@ class CashRepository
         }
       }
     });
+  }
+
+  @override
+  void stopRealtimeSync() {
+    _cashFirestoreSubscription?.cancel();
+    _cashFirestoreSubscription = null;
   }
 
   Future<void> _handleRemoteChange(Map<String, dynamic> data, String id) async {

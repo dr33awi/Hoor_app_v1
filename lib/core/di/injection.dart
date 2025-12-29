@@ -9,6 +9,7 @@ import '../services/connectivity_service.dart';
 import '../services/sync_service.dart';
 import '../services/backup_service.dart';
 import '../services/currency_service.dart';
+import '../services/export_service.dart';
 import '../../data/repositories/product_repository.dart';
 import '../../data/repositories/category_repository.dart';
 import '../../data/repositories/invoice_repository.dart';
@@ -122,5 +123,10 @@ Future<void> configureDependencies() async {
   // Currency Service
   getIt.registerSingleton<CurrencyService>(
     CurrencyService(getIt<SharedPreferences>()),
+  );
+
+  // Export Service
+  getIt.registerSingleton<ExportService>(
+    ExportService(database: getIt<AppDatabase>()),
   );
 }

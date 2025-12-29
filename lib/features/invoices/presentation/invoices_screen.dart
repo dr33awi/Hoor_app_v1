@@ -3,11 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gap/gap.dart';
-import 'package:intl/intl.dart';
+import 'package:pdf/pdf.dart';
+import 'package:printing/printing.dart';
 
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/constants/app_constants.dart';
+import '../../../core/widgets/invoice_widgets.dart';
+import '../../../core/services/export_service.dart';
 import '../../../data/database/app_database.dart';
 import '../../../data/repositories/invoice_repository.dart';
 
@@ -23,6 +25,8 @@ class InvoicesScreen extends ConsumerStatefulWidget {
 class _InvoicesScreenState extends ConsumerState<InvoicesScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final _invoiceRepo = getIt<InvoiceRepository>();
+  final _exportService = getIt<ExportService>();
 
   final _tabs = [
     {'type': null, 'label': 'الكل'},
@@ -50,6 +54,79 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen>
     super.dispose();
   }
 
+  Future<void> _handleExport(String exportType) async {
+    // Get current tab type
+    final currentTabIndex = _tabController.index;
+    final currentType = _tabs[currentTabIndex]['type'] as String?;
+
+    // Get invoices
+    var invoices = await _invoiceRepo.getAllInvoices();
+    if (currentType != null) {
+      invoices = invoices.where((i) => i.type == currentType).toList();
+    }
+
+    if (invoices.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('لا توجد فواتير للتصدير')),
+        );
+      }
+      return;
+    }
+
+    try {
+      switch (exportType) {
+        case 'excel':
+          final filePath = await _exportService.exportInvoicesToExcel(
+            invoices: invoices,
+            type: currentType,
+          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('تم تصدير الفواتير بنجاح'),
+                backgroundColor: Colors.green,
+                action: SnackBarAction(
+                  label: 'مشاركة',
+                  textColor: Colors.white,
+                  onPressed: () => _exportService.shareExcelFile(filePath),
+                ),
+              ),
+            );
+          }
+          break;
+
+        case 'pdf':
+          final pdfBytes = await _exportService.generateInvoicesPdf(
+            invoices: invoices,
+            type: currentType,
+          );
+          await Printing.layoutPdf(
+            onLayout: (PdfPageFormat format) async => pdfBytes,
+            name: 'invoices_list.pdf',
+          );
+          break;
+
+        case 'share':
+          final filePath = await _exportService.exportInvoicesToExcel(
+            invoices: invoices,
+            type: currentType,
+          );
+          await _exportService.shareExcelFile(filePath);
+          break;
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('خطأ في التصدير: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -62,60 +139,57 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen>
         ),
         actions: [
           PopupMenuButton<String>(
-            icon: const Icon(Icons.add),
-            onSelected: (value) => context.push('/invoices/new/$value'),
+            icon: const Icon(Icons.more_vert),
+            onSelected: _handleExport,
             itemBuilder: (context) => [
               const PopupMenuItem(
-                value: 'sale',
+                value: 'excel',
                 child: Row(
                   children: [
-                    Icon(Icons.point_of_sale, color: AppColors.sales),
+                    Icon(Icons.table_chart, color: Colors.green),
                     SizedBox(width: 8),
-                    Text('فاتورة مبيعات'),
+                    Text('تصدير Excel'),
                   ],
                 ),
               ),
               const PopupMenuItem(
-                value: 'purchase',
+                value: 'pdf',
                 child: Row(
                   children: [
-                    Icon(Icons.shopping_cart, color: AppColors.purchases),
+                    Icon(Icons.picture_as_pdf, color: Colors.red),
                     SizedBox(width: 8),
-                    Text('فاتورة مشتريات'),
+                    Text('تصدير PDF'),
                   ],
                 ),
               ),
               const PopupMenuItem(
-                value: 'sale_return',
+                value: 'share',
                 child: Row(
                   children: [
-                    Icon(Icons.assignment_return, color: AppColors.returns),
+                    Icon(Icons.share, color: Colors.blue),
                     SizedBox(width: 8),
-                    Text('مرتجع مبيعات'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'purchase_return',
-                child: Row(
-                  children: [
-                    Icon(Icons.assignment_returned, color: AppColors.returns),
-                    SizedBox(width: 8),
-                    Text('مرتجع مشتريات'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'opening_balance',
-                child: Row(
-                  children: [
-                    Icon(Icons.inventory, color: AppColors.inventory),
-                    SizedBox(width: 8),
-                    Text('فاتورة أول المدة'),
+                    Text('مشاركة'),
                   ],
                 ),
               ),
             ],
+          ),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.add),
+            onSelected: (value) => context.push('/invoices/new/$value'),
+            itemBuilder: (context) => invoiceTypes.entries
+                .where((e) => e.key != 'default')
+                .map((e) => PopupMenuItem(
+                      value: e.key,
+                      child: Row(
+                        children: [
+                          Icon(e.value.icon, color: e.value.color),
+                          const SizedBox(width: 8),
+                          Text(e.value.label),
+                        ],
+                      ),
+                    ))
+                .toList(),
           ),
         ],
       ),
@@ -176,7 +250,7 @@ class _InvoicesList extends StatelessWidget {
           itemCount: invoices.length,
           itemBuilder: (context, index) {
             final invoice = invoices[index];
-            return _InvoiceCard(
+            return InvoiceCard(
               invoice: invoice,
               onTap: () => context.push('/invoices/${invoice.id}'),
             );
@@ -184,169 +258,5 @@ class _InvoicesList extends StatelessWidget {
         );
       },
     );
-  }
-}
-
-class _InvoiceCard extends StatelessWidget {
-  final Invoice invoice;
-  final VoidCallback onTap;
-
-  const _InvoiceCard({
-    required this.invoice,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final typeInfo = _getTypeInfo(invoice.type);
-    final dateFormat = DateFormat('dd/MM/yyyy HH:mm');
-
-    return Card(
-      margin: EdgeInsets.only(bottom: 8.h),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12.r),
-        child: Padding(
-          padding: EdgeInsets.all(12.w),
-          child: Row(
-            children: [
-              // Type Icon
-              Container(
-                padding: EdgeInsets.all(10.w),
-                decoration: BoxDecoration(
-                  color: typeInfo['color'].withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-                child: Icon(
-                  typeInfo['icon'],
-                  color: typeInfo['color'],
-                  size: 24.sp,
-                ),
-              ),
-              Gap(12.w),
-
-              // Invoice Info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            invoice.invoiceNumber,
-                            style: TextStyle(
-                              fontSize: 14.sp,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 8.w,
-                            vertical: 2.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: typeInfo['color'].withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(4.r),
-                          ),
-                          child: Text(
-                            typeInfo['label'],
-                            style: TextStyle(
-                              fontSize: 10.sp,
-                              color: typeInfo['color'],
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    Gap(4.h),
-                    Text(
-                      dateFormat.format(invoice.invoiceDate),
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    Gap(4.h),
-                    Row(
-                      children: [
-                        Text(
-                          '${invoice.total.toStringAsFixed(2)} ل.س',
-                          style: TextStyle(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                        Gap(8.w),
-                        Text(
-                          InvoiceType.values
-                              .firstWhere(
-                                  (e) => e.value == invoice.paymentMethod,
-                                  orElse: () => InvoiceType.sale)
-                              .label,
-                          style: TextStyle(
-                            fontSize: 12.sp,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              Icon(
-                Icons.chevron_left,
-                color: AppColors.textSecondary,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Map<String, dynamic> _getTypeInfo(String type) {
-    switch (type) {
-      case 'sale':
-        return {
-          'icon': Icons.point_of_sale,
-          'color': AppColors.sales,
-          'label': 'مبيعات'
-        };
-      case 'purchase':
-        return {
-          'icon': Icons.shopping_cart,
-          'color': AppColors.purchases,
-          'label': 'مشتريات'
-        };
-      case 'sale_return':
-        return {
-          'icon': Icons.assignment_return,
-          'color': AppColors.returns,
-          'label': 'مرتجع مبيعات'
-        };
-      case 'purchase_return':
-        return {
-          'icon': Icons.assignment_returned,
-          'color': AppColors.returns,
-          'label': 'مرتجع مشتريات'
-        };
-      case 'opening_balance':
-        return {
-          'icon': Icons.inventory,
-          'color': AppColors.inventory,
-          'label': 'أول المدة'
-        };
-      default:
-        return {
-          'icon': Icons.receipt,
-          'color': AppColors.primary,
-          'label': 'فاتورة'
-        };
-    }
   }
 }

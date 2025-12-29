@@ -27,7 +27,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _autoBackup = true;
   bool _autoPrint = false;
   String _invoicePrefix = 'INV';
-  String _printSize = '80mm';
 
   @override
   void initState() {
@@ -39,14 +38,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final autoBackup = await _database.getSetting('auto_backup');
     final autoPrint = await _database.getSetting('auto_print');
     final invoicePrefix = await _database.getSetting('invoice_prefix');
-    final printSize = await _database.getSetting('print_size');
 
     if (mounted) {
       setState(() {
         _autoBackup = autoBackup == 'true';
         _autoPrint = autoPrint == 'true';
         _invoicePrefix = invoicePrefix ?? 'INV';
-        _printSize = printSize ?? '80mm';
       });
     }
   }
@@ -162,15 +159,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   trailing: const Icon(Icons.chevron_left),
                   onTap: () => _showInvoicePrefixDialog(),
                 ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.print),
-                  title: const Text('حجم ورق الطباعة'),
-                  subtitle: Text(_printSize),
-                  trailing: const Icon(Icons.chevron_left),
-                  onTap: () => _showPrintSizeDialog(),
-                ),
-                const Divider(height: 1),
+              ],
+            ),
+          ),
+          Gap(16.h),
+
+          // Print Settings
+          _SectionTitle(title: 'إعدادات الطباعة'),
+          Card(
+            child: Column(
+              children: [
                 SwitchListTile(
                   secondary: const Icon(Icons.auto_awesome),
                   title: const Text('طباعة تلقائية'),
@@ -240,50 +238,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             child: const Text('حفظ'),
           ),
         ],
-      ),
-    );
-  }
-
-  void _showPrintSizeDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('حجم ورق الطباعة'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            RadioListTile<String>(
-              title: const Text('58mm (صغير)'),
-              value: '58mm',
-              groupValue: _printSize,
-              onChanged: (value) async {
-                await _database.setSetting('print_size', value!);
-                setState(() => _printSize = value);
-                Navigator.pop(context);
-              },
-            ),
-            RadioListTile<String>(
-              title: const Text('80mm (عادي)'),
-              value: '80mm',
-              groupValue: _printSize,
-              onChanged: (value) async {
-                await _database.setSetting('print_size', value!);
-                setState(() => _printSize = value);
-                Navigator.pop(context);
-              },
-            ),
-            RadioListTile<String>(
-              title: const Text('A4'),
-              value: 'A4',
-              groupValue: _printSize,
-              onChanged: (value) async {
-                await _database.setSetting('print_size', value!);
-                setState(() => _printSize = value);
-                Navigator.pop(context);
-              },
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -16,7 +16,6 @@ import '../../features/shifts/presentation/shift_details_screen.dart';
 import '../../features/cash/presentation/cash_screen.dart';
 import '../../features/reports/presentation/reports_screen.dart';
 import '../../features/reports/presentation/sales_report_screen.dart';
-import '../../features/reports/presentation/products_report_screen.dart';
 import '../../features/reports/presentation/inventory_report_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/backup/presentation/backup_screen.dart';
@@ -141,11 +140,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: 'sales',
             name: 'sales-report',
             builder: (context, state) => const SalesReportScreen(),
-          ),
-          GoRoute(
-            path: 'products',
-            name: 'products-report',
-            builder: (context, state) => const ProductsReportScreen(),
           ),
           GoRoute(
             path: 'inventory',
