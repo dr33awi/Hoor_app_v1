@@ -9,6 +9,7 @@ import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/invoice_widgets.dart';
 import '../../../core/services/export/export_services.dart';
+import '../../../core/services/currency_service.dart';
 import '../../../data/database/app_database.dart';
 import '../../../data/repositories/product_repository.dart';
 
@@ -22,6 +23,7 @@ class ProductsScreen extends ConsumerStatefulWidget {
 class _ProductsScreenState extends ConsumerState<ProductsScreen> {
   final _productRepo = getIt<ProductRepository>();
   final _db = getIt<AppDatabase>();
+  final _currencyService = getIt<CurrencyService>();
   final _searchController = TextEditingController();
   String _searchQuery = '';
   String? _selectedCategory;
@@ -153,6 +155,7 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                     return _ProductCard(
                       product: product,
                       onTap: () => context.push('/products/${product.id}'),
+                      currencyService: _currencyService,
                     );
                   },
                 );
@@ -246,10 +249,12 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
 class _ProductCard extends StatelessWidget {
   final Product product;
   final VoidCallback onTap;
+  final CurrencyService currencyService;
 
   const _ProductCard({
     required this.product,
     required this.onTap,
+    required this.currencyService,
   });
 
   @override
@@ -321,13 +326,26 @@ class _ProductCard extends StatelessWidget {
                     Gap(4.h),
                     Row(
                       children: [
-                        Text(
-                          formatPrice(product.salePrice),
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.primary,
-                          ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              formatPrice(product.salePrice),
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            Text(
+                              '\$${currencyService.sypToUsd(product.salePrice).toStringAsFixed(2)}',
+                              style: TextStyle(
+                                fontSize: 11.sp,
+                                color: Colors.green.shade600,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
                         Gap(16.w),
                         Container(

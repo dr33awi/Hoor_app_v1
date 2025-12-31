@@ -7,6 +7,7 @@ import 'package:printing/printing.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/services/export/export_services.dart';
+import '../../../core/services/currency_service.dart';
 import '../../../core/widgets/invoice_widgets.dart';
 import '../../../data/database/app_database.dart';
 
@@ -22,6 +23,7 @@ class InventoryReportScreen extends ConsumerStatefulWidget {
 
 class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
   final _db = getIt<AppDatabase>();
+  final _currencyService = getIt<CurrencyService>();
   bool _isExporting = false;
 
   Future<void> _handleExport(ExportType type) async {
@@ -174,20 +176,52 @@ class _InventoryReportScreenState extends ConsumerState<InventoryReportScreen> {
                 color: AppColors.success.withOpacity(0.1),
                 child: Padding(
                   padding: EdgeInsets.all(16.w),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Column(
                     children: [
-                      Text(
-                        'الربح المتوقع',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'الربح المتوقع',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                formatPrice(
+                                    (inventoryValue['potentialProfit'] ?? 0)
+                                        .toDouble()),
+                                style: TextStyle(
+                                  fontSize: 18.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.success,
+                                ),
+                              ),
+                              Text(
+                                '\$${_currencyService.sypToUsd((inventoryValue['potentialProfit'] ?? 0).toDouble()).toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  fontSize: 12.sp,
+                                  color: Colors.green.shade700,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                      Text(
-                        formatPrice((inventoryValue['potentialProfit'] ?? 0)
-                            .toDouble()),
-                        style: TextStyle(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.success,
+                      Gap(8.h),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 8.w, vertical: 4.h),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(4.r),
+                        ),
+                        child: Text(
+                          'سعر الصرف: 1\$ = ${_currencyService.exchangeRate.toStringAsFixed(0)} ل.س',
+                          style: TextStyle(
+                              fontSize: 10.sp, color: Colors.grey.shade600),
                         ),
                       ),
                     ],
@@ -361,6 +395,7 @@ class _ValueCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final currencyService = getIt<CurrencyService>();
     return Card(
       child: Padding(
         padding: EdgeInsets.all(16.w),
@@ -381,6 +416,15 @@ class _ValueCard extends StatelessWidget {
                 fontSize: 18.sp,
                 fontWeight: FontWeight.bold,
                 color: color,
+              ),
+            ),
+            Gap(4.h),
+            Text(
+              '\$${currencyService.sypToUsd(value).toStringAsFixed(2)}',
+              style: TextStyle(
+                fontSize: 12.sp,
+                color: Colors.green.shade600,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],

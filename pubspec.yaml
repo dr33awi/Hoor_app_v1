@@ -43,6 +43,9 @@ dependencies:
   mobile_scanner: ^7.1.4
   barcode_widget: ^2.0.4
 
+  # Image Picker
+  image_picker: ^1.1.2
+
   # PDF & Printing
   pdf: ^3.10.7
   printing: ^5.11.1

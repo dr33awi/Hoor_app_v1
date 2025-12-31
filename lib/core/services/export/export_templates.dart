@@ -174,31 +174,65 @@ class PdfReportTemplate {
     required List<List<String>> data,
     PdfColor? headerBgColor,
   }) {
-    return pw.TableHelper.fromTextArray(
-      headers: headers,
-      data: data,
+    return pw.Table(
       border: pw.TableBorder.all(color: ExportColors.tableBorder, width: 0.5),
-      headerStyle: pw.TextStyle(
-        font: PdfFonts.bold,
-        fontSize: 10,
-        color: PdfColors.white,
-      ),
-      cellStyle: pw.TextStyle(
-        font: PdfFonts.regular,
-        fontSize: 9,
-        color: PdfColors.grey800,
-      ),
-      headerDecoration: pw.BoxDecoration(
-        color: headerBgColor ?? ExportColors.tableHeader,
-      ),
-      cellAlignments: {
-        for (int i = 0; i < headers.length; i++) i: pw.Alignment.centerRight,
+      columnWidths: {
+        for (int i = 0; i < headers.length; i++) i: const pw.FlexColumnWidth(1),
       },
-      cellPadding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      headerHeight: 32,
-      cellHeight: 28,
-      oddRowDecoration:
-          const pw.BoxDecoration(color: ExportColors.tableRowEven),
+      children: [
+        // Header row
+        pw.TableRow(
+          decoration: pw.BoxDecoration(
+            color: headerBgColor ?? ExportColors.tableHeader,
+          ),
+          children: headers.map((header) {
+            return pw.Container(
+              padding:
+                  const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              alignment: pw.Alignment.center,
+              child: pw.Text(
+                header,
+                style: pw.TextStyle(
+                  font: PdfFonts.bold,
+                  fontSize: 10,
+                  color: PdfColors.white,
+                ),
+                textDirection: pw.TextDirection.rtl,
+                textAlign: pw.TextAlign.center,
+              ),
+            );
+          }).toList(),
+        ),
+        // Data rows
+        ...data.asMap().entries.map((entry) {
+          final index = entry.key;
+          final row = entry.value;
+          return pw.TableRow(
+            decoration: pw.BoxDecoration(
+              color: index.isEven
+                  ? ExportColors.tableRowEven
+                  : ExportColors.tableRowOdd,
+            ),
+            children: row.map((cell) {
+              return pw.Container(
+                padding:
+                    const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                alignment: pw.Alignment.center,
+                child: pw.Text(
+                  cell,
+                  style: pw.TextStyle(
+                    font: PdfFonts.regular,
+                    fontSize: 9,
+                    color: PdfColors.grey800,
+                  ),
+                  textDirection: pw.TextDirection.rtl,
+                  textAlign: pw.TextAlign.center,
+                ),
+              );
+            }).toList(),
+          );
+        }),
+      ],
     );
   }
 
@@ -240,15 +274,6 @@ class PdfReportTemplate {
         children: [
           pw.Text(
             'صفحة $pageNumber من $totalPages',
-            style: pw.TextStyle(
-              font: PdfFonts.regular,
-              fontSize: 9,
-              color: PdfColors.grey600,
-            ),
-            textDirection: pw.TextDirection.rtl,
-          ),
-          pw.Text(
-            'نظام حور للمبيعات',
             style: pw.TextStyle(
               font: PdfFonts.regular,
               fontSize: 9,
@@ -373,9 +398,12 @@ class ExportFormatters {
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 
-  /// تنسيق التاريخ والوقت
+  /// تنسيق التاريخ والوقت (بنظام 12 ساعة)
   static String formatDateTime(DateTime date) {
-    return '${formatDate(date)} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+    final hour = date.hour;
+    final hour12 = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+    final period = hour < 12 ? 'ص' : 'م';
+    return '${formatDate(date)} ${hour12.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')} $period';
   }
 
   /// تنسيق الفترة الزمنية
@@ -394,8 +422,6 @@ class ExportFormatters {
         return 'مرتجع مبيعات';
       case 'purchase_return':
         return 'مرتجع مشتريات';
-      case 'opening_balance':
-        return 'رصيد افتتاحي';
       default:
         return 'فاتورة';
     }
@@ -413,6 +439,8 @@ class ExportFormatters {
         return 'تحويل';
       case 'credit':
         return 'آجل';
+      case 'partial':
+        return 'دفع جزئي';
       default:
         return method;
     }

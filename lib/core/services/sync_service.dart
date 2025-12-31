@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import '../constants/app_constants.dart';
 import 'connectivity_service.dart';
 import 'network_utils.dart';
+import 'print_settings_service.dart';
 import '../../data/repositories/product_repository.dart';
 import '../../data/repositories/category_repository.dart';
 import '../../data/repositories/invoice_repository.dart';
@@ -12,6 +13,7 @@ import '../../data/repositories/shift_repository.dart';
 import '../../data/repositories/cash_repository.dart';
 import '../../data/repositories/customer_repository.dart';
 import '../../data/repositories/supplier_repository.dart';
+import '../../data/repositories/voucher_repository.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
 /// Sync Status - حالات المزامنة
@@ -39,6 +41,8 @@ class SyncService extends ChangeNotifier {
   // Repositories إضافية
   CustomerRepository? _customerRepo;
   SupplierRepository? _supplierRepo;
+  VoucherRepository? _voucherRepo;
+  PrintSettingsService? _printSettingsService;
 
   Timer? _syncTimer;
   bool _isSyncing = false;
@@ -68,6 +72,8 @@ class SyncService extends ChangeNotifier {
     required CashRepository cashRepo,
     CustomerRepository? customerRepo,
     SupplierRepository? supplierRepo,
+    VoucherRepository? voucherRepo,
+    PrintSettingsService? printSettingsService,
   })  : _connectivity = connectivity,
         _productRepo = productRepo,
         _categoryRepo = categoryRepo,
@@ -76,7 +82,9 @@ class SyncService extends ChangeNotifier {
         _shiftRepo = shiftRepo,
         _cashRepo = cashRepo,
         _customerRepo = customerRepo,
-        _supplierRepo = supplierRepo;
+        _supplierRepo = supplierRepo,
+        _voucherRepo = voucherRepo,
+        _printSettingsService = printSettingsService;
 
   // ═══════════════════════════════════════════════════════════════════════════
   // التهيئة
@@ -109,9 +117,13 @@ class SyncService extends ChangeNotifier {
   void setAdditionalRepositories({
     CustomerRepository? customerRepo,
     SupplierRepository? supplierRepo,
+    VoucherRepository? voucherRepo,
+    PrintSettingsService? printSettingsService,
   }) {
     _customerRepo = customerRepo;
     _supplierRepo = supplierRepo;
+    _voucherRepo = voucherRepo;
+    _printSettingsService = printSettingsService;
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -153,9 +165,13 @@ class SyncService extends ChangeNotifier {
     _shiftRepo.startRealtimeSync();
     _cashRepo.startRealtimeSync();
 
-    // Start real-time sync for customers and suppliers if available
+    // Start real-time sync for customers, suppliers, and vouchers if available
     _customerRepo?.startRealtimeSync();
     _supplierRepo?.startRealtimeSync();
+    _voucherRepo?.startRealtimeSync();
+
+    // Start real-time sync for print settings
+    _printSettingsService?.startRealtimeSync();
 
     debugPrint('Real-time sync started');
   }
@@ -175,9 +191,13 @@ class SyncService extends ChangeNotifier {
     _shiftRepo.stopRealtimeSync();
     _cashRepo.stopRealtimeSync();
 
-    // Stop real-time sync for customers and suppliers if available
+    // Stop real-time sync for customers, suppliers, and vouchers if available
     _customerRepo?.stopRealtimeSync();
     _supplierRepo?.stopRealtimeSync();
+    _voucherRepo?.stopRealtimeSync();
+
+    // Stop real-time sync for print settings
+    _printSettingsService?.stopRealtimeSync();
 
     debugPrint('Real-time sync stopped');
   }
@@ -212,9 +232,10 @@ class SyncService extends ChangeNotifier {
       await _shiftRepo.syncPendingChanges();
       await _cashRepo.syncPendingChanges();
 
-      // Sync customers and suppliers if available
+      // Sync customers, suppliers, and vouchers if available
       await _customerRepo?.syncPendingChanges();
       await _supplierRepo?.syncPendingChanges();
+      await _voucherRepo?.syncPendingChanges();
 
       _lastSyncTime = DateTime.now();
       _status = SyncStatus.success;
@@ -251,9 +272,10 @@ class SyncService extends ChangeNotifier {
       await _shiftRepo.syncPendingChanges();
       await _cashRepo.syncPendingChanges();
 
-      // Sync customers and suppliers if available
+      // Sync customers, suppliers, and vouchers if available
       await _customerRepo?.syncPendingChanges();
       await _supplierRepo?.syncPendingChanges();
+      await _voucherRepo?.syncPendingChanges();
 
       // Pull latest from cloud (initial load)
       await _categoryRepo.pullFromCloud();
@@ -263,9 +285,10 @@ class SyncService extends ChangeNotifier {
       await _shiftRepo.pullFromCloud();
       await _cashRepo.pullFromCloud();
 
-      // Pull customers and suppliers if available
+      // Pull customers, suppliers, and vouchers if available
       await _customerRepo?.pullFromCloud();
       await _supplierRepo?.pullFromCloud();
+      await _voucherRepo?.pullFromCloud();
 
       _lastSyncTime = DateTime.now();
       _status = SyncStatus.success;
@@ -337,6 +360,10 @@ class SyncService extends ChangeNotifier {
         case 'suppliers':
           await _supplierRepo?.syncPendingChanges();
           await _supplierRepo?.pullFromCloud();
+          break;
+        case 'vouchers':
+          await _voucherRepo?.syncPendingChanges();
+          await _voucherRepo?.pullFromCloud();
           break;
       }
       _lastSyncTime = DateTime.now();

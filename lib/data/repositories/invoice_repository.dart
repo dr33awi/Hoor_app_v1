@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 
 import '../database/app_database.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/services/currency_service.dart';
+import '../../core/di/injection.dart';
 import 'base_repository.dart';
 
 class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
@@ -87,6 +89,7 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
     final total = subtotal - discountAmount;
 
     // Insert invoice
+    final currencyService = getIt<CurrencyService>();
     await database.insertInvoice(InvoicesCompanion(
       id: Value(id),
       invoiceNumber: Value(invoiceNumber),
@@ -98,6 +101,7 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
       discountAmount: Value(discountAmount),
       total: Value(total),
       paidAmount: Value(paidAmount),
+      exchangeRate: Value(currencyService.exchangeRate), // حفظ سعر الصرف الحالي
       paymentMethod: Value(paymentMethod),
       status: const Value('completed'),
       notes: Value(notes),
@@ -126,7 +130,6 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
       'purchase' => 'PUR',
       'sale_return' => 'SRT',
       'purchase_return' => 'PRT',
-      'opening_balance' => 'OPN',
       _ => 'DOC',
     };
 
@@ -161,7 +164,6 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
           movementType = 'sale';
           break;
         case 'purchase':
-        case 'opening_balance':
           adjustment = quantity;
           movementType = 'purchase';
           break;
@@ -191,6 +193,163 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
         syncStatus: const Value('pending'),
         createdAt: Value(DateTime.now()),
       ));
+    }
+  }
+
+  /// عكس تأثير الفاتورة على المخزون (قبل التعديل أو الحذف)
+  Future<void> _reverseInventory(String type, List<InvoiceItem> items) async {
+    for (final item in items) {
+      final product = await database.getProductById(item.productId);
+      if (product == null) continue;
+
+      int adjustment;
+      String movementType = 'adjustment';
+
+      // عكس التأثير - يعني العكس تماماً
+      switch (type) {
+        case 'sale':
+          adjustment = item.quantity; // إرجاع الكمية للمخزون
+          break;
+        case 'purchase':
+          adjustment = -item.quantity; // خصم الكمية من المخزون
+          break;
+        case 'sale_return':
+          adjustment = -item.quantity;
+          break;
+        case 'purchase_return':
+          adjustment = item.quantity;
+          break;
+        default:
+          continue;
+      }
+
+      final newQuantity = product.quantity + adjustment;
+      await database.updateProductQuantity(item.productId, newQuantity);
+
+      await database.insertInventoryMovement(InventoryMovementsCompanion(
+        id: Value(generateId()),
+        productId: Value(item.productId),
+        type: Value(movementType),
+        quantity: Value(item.quantity),
+        previousQuantity: Value(product.quantity),
+        newQuantity: Value(newQuantity),
+        reason: Value('Invoice edit reversal: $type'),
+        syncStatus: const Value('pending'),
+        createdAt: Value(DateTime.now()),
+      ));
+    }
+  }
+
+  /// تعديل فاتورة موجودة
+  Future<void> updateInvoice({
+    required String invoiceId,
+    String? customerId,
+    String? supplierId,
+    required List<Map<String, dynamic>> items,
+    double discountAmount = 0,
+    required String paymentMethod,
+    double paidAmount = 0,
+    String? notes,
+  }) async {
+    final now = DateTime.now();
+
+    // جلب الفاتورة القديمة
+    final oldInvoice = await database.getInvoiceById(invoiceId);
+    if (oldInvoice == null) {
+      throw Exception('الفاتورة غير موجودة');
+    }
+
+    // جلب العناصر القديمة
+    final oldItems = await database.getInvoiceItems(invoiceId);
+
+    // عكس تأثير المخزون للعناصر القديمة
+    await _reverseInventory(oldInvoice.type, oldItems);
+
+    // حذف العناصر القديمة
+    await database.deleteInvoiceItems(invoiceId);
+
+    // حساب المجاميع الجديدة
+    double subtotal = 0;
+    final invoiceItems = <InvoiceItemsCompanion>[];
+
+    for (final item in items) {
+      final quantity = item['quantity'] as int;
+      final unitPrice = item['unitPrice'] as double;
+      final purchasePrice = item['purchasePrice'] as double? ?? 0;
+      final itemDiscount = item['discount'] as double? ?? 0;
+
+      final itemSubtotal = quantity * unitPrice;
+      final itemTotal = itemSubtotal - itemDiscount;
+
+      subtotal += itemSubtotal;
+
+      invoiceItems.add(InvoiceItemsCompanion(
+        id: Value(generateId()),
+        invoiceId: Value(invoiceId),
+        productId: Value(item['productId'] as String),
+        productName: Value(item['productName'] as String),
+        quantity: Value(quantity),
+        unitPrice: Value(unitPrice),
+        purchasePrice: Value(purchasePrice),
+        discountAmount: Value(itemDiscount),
+        taxAmount: const Value(0),
+        total: Value(itemTotal),
+        syncStatus: const Value('pending'),
+        createdAt: Value(now),
+      ));
+    }
+
+    final total = subtotal - discountAmount;
+
+    // تحديث الفاتورة
+    final currencyService = getIt<CurrencyService>();
+    await database.updateInvoice(InvoicesCompanion(
+      id: Value(invoiceId),
+      customerId: Value(customerId),
+      supplierId: Value(supplierId),
+      subtotal: Value(subtotal),
+      discountAmount: Value(discountAmount),
+      total: Value(total),
+      paidAmount: Value(paidAmount),
+      exchangeRate: Value(currencyService.exchangeRate),
+      paymentMethod: Value(paymentMethod),
+      notes: Value(notes),
+      syncStatus: const Value('pending'),
+      updatedAt: Value(now),
+    ));
+
+    // إدخال العناصر الجديدة
+    await database.insertInvoiceItems(invoiceItems);
+
+    // تحديث المخزون بالعناصر الجديدة
+    await _updateInventory(oldInvoice.type, items);
+  }
+
+  /// حذف فاتورة مع عكس تأثيرها على المخزون
+  Future<void> deleteInvoiceWithReverse(String invoiceId) async {
+    // جلب الفاتورة
+    final invoice = await database.getInvoiceById(invoiceId);
+    if (invoice == null) {
+      throw Exception('الفاتورة غير موجودة');
+    }
+
+    // جلب عناصر الفاتورة
+    final items = await database.getInvoiceItems(invoiceId);
+
+    // عكس تأثير المخزون
+    await _reverseInventory(invoice.type, items);
+
+    // حذف العناصر
+    await database.deleteInvoiceItems(invoiceId);
+
+    // حذف الفاتورة
+    await database.deleteInvoice(invoiceId);
+
+    // حذف من Firestore
+    try {
+      await collection.doc(invoiceId).delete();
+    } catch (e) {
+      debugPrint('Error deleting invoice from Firestore: $e');
     }
   }
 

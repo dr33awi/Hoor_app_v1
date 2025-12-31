@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gap/gap.dart';
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 
 // استخدام core_exports لتبسيط الاستيراد
 import '../../../core/core_exports.dart';
@@ -175,6 +176,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     await _database.setSetting('auto_print', value.toString());
                     setState(() => _autoPrint = value);
                   },
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.print),
+                  title: const Text('إعدادات الطباعة المتقدمة'),
+                  subtitle: const Text('الشعار، معلومات الشركة، حجم الطباعة'),
+                  trailing: const Icon(Icons.chevron_left),
+                  onTap: () => context.push('/settings/print'),
                 ),
               ],
             ),

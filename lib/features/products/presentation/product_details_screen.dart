@@ -11,6 +11,7 @@ import 'package:pdf/widgets.dart' as pw;
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/invoice_widgets.dart';
+import '../../../core/services/currency_service.dart';
 import '../../../data/database/app_database.dart';
 import '../../../data/repositories/product_repository.dart';
 import '../../../data/repositories/inventory_repository.dart';
@@ -28,6 +29,7 @@ class ProductDetailsScreen extends ConsumerStatefulWidget {
 class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
   final _productRepo = getIt<ProductRepository>();
   final _inventoryRepo = getIt<InventoryRepository>();
+  final _currencyService = getIt<CurrencyService>();
 
   Product? _product;
   List<InventoryMovement> _movements = [];
@@ -254,19 +256,89 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
                       ),
                     ),
                     Gap(12.h),
+                    // سعر الشراء بالدولار (إن وجد)
+                    if (product.purchasePriceUsd != null &&
+                        product.purchasePriceUsd! > 0)
+                      Container(
+                        padding: EdgeInsets.all(8.w),
+                        margin: EdgeInsets.only(bottom: 8.h),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(8.r),
+                          border: Border.all(color: Colors.green.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.attach_money,
+                                color: Colors.green.shade700, size: 20.sp),
+                            Gap(8.w),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'سعر الشراء بالدولار',
+                                    style: TextStyle(
+                                      fontSize: 12.sp,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                  Text(
+                                    '\$${product.purchasePriceUsd!.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      fontSize: 16.sp,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.green.shade700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  'يعادل حالياً',
+                                  style: TextStyle(
+                                      fontSize: 10.sp, color: Colors.grey),
+                                ),
+                                Text(
+                                  _currencyService.formatSyp(_currencyService
+                                      .usdToSyp(product.purchasePriceUsd!)),
+                                  style: TextStyle(
+                                      fontSize: 12.sp, color: Colors.blue),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
                     _InfoRow(
                       label: 'سعر الشراء',
                       value: formatPrice(product.purchasePrice),
+                      subValue:
+                          '\$${_currencyService.sypToUsd(product.purchasePrice).toStringAsFixed(2)}',
                     ),
                     _InfoRow(
                       label: 'سعر البيع',
                       value: formatPrice(product.salePrice),
+                      subValue:
+                          '\$${_currencyService.sypToUsd(product.salePrice).toStringAsFixed(2)}',
                     ),
                     _InfoRow(
                       label: 'هامش الربح',
                       value: formatPrice(
                           product.salePrice - product.purchasePrice),
+                      subValue:
+                          '\$${_currencyService.sypToUsd(product.salePrice - product.purchasePrice).toStringAsFixed(2)}',
                     ),
+                    // نسبة الربح
+                    if (product.purchasePrice > 0)
+                      _InfoRow(
+                        label: 'نسبة الربح',
+                        value:
+                            '${(((product.salePrice - product.purchasePrice) / product.purchasePrice) * 100).toStringAsFixed(1)}%',
+                      ),
                   ],
                 ),
               ),
@@ -479,8 +551,9 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen> {
 class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
+  final String? subValue;
 
-  const _InfoRow({required this.label, required this.value});
+  const _InfoRow({required this.label, required this.value, this.subValue});
 
   @override
   Widget build(BuildContext context) {
@@ -496,12 +569,25 @@ class _InfoRow extends StatelessWidget {
               color: AppColors.textSecondary,
             ),
           ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 14.sp,
-              fontWeight: FontWeight.w600,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (subValue != null)
+                Text(
+                  subValue!,
+                  style: TextStyle(
+                    fontSize: 11.sp,
+                    color: Colors.green.shade600,
+                  ),
+                ),
+            ],
           ),
         ],
       ),

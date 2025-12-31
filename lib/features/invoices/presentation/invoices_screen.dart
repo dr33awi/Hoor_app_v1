@@ -7,14 +7,11 @@ import 'package:pdf/pdf.dart';
 import 'package:printing/printing.dart';
 
 import '../../../core/di/injection.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/invoice_widgets.dart';
+import '../../../core/widgets/invoice_actions_sheet.dart';
 import '../../../core/services/export/export_services.dart';
-import '../../../core/services/printing/printing_services.dart';
 import '../../../data/database/app_database.dart';
 import '../../../data/repositories/invoice_repository.dart';
-import '../../../data/repositories/customer_repository.dart';
-import '../../../data/repositories/supplier_repository.dart';
 
 class InvoicesScreen extends ConsumerStatefulWidget {
   final String? type;
@@ -182,8 +179,6 @@ class _InvoicesScreenState extends ConsumerState<InvoicesScreen>
 class _InvoicesList extends StatelessWidget {
   final String? type;
   final _invoiceRepo = getIt<InvoiceRepository>();
-  final _customerRepo = getIt<CustomerRepository>();
-  final _supplierRepo = getIt<SupplierRepository>();
 
   _InvoicesList({required this.type});
 
@@ -232,252 +227,11 @@ class _InvoicesList extends StatelessWidget {
             final invoice = invoices[index];
             return InvoiceCard(
               invoice: invoice,
-              onTap: () => _showInvoiceActions(context, invoice),
+              onTap: () => context.push('/invoices/details/${invoice.id}'),
             );
           },
         );
       },
-    );
-  }
-
-  /// عرض خيارات الفاتورة (معاينة، طباعة، مشاركة)
-  void _showInvoiceActions(BuildContext context, Invoice invoice) {
-    showModalBottomSheet(
-      context: context,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-      ),
-      builder: (context) => _InvoiceActionsSheet(
-        invoice: invoice,
-        invoiceRepo: _invoiceRepo,
-        customerRepo: _customerRepo,
-        supplierRepo: _supplierRepo,
-      ),
-    );
-  }
-}
-
-/// Bottom Sheet لعرض خيارات الفاتورة
-class _InvoiceActionsSheet extends StatelessWidget {
-  final Invoice invoice;
-  final InvoiceRepository invoiceRepo;
-  final CustomerRepository customerRepo;
-  final SupplierRepository supplierRepo;
-
-  const _InvoiceActionsSheet({
-    required this.invoice,
-    required this.invoiceRepo,
-    required this.customerRepo,
-    required this.supplierRepo,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final typeInfo = InvoiceTypeInfo.fromType(invoice.type);
-
-    return Container(
-      padding: EdgeInsets.all(20.w),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Header
-          Row(
-            children: [
-              InvoiceTypeIcon(type: invoice.type),
-              Gap(12.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'فاتورة ${invoice.invoiceNumber}',
-                      style: TextStyle(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Text(
-                      typeInfo.label,
-                      style: TextStyle(
-                        fontSize: 12.sp,
-                        color: typeInfo.color,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Text(
-                formatAmount(invoice.total),
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                  color: typeInfo.color,
-                ),
-              ),
-            ],
-          ),
-          Gap(20.h),
-          Divider(height: 1),
-          Gap(12.h),
-
-          // Actions
-          _ActionTile(
-            icon: Icons.visibility,
-            color: Colors.blue,
-            title: 'معاينة الفاتورة',
-            subtitle: 'عرض تفاصيل الفاتورة',
-            onTap: () => _previewInvoice(context),
-          ),
-          _ActionTile(
-            icon: Icons.print,
-            color: Colors.purple,
-            title: 'طباعة',
-            subtitle: 'طباعة الفاتورة مباشرة',
-            onTap: () => _printInvoice(context),
-          ),
-          _ActionTile(
-            icon: Icons.share,
-            color: Colors.green,
-            title: 'مشاركة PDF',
-            subtitle: 'مشاركة الفاتورة كملف PDF',
-            onTap: () => _shareInvoice(context),
-          ),
-          Gap(8.h),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _previewInvoice(BuildContext context) async {
-    Navigator.pop(context);
-
-    try {
-      final items = await invoiceRepo.getInvoiceItems(invoice.id);
-      final customer = invoice.customerId != null
-          ? await customerRepo.getCustomerById(invoice.customerId!)
-          : null;
-      final supplier = invoice.supplierId != null
-          ? await supplierRepo.getSupplierById(invoice.supplierId!)
-          : null;
-
-      final pdfBytes = await InvoicePdfGenerator.generateInvoicePdfBytes(
-        invoice: invoice,
-        items: items,
-        customer: customer,
-        supplier: supplier,
-      );
-
-      await Printing.layoutPdf(
-        onLayout: (format) async => pdfBytes,
-        name: 'invoice_${invoice.invoiceNumber}.pdf',
-      );
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('خطأ في المعاينة: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _printInvoice(BuildContext context) async {
-    Navigator.pop(context);
-
-    try {
-      final items = await invoiceRepo.getInvoiceItems(invoice.id);
-      final customer = invoice.customerId != null
-          ? await customerRepo.getCustomerById(invoice.customerId!)
-          : null;
-      final supplier = invoice.supplierId != null
-          ? await supplierRepo.getSupplierById(invoice.supplierId!)
-          : null;
-
-      await InvoicePdfGenerator.printInvoiceDirectly(
-        invoice: invoice,
-        items: items,
-        customer: customer,
-        supplier: supplier,
-      );
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('خطأ في الطباعة: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _shareInvoice(BuildContext context) async {
-    Navigator.pop(context);
-
-    try {
-      final items = await invoiceRepo.getInvoiceItems(invoice.id);
-      final customer = invoice.customerId != null
-          ? await customerRepo.getCustomerById(invoice.customerId!)
-          : null;
-      final supplier = invoice.supplierId != null
-          ? await supplierRepo.getSupplierById(invoice.supplierId!)
-          : null;
-
-      await InvoicePdfGenerator.shareInvoiceAsPdf(
-        invoice: invoice,
-        items: items,
-        customer: customer,
-        supplier: supplier,
-      );
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('خطأ في المشاركة: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-}
-
-/// Tile للإجراءات
-class _ActionTile extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  const _ActionTile({
-    required this.icon,
-    required this.color,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Container(
-        padding: EdgeInsets.all(8.w),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8.r),
-        ),
-        child: Icon(icon, color: color, size: 24.sp),
-      ),
-      title: Text(title),
-      subtitle: Text(
-        subtitle,
-        style: TextStyle(fontSize: 12.sp, color: Colors.grey),
-      ),
-      trailing: Icon(Icons.chevron_left, color: Colors.grey),
-      onTap: onTap,
     );
   }
 }

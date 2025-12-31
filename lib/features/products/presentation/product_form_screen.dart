@@ -12,6 +12,7 @@ import 'package:pdf/widgets.dart' as pw;
 
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/services/currency_service.dart';
 import '../../../data/database/app_database.dart';
 import '../../../data/repositories/product_repository.dart';
 import '../../../data/repositories/category_repository.dart';
@@ -29,13 +30,15 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _productRepo = getIt<ProductRepository>();
   final _categoryRepo = getIt<CategoryRepository>();
+  final _currencyService = getIt<CurrencyService>();
 
   final _nameController = TextEditingController();
   final _barcodeController = TextEditingController();
+  final _purchasePriceUsdController = TextEditingController();
   final _purchasePriceController = TextEditingController();
   final _salePriceController = TextEditingController();
   final _quantityController = TextEditingController(text: '0');
-  final _minQuantityController = TextEditingController(text: '5');
+  final _minQuantityController = TextEditingController(text: '0');
   final _descriptionController = TextEditingController();
 
   String? _selectedCategoryId;
@@ -58,6 +61,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     if (product != null) {
       _nameController.text = product.name;
       _barcodeController.text = product.barcode ?? '';
+      _purchasePriceUsdController.text =
+          product.purchasePriceUsd?.toString() ?? '';
       _purchasePriceController.text = product.purchasePrice.toString();
       _salePriceController.text = product.salePrice.toString();
       _quantityController.text = product.quantity.toString();
@@ -73,6 +78,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   void dispose() {
     _nameController.dispose();
     _barcodeController.dispose();
+    _purchasePriceUsdController.dispose();
     _purchasePriceController.dispose();
     _salePriceController.dispose();
     _quantityController.dispose();
@@ -175,6 +181,68 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                   ),
                   Gap(16.h),
 
+                  // سعر الشراء بالدولار مع التحويل التلقائي
+                  Card(
+                    color: Colors.blue.shade50,
+                    child: Padding(
+                      padding: EdgeInsets.all(12.w),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.attach_money,
+                                  color: Colors.green.shade700, size: 20.sp),
+                              Gap(8.w),
+                              Text(
+                                'سعر الشراء بالدولار (اختياري)',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14.sp,
+                                  color: Colors.blue.shade800,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Gap(8.h),
+                          Text(
+                            'سعر الصرف الحالي: 1\$ = ${_currencyService.exchangeRate.toStringAsFixed(0)} ل.س',
+                            style: TextStyle(
+                                fontSize: 12.sp, color: Colors.grey.shade600),
+                          ),
+                          Gap(12.h),
+                          TextFormField(
+                            controller: _purchasePriceUsdController,
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
+                            decoration: InputDecoration(
+                              labelText: 'سعر الشراء بالدولار',
+                              prefixIcon: const Icon(Icons.attach_money),
+                              suffixText: '\$',
+                              filled: true,
+                              fillColor: Colors.white,
+                              helperText: _purchasePriceUsdController
+                                      .text.isNotEmpty
+                                  ? 'يعادل: ${_currencyService.formatSyp(_currencyService.usdToSyp(double.tryParse(_purchasePriceUsdController.text) ?? 0))}'
+                                  : null,
+                            ),
+                            onChanged: (value) {
+                              final usdPrice = double.tryParse(value);
+                              if (usdPrice != null && usdPrice > 0) {
+                                final sypPrice =
+                                    _currencyService.usdToSyp(usdPrice);
+                                _purchasePriceController.text =
+                                    sypPrice.toStringAsFixed(0);
+                              }
+                              setState(() {});
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Gap(16.h),
+
                   // Prices
                   Row(
                     children: [
@@ -183,7 +251,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                           controller: _purchasePriceController,
                           keyboardType: TextInputType.number,
                           decoration: const InputDecoration(
-                            labelText: 'سعر الشراء *',
+                            labelText: 'سعر الشراء',
                             prefixIcon: Icon(Icons.shopping_cart),
                             suffixText: 'ل.س',
                           ),
@@ -204,15 +272,15 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                           controller: _salePriceController,
                           keyboardType: TextInputType.number,
                           decoration: const InputDecoration(
-                            labelText: 'سعر البيع *',
+                            labelText: 'سعر البيع',
                             prefixIcon: Icon(Icons.sell),
                             suffixText: 'ل.س',
+                            hintText: '0',
                           ),
                           validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'مطلوب';
-                            }
-                            if (double.tryParse(value) == null) {
+                            if (value != null &&
+                                value.isNotEmpty &&
+                                double.tryParse(value) == null) {
                               return 'رقم غير صالح';
                             }
                             return null;
@@ -394,13 +462,16 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
 
     try {
       final purchasePrice = double.parse(_purchasePriceController.text);
-      final salePrice = double.parse(_salePriceController.text);
+      final salePrice = double.tryParse(_salePriceController.text) ?? 0;
       final quantity = int.tryParse(_quantityController.text) ?? 0;
-      final minQuantity = int.tryParse(_minQuantityController.text) ?? 5;
+      final minQuantity = int.tryParse(_minQuantityController.text) ?? 0;
+      final purchasePriceUsd =
+          double.tryParse(_purchasePriceUsdController.text);
 
       print('_saveProduct called - isEditing: $_isEditing');
       print('Product ID: ${widget.productId}');
-      print('Values: purchasePrice=$purchasePrice, salePrice=$salePrice');
+      print(
+          'Values: purchasePrice=$purchasePrice, salePrice=$salePrice, purchasePriceUsd=$purchasePriceUsd');
 
       if (_isEditing) {
         print('Calling updateProduct...');
@@ -411,6 +482,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
               _barcodeController.text.isEmpty ? null : _barcodeController.text,
           categoryId: _selectedCategoryId,
           purchasePrice: purchasePrice,
+          purchasePriceUsd: purchasePriceUsd,
           salePrice: salePrice,
           minQuantity: minQuantity,
           description: _descriptionController.text.isEmpty
@@ -425,6 +497,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
               _barcodeController.text.isEmpty ? null : _barcodeController.text,
           categoryId: _selectedCategoryId,
           purchasePrice: purchasePrice,
+          purchasePriceUsd: purchasePriceUsd,
           salePrice: salePrice,
           quantity: quantity,
           minQuantity: minQuantity,

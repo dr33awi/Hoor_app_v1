@@ -9,6 +9,7 @@ import '../services/connectivity_service.dart';
 import '../services/sync_service.dart';
 import '../services/backup_service.dart';
 import '../services/currency_service.dart';
+import '../services/print_settings_service.dart';
 import '../../data/repositories/product_repository.dart';
 import '../../data/repositories/category_repository.dart';
 import '../../data/repositories/invoice_repository.dart';
@@ -17,6 +18,7 @@ import '../../data/repositories/shift_repository.dart';
 import '../../data/repositories/cash_repository.dart';
 import '../../data/repositories/customer_repository.dart';
 import '../../data/repositories/supplier_repository.dart';
+import '../../data/repositories/voucher_repository.dart';
 
 final getIt = GetIt.instance;
 
@@ -97,6 +99,28 @@ Future<void> configureDependencies() async {
     ),
   );
 
+  // Currency Service
+  getIt.registerSingleton<CurrencyService>(
+    CurrencyService(getIt<SharedPreferences>()),
+  );
+
+  // Voucher Repository (after CurrencyService)
+  getIt.registerSingleton<VoucherRepository>(
+    VoucherRepository(
+      database: getIt<AppDatabase>(),
+      firestore: getIt<FirebaseFirestore>(),
+      currencyService: getIt<CurrencyService>(),
+    ),
+  );
+
+  // Print Settings Service (before SyncService)
+  getIt.registerSingleton<PrintSettingsService>(
+    PrintSettingsService(
+      getIt<AppDatabase>(),
+      getIt<FirebaseFirestore>(),
+    ),
+  );
+
   // Sync Service
   getIt.registerSingleton<SyncService>(
     SyncService(
@@ -107,6 +131,10 @@ Future<void> configureDependencies() async {
       inventoryRepo: getIt<InventoryRepository>(),
       shiftRepo: getIt<ShiftRepository>(),
       cashRepo: getIt<CashRepository>(),
+      customerRepo: getIt<CustomerRepository>(),
+      supplierRepo: getIt<SupplierRepository>(),
+      voucherRepo: getIt<VoucherRepository>(),
+      printSettingsService: getIt<PrintSettingsService>(),
     ),
   );
 
@@ -117,10 +145,5 @@ Future<void> configureDependencies() async {
       firestore: getIt<FirebaseFirestore>(),
       connectivity: getIt<ConnectivityService>(),
     ),
-  );
-
-  // Currency Service
-  getIt.registerSingleton<CurrencyService>(
-    CurrencyService(getIt<SharedPreferences>()),
   );
 }

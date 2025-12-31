@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 
 import '../database/app_database.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/services/currency_service.dart';
+import '../../core/di/injection.dart';
 import 'base_repository.dart';
 
 class CashRepository
@@ -33,6 +35,7 @@ class CashRepository
     String paymentMethod = 'cash',
   }) async {
     final id = generateId();
+    final currencyService = getIt<CurrencyService>();
 
     await database.insertCashMovement(CashMovementsCompanion(
       id: Value(id),
@@ -42,6 +45,7 @@ class CashRepository
       description: Value(description),
       category: Value(category),
       paymentMethod: Value(paymentMethod),
+      exchangeRate: Value(currencyService.exchangeRate),
       syncStatus: const Value('pending'),
       createdAt: Value(DateTime.now()),
     ));
@@ -61,6 +65,7 @@ class CashRepository
     String paymentMethod = 'cash',
   }) async {
     final id = generateId();
+    final currencyService = getIt<CurrencyService>();
 
     await database.insertCashMovement(CashMovementsCompanion(
       id: Value(id),
@@ -70,6 +75,7 @@ class CashRepository
       description: Value(description),
       category: Value(category),
       paymentMethod: Value(paymentMethod),
+      exchangeRate: Value(currencyService.exchangeRate),
       syncStatus: const Value('pending'),
       createdAt: Value(DateTime.now()),
     ));
@@ -88,6 +94,7 @@ class CashRepository
     String paymentMethod = 'cash',
   }) async {
     final id = generateId();
+    final currencyService = getIt<CurrencyService>();
     await database.insertCashMovement(CashMovementsCompanion(
       id: Value(id),
       shiftId: Value(shiftId),
@@ -97,6 +104,7 @@ class CashRepository
       referenceId: Value(invoiceId),
       referenceType: const Value('invoice'),
       paymentMethod: Value(paymentMethod),
+      exchangeRate: Value(currencyService.exchangeRate),
       syncStatus: const Value('pending'),
       createdAt: Value(DateTime.now()),
     ));
@@ -113,6 +121,7 @@ class CashRepository
     String paymentMethod = 'cash',
   }) async {
     final id = generateId();
+    final currencyService = getIt<CurrencyService>();
     await database.insertCashMovement(CashMovementsCompanion(
       id: Value(id),
       shiftId: Value(shiftId),
@@ -122,6 +131,7 @@ class CashRepository
       referenceId: Value(invoiceId),
       referenceType: const Value('invoice'),
       paymentMethod: Value(paymentMethod),
+      exchangeRate: Value(currencyService.exchangeRate),
       syncStatus: const Value('pending'),
       createdAt: Value(DateTime.now()),
     ));

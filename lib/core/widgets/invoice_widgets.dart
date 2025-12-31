@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 import '../../data/database/app_database.dart';
 import '../constants/invoice_types.dart';
 import '../theme/app_colors.dart';
+import '../di/injection.dart';
+import '../services/currency_service.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
 /// ثوابت وبيانات الفواتير الموحدة
@@ -343,6 +345,14 @@ class InvoiceCard extends StatelessWidget {
     this.compact = false,
   });
 
+  /// تحويل المبلغ باستخدام سعر الصرف المحفوظ في الفاتورة
+  String _invoiceToUsd(Invoice inv, double amount) {
+    final currencyService = getIt<CurrencyService>();
+    final rate = inv.exchangeRate ?? currencyService.exchangeRate;
+    if (rate <= 0) return '\$0.00';
+    return '\$${(amount / rate).toStringAsFixed(2)}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final typeInfo = InvoiceTypeInfo.fromType(invoice.type);
@@ -356,16 +366,15 @@ class InvoiceCard extends StatelessWidget {
   }
 
   Widget _buildFullCard(InvoiceTypeInfo typeInfo, DateFormat dateFormat) {
-    return Card(
-      margin: EdgeInsets.only(bottom: 8.h),
-      elevation: 1,
-      shadowColor: Colors.black.withOpacity(0.1),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.r),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12.r),
+    return GestureDetector(
+      onTap: onTap,
+      child: Card(
+        margin: EdgeInsets.only(bottom: 8.h),
+        elevation: 1,
+        shadowColor: Colors.black.withOpacity(0.1),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.r),
+        ),
         child: Padding(
           padding: EdgeInsets.all(12.w),
           child: Row(
@@ -425,13 +434,39 @@ class InvoiceCard extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          formatAmount(invoice.total),
-                          style: TextStyle(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.bold,
-                            color: typeInfo.color,
-                          ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              formatAmount(invoice.total),
+                              style: TextStyle(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.bold,
+                                color: typeInfo.color,
+                              ),
+                            ),
+                            Row(
+                              children: [
+                                Text(
+                                  _invoiceToUsd(invoice, invoice.total),
+                                  style: TextStyle(
+                                    fontSize: 11.sp,
+                                    color: Colors.green.shade600,
+                                  ),
+                                ),
+                                if (invoice.exchangeRate != null) ...[
+                                  Gap(4.w),
+                                  Text(
+                                    '(${NumberFormat('#,###').format(invoice.exchangeRate)})',
+                                    style: TextStyle(
+                                      fontSize: 9.sp,
+                                      color: Colors.blue.shade600,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
                         ),
                         PaymentMethodBadge(method: invoice.paymentMethod),
                       ],
@@ -454,15 +489,14 @@ class InvoiceCard extends StatelessWidget {
   }
 
   Widget _buildCompactCard(InvoiceTypeInfo typeInfo, DateFormat dateFormat) {
-    return Card(
-      margin: EdgeInsets.only(bottom: 8.h),
-      elevation: 0.5,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10.r),
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10.r),
+    return GestureDetector(
+      onTap: onTap,
+      child: Card(
+        margin: EdgeInsets.only(bottom: 8.h),
+        elevation: 0.5,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.r),
+        ),
         child: Padding(
           padding: EdgeInsets.all(10.w),
           child: Row(

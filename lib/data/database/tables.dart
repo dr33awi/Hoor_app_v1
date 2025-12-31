@@ -8,6 +8,7 @@ class Products extends Table {
   TextColumn get barcode => text().nullable()();
   TextColumn get categoryId => text().nullable().references(Categories, #id)();
   RealColumn get purchasePrice => real()();
+  RealColumn get purchasePriceUsd => real().nullable()(); // سعر الشراء بالدولار
   RealColumn get salePrice => real()();
   IntColumn get quantity => integer().withDefault(const Constant(0))();
   IntColumn get minQuantity => integer().withDefault(const Constant(5))();
@@ -42,7 +43,7 @@ class Invoices extends Table {
   TextColumn get id => text()();
   TextColumn get invoiceNumber => text()();
   TextColumn get type =>
-      text()(); // sale, purchase, sale_return, purchase_return, opening_balance
+      text()(); // sale, purchase, sale_return, purchase_return
   TextColumn get customerId => text().nullable().references(Customers, #id)();
   TextColumn get supplierId => text().nullable().references(Suppliers, #id)();
   RealColumn get subtotal => real()();
@@ -50,6 +51,8 @@ class Invoices extends Table {
   RealColumn get discountAmount => real().withDefault(const Constant(0))();
   RealColumn get total => real()();
   RealColumn get paidAmount => real().withDefault(const Constant(0))();
+  RealColumn get exchangeRate =>
+      real().nullable()(); // سعر صرف الدولار وقت إنشاء الفاتورة
   TextColumn get paymentMethod => text().withDefault(const Constant('cash'))();
   TextColumn get status => text().withDefault(const Constant('completed'))();
   TextColumn get notes => text().nullable()();
@@ -87,15 +90,18 @@ class InvoiceItems extends Table {
 class InventoryMovements extends Table {
   TextColumn get id => text()();
   TextColumn get productId => text().references(Products, #id)();
+  TextColumn get warehouseId => text()
+      .nullable()(); // معرف المستودع (nullable للتوافق مع البيانات القديمة)
   TextColumn get type =>
-      text()(); // add, withdraw, return, adjustment, sale, purchase
+      text()(); // add, withdraw, return, adjustment, sale, purchase, transfer_in, transfer_out
   IntColumn get quantity => integer()();
   IntColumn get previousQuantity => integer()();
   IntColumn get newQuantity => integer()();
   TextColumn get reason => text().nullable()();
   TextColumn get referenceId =>
-      text().nullable()(); // Invoice ID or adjustment ID
-  TextColumn get referenceType => text().nullable()(); // invoice, adjustment
+      text().nullable()(); // Invoice ID or adjustment ID or transfer ID
+  TextColumn get referenceType =>
+      text().nullable()(); // invoice, adjustment, transfer
   TextColumn get syncStatus => text().withDefault(const Constant('pending'))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 
@@ -141,6 +147,8 @@ class CashMovements extends Table {
   TextColumn get referenceId => text().nullable()();
   TextColumn get referenceType => text().nullable()();
   TextColumn get paymentMethod => text().withDefault(const Constant('cash'))();
+  RealColumn get exchangeRate =>
+      real().nullable()(); // سعر صرف الدولار وقت الحركة
   TextColumn get syncStatus => text().withDefault(const Constant('pending'))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 
@@ -194,4 +202,126 @@ class Settings extends Table {
 
   @override
   Set<Column> get primaryKey => {key};
+}
+
+/// Warehouses table - جدول المستودعات
+class Warehouses extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()(); // اسم المستودع
+  TextColumn get code => text().nullable()(); // رمز المستودع
+  TextColumn get address => text().nullable()(); // عنوان المستودع
+  TextColumn get phone => text().nullable()(); // رقم الهاتف
+  TextColumn get managerId => text().nullable()(); // مدير المستودع
+  BoolColumn get isDefault => boolean()
+      .withDefault(const Constant(false))(); // هل هو المستودع الافتراضي
+  BoolColumn get isActive =>
+      boolean().withDefault(const Constant(true))(); // هل المستودع نشط
+  TextColumn get notes => text().nullable()(); // ملاحظات
+  TextColumn get syncStatus =>
+      text().withDefault(const Constant('pending'))(); // pending, synced
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Warehouse Stock table - جدول مخزون المستودعات
+class WarehouseStock extends Table {
+  TextColumn get id => text()();
+  TextColumn get warehouseId => text().references(Warehouses, #id)();
+  TextColumn get productId => text().references(Products, #id)();
+  IntColumn get quantity => integer().withDefault(const Constant(0))();
+  IntColumn get minQuantity => integer().withDefault(const Constant(5))();
+  IntColumn get maxQuantity => integer().nullable()(); // الحد الأقصى للمخزون
+  TextColumn get location => text().nullable()(); // موقع المنتج في المستودع
+  TextColumn get syncStatus =>
+      text().withDefault(const Constant('pending'))(); // pending, synced
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Stock Transfers table - جدول نقل المخزون بين المستودعات
+class StockTransfers extends Table {
+  TextColumn get id => text()();
+  TextColumn get transferNumber => text()(); // رقم التحويل
+  TextColumn get fromWarehouseId => text().references(Warehouses, #id)();
+  TextColumn get toWarehouseId => text().references(Warehouses, #id)();
+  TextColumn get status => text().withDefault(
+      const Constant('pending'))(); // pending, in_transit, completed, cancelled
+  TextColumn get notes => text().nullable()();
+  TextColumn get syncStatus =>
+      text().withDefault(const Constant('pending'))(); // pending, synced
+  DateTimeColumn get transferDate =>
+      dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get completedAt => dateTime().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Stock Transfer Items table - جدول عناصر نقل المخزون
+class StockTransferItems extends Table {
+  TextColumn get id => text()();
+  TextColumn get transferId => text().references(StockTransfers, #id)();
+  TextColumn get productId => text().references(Products, #id)();
+  TextColumn get productName => text()();
+  IntColumn get requestedQuantity => integer()(); // الكمية المطلوبة
+  IntColumn get transferredQuantity =>
+      integer().withDefault(const Constant(0))(); // الكمية المحولة فعلياً
+  TextColumn get notes => text().nullable()();
+  TextColumn get syncStatus =>
+      text().withDefault(const Constant('pending'))(); // pending, synced
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Voucher Categories table - تصنيفات السندات
+class VoucherCategories extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()(); // اسم التصنيف
+  TextColumn get type =>
+      text()(); // payment (دفع), receipt (قبض), expense (مصاريف)
+  BoolColumn get isActive =>
+      boolean().withDefault(const Constant(true))(); // هل التصنيف نشط
+  TextColumn get syncStatus =>
+      text().withDefault(const Constant('pending'))(); // pending, synced
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Vouchers table - جدول السندات
+class Vouchers extends Table {
+  TextColumn get id => text()();
+  TextColumn get voucherNumber => text()(); // رقم السند
+  TextColumn get type =>
+      text()(); // payment (دفع), receipt (قبض), expense (مصاريف)
+  TextColumn get categoryId =>
+      text().nullable().references(VoucherCategories, #id)();
+  RealColumn get amount => real()(); // المبلغ بالدينار
+  RealColumn get exchangeRate =>
+      real().withDefault(const Constant(1.0))(); // سعر الصرف وقت الإنشاء
+  TextColumn get description => text().nullable()(); // الوصف/الملاحظات
+  TextColumn get customerId =>
+      text().nullable().references(Customers, #id)(); // العميل (للقبض)
+  TextColumn get supplierId =>
+      text().nullable().references(Suppliers, #id)(); // المورد (للدفع)
+  TextColumn get shiftId =>
+      text().nullable().references(Shifts, #id)(); // رقم الشفت
+  TextColumn get syncStatus =>
+      text().withDefault(const Constant('pending'))(); // pending, synced
+  DateTimeColumn get voucherDate =>
+      dateTime().withDefault(currentDateAndTime)(); // تاريخ السند
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
 }

@@ -16,7 +16,10 @@ class AppConstants {
   static const String cashMovementsCollection = 'cash_movements';
   static const String customersCollection = 'customers';
   static const String suppliersCollection = 'suppliers';
+  static const String vouchersCollection = 'vouchers';
+  static const String voucherCategoriesCollection = 'voucher_categories';
   static const String settingsCollection = 'settings';
+  static const String printSettingsCollection = 'print_settings';
   static const String backupsCollection = 'backups';
   static const String syncLogCollection = 'sync_log';
 
@@ -58,8 +61,7 @@ enum InvoiceType {
   sale('sale', 'فاتورة مبيعات'),
   purchase('purchase', 'فاتورة مشتريات'),
   saleReturn('sale_return', 'مرتجع مبيعات'),
-  purchaseReturn('purchase_return', 'مرتجع مشتريات'),
-  openingBalance('opening_balance', 'فاتورة أول المدة');
+  purchaseReturn('purchase_return', 'مرتجع مشتريات');
 
   final String value;
   final String label;
@@ -99,7 +101,8 @@ enum PaymentMethod {
   cash('cash', 'نقدي'),
   card('card', 'بطاقة'),
   transfer('transfer', 'تحويل'),
-  credit('credit', 'آجل');
+  credit('credit', 'آجل'),
+  partial('partial', 'دفع جزئي');
 
   final String value;
   final String label;

@@ -19,6 +19,7 @@ class ExportMenuButton extends StatelessWidget {
       ExportType.excel,
       ExportType.pdf,
       ExportType.sharePdf,
+      ExportType.shareExcel,
     },
     this.isLoading = false,
     this.icon,

@@ -272,6 +272,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               onTap: () => context.push('/cash'),
             ),
             MenuCard(
+              icon: Icons.receipt,
+              title: 'السندات',
+              subtitle: 'قبض ودفع ومصاريف',
+              color: AppColors.warning,
+              onTap: () => context.push('/vouchers'),
+            ),
+            MenuCard(
               icon: Icons.bar_chart,
               title: 'التقارير',
               subtitle: 'تقارير شاملة',

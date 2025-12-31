@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/invoice_widgets.dart';
+import '../../../core/services/currency_service.dart';
 import '../../../data/database/app_database.dart';
 import '../../../data/repositories/shift_repository.dart';
 import '../../../data/repositories/cash_repository.dart';
@@ -83,8 +84,9 @@ class _CashScreenBody extends StatelessWidget {
   final ShiftRepository shiftRepo;
   final CashRepository cashRepo;
   final Shift currentShift;
+  final CurrencyService _currencyService = getIt<CurrencyService>();
 
-  const _CashScreenBody({
+  _CashScreenBody({
     required this.shiftRepo,
     required this.cashRepo,
     required this.currentShift,
@@ -103,6 +105,10 @@ class _CashScreenBody extends StatelessWidget {
             stream: cashRepo.watchShiftCashSummary(currentShift.id),
             builder: (context, snapshot) {
               final summary = snapshot.data ?? {};
+              final totalBalance = currentShift.openingBalance +
+                  (summary['netCash'] ?? 0).toDouble();
+              final balanceInUsd = _currencyService.sypToUsd(totalBalance);
+
               return Container(
                 margin: EdgeInsets.all(16.w),
                 padding: EdgeInsets.all(16.w),
@@ -125,15 +131,49 @@ class _CashScreenBody extends StatelessWidget {
                     ),
                     Gap(8.h),
                     Text(
-                      formatPrice(currentShift.openingBalance +
-                          (summary['netCash'] ?? 0).toDouble()),
+                      formatPrice(totalBalance),
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 32.sp,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Gap(16.h),
+                    // عرض القيمة بالدولار
+                    Container(
+                      margin: EdgeInsets.only(top: 4.h),
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 12.w, vertical: 4.h),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade700,
+                        borderRadius: BorderRadius.circular(16.r),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.attach_money,
+                              color: Colors.white, size: 16.sp),
+                          Gap(4.w),
+                          Text(
+                            '\$${balanceInUsd.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Gap(8.h),
+                    // سعر الصرف الحالي
+                    Text(
+                      'سعر الصرف: 1\$ = ${_currencyService.exchangeRate.toStringAsFixed(0)} ل.س',
+                      style: TextStyle(
+                        color: Colors.white60,
+                        fontSize: 10.sp,
+                      ),
+                    ),
+                    Gap(12.h),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
@@ -141,16 +181,19 @@ class _CashScreenBody extends StatelessWidget {
                           label: 'المبيعات',
                           value: summary['totalSales'] ?? 0,
                           icon: Icons.trending_up,
+                          currencyService: _currencyService,
                         ),
                         _BalanceItem(
                           label: 'الإيرادات',
                           value: summary['totalIncome'] ?? 0,
                           icon: Icons.add_circle,
+                          currencyService: _currencyService,
                         ),
                         _BalanceItem(
                           label: 'المصروفات',
                           value: summary['totalExpense'] ?? 0,
                           icon: Icons.remove_circle,
+                          currencyService: _currencyService,
                         ),
                       ],
                     ),
@@ -338,15 +381,18 @@ class _BalanceItem extends StatelessWidget {
   final String label;
   final double value;
   final IconData icon;
+  final CurrencyService currencyService;
 
   const _BalanceItem({
     required this.label,
     required this.value,
     required this.icon,
+    required this.currencyService,
   });
 
   @override
   Widget build(BuildContext context) {
+    final valueInUsd = currencyService.sypToUsd(value);
     return Column(
       children: [
         Icon(icon, color: Colors.white70, size: 20.sp),
@@ -357,6 +403,14 @@ class _BalanceItem extends StatelessWidget {
             color: Colors.white,
             fontSize: 14.sp,
             fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          '\$${valueInUsd.toStringAsFixed(2)}',
+          style: TextStyle(
+            color: Colors.greenAccent,
+            fontSize: 10.sp,
+            fontWeight: FontWeight.w500,
           ),
         ),
         Text(
@@ -373,8 +427,16 @@ class _BalanceItem extends StatelessWidget {
 
 class _MovementCard extends StatelessWidget {
   final CashMovement movement;
+  final CurrencyService _currencyService = getIt<CurrencyService>();
 
-  const _MovementCard({required this.movement});
+  _MovementCard({required this.movement});
+
+  /// تحويل المبلغ باستخدام سعر الصرف المحفوظ في الحركة
+  String _toUsd(double amount) {
+    final rate = movement.exchangeRate ?? _currencyService.exchangeRate;
+    if (rate <= 0) return '\$0.00';
+    return '\$${(amount / rate).toStringAsFixed(2)}';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -382,6 +444,7 @@ class _MovementCard extends StatelessWidget {
         movement.type == 'sale' ||
         movement.type == 'opening';
     final timeFormat = DateFormat('HH:mm');
+    final amountInUsd = _toUsd(movement.amount);
 
     IconData icon;
     String typeLabel;
@@ -449,13 +512,42 @@ class _MovementCard extends StatelessWidget {
             ),
           ],
         ),
-        trailing: Text(
-          '${isPositive ? '+' : '-'}${formatPrice(movement.amount)}',
-          style: TextStyle(
-            fontSize: 16.sp,
-            fontWeight: FontWeight.bold,
-            color: isPositive ? AppColors.success : AppColors.error,
-          ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              '${isPositive ? '+' : '-'}${formatPrice(movement.amount)}',
+              style: TextStyle(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.bold,
+                color: isPositive ? AppColors.success : AppColors.error,
+              ),
+            ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${isPositive ? '+' : '-'}$amountInUsd',
+                  style: TextStyle(
+                    fontSize: 11.sp,
+                    color: Colors.green.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                if (movement.exchangeRate != null) ...[
+                  Gap(2.w),
+                  Text(
+                    '(${NumberFormat('#,###').format(movement.exchangeRate)})',
+                    style: TextStyle(
+                      fontSize: 9.sp,
+                      color: Colors.blue.shade600,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
         ),
       ),
     );

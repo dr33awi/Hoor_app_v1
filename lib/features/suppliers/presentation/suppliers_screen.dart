@@ -363,14 +363,6 @@ class _SuppliersScreenState extends ConsumerState<SuppliersScreen> {
                 Gap(8.h),
               ],
 
-              _DetailRow(
-                icon: Icons.account_balance_wallet,
-                label: 'المستحق',
-                value: formatPrice(supplier.balance),
-                valueColor:
-                    supplier.balance >= 0 ? AppColors.success : AppColors.error,
-              ),
-
               if (supplier.notes != null)
                 _DetailRow(
                     icon: Icons.note, label: 'ملاحظات', value: supplier.notes!),
@@ -494,26 +486,9 @@ class _SupplierCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '${supplier.balance.toStringAsFixed(2)}',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: supplier.balance >= 0
-                          ? AppColors.success
-                          : AppColors.error,
-                    ),
-                  ),
-                  Text(
-                    'ل.س',
-                    style: TextStyle(
-                      fontSize: 10.sp,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
+              Icon(
+                Icons.chevron_right,
+                color: AppColors.textSecondary,
               ),
             ],
           ),

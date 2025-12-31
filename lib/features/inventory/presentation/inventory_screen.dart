@@ -9,6 +9,7 @@ import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/invoice_widgets.dart';
 import '../../../core/services/export/export_services.dart';
+import '../../../core/services/currency_service.dart';
 import '../../../data/database/app_database.dart';
 import '../../../data/repositories/inventory_repository.dart';
 import '../../../data/repositories/product_repository.dart';
@@ -496,6 +497,7 @@ class _InventoryCountTab extends StatefulWidget {
 
 class _InventoryCountTabState extends State<_InventoryCountTab> {
   final Map<String, int> _countedQuantities = {};
+  final CurrencyService _currencyService = getIt<CurrencyService>();
   List<Product> _products = [];
   Map<String, int> _soldQuantities = {};
   bool _isLoading = true;
@@ -644,25 +646,48 @@ class _InventoryCountTabState extends State<_InventoryCountTab> {
                           children: [
                             Text('قيمة التكلفة:',
                                 style: TextStyle(fontSize: 13.sp)),
-                            Text(
-                              formatPrice(_totalCostValue),
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 13.sp),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  formatPrice(_totalCostValue),
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13.sp),
+                                ),
+                                Text(
+                                  '\$${_currencyService.sypToUsd(_totalCostValue).toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                      fontSize: 11.sp,
+                                      color: Colors.green.shade600),
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                        Gap(4.h),
+                        Gap(8.h),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text('قيمة البيع:',
                                 style: TextStyle(fontSize: 13.sp)),
-                            Text(
-                              formatPrice(_totalSaleValue),
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13.sp,
-                                  color: AppColors.success),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  formatPrice(_totalSaleValue),
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13.sp,
+                                      color: AppColors.success),
+                                ),
+                                Text(
+                                  '\$${_currencyService.sypToUsd(_totalSaleValue).toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                      fontSize: 11.sp,
+                                      color: Colors.green.shade600),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -676,14 +701,42 @@ class _InventoryCountTabState extends State<_InventoryCountTab> {
                                 style: TextStyle(
                                     fontSize: 13.sp,
                                     fontWeight: FontWeight.bold)),
-                            Text(
-                              formatPrice(_totalSaleValue - _totalCostValue),
-                              style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14.sp,
-                                  color: AppColors.primary),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  formatPrice(
+                                      _totalSaleValue - _totalCostValue),
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14.sp,
+                                      color: AppColors.primary),
+                                ),
+                                Text(
+                                  '\$${_currencyService.sypToUsd(_totalSaleValue - _totalCostValue).toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                      fontSize: 11.sp,
+                                      color: Colors.green.shade600,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ],
                             ),
                           ],
+                        ),
+                        Gap(8.h),
+                        // سعر الصرف
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 8.w, vertical: 4.h),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(4.r),
+                          ),
+                          child: Text(
+                            'سعر الصرف: 1\$ = ${_currencyService.exchangeRate.toStringAsFixed(0)} ل.س',
+                            style: TextStyle(
+                                fontSize: 10.sp, color: Colors.grey.shade600),
+                          ),
                         ),
                       ],
                     ),

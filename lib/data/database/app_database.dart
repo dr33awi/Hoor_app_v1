@@ -19,12 +19,18 @@ part 'app_database.g.dart';
   Customers,
   Suppliers,
   Settings,
+  VoucherCategories,
+  Vouchers,
+  Warehouses,
+  WarehouseStock,
+  StockTransfers,
+  StockTransferItems,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration {
@@ -34,6 +40,48 @@ class AppDatabase extends _$AppDatabase {
       },
       onUpgrade: (Migrator m, int from, int to) async {
         // Handle migrations here
+        if (from < 2) {
+          // إضافة عمود سعر الشراء بالدولار
+          await m.addColumn(products, products.purchasePriceUsd);
+        }
+        if (from < 3) {
+          // إضافة عمود سعر الصرف للفواتير
+          await m.addColumn(invoices, invoices.exchangeRate);
+        }
+        if (from < 4) {
+          // إضافة عمود سعر الصرف لحركات الصندوق
+          await m.addColumn(cashMovements, cashMovements.exchangeRate);
+        }
+        if (from < 5) {
+          // إنشاء جداول السندات
+          await m.createTable(voucherCategories);
+          await m.createTable(vouchers);
+        }
+        if (from < 6) {
+          // إضافة عمود syncStatus للسندات وتصنيفات السندات
+          await customStatement(
+            "ALTER TABLE voucher_categories ADD COLUMN sync_status TEXT NOT NULL DEFAULT 'pending'",
+          );
+          await customStatement(
+            "ALTER TABLE vouchers ADD COLUMN sync_status TEXT NOT NULL DEFAULT 'pending'",
+          );
+        }
+        if (from < 7) {
+          // إنشاء جداول المستودعات
+          await m.createTable(warehouses);
+          await m.createTable(warehouseStock);
+          await m.createTable(stockTransfers);
+          await m.createTable(stockTransferItems);
+          // إضافة عمود warehouseId لحركات المخزون
+          await customStatement(
+            "ALTER TABLE inventory_movements ADD COLUMN warehouse_id TEXT",
+          );
+          // إنشاء مستودع افتراضي
+          await customStatement('''
+            INSERT INTO warehouses (id, name, code, is_default, is_active, sync_status, created_at, updated_at)
+            VALUES ('default_warehouse', 'المستودع الرئيسي', 'MAIN', 1, 1, 'pending', datetime('now'), datetime('now'))
+          ''');
+        }
       },
     );
   }
@@ -129,6 +177,7 @@ class AppDatabase extends _$AppDatabase {
       barcode: product.barcode,
       categoryId: product.categoryId,
       purchasePrice: product.purchasePrice,
+      purchasePriceUsd: product.purchasePriceUsd,
       salePrice: product.salePrice,
       quantity: product.quantity,
       minQuantity: product.minQuantity,
@@ -706,6 +755,424 @@ class AppDatabase extends _$AppDatabase {
               'sku': row.readNullable<String>('sku'),
               'totalQuantity': row.read<int>('total_quantity'),
               'totalAmount': row.read<double>('total_amount'),
+            })
+        .toList();
+  }
+
+  // ==================== Voucher Categories ====================
+
+  Future<List<VoucherCategory>> getAllVoucherCategories() =>
+      select(voucherCategories).get();
+
+  Stream<List<VoucherCategory>> watchAllVoucherCategories() =>
+      select(voucherCategories).watch();
+
+  Future<List<VoucherCategory>> getVoucherCategoriesByType(String type) =>
+      (select(voucherCategories)..where((c) => c.type.equals(type))).get();
+
+  Stream<List<VoucherCategory>> watchActiveVoucherCategories() =>
+      (select(voucherCategories)..where((c) => c.isActive.equals(true)))
+          .watch();
+
+  Future<VoucherCategory?> getVoucherCategoryById(String id) =>
+      (select(voucherCategories)..where((c) => c.id.equals(id)))
+          .getSingleOrNull();
+
+  Future<int> insertVoucherCategory(VoucherCategoriesCompanion category) =>
+      into(voucherCategories).insert(category);
+
+  Future<int> updateVoucherCategory(VoucherCategoriesCompanion category) =>
+      (update(voucherCategories)..where((c) => c.id.equals(category.id.value)))
+          .write(category);
+
+  Future<int> deleteVoucherCategory(String id) =>
+      (delete(voucherCategories)..where((c) => c.id.equals(id))).go();
+
+  // ==================== Vouchers ====================
+
+  Future<List<Voucher>> getAllVouchers() => select(vouchers).get();
+
+  Stream<List<Voucher>> watchAllVouchers() => select(vouchers).watch();
+
+  Future<List<Voucher>> getVouchersByType(String type) =>
+      (select(vouchers)..where((v) => v.type.equals(type))).get();
+
+  Stream<List<Voucher>> watchVouchersByType(String type) =>
+      (select(vouchers)..where((v) => v.type.equals(type))).watch();
+
+  Future<List<Voucher>> getVouchersByDateRange(DateTime start, DateTime end) =>
+      (select(vouchers)
+            ..where((v) =>
+                v.voucherDate.isBiggerOrEqualValue(start) &
+                v.voucherDate.isSmallerOrEqualValue(end))
+            ..orderBy([(v) => OrderingTerm.desc(v.voucherDate)]))
+          .get();
+
+  Stream<List<Voucher>> watchVouchersByDateRange(
+          DateTime start, DateTime end) =>
+      (select(vouchers)
+            ..where((v) =>
+                v.voucherDate.isBiggerOrEqualValue(start) &
+                v.voucherDate.isSmallerOrEqualValue(end))
+            ..orderBy([(v) => OrderingTerm.desc(v.voucherDate)]))
+          .watch();
+
+  Future<List<Voucher>> getVouchersByShift(String shiftId) =>
+      (select(vouchers)..where((v) => v.shiftId.equals(shiftId))).get();
+
+  Stream<List<Voucher>> watchVouchersByShift(String shiftId) =>
+      (select(vouchers)..where((v) => v.shiftId.equals(shiftId))).watch();
+
+  Future<Voucher?> getVoucherById(String id) =>
+      (select(vouchers)..where((v) => v.id.equals(id))).getSingleOrNull();
+
+  Future<int> insertVoucher(VouchersCompanion voucher) =>
+      into(vouchers).insert(voucher);
+
+  Future<int> updateVoucher(VouchersCompanion voucher) =>
+      (update(vouchers)..where((v) => v.id.equals(voucher.id.value)))
+          .write(voucher);
+
+  Future<int> deleteVoucher(String id) =>
+      (delete(vouchers)..where((v) => v.id.equals(id))).go();
+
+  /// الحصول على مجموع السندات حسب النوع لفترة معينة
+  Future<Map<String, double>> getVoucherSummaryByType(
+      DateTime start, DateTime end) async {
+    final result = await customSelect(
+      '''
+      SELECT type, SUM(amount) as total
+      FROM vouchers
+      WHERE voucher_date BETWEEN ? AND ?
+      GROUP BY type
+      ''',
+      variables: [
+        Variable.withDateTime(start),
+        Variable.withDateTime(end),
+      ],
+      readsFrom: {vouchers},
+    ).get();
+
+    final summary = <String, double>{
+      'payment': 0.0,
+      'receipt': 0.0,
+      'expense': 0.0,
+    };
+
+    for (final row in result) {
+      final type = row.read<String>('type');
+      final total = row.read<double>('total');
+      summary[type] = total;
+    }
+
+    return summary;
+  }
+
+  // ==================== Warehouses ====================
+
+  Future<List<Warehouse>> getAllWarehouses() => select(warehouses).get();
+
+  Stream<List<Warehouse>> watchAllWarehouses() => select(warehouses).watch();
+
+  Stream<List<Warehouse>> watchActiveWarehouses() =>
+      (select(warehouses)..where((w) => w.isActive.equals(true))).watch();
+
+  Future<Warehouse?> getWarehouseById(String id) =>
+      (select(warehouses)..where((w) => w.id.equals(id))).getSingleOrNull();
+
+  Future<Warehouse?> getDefaultWarehouse() =>
+      (select(warehouses)..where((w) => w.isDefault.equals(true)))
+          .getSingleOrNull();
+
+  Future<int> insertWarehouse(WarehousesCompanion warehouse) =>
+      into(warehouses).insert(warehouse);
+
+  Future<int> updateWarehouse(WarehousesCompanion warehouse) =>
+      (update(warehouses)..where((w) => w.id.equals(warehouse.id.value)))
+          .write(warehouse);
+
+  Future<int> deleteWarehouse(String id) =>
+      (delete(warehouses)..where((w) => w.id.equals(id))).go();
+
+  /// تعيين مستودع كافتراضي
+  Future<void> setDefaultWarehouse(String warehouseId) async {
+    await customStatement(
+        "UPDATE warehouses SET is_default = 0 WHERE is_default = 1");
+    await (update(warehouses)..where((w) => w.id.equals(warehouseId)))
+        .write(const WarehousesCompanion(isDefault: Value(true)));
+  }
+
+  // ==================== Warehouse Stock ====================
+
+  Future<List<WarehouseStockData>> getAllWarehouseStock() =>
+      select(warehouseStock).get();
+
+  Stream<List<WarehouseStockData>> watchAllWarehouseStock() =>
+      select(warehouseStock).watch();
+
+  Future<List<WarehouseStockData>> getWarehouseStockByWarehouse(
+          String warehouseId) =>
+      (select(warehouseStock)..where((s) => s.warehouseId.equals(warehouseId)))
+          .get();
+
+  Stream<List<WarehouseStockData>> watchWarehouseStockByWarehouse(
+          String warehouseId) =>
+      (select(warehouseStock)..where((s) => s.warehouseId.equals(warehouseId)))
+          .watch();
+
+  Future<List<WarehouseStockData>> getWarehouseStockByProduct(
+          String productId) =>
+      (select(warehouseStock)..where((s) => s.productId.equals(productId)))
+          .get();
+
+  Future<WarehouseStockData?> getWarehouseStockByProductAndWarehouse(
+          String productId, String warehouseId) =>
+      (select(warehouseStock)
+            ..where((s) =>
+                s.productId.equals(productId) &
+                s.warehouseId.equals(warehouseId)))
+          .getSingleOrNull();
+
+  Future<int> insertWarehouseStock(WarehouseStockCompanion stock) =>
+      into(warehouseStock).insert(stock);
+
+  Future<int> updateWarehouseStock(WarehouseStockCompanion stock) =>
+      (update(warehouseStock)..where((s) => s.id.equals(stock.id.value)))
+          .write(stock);
+
+  Future<void> updateWarehouseStockQuantity(
+      String warehouseId, String productId, int newQuantity) async {
+    await (update(warehouseStock)
+          ..where((s) =>
+              s.warehouseId.equals(warehouseId) &
+              s.productId.equals(productId)))
+        .write(WarehouseStockCompanion(
+      quantity: Value(newQuantity),
+      updatedAt: Value(DateTime.now()),
+      syncStatus: const Value('pending'),
+    ));
+  }
+
+  Future<int> deleteWarehouseStock(String id) =>
+      (delete(warehouseStock)..where((s) => s.id.equals(id))).go();
+
+  /// الحصول على إجمالي المخزون لمنتج في جميع المستودعات
+  Future<int> getTotalStockForProduct(String productId) async {
+    final result = await customSelect(
+      'SELECT COALESCE(SUM(quantity), 0) as total FROM warehouse_stock WHERE product_id = ?',
+      variables: [Variable.withString(productId)],
+      readsFrom: {warehouseStock},
+    ).getSingleOrNull();
+    return result?.read<int>('total') ?? 0;
+  }
+
+  /// الحصول على المنتجات ذات المخزون المنخفض في مستودع معين
+  Future<List<Map<String, dynamic>>> getLowStockInWarehouse(
+      String warehouseId) async {
+    final result = await customSelect(
+      '''
+      SELECT ws.*, p.name as product_name, p.sku
+      FROM warehouse_stock ws
+      JOIN products p ON ws.product_id = p.id
+      WHERE ws.warehouse_id = ? AND ws.quantity <= ws.min_quantity
+      ''',
+      variables: [Variable.withString(warehouseId)],
+      readsFrom: {warehouseStock, products},
+    ).get();
+
+    return result
+        .map((row) => {
+              'id': row.read<String>('id'),
+              'productId': row.read<String>('product_id'),
+              'productName': row.read<String>('product_name'),
+              'sku': row.readNullable<String>('sku'),
+              'quantity': row.read<int>('quantity'),
+              'minQuantity': row.read<int>('min_quantity'),
+            })
+        .toList();
+  }
+
+  // ==================== Stock Transfers ====================
+
+  Future<List<StockTransfer>> getAllStockTransfers() =>
+      (select(stockTransfers)..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+          .get();
+
+  Stream<List<StockTransfer>> watchAllStockTransfers() =>
+      (select(stockTransfers)..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+          .watch();
+
+  Future<List<StockTransfer>> getStockTransfersByStatus(String status) =>
+      (select(stockTransfers)
+            ..where((t) => t.status.equals(status))
+            ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+          .get();
+
+  Stream<List<StockTransfer>> watchPendingStockTransfers() =>
+      (select(stockTransfers)
+            ..where((t) =>
+                t.status.equals('pending') | t.status.equals('in_transit'))
+            ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+          .watch();
+
+  Future<StockTransfer?> getStockTransferById(String id) =>
+      (select(stockTransfers)..where((t) => t.id.equals(id))).getSingleOrNull();
+
+  Future<int> insertStockTransfer(StockTransfersCompanion transfer) =>
+      into(stockTransfers).insert(transfer);
+
+  Future<int> updateStockTransfer(StockTransfersCompanion transfer) =>
+      (update(stockTransfers)..where((t) => t.id.equals(transfer.id.value)))
+          .write(transfer);
+
+  Future<int> deleteStockTransfer(String id) =>
+      (delete(stockTransfers)..where((t) => t.id.equals(id))).go();
+
+  // ==================== Stock Transfer Items ====================
+
+  Future<List<StockTransferItem>> getStockTransferItems(String transferId) =>
+      (select(stockTransferItems)
+            ..where((i) => i.transferId.equals(transferId)))
+          .get();
+
+  Future<int> insertStockTransferItem(StockTransferItemsCompanion item) =>
+      into(stockTransferItems).insert(item);
+
+  Future<void> insertStockTransferItems(
+      List<StockTransferItemsCompanion> items) async {
+    await batch((batch) {
+      batch.insertAll(stockTransferItems, items);
+    });
+  }
+
+  Future<int> updateStockTransferItem(StockTransferItemsCompanion item) =>
+      (update(stockTransferItems)..where((i) => i.id.equals(item.id.value)))
+          .write(item);
+
+  Future<int> deleteStockTransferItems(String transferId) =>
+      (delete(stockTransferItems)
+            ..where((i) => i.transferId.equals(transferId)))
+          .go();
+
+  /// إكمال عملية نقل المخزون
+  Future<void> completeStockTransfer(String transferId) async {
+    final transfer = await getStockTransferById(transferId);
+    if (transfer == null) return;
+
+    final items = await getStockTransferItems(transferId);
+
+    await transaction(() async {
+      for (final item in items) {
+        // خصم من المستودع المصدر
+        final fromStock = await getWarehouseStockByProductAndWarehouse(
+            item.productId, transfer.fromWarehouseId);
+        if (fromStock != null) {
+          final newFromQty = fromStock.quantity - item.requestedQuantity;
+          await updateWarehouseStockQuantity(
+              transfer.fromWarehouseId, item.productId, newFromQty);
+
+          // تسجيل حركة خروج
+          await insertInventoryMovement(InventoryMovementsCompanion(
+            id: Value(
+                'mov_${DateTime.now().millisecondsSinceEpoch}_out_${item.productId}'),
+            productId: Value(item.productId),
+            warehouseId: Value(transfer.fromWarehouseId),
+            type: const Value('transfer_out'),
+            quantity: Value(item.requestedQuantity),
+            previousQuantity: Value(fromStock.quantity),
+            newQuantity: Value(newFromQty),
+            reason: Value('نقل إلى مستودع آخر'),
+            referenceId: Value(transferId),
+            referenceType: const Value('transfer'),
+          ));
+        }
+
+        // إضافة إلى المستودع الهدف
+        var toStock = await getWarehouseStockByProductAndWarehouse(
+            item.productId, transfer.toWarehouseId);
+        if (toStock == null) {
+          // إنشاء سجل مخزون جديد
+          await insertWarehouseStock(WarehouseStockCompanion(
+            id: Value(
+                'ws_${DateTime.now().millisecondsSinceEpoch}_${item.productId}'),
+            warehouseId: Value(transfer.toWarehouseId),
+            productId: Value(item.productId),
+            quantity: Value(item.requestedQuantity),
+          ));
+          toStock = WarehouseStockData(
+            id: '',
+            warehouseId: transfer.toWarehouseId,
+            productId: item.productId,
+            quantity: 0,
+            minQuantity: 5,
+            maxQuantity: null,
+            location: null,
+            syncStatus: 'pending',
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          );
+        } else {
+          final newToQty = toStock.quantity + item.requestedQuantity;
+          await updateWarehouseStockQuantity(
+              transfer.toWarehouseId, item.productId, newToQty);
+        }
+
+        // تسجيل حركة دخول
+        await insertInventoryMovement(InventoryMovementsCompanion(
+          id: Value(
+              'mov_${DateTime.now().millisecondsSinceEpoch}_in_${item.productId}'),
+          productId: Value(item.productId),
+          warehouseId: Value(transfer.toWarehouseId),
+          type: const Value('transfer_in'),
+          quantity: Value(item.requestedQuantity),
+          previousQuantity: Value(toStock.quantity),
+          newQuantity: Value(toStock.quantity + item.requestedQuantity),
+          reason: Value('نقل من مستودع آخر'),
+          referenceId: Value(transferId),
+          referenceType: const Value('transfer'),
+        ));
+
+        // تحديث الكمية المحولة
+        await updateStockTransferItem(StockTransferItemsCompanion(
+          id: Value(item.id),
+          transferredQuantity: Value(item.requestedQuantity),
+        ));
+      }
+
+      // تحديث حالة التحويل
+      await updateStockTransfer(StockTransfersCompanion(
+        id: Value(transferId),
+        status: const Value('completed'),
+        completedAt: Value(DateTime.now()),
+      ));
+    });
+  }
+
+  /// الحصول على ملخص المخزون لجميع المستودعات
+  Future<List<Map<String, dynamic>>> getWarehouseStockSummary() async {
+    final result = await customSelect(
+      '''
+      SELECT 
+        w.id as warehouse_id,
+        w.name as warehouse_name,
+        COUNT(DISTINCT ws.product_id) as product_count,
+        COALESCE(SUM(ws.quantity), 0) as total_quantity,
+        COALESCE(SUM(CASE WHEN ws.quantity <= ws.min_quantity THEN 1 ELSE 0 END), 0) as low_stock_count
+      FROM warehouses w
+      LEFT JOIN warehouse_stock ws ON w.id = ws.warehouse_id
+      WHERE w.is_active = 1
+      GROUP BY w.id
+      ''',
+      readsFrom: {warehouses, warehouseStock},
+    ).get();
+
+    return result
+        .map((row) => {
+              'warehouseId': row.read<String>('warehouse_id'),
+              'warehouseName': row.read<String>('warehouse_name'),
+              'productCount': row.read<int>('product_count'),
+              'totalQuantity': row.read<int>('total_quantity'),
+              'lowStockCount': row.read<int>('low_stock_count'),
             })
         .toList();
   }

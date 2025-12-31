@@ -350,14 +350,6 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
                 Gap(8.h),
               ],
 
-              _DetailRow(
-                icon: Icons.account_balance_wallet,
-                label: 'الرصيد',
-                value: formatPrice(customer.balance),
-                valueColor:
-                    customer.balance >= 0 ? AppColors.success : AppColors.error,
-              ),
-
               Gap(16.h),
               Divider(),
               Gap(8.h),
@@ -480,26 +472,9 @@ class _CustomerCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '${customer.balance.toStringAsFixed(2)}',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: customer.balance >= 0
-                          ? AppColors.success
-                          : AppColors.error,
-                    ),
-                  ),
-                  Text(
-                    'ل.س',
-                    style: TextStyle(
-                      fontSize: 10.sp,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
+              Icon(
+                Icons.chevron_right,
+                color: AppColors.textSecondary,
               ),
             ],
           ),

@@ -8,6 +8,7 @@ import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../export/export_templates.dart';
+import '../currency_service.dart';
 import '../../theme/pdf_theme.dart';
 
 /// أحجام الطباعة المدعومة للفواتير
@@ -26,11 +27,14 @@ class InvoicePrintOptions {
   final bool showNotes;
   final bool showPaymentMethod;
   final bool showTaxDetails;
+  final bool showExchangeRate; // عرض سعر الصرف والسعر بالدولار
   final Uint8List? logoBytes;
   final String? companyName;
   final String? companyAddress;
   final String? companyPhone;
   final String? companyTaxNumber;
+  final String? footerMessage;
+  final bool showInvoiceBarcode;
 
   const InvoicePrintOptions({
     this.size = InvoicePrintSize.a4,
@@ -40,11 +44,14 @@ class InvoicePrintOptions {
     this.showNotes = true,
     this.showPaymentMethod = true,
     this.showTaxDetails = true,
+    this.showExchangeRate = true,
     this.logoBytes,
     this.companyName,
     this.companyAddress,
     this.companyPhone,
     this.companyTaxNumber,
+    this.footerMessage,
+    this.showInvoiceBarcode = false,
   });
 
   InvoicePrintOptions copyWith({
@@ -55,11 +62,14 @@ class InvoicePrintOptions {
     bool? showNotes,
     bool? showPaymentMethod,
     bool? showTaxDetails,
+    bool? showExchangeRate,
     Uint8List? logoBytes,
     String? companyName,
     String? companyAddress,
     String? companyPhone,
     String? companyTaxNumber,
+    String? footerMessage,
+    bool? showInvoiceBarcode,
   }) {
     return InvoicePrintOptions(
       size: size ?? this.size,
@@ -69,11 +79,14 @@ class InvoicePrintOptions {
       showNotes: showNotes ?? this.showNotes,
       showPaymentMethod: showPaymentMethod ?? this.showPaymentMethod,
       showTaxDetails: showTaxDetails ?? this.showTaxDetails,
+      showExchangeRate: showExchangeRate ?? this.showExchangeRate,
       logoBytes: logoBytes ?? this.logoBytes,
       companyName: companyName ?? this.companyName,
       companyAddress: companyAddress ?? this.companyAddress,
       companyPhone: companyPhone ?? this.companyPhone,
       companyTaxNumber: companyTaxNumber ?? this.companyTaxNumber,
+      footerMessage: footerMessage ?? this.footerMessage,
+      showInvoiceBarcode: showInvoiceBarcode ?? this.showInvoiceBarcode,
     );
   }
 }
@@ -117,6 +130,7 @@ class InvoiceData {
   final String? paymentMethod; // cash, credit, deferred
   final String? notes;
   final String? createdBy;
+  final double exchangeRate; // سعر الصرف (دولار/ليرة)
 
   const InvoiceData({
     required this.invoiceNumber,
@@ -135,6 +149,7 @@ class InvoiceData {
     this.paymentMethod,
     this.notes,
     this.createdBy,
+    this.exchangeRate = 0,
   });
 }
 
@@ -205,6 +220,14 @@ class InvoicePdfGenerator {
     dynamic customer,
     dynamic supplier,
   ) {
+    // الحصول على سعر الصرف من الفاتورة إن وجد
+    double exchangeRate = 0;
+    try {
+      exchangeRate = invoice.exchangeRate ?? 0;
+    } catch (_) {
+      exchangeRate = 0;
+    }
+
     return InvoiceData(
       invoiceNumber: invoice.invoiceNumber,
       date: invoice.invoiceDate,
@@ -226,8 +249,11 @@ class InvoicePdfGenerator {
       subtotal: invoice.subtotal,
       discount: invoice.discountAmount,
       total: invoice.total,
+      paidAmount: invoice.paidAmount,
+      remainingAmount: invoice.total - (invoice.paidAmount ?? 0.0),
       paymentMethod: invoice.paymentMethod,
       notes: invoice.notes,
+      exchangeRate: exchangeRate,
     );
   }
 
@@ -313,23 +339,15 @@ class InvoicePdfGenerator {
     );
   }
 
-  // ==================== فاتورة A4 (باستخدام القالب الموحد) ====================
+  // ==================== فاتورة A4 (بتصميم بسيط ومرتب) ====================
 
   pw.Page _buildA4Invoice(InvoiceData invoice, InvoicePrintOptions options) {
     final invoiceColor = _getInvoiceColor(invoice.invoiceType);
 
-    // استخدام القالب الموحد
-    final template = PdfReportTemplate(
-      title: _getInvoiceTypeLabel(invoice.invoiceType),
-      subtitle: 'رقم الفاتورة: ${invoice.invoiceNumber}',
-      reportDate: invoice.date,
-      headerColor: invoiceColor,
-    );
-
     return pw.Page(
       pageFormat: PdfPageFormat.a4,
       textDirection: pw.TextDirection.rtl,
-      margin: const pw.EdgeInsets.all(40),
+      margin: const pw.EdgeInsets.all(32),
       theme: PdfTheme.create(),
       build: (context) {
         return pw.Directionality(
@@ -337,103 +355,774 @@ class InvoicePdfGenerator {
           child: pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.stretch,
             children: [
-              // الرأس الموحد
-              template.buildHeader(),
+              // ═══════════════ الرأس ═══════════════
+              _buildSimpleHeader(invoice, options, invoiceColor),
+              pw.SizedBox(height: 20),
+
+              // ═══════════════ معلومات الشركة والعميل/المورد ═══════════════
+              _buildCompanyAndCustomerRow(invoice, options, invoiceColor),
               pw.SizedBox(height: 16),
 
-              // صندوق الإحصائيات الموحد
-              template.buildStatsBox([
-                StatItem(
-                  label: 'عدد الأصناف',
-                  value: '${invoice.items.length}',
-                ),
-                StatItem(
-                  label: 'المجموع الفرعي',
-                  value: ExportFormatters.formatPrice(invoice.subtotal),
-                ),
-                if (invoice.discount > 0)
-                  StatItem(
-                    label: 'الخصم',
-                    value: ExportFormatters.formatPrice(invoice.discount),
-                    color: ExportColors.error,
-                  ),
-                StatItem(
-                  label: 'الإجمالي',
-                  value: ExportFormatters.formatPrice(invoice.total),
-                  color: ExportColors.success,
-                ),
-              ]),
+              // ═══════════════ جدول المنتجات ═══════════════
+              _buildSimpleItemsTable(invoice, invoiceColor),
               pw.SizedBox(height: 16),
 
-              // معلومات العميل/المورد
-              if (options.showCustomerInfo && invoice.customerName != null) ...[
-                _buildUnifiedCustomerInfoBox(invoice),
-                pw.SizedBox(height: 16),
-              ],
-
-              // جدول المنتجات الموحد
-              template.buildTable(
-                headers: [
-                  'الإجمالي',
-                  'الخصم',
-                  'السعر',
-                  'الكمية',
-                  'الصنف',
-                  '#',
-                ],
-                data: List.generate(invoice.items.length, (index) {
-                  final item = invoice.items[index];
-                  return [
-                    ExportFormatters.formatPrice(item.total,
-                        showCurrency: false),
-                    ExportFormatters.formatPrice(item.discount,
-                        showCurrency: false),
-                    ExportFormatters.formatPrice(item.unitPrice,
-                        showCurrency: false),
-                    ExportFormatters.formatQuantity(item.quantity),
-                    item.name,
-                    '${index + 1}',
-                  ];
-                }),
-                headerBgColor: invoiceColor,
-              ),
+              // ═══════════════ ملخص الفاتورة ═══════════════
+              _buildSimpleSummary(invoice, invoiceColor, options),
               pw.SizedBox(height: 16),
 
-              // طريقة الدفع والملاحظات
-              pw.Row(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  if (options.showPaymentMethod &&
-                      invoice.paymentMethod != null)
-                    pw.Expanded(
-                      child: _buildInfoBox(
-                        'طريقة الدفع',
-                        ExportFormatters.getPaymentMethodLabel(
-                            invoice.paymentMethod!),
-                      ),
-                    ),
-                  if (options.showPaymentMethod &&
-                      invoice.paymentMethod != null &&
-                      options.showNotes &&
-                      invoice.notes != null)
-                    pw.SizedBox(width: 16),
-                  if (options.showNotes && invoice.notes != null)
-                    pw.Expanded(
-                      child: _buildInfoBox('ملاحظات', invoice.notes!),
-                    ),
-                ],
-              ),
+              // ═══════════════ معلومات إضافية ═══════════════
+              if (options.showNotes && invoice.notes != null)
+                _buildSimpleInfoRow(invoice, options),
 
               pw.Spacer(),
 
-              // التذييل الموحد
-              template.buildFooter(),
+              // ═══════════════ التذييل ═══════════════
+              _buildSimpleFooter(options),
             ],
           ),
         );
       },
     );
   }
+
+  /// رأس الفاتورة البسيط
+  pw.Widget _buildSimpleHeader(
+    InvoiceData invoice,
+    InvoicePrintOptions options,
+    PdfColor invoiceColor,
+  ) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(16),
+      decoration: pw.BoxDecoration(
+        color: invoiceColor,
+        borderRadius: pw.BorderRadius.circular(8),
+      ),
+      child: pw.Column(
+        children: [
+          // نوع الفاتورة
+          pw.Text(
+            _getInvoiceTypeLabel(invoice.invoiceType),
+            style: pw.TextStyle(
+              font: PdfFonts.bold,
+              fontSize: 22,
+              color: PdfColors.white,
+            ),
+            textAlign: pw.TextAlign.center,
+          ),
+          pw.SizedBox(height: 12),
+          // رقم الفاتورة والتاريخ
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.center,
+            children: [
+              pw.Container(
+                padding:
+                    const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.white,
+                  borderRadius: pw.BorderRadius.circular(16),
+                ),
+                child: pw.Text(
+                  invoice.invoiceNumber,
+                  style: pw.TextStyle(
+                    font: PdfFonts.bold,
+                    fontSize: 11,
+                    color: invoiceColor,
+                  ),
+                ),
+              ),
+              pw.SizedBox(width: 12),
+              pw.Container(
+                padding:
+                    const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.white,
+                  borderRadius: pw.BorderRadius.circular(16),
+                ),
+                child: pw.Text(
+                  ExportFormatters.formatDateTime(invoice.date),
+                  style: pw.TextStyle(
+                    font: PdfFonts.regular,
+                    fontSize: 10,
+                    color: invoiceColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// صف معلومات الشركة والعميل/المورد
+  pw.Widget _buildCompanyAndCustomerRow(
+      InvoiceData invoice, InvoicePrintOptions options, PdfColor invoiceColor) {
+    final hasCompanyInfo = options.companyName != null ||
+        options.companyAddress != null ||
+        options.companyPhone != null ||
+        options.companyTaxNumber != null;
+
+    final hasCustomerInfo =
+        options.showCustomerInfo && invoice.customerName != null;
+
+    if (!hasCompanyInfo && !hasCustomerInfo) {
+      return pw.SizedBox.shrink();
+    }
+
+    return pw.Row(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        // صندوق معلومات العميل/المورد (يمين)
+        if (hasCustomerInfo)
+          pw.Expanded(
+            child: _buildSimpleCustomerBox(invoice, invoiceColor),
+          ),
+        if (hasCustomerInfo && hasCompanyInfo) pw.SizedBox(width: 12),
+        // صندوق معلومات الشركة (يسار)
+        if (hasCompanyInfo)
+          pw.Expanded(
+            child: _buildCompanyInfoBox(options, invoiceColor),
+          ),
+      ],
+    );
+  }
+
+  /// صندوق معلومات الشركة
+  pw.Widget _buildCompanyInfoBox(
+      InvoicePrintOptions options, PdfColor invoiceColor) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(12),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.grey100,
+        borderRadius: pw.BorderRadius.circular(6),
+        border: pw.Border.all(color: PdfColors.grey300),
+      ),
+      child: pw.Row(
+        children: [
+          pw.Container(
+            width: 4,
+            height: 50,
+            decoration: pw.BoxDecoration(
+              color: ExportColors.primary,
+              borderRadius: pw.BorderRadius.circular(2),
+            ),
+          ),
+          pw.SizedBox(width: 12),
+          pw.Expanded(
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                if (options.companyName != null)
+                  pw.Text(
+                    options.companyName!,
+                    style: pw.TextStyle(font: PdfFonts.bold, fontSize: 12),
+                  ),
+                if (options.companyAddress != null) ...[
+                  pw.SizedBox(height: 2),
+                  pw.Text(
+                    options.companyAddress!,
+                    style: pw.TextStyle(
+                        font: PdfFonts.regular,
+                        fontSize: 9,
+                        color: PdfColors.grey700),
+                  ),
+                ],
+                if (options.companyPhone != null ||
+                    options.companyTaxNumber != null)
+                  pw.SizedBox(height: 4),
+                pw.Row(
+                  children: [
+                    if (options.companyPhone != null)
+                      pw.Text(
+                        'هاتف: ${options.companyPhone}',
+                        style: pw.TextStyle(
+                            font: PdfFonts.regular,
+                            fontSize: 9,
+                            color: PdfColors.grey700),
+                      ),
+                    if (options.companyPhone != null &&
+                        options.companyTaxNumber != null)
+                      pw.Text('  |  ',
+                          style: pw.TextStyle(
+                              font: PdfFonts.regular,
+                              fontSize: 9,
+                              color: PdfColors.grey400)),
+                    if (options.companyTaxNumber != null)
+                      pw.Text(
+                        'الرقم الضريبي: ${options.companyTaxNumber}',
+                        style: pw.TextStyle(
+                            font: PdfFonts.regular,
+                            fontSize: 9,
+                            color: PdfColors.grey700),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// صندوق معلومات العميل/المورد
+  pw.Widget _buildSimpleCustomerBox(
+      InvoiceData invoice, PdfColor invoiceColor) {
+    final isSupplier = invoice.invoiceType == 'purchase' ||
+        invoice.invoiceType == 'purchase_return';
+    final label = isSupplier ? 'المورد' : 'العميل';
+
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(12),
+      decoration: pw.BoxDecoration(
+        color: PdfColors.grey100,
+        borderRadius: pw.BorderRadius.circular(6),
+        border: pw.Border.all(color: PdfColors.grey300),
+      ),
+      child: pw.Row(
+        children: [
+          pw.Container(
+            width: 4,
+            height: 50,
+            decoration: pw.BoxDecoration(
+              color: invoiceColor,
+              borderRadius: pw.BorderRadius.circular(2),
+            ),
+          ),
+          pw.SizedBox(width: 12),
+          pw.Expanded(
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  '$label: ${invoice.customerName}',
+                  style: pw.TextStyle(font: PdfFonts.bold, fontSize: 12),
+                ),
+                if (invoice.customerPhone != null ||
+                    invoice.customerAddress != null)
+                  pw.SizedBox(height: 4),
+                if (invoice.customerPhone != null)
+                  pw.Text(
+                    'هاتف: ${invoice.customerPhone}',
+                    style: pw.TextStyle(
+                        font: PdfFonts.regular,
+                        fontSize: 9,
+                        color: PdfColors.grey700),
+                  ),
+                if (invoice.customerAddress != null)
+                  pw.Text(
+                    'العنوان: ${invoice.customerAddress}',
+                    style: pw.TextStyle(
+                        font: PdfFonts.regular,
+                        fontSize: 9,
+                        color: PdfColors.grey700),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// جدول المنتجات البسيط
+  pw.Widget _buildSimpleItemsTable(InvoiceData invoice, PdfColor invoiceColor) {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        // عنوان الجدول
+        pw.Container(
+          padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          child: pw.Text(
+            'تفاصيل الأصناف (${invoice.items.length} صنف)',
+            style: pw.TextStyle(
+                font: PdfFonts.bold, fontSize: 11, color: PdfColors.grey700),
+          ),
+        ),
+        // الجدول - RTL (الأعمدة من اليمين لليسار)
+        pw.Table(
+          border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+          columnWidths: {
+            0: const pw.FlexColumnWidth(1.3), // الإجمالي
+            1: const pw.FlexColumnWidth(1), // الخصم
+            2: const pw.FlexColumnWidth(1.2), // السعر
+            3: const pw.FlexColumnWidth(1), // الكمية
+            4: const pw.FlexColumnWidth(3.5), // الصنف
+            5: const pw.FlexColumnWidth(0.5), // #
+          },
+          children: [
+            // رأس الجدول
+            pw.TableRow(
+              decoration: pw.BoxDecoration(color: invoiceColor),
+              children: [
+                _simpleHeaderCell('الإجمالي'),
+                _simpleHeaderCell('الخصم'),
+                _simpleHeaderCell('السعر'),
+                _simpleHeaderCell('الكمية'),
+                _simpleHeaderCell('الصنف'),
+                _simpleHeaderCell('#'),
+              ],
+            ),
+            // بيانات الأصناف
+            ...invoice.items.asMap().entries.map((entry) {
+              final index = entry.key;
+              final item = entry.value;
+              final isEven = index.isEven;
+              return pw.TableRow(
+                decoration: pw.BoxDecoration(
+                  color: isEven ? PdfColors.grey50 : PdfColors.white,
+                ),
+                children: [
+                  _simpleDataCell(
+                    ExportFormatters.formatPrice(item.total,
+                        showCurrency: false),
+                    bold: true,
+                  ),
+                  _simpleDataCell(
+                    item.discount > 0
+                        ? ExportFormatters.formatPrice(item.discount,
+                            showCurrency: false)
+                        : '-',
+                    color: item.discount > 0 ? ExportColors.error : null,
+                  ),
+                  _simpleDataCell(ExportFormatters.formatPrice(item.unitPrice,
+                      showCurrency: false)),
+                  _simpleDataCell(
+                      ExportFormatters.formatQuantity(item.quantity)),
+                  _simpleDataCell(item.name, align: pw.Alignment.centerRight),
+                  _simpleDataCell('${index + 1}'),
+                ],
+              );
+            }),
+          ],
+        ),
+      ],
+    );
+  }
+
+  pw.Widget _simpleHeaderCell(String text) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+      alignment: pw.Alignment.center,
+      child: pw.Text(
+        text,
+        style: pw.TextStyle(
+          font: PdfFonts.bold,
+          fontSize: 10,
+          color: PdfColors.white,
+        ),
+        textAlign: pw.TextAlign.center,
+      ),
+    );
+  }
+
+  pw.Widget _simpleDataCell(
+    String text, {
+    pw.Alignment align = pw.Alignment.center,
+    bool bold = false,
+    PdfColor? color,
+  }) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+      alignment: align,
+      child: pw.Text(
+        text,
+        style: pw.TextStyle(
+          font: bold ? PdfFonts.bold : PdfFonts.regular,
+          fontSize: 9,
+          color: color ?? PdfColors.grey800,
+        ),
+        textAlign: align == pw.Alignment.centerRight
+            ? pw.TextAlign.right
+            : pw.TextAlign.center,
+      ),
+    );
+  }
+
+  /// ملخص الفاتورة
+  pw.Widget _buildSimpleSummary(
+      InvoiceData invoice, PdfColor invoiceColor, InvoicePrintOptions options) {
+    return pw.Row(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        // إحصائيات سريعة
+        pw.Expanded(
+          flex: 2,
+          child: pw.Container(
+            padding: const pw.EdgeInsets.all(12),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.grey100,
+              borderRadius: pw.BorderRadius.circular(6),
+            ),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+              children: [
+                _buildStatColumn('عدد الأصناف', '${invoice.items.length}'),
+                _buildStatColumn(
+                  'إجمالي الكمية',
+                  ExportFormatters.formatQuantity(
+                    invoice.items.fold(0.0, (sum, item) => sum + item.quantity),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        pw.SizedBox(width: 16),
+        // ملخص المبالغ
+        pw.Expanded(
+          flex: 3,
+          child: pw.Container(
+            padding: const pw.EdgeInsets.all(12),
+            decoration: pw.BoxDecoration(
+              color: PdfColors.grey100,
+              borderRadius: pw.BorderRadius.circular(6),
+              border: pw.Border.all(color: PdfColors.grey300),
+            ),
+            child: pw.Column(
+              children: [
+                // الإجمالي
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text(
+                      'الإجمالي',
+                      style: pw.TextStyle(
+                          font: PdfFonts.bold,
+                          fontSize: 14,
+                          color: invoiceColor),
+                    ),
+                    pw.Text(
+                      ExportFormatters.formatPrice(invoice.total),
+                      style: pw.TextStyle(
+                          font: PdfFonts.bold,
+                          fontSize: 16,
+                          color: invoiceColor),
+                    ),
+                  ],
+                ),
+                // الخصم
+                if (invoice.discount > 0) ...[
+                  pw.SizedBox(height: 6),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text(
+                        'الخصم',
+                        style: pw.TextStyle(
+                            font: PdfFonts.regular,
+                            fontSize: 10,
+                            color: ExportColors.error),
+                      ),
+                      pw.Text(
+                        '- ${ExportFormatters.formatPrice(invoice.discount, showCurrency: false)}',
+                        style: pw.TextStyle(
+                            font: PdfFonts.regular,
+                            fontSize: 10,
+                            color: ExportColors.error),
+                      ),
+                    ],
+                  ),
+                ],
+                // الضريبة
+                if (invoice.tax > 0) ...[
+                  pw.SizedBox(height: 4),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text(
+                        'الضريبة',
+                        style: pw.TextStyle(
+                            font: PdfFonts.regular,
+                            fontSize: 10,
+                            color: PdfColors.grey700),
+                      ),
+                      pw.Text(
+                        ExportFormatters.formatPrice(invoice.tax,
+                            showCurrency: false),
+                        style: pw.TextStyle(
+                            font: PdfFonts.regular,
+                            fontSize: 10,
+                            color: PdfColors.grey700),
+                      ),
+                    ],
+                  ),
+                ],
+                // المبلغ المدفوع والمتبقي (للدفع الجزئي)
+                if (invoice.paidAmount != null) ...[
+                  pw.SizedBox(height: 8),
+                  pw.Divider(color: PdfColors.grey300, thickness: 0.5),
+                  pw.SizedBox(height: 8),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text(
+                        'المبلغ المدفوع',
+                        style: pw.TextStyle(
+                            font: PdfFonts.regular,
+                            fontSize: 10,
+                            color: ExportColors.success),
+                      ),
+                      pw.Text(
+                        ExportFormatters.formatPrice(invoice.paidAmount!),
+                        style: pw.TextStyle(
+                            font: PdfFonts.bold,
+                            fontSize: 11,
+                            color: ExportColors.success),
+                      ),
+                    ],
+                  ),
+                  if (invoice.remainingAmount != null &&
+                      invoice.remainingAmount! > 0) ...[
+                    pw.SizedBox(height: 4),
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text(
+                          'المبلغ المتبقي',
+                          style: pw.TextStyle(
+                              font: PdfFonts.regular,
+                              fontSize: 10,
+                              color: ExportColors.error),
+                        ),
+                        pw.Text(
+                          ExportFormatters.formatPrice(
+                              invoice.remainingAmount!),
+                          style: pw.TextStyle(
+                              font: PdfFonts.bold,
+                              fontSize: 11,
+                              color: ExportColors.error),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+                // طريقة الدفع
+                if (options.showPaymentMethod &&
+                    invoice.paymentMethod != null) ...[
+                  pw.SizedBox(height: 8),
+                  pw.Divider(color: PdfColors.grey300, thickness: 0.5),
+                  pw.SizedBox(height: 8),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text(
+                        'طريقة الدفع',
+                        style: pw.TextStyle(
+                            font: PdfFonts.regular,
+                            fontSize: 10,
+                            color: PdfColors.grey700),
+                      ),
+                      pw.Text(
+                        ExportFormatters.getPaymentMethodLabel(
+                            invoice.paymentMethod!),
+                        style: pw.TextStyle(
+                            font: PdfFonts.bold,
+                            fontSize: 10,
+                            color: PdfColors.grey800),
+                      ),
+                    ],
+                  ),
+                ],
+                // سعر الصرف والإجمالي بالدولار
+                if (options.showExchangeRate && invoice.exchangeRate > 0) ...[
+                  pw.SizedBox(height: 8),
+                  pw.Divider(color: PdfColors.grey300, thickness: 0.5),
+                  pw.SizedBox(height: 8),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text(
+                        'سعر الصرف',
+                        style: pw.TextStyle(
+                            font: PdfFonts.regular,
+                            fontSize: 10,
+                            color: PdfColors.grey700),
+                      ),
+                      pw.Text(
+                        '${ExportFormatters.formatPrice(invoice.exchangeRate, showCurrency: false)} ${CurrencyService.currencySymbol}/\$',
+                        style: pw.TextStyle(
+                            font: PdfFonts.regular,
+                            fontSize: 10,
+                            color: PdfColors.grey700),
+                      ),
+                    ],
+                  ),
+                  pw.SizedBox(height: 4),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text(
+                        'السعر بالدولار',
+                        style: pw.TextStyle(
+                            font: PdfFonts.bold,
+                            fontSize: 11,
+                            color: PdfColors.blue800),
+                      ),
+                      pw.Text(
+                        '\$${(invoice.total / invoice.exchangeRate).toStringAsFixed(2)}',
+                        style: pw.TextStyle(
+                            font: PdfFonts.bold,
+                            fontSize: 12,
+                            color: PdfColors.blue800),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  pw.Widget _buildStatColumn(String label, String value) {
+    return pw.Column(
+      children: [
+        pw.Text(
+          label,
+          style: pw.TextStyle(
+              font: PdfFonts.regular, fontSize: 9, color: PdfColors.grey600),
+        ),
+        pw.SizedBox(height: 4),
+        pw.Text(
+          value,
+          style: pw.TextStyle(
+              font: PdfFonts.bold, fontSize: 14, color: PdfColors.grey800),
+        ),
+      ],
+    );
+  }
+
+  pw.Widget _simpleSummaryRow(String label, double value,
+      {bool isNegative = false}) {
+    return pw.Row(
+      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+      children: [
+        pw.Text(
+          label,
+          style: pw.TextStyle(
+              font: PdfFonts.regular, fontSize: 10, color: PdfColors.grey700),
+        ),
+        pw.Text(
+          '${isNegative ? "- " : ""}${ExportFormatters.formatPrice(value, showCurrency: false)}',
+          style: pw.TextStyle(
+            font: PdfFonts.regular,
+            fontSize: 10,
+            color: isNegative ? ExportColors.error : PdfColors.grey800,
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// صف المعلومات الإضافية
+  pw.Widget _buildSimpleInfoRow(
+      InvoiceData invoice, InvoicePrintOptions options) {
+    return pw.Row(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        if (options.showPaymentMethod && invoice.paymentMethod != null)
+          pw.Expanded(
+            child: _buildSimpleInfoBox(
+              'طريقة الدفع',
+              ExportFormatters.getPaymentMethodLabel(invoice.paymentMethod!),
+              PdfColors.blue50,
+              ExportColors.primary,
+            ),
+          ),
+        if (options.showPaymentMethod &&
+            invoice.paymentMethod != null &&
+            options.showNotes &&
+            invoice.notes != null)
+          pw.SizedBox(width: 12),
+        if (options.showNotes && invoice.notes != null)
+          pw.Expanded(
+            flex: 2,
+            child: _buildSimpleInfoBox(
+              'ملاحظات',
+              invoice.notes!,
+              PdfColors.amber50,
+              ExportColors.warning,
+            ),
+          ),
+      ],
+    );
+  }
+
+  pw.Widget _buildSimpleInfoBox(
+      String title, String content, PdfColor bgColor, PdfColor accentColor) {
+    return pw.Row(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        // الشريط الجانبي الملون
+        pw.Container(
+          width: 3,
+          height: 50,
+          color: accentColor,
+        ),
+        // المحتوى
+        pw.Expanded(
+          child: pw.Container(
+            padding: const pw.EdgeInsets.all(10),
+            decoration: pw.BoxDecoration(
+              color: bgColor,
+            ),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  title,
+                  style: pw.TextStyle(
+                      font: PdfFonts.bold, fontSize: 10, color: accentColor),
+                ),
+                pw.SizedBox(height: 4),
+                pw.Text(
+                  content,
+                  style: pw.TextStyle(
+                      font: PdfFonts.regular,
+                      fontSize: 10,
+                      color: PdfColors.grey800),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// تذييل الفاتورة
+  pw.Widget _buildSimpleFooter(InvoicePrintOptions options) {
+    final footerText = options.footerMessage;
+
+    return pw.Container(
+      padding: const pw.EdgeInsets.symmetric(vertical: 12),
+      decoration: const pw.BoxDecoration(
+        border: pw.Border(top: pw.BorderSide(color: PdfColors.grey300)),
+      ),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(
+            'تم الطباعة: ${ExportFormatters.formatDateTime(DateTime.now())}',
+            style: pw.TextStyle(
+                font: PdfFonts.regular, fontSize: 8, color: PdfColors.grey500),
+          ),
+          if (footerText != null && footerText.isNotEmpty)
+            pw.Text(
+              footerText,
+              style: pw.TextStyle(
+                  font: PdfFonts.bold, fontSize: 9, color: PdfColors.grey600),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // ==================== الدوال القديمة (احتياطية) ====================
 
   pw.Widget _buildUnifiedCustomerInfoBox(InvoiceData invoice) {
     final isSupplier = invoice.invoiceType == 'purchase' ||
@@ -532,7 +1221,7 @@ class InvoicePdfGenerator {
               ),
               pw.SizedBox(height: 4),
               pw.Text(
-                'رقم: ${invoice.invoiceNumber}',
+                invoice.invoiceNumber,
                 style: pw.TextStyle(font: _arabicFont, fontSize: 12),
               ),
               pw.Text(
@@ -900,9 +1589,26 @@ class InvoicePdfGenerator {
             textAlign: pw.TextAlign.center,
           ),
 
+        // العنوان
+        if (options.companyAddress != null)
+          pw.Text(
+            options.companyAddress!,
+            style: pw.TextStyle(font: _arabicFont, fontSize: 8),
+            textAlign: pw.TextAlign.center,
+          ),
+
+        // رقم الهاتف
         if (options.companyPhone != null)
           pw.Text(
             options.companyPhone!,
+            style: pw.TextStyle(font: _arabicFont, fontSize: 8),
+            textAlign: pw.TextAlign.center,
+          ),
+
+        // الرقم الضريبي
+        if (options.companyTaxNumber != null)
+          pw.Text(
+            'الرقم الضريبي: ${options.companyTaxNumber}',
             style: pw.TextStyle(font: _arabicFont, fontSize: 8),
             textAlign: pw.TextAlign.center,
           ),
@@ -930,7 +1636,7 @@ class InvoicePdfGenerator {
 
         // رقم الفاتورة والتاريخ
         pw.Text(
-          'رقم: ${invoice.invoiceNumber}',
+          invoice.invoiceNumber,
           style: pw.TextStyle(font: _arabicFont, fontSize: 10),
           textAlign: pw.TextAlign.center,
         ),
@@ -1029,12 +1735,38 @@ class InvoicePdfGenerator {
             ],
           ),
         ),
+        // سعر الصرف والإجمالي بالدولار للطابعة الحرارية
+        if (options.showExchangeRate && invoice.exchangeRate > 0) ...[
+          pw.SizedBox(height: 4),
+          _thermalTotalRow('سعر الصرف', invoice.exchangeRate,
+              suffix: ' ${CurrencyService.currencySymbol}/\$'),
+          pw.Container(
+            padding: const pw.EdgeInsets.symmetric(vertical: 2),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text(
+                  'السعر بالدولار',
+                  style: pw.TextStyle(
+                      font: _arabicFont, fontSize: 9, color: PdfColors.blue800),
+                ),
+                pw.Text(
+                  '\$${(invoice.total / invoice.exchangeRate).toStringAsFixed(2)}',
+                  style: pw.TextStyle(
+                      font: _arabicFontBold,
+                      fontSize: 10,
+                      color: PdfColors.blue800),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
 
   pw.Widget _thermalTotalRow(String label, double value,
-      {bool isNegative = false}) {
+      {bool isNegative = false, String? suffix}) {
     return pw.Padding(
       padding: const pw.EdgeInsets.symmetric(vertical: 1),
       child: pw.Row(
@@ -1045,7 +1777,7 @@ class InvoicePdfGenerator {
             style: pw.TextStyle(font: _arabicFont, fontSize: 9),
           ),
           pw.Text(
-            '${isNegative ? "-" : ""}${ExportFormatters.formatPrice(value, showCurrency: false)}',
+            '${isNegative ? "-" : ""}${ExportFormatters.formatPrice(value, showCurrency: false)}${suffix ?? ""}',
             style: pw.TextStyle(
               font: _arabicFont,
               fontSize: 9,
@@ -1084,20 +1816,18 @@ class InvoicePdfGenerator {
   }
 
   pw.Widget _buildThermalFooter(InvoicePrintOptions options) {
+    final footerText = options.footerMessage;
+
     return pw.Column(
       children: [
-        pw.Text(
-          'شكراً لتعاملكم معنا',
-          style: pw.TextStyle(font: _arabicFont, fontSize: 10),
-          textAlign: pw.TextAlign.center,
-        ),
-        pw.SizedBox(height: 4),
-        pw.Text(
-          'نظام حور للمبيعات',
-          style: pw.TextStyle(
-              font: _arabicFont, fontSize: 8, color: PdfColors.grey600),
-          textAlign: pw.TextAlign.center,
-        ),
+        if (footerText != null && footerText.isNotEmpty) ...[
+          pw.Text(
+            footerText,
+            style: pw.TextStyle(font: _arabicFont, fontSize: 10),
+            textAlign: pw.TextAlign.center,
+          ),
+          pw.SizedBox(height: 4),
+        ],
       ],
     );
   }

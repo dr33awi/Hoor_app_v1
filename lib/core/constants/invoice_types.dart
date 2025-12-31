@@ -12,8 +12,7 @@ enum InvoiceType {
   sale('sale'),
   purchase('purchase'),
   saleReturn('sale_return'),
-  purchaseReturn('purchase_return'),
-  openingBalance('opening_balance');
+  purchaseReturn('purchase_return');
 
   final String code;
   const InvoiceType(this.code);
@@ -31,7 +30,8 @@ enum PaymentMethod {
   cash('cash'),
   card('card'),
   transfer('transfer'),
-  credit('credit');
+  credit('credit'),
+  partial('partial');
 
   final String code;
   const PaymentMethod(this.code);
@@ -116,14 +116,6 @@ class InvoiceTypeConfig {
       color: AppColors.lowStock,
       pdfColor: PdfColors.amber700,
     ),
-    InvoiceType.openingBalance: const InvoiceTypeConfig(
-      type: InvoiceType.openingBalance,
-      label: 'رصيد افتتاحي',
-      shortLabel: 'رصيد افتتاحي',
-      icon: Icons.account_balance_wallet_outlined,
-      color: AppColors.primary,
-      pdfColor: PdfColors.teal700,
-    ),
   };
 
   /// جميع الأنواع
@@ -180,6 +172,11 @@ class PaymentMethodConfig {
       method: PaymentMethod.credit,
       label: 'آجل',
       icon: Icons.schedule_outlined,
+    ),
+    PaymentMethod.partial: const PaymentMethodConfig(
+      method: PaymentMethod.partial,
+      label: 'دفع جزئي',
+      icon: Icons.pie_chart_outline,
     ),
   };
 

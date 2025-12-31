@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../../core/di/injection.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/invoice_widgets.dart';
+import '../../../core/services/currency_service.dart';
 import '../../../data/database/app_database.dart';
 import '../../../data/repositories/shift_repository.dart';
 
@@ -21,6 +22,7 @@ class ShiftDetailsScreen extends ConsumerStatefulWidget {
 
 class _ShiftDetailsScreenState extends ConsumerState<ShiftDetailsScreen> {
   final _shiftRepo = getIt<ShiftRepository>();
+  final _currencyService = getIt<CurrencyService>();
 
   Map<String, dynamic>? _summary;
   bool _isLoading = true;
@@ -295,6 +297,7 @@ class _SummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final currencyService = getIt<CurrencyService>();
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 6.h),
       child: Row(
@@ -311,13 +314,25 @@ class _SummaryRow extends StatelessWidget {
               ),
             ),
           ),
-          Text(
-            formatPrice(value),
-            style: TextStyle(
-              color: color,
-              fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
-              fontSize: isBold ? 16.sp : 14.sp,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                formatPrice(value),
+                style: TextStyle(
+                  color: color,
+                  fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+                  fontSize: isBold ? 16.sp : 14.sp,
+                ),
+              ),
+              Text(
+                '\$${currencyService.sypToUsd(value).toStringAsFixed(2)}',
+                style: TextStyle(
+                  fontSize: 10.sp,
+                  color: Colors.green.shade600,
+                ),
+              ),
+            ],
           ),
         ],
       ),

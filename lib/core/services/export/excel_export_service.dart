@@ -167,14 +167,14 @@ class ExcelExportService {
     // ضبط عرض الأعمدة
     // ═══════════════════════════════════════════════════════════════════════
     sheet.setColumnWidth(0, 8);
-    sheet.setColumnWidth(1, 22);
-    sheet.setColumnWidth(2, 20);
-    sheet.setColumnWidth(3, 15);
-    sheet.setColumnWidth(4, 12);
-    sheet.setColumnWidth(5, 15);
-    sheet.setColumnWidth(6, 12);
-    sheet.setColumnWidth(7, 15);
-    sheet.setColumnWidth(8, 10);
+    sheet.setColumnWidth(1, 30);
+    sheet.setColumnWidth(2, 22);
+    sheet.setColumnWidth(3, 18);
+    sheet.setColumnWidth(4, 15);
+    sheet.setColumnWidth(5, 18);
+    sheet.setColumnWidth(6, 15);
+    sheet.setColumnWidth(7, 18);
+    sheet.setColumnWidth(8, 15);
 
     return await _saveExcelFile(excel, fileName ?? 'invoices_list');
   }
@@ -217,7 +217,7 @@ class ExcelExportService {
       ..cellStyle = _titleStyle();
     sheet.merge(
       CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row),
-      CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: row),
+      CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: row),
     );
     row++;
 
@@ -338,7 +338,7 @@ class ExcelExportService {
       ..cellStyle = _titleStyle();
     sheet.merge(
       CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row),
-      CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: row),
+      CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: row),
     );
     row++;
 
@@ -375,6 +375,7 @@ class ExcelExportService {
       'اسم المنتج',
       'الباركود',
       'الكمية',
+      'المباع',
       'الحد الأدنى',
       'سعر الشراء',
       'سعر البيع',
@@ -402,15 +403,17 @@ class ExcelExportService {
         status = 'متوفر';
       }
 
+      final soldQty = soldQuantities?[p.id] ?? 0;
+      final inventoryValue = p.purchasePrice * p.quantity;
       final rowData = [
         p.name,
         p.barcode ?? '-',
         '${p.quantity}',
+        '$soldQty',
         '${p.minQuantity}',
         ExportFormatters.formatPrice(p.purchasePrice, showCurrency: false),
         ExportFormatters.formatPrice(p.salePrice, showCurrency: false),
-        ExportFormatters.formatPrice(p.purchasePrice * p.quantity,
-            showCurrency: false),
+        ExportFormatters.formatPrice(inventoryValue, showCurrency: false),
         status,
       ];
 
@@ -424,7 +427,7 @@ class ExcelExportService {
     // ضبط عرض الأعمدة
     sheet.setColumnWidth(0, 30);
     for (var i = 1; i < headers.length; i++) {
-      sheet.setColumnWidth(i, 15);
+      sheet.setColumnWidth(i, 16);
     }
 
     return await _saveExcelFile(excel, fileName ?? 'inventory_report');
@@ -450,7 +453,7 @@ class ExcelExportService {
       ..cellStyle = _titleStyle();
     sheet.merge(
       CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row),
-      CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: row),
+      CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: row),
     );
     row++;
 
@@ -526,16 +529,132 @@ class ExcelExportService {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // تصدير السندات
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  static Future<String> exportVouchers({
+    required List<Voucher> vouchers,
+    String? type,
+    String? fileName,
+  }) async {
+    final excel = Excel.createExcel();
+    final typeName = type != null ? _getVoucherTypeLabel(type) : 'جميع السندات';
+    final sheet = excel[typeName];
+    excel.delete('Sheet1');
+
+    // حساب الإحصائيات
+    double totalAmount = 0;
+    for (final v in vouchers) {
+      totalAmount += v.amount;
+    }
+
+    int row = 0;
+
+    // الترويسة
+    sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+      ..value = TextCellValue(typeName)
+      ..cellStyle = _titleStyle();
+    sheet.merge(
+      CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row),
+      CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: row),
+    );
+    row++;
+
+    sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+      ..value = TextCellValue(
+          'تاريخ التصدير: ${ExportFormatters.formatDateTime(DateTime.now())}');
+    row++;
+
+    // ملخص
+    sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+      ..value = TextCellValue('عدد السندات:')
+      ..cellStyle = _summaryLabelStyle();
+    sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
+      ..value = IntCellValue(vouchers.length);
+    row++;
+
+    sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+      ..value = TextCellValue('المجموع:')
+      ..cellStyle = _summaryLabelStyle();
+    sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
+      ..value = TextCellValue(ExportFormatters.formatPrice(totalAmount));
+    row += 2;
+
+    // رأس الجدول
+    final headers = [
+      '#',
+      'رقم السند',
+      'النوع',
+      'التاريخ',
+      'المبلغ',
+      'الوصف',
+    ];
+
+    for (var i = 0; i < headers.length; i++) {
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: row))
+        ..value = TextCellValue(headers[i])
+        ..cellStyle = _headerStyle();
+    }
+    row++;
+
+    // البيانات
+    for (var i = 0; i < vouchers.length; i++) {
+      final v = vouchers[i];
+      final rowData = [
+        '${i + 1}',
+        v.voucherNumber,
+        _getVoucherTypeLabel(v.type),
+        ExportFormatters.formatDate(v.voucherDate),
+        ExportFormatters.formatPrice(v.amount, showCurrency: false),
+        v.description ?? '',
+      ];
+
+      for (var j = 0; j < rowData.length; j++) {
+        sheet.cell(CellIndex.indexByColumnRow(columnIndex: j, rowIndex: row))
+          ..value = TextCellValue(rowData[j]);
+      }
+      row++;
+    }
+
+    // ضبط عرض الأعمدة
+    sheet.setColumnWidth(0, 5);
+    sheet.setColumnWidth(1, 15);
+    sheet.setColumnWidth(2, 12);
+    sheet.setColumnWidth(3, 18);
+    sheet.setColumnWidth(4, 15);
+    sheet.setColumnWidth(5, 30);
+
+    return await _saveExcelFile(excel, fileName ?? 'vouchers_list');
+  }
+
+  static String _getVoucherTypeLabel(String type) {
+    switch (type) {
+      case 'receipt':
+        return 'سند قبض';
+      case 'payment':
+        return 'سند دفع';
+      case 'expense':
+        return 'سند مصاريف';
+      default:
+        return type;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // دوال مساعدة
   // ═══════════════════════════════════════════════════════════════════════════
 
   static void _addSummaryRow(
-      Sheet sheet, int row, String label, double value, String? color) {
+      Sheet sheet, int row, String label, double value, String? color,
+      {String? prefix}) {
     sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
       ..value = TextCellValue(label)
       ..cellStyle = _summaryLabelStyle();
+    final valueText = prefix != null
+        ? '$prefix${value.toStringAsFixed(2)}'
+        : ExportFormatters.formatPrice(value);
     sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
-      ..value = TextCellValue(ExportFormatters.formatPrice(value))
+      ..value = TextCellValue(valueText)
       ..cellStyle = _summaryValueStyle(fontColor: color);
   }
 

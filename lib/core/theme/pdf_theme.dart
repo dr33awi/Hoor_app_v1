@@ -1,53 +1,98 @@
+import 'dart:developer' as developer;
 import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
-/// PDF Fonts - خطوط PDF
+/// PDF Fonts - خطوط PDF العربية (Cairo)
 /// ═══════════════════════════════════════════════════════════════════════════
 class PdfFonts {
   static pw.Font? _regular;
   static pw.Font? _bold;
   static bool _initialized = false;
+  static String _loadedFrom = 'none';
 
+  /// تهيئة الخطوط العربية - يجب استدعاؤها قبل إنشاء PDF
   static Future<void> init() async {
-    if (_initialized) return;
+    if (_initialized && _regular != null && _bold != null) return;
 
+    // محاولة 1: تحميل من Assets المحلية
     try {
-      // محاولة تحميل الخطوط من الـ assets المحلية أولاً
+      developer.log('PdfFonts: جاري تحميل خط Cairo من Assets...');
       final fontData = await rootBundle.load('assets/fonts/Cairo-Variable.ttf');
       _regular = pw.Font.ttf(fontData);
-      _bold = pw.Font.ttf(fontData); // نفس الخط للـ bold
+      _bold = pw.Font.ttf(fontData);
       _initialized = true;
+      _loadedFrom = 'assets';
+      developer.log('PdfFonts: ✅ تم تحميل خط Cairo من Assets بنجاح');
+      return;
     } catch (e) {
-      try {
-        // محاولة تحميل من Google Fonts إذا لم تتوفر محلياً
-        _regular = await PdfGoogleFonts.cairoRegular();
-        _bold = await PdfGoogleFonts.cairoBold();
-        _initialized = true;
-      } catch (e2) {
-        // استخدام Helvetica كـ fallback
-        _regular = pw.Font.helvetica();
-        _bold = pw.Font.helveticaBold();
-        _initialized = true;
-      }
+      developer.log('PdfFonts: ⚠️ فشل تحميل من Assets: $e');
     }
+
+    // محاولة 2: تحميل من Google Fonts
+    try {
+      developer.log('PdfFonts: جاري تحميل خط Cairo من Google Fonts...');
+      _regular = await PdfGoogleFonts.cairoRegular();
+      _bold = await PdfGoogleFonts.cairoBold();
+      _initialized = true;
+      _loadedFrom = 'google_fonts';
+      developer.log('PdfFonts: ✅ تم تحميل خط Cairo من Google Fonts بنجاح');
+      return;
+    } catch (e) {
+      developer.log('PdfFonts: ⚠️ فشل تحميل من Google Fonts: $e');
+    }
+
+    // محاولة 3: تحميل Noto Sans Arabic من Google Fonts
+    try {
+      developer.log('PdfFonts: جاري تحميل خط Noto Sans Arabic...');
+      _regular = await PdfGoogleFonts.notoSansArabicRegular();
+      _bold = await PdfGoogleFonts.notoSansArabicBold();
+      _initialized = true;
+      _loadedFrom = 'noto_sans_arabic';
+      developer.log('PdfFonts: ✅ تم تحميل خط Noto Sans Arabic بنجاح');
+      return;
+    } catch (e) {
+      developer.log('PdfFonts: ⚠️ فشل تحميل Noto Sans Arabic: $e');
+    }
+
+    // Fallback: استخدام Helvetica (لن يدعم العربية!)
+    developer
+        .log('PdfFonts: ❌ فشل تحميل جميع الخطوط العربية! استخدام Helvetica');
+    _regular = pw.Font.helvetica();
+    _bold = pw.Font.helveticaBold();
+    _initialized = true;
+    _loadedFrom = 'helvetica_fallback';
   }
 
+  /// الخط العادي
   static pw.Font get regular {
-    if (!_initialized) {
-      // إذا لم يتم تهيئة الخطوط، استخدم Helvetica مؤقتاً
+    if (!_initialized || _regular == null) {
+      developer.log('PdfFonts: ⚠️ الخطوط غير مهيأة! يرجى استدعاء init() أولاً');
       return pw.Font.helvetica();
     }
     return _regular!;
   }
 
+  /// الخط العريض
   static pw.Font get bold {
-    if (!_initialized) {
+    if (!_initialized || _bold == null) {
+      developer.log('PdfFonts: ⚠️ الخطوط غير مهيأة! يرجى استدعاء init() أولاً');
       return pw.Font.helveticaBold();
     }
     return _bold!;
+  }
+
+  /// معرفة مصدر الخط المحمّل
+  static String get loadedFrom => _loadedFrom;
+
+  /// إعادة تعيين حالة التهيئة (للاختبار)
+  static void reset() {
+    _initialized = false;
+    _regular = null;
+    _bold = null;
+    _loadedFrom = 'none';
   }
 }
 
@@ -271,11 +316,12 @@ class PdfTheme {
         children: [
           pw.Divider(color: PdfColors.grey300),
           pw.SizedBox(height: 8),
-          pw.Text(
-            note ?? 'تم إنشاء هذا التقرير بواسطة نظام حور للمبيعات',
-            style: PdfStyles.caption(),
-            textDirection: pw.TextDirection.rtl,
-          ),
+          if (note != null)
+            pw.Text(
+              note,
+              style: PdfStyles.caption(),
+              textDirection: pw.TextDirection.rtl,
+            ),
         ],
       ),
     );

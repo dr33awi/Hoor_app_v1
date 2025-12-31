@@ -8,15 +8,18 @@ import '../../features/products/presentation/product_details_screen.dart';
 import '../../features/categories/presentation/categories_screen.dart';
 import '../../features/invoices/presentation/invoices_screen.dart';
 import '../../features/invoices/presentation/invoice_form_screen.dart';
+import '../../features/invoices/presentation/invoice_details_screen.dart';
 import '../../features/inventory/presentation/inventory_screen.dart';
 import '../../features/inventory/presentation/inventory_count_screen.dart';
 import '../../features/shifts/presentation/shifts_screen.dart';
 import '../../features/shifts/presentation/shift_details_screen.dart';
 import '../../features/cash/presentation/cash_screen.dart';
+import '../../features/vouchers/presentation/vouchers_screen.dart';
 import '../../features/reports/presentation/reports_screen.dart';
 import '../../features/reports/presentation/sales_report_screen.dart';
 import '../../features/reports/presentation/inventory_report_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
+import '../../features/settings/presentation/print_settings_screen.dart';
 import '../../features/backup/presentation/backup_screen.dart';
 import '../../features/customers/presentation/customers_screen.dart';
 import '../../features/suppliers/presentation/suppliers_screen.dart';
@@ -82,6 +85,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               type: state.pathParameters['type']!,
             ),
           ),
+          GoRoute(
+            path: 'edit/:id/:type',
+            name: 'invoice-edit',
+            builder: (context, state) => InvoiceFormScreen(
+              type: state.pathParameters['type']!,
+              invoiceId: state.pathParameters['id'],
+            ),
+          ),
+          GoRoute(
+            path: 'details/:id',
+            name: 'invoice-details',
+            builder: (context, state) => InvoiceDetailsScreen(
+              invoiceId: state.pathParameters['id']!,
+            ),
+          ),
         ],
       ),
 
@@ -122,6 +140,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const CashScreen(),
       ),
 
+      // Vouchers
+      GoRoute(
+        path: '/vouchers',
+        name: 'vouchers',
+        builder: (context, state) => const VouchersScreen(),
+      ),
+
       // Reports
       GoRoute(
         path: '/reports',
@@ -160,6 +185,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/settings',
         name: 'settings',
         builder: (context, state) => const SettingsScreen(),
+        routes: [
+          GoRoute(
+            path: 'print',
+            name: 'print-settings',
+            builder: (context, state) => const PrintSettingsScreen(),
+          ),
+        ],
       ),
 
       // Backup

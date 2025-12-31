@@ -83,11 +83,6 @@ class PdfExportService {
                 value: ExportFormatters.formatPrice(totalDiscount),
                 color: ExportColors.error,
               ),
-              StatItem(
-                label: 'المتوسط',
-                value: ExportFormatters.formatPrice(
-                    invoices.isNotEmpty ? totalAmount / invoices.length : 0),
-              ),
             ]),
           ),
           pw.SizedBox(height: 16),
@@ -185,10 +180,6 @@ class PdfExportService {
                 label: 'إجمالي المبيعات',
                 value: ExportFormatters.formatPrice(totalSales),
                 color: ExportColors.success,
-              ),
-              StatItem(
-                label: 'متوسط الفاتورة',
-                value: ExportFormatters.formatPrice(averageInvoice),
               ),
               StatItem(
                 label: 'إجمالي الخصومات',
@@ -293,7 +284,6 @@ class PdfExportService {
             child: template.buildStatsBox([
               StatItem(label: 'عدد المنتجات', value: '${products.length}'),
               StatItem(label: 'إجمالي الكميات', value: '$totalQuantity'),
-              StatItem(label: 'إجمالي المباع', value: '$totalSold'),
               StatItem(
                 label: 'قيمة المخزون',
                 value: ExportFormatters.formatPrice(totalCostValue),
@@ -350,9 +340,7 @@ class PdfExportService {
                 'القيمة',
                 'سعر البيع',
                 'سعر الشراء',
-                'المباع',
                 'الكمية',
-                'الباركود',
                 'اسم المنتج',
                 '#',
               ],
@@ -360,16 +348,13 @@ class PdfExportService {
               data: List.generate(products.length, (index) {
                 final p = products[index];
                 final value = p.quantity * p.purchasePrice;
-                final soldQty = soldQuantities?[p.id] ?? 0;
                 return [
                   ExportFormatters.formatPrice(value, showCurrency: false),
                   ExportFormatters.formatPrice(p.salePrice,
                       showCurrency: false),
                   ExportFormatters.formatPrice(p.purchasePrice,
                       showCurrency: false),
-                  '$soldQty',
                   '${p.quantity}',
-                  p.barcode ?? '-',
                   p.name,
                   '${index + 1}',
                 ];
@@ -439,7 +424,6 @@ class PdfExportService {
             child: template.buildStatsBox([
               StatItem(label: 'عدد المنتجات', value: '${products.length}'),
               StatItem(label: 'إجمالي الكميات', value: '$totalQuantity'),
-              StatItem(label: 'إجمالي المباع', value: '$totalSold'),
               StatItem(
                 label: 'قيمة المخزون',
                 value: ExportFormatters.formatPrice(totalCostValue),
@@ -453,28 +437,20 @@ class PdfExportService {
             textDirection: pw.TextDirection.rtl,
             child: template.buildTable(
               headers: [
-                'القيمة',
                 'سعر البيع',
                 'سعر الشراء',
-                'المباع',
                 'الكمية',
-                'الباركود',
                 'اسم المنتج',
                 '#',
               ],
               data: List.generate(products.length, (index) {
                 final p = products[index];
-                final value = p.quantity * p.purchasePrice;
-                final soldQty = soldQuantities?[p.id] ?? 0;
                 return [
-                  ExportFormatters.formatPrice(value, showCurrency: false),
                   ExportFormatters.formatPrice(p.salePrice,
                       showCurrency: false),
                   ExportFormatters.formatPrice(p.purchasePrice,
                       showCurrency: false),
-                  '$soldQty',
                   '${p.quantity}',
-                  p.barcode ?? '-',
                   p.name,
                   '${index + 1}',
                 ];
@@ -491,6 +467,131 @@ class PdfExportService {
   // ═══════════════════════════════════════════════════════════════════════════
   // دوال مساعدة
   // ═══════════════════════════════════════════════════════════════════════════
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // تصدير قائمة السندات
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  static Future<Uint8List> generateVouchersList({
+    required List<Voucher> vouchers,
+    String? type,
+  }) async {
+    final doc = pw.Document();
+    final now = DateTime.now();
+    final typeName = type != null ? _getVoucherTypeLabel(type) : 'جميع السندات';
+
+    // حساب الإحصائيات
+    double totalAmount = 0;
+    for (final voucher in vouchers) {
+      totalAmount += voucher.amount;
+    }
+
+    final template = PdfReportTemplate(
+      title: typeName,
+      reportDate: now,
+      headerColor:
+          type != null ? _getVoucherTypeColor(type) : ExportColors.primary,
+    );
+
+    doc.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        textDirection: pw.TextDirection.rtl,
+        theme: PdfTheme.create(),
+        header: (context) => pw.Directionality(
+          textDirection: pw.TextDirection.rtl,
+          child: pw.Column(
+            children: [
+              template.buildHeader(),
+              pw.SizedBox(height: 16),
+            ],
+          ),
+        ),
+        footer: (context) => pw.Directionality(
+          textDirection: pw.TextDirection.rtl,
+          child: template.buildFooter(
+            pageNumber: context.pageNumber,
+            totalPages: context.pagesCount,
+          ),
+        ),
+        build: (context) => [
+          // ملخص الإحصائيات
+          pw.Directionality(
+            textDirection: pw.TextDirection.rtl,
+            child: template.buildStatsBox([
+              StatItem(label: 'عدد السندات', value: '${vouchers.length}'),
+              StatItem(
+                label: 'إجمالي المبلغ',
+                value: ExportFormatters.formatPrice(totalAmount),
+                color: ExportColors.success,
+              ),
+              StatItem(
+                label: 'المتوسط',
+                value: ExportFormatters.formatPrice(
+                    vouchers.isNotEmpty ? totalAmount / vouchers.length : 0),
+              ),
+            ]),
+          ),
+          pw.SizedBox(height: 16),
+
+          // جدول السندات
+          pw.Directionality(
+            textDirection: pw.TextDirection.rtl,
+            child: template.buildTable(
+              headers: [
+                'المبلغ',
+                'الوصف',
+                'النوع',
+                'التاريخ',
+                'رقم السند',
+                '#',
+              ],
+              data: List.generate(vouchers.length, (index) {
+                final voucher = vouchers[index];
+                return [
+                  ExportFormatters.formatPrice(voucher.amount,
+                      showCurrency: false),
+                  voucher.description ?? '-',
+                  _getVoucherTypeLabel(voucher.type),
+                  ExportFormatters.formatDateTime(voucher.voucherDate),
+                  voucher.voucherNumber,
+                  '${index + 1}',
+                ];
+              }),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return doc.save();
+  }
+
+  static String _getVoucherTypeLabel(String type) {
+    switch (type) {
+      case 'receipt':
+        return 'سند قبض';
+      case 'payment':
+        return 'سند دفع';
+      case 'expense':
+        return 'مصاريف';
+      default:
+        return type;
+    }
+  }
+
+  static PdfColor _getVoucherTypeColor(String type) {
+    switch (type) {
+      case 'receipt':
+        return ExportColors.success;
+      case 'payment':
+        return ExportColors.primary;
+      case 'expense':
+        return ExportColors.warning;
+      default:
+        return ExportColors.primary;
+    }
+  }
 
   /// حفظ PDF كملف
   static Future<String> savePdfFile(Uint8List bytes, String fileName) async {
