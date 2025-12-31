@@ -138,7 +138,6 @@ class PdfExportService {
     // حساب الإحصائيات
     final totalSales = summary['totalSales'] ?? 0;
     final invoiceCount = (summary['invoiceCount'] ?? 0).toInt();
-    final averageInvoice = summary['averageInvoice'] ?? 0;
     final totalDiscount =
         invoices.fold(0.0, (sum, inv) => sum + inv.discountAmount);
 
@@ -241,13 +240,11 @@ class PdfExportService {
     double totalCostValue = 0;
     double totalSaleValue = 0;
     int totalQuantity = 0;
-    int totalSold = 0;
 
     for (final p in products) {
       totalCostValue += p.purchasePrice * p.quantity;
       totalSaleValue += p.salePrice * p.quantity;
       totalQuantity += p.quantity;
-      totalSold += soldQuantities?[p.id] ?? 0;
     }
 
     final template = PdfReportTemplate(
@@ -382,12 +379,10 @@ class PdfExportService {
     // حساب الإحصائيات
     double totalCostValue = 0;
     int totalQuantity = 0;
-    int totalSold = 0;
 
     for (final p in products) {
       totalCostValue += p.purchasePrice * p.quantity;
       totalQuantity += p.quantity;
-      totalSold += soldQuantities?[p.id] ?? 0;
     }
 
     final template = PdfReportTemplate(

@@ -10,6 +10,7 @@ import '../../../core/services/sync_service.dart';
 import '../../../data/repositories/shift_repository.dart';
 import '../../widgets/sync_status_widget.dart';
 import '../../widgets/menu_card.dart';
+import '../../alerts/alerts_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -28,6 +29,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       appBar: AppBar(
         title: const Text('Hoor Manager'),
         actions: [
+          const AlertsButton(),
           const SyncStatusWidget(),
           IconButton(
             icon: const Icon(Icons.settings),
@@ -50,6 +52,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Alerts Summary
+                  const AlertsSummaryWidget(),
+
                   // Shift Status Card
                   _buildShiftStatusCard(hasOpenShift),
                   Gap(20.h),

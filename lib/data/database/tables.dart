@@ -46,6 +46,8 @@ class Invoices extends Table {
       text()(); // sale, purchase, sale_return, purchase_return
   TextColumn get customerId => text().nullable().references(Customers, #id)();
   TextColumn get supplierId => text().nullable().references(Suppliers, #id)();
+  TextColumn get warehouseId => text()
+      .nullable()(); // معرف المستودع (nullable للتوافق مع البيانات القديمة)
   RealColumn get subtotal => real()();
   RealColumn get taxAmount => real().withDefault(const Constant(0))();
   RealColumn get discountAmount => real().withDefault(const Constant(0))();
@@ -320,6 +322,114 @@ class Vouchers extends Table {
       text().withDefault(const Constant('pending'))(); // pending, synced
   DateTimeColumn get voucherDate =>
       dateTime().withDefault(currentDateAndTime)(); // تاريخ السند
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// ═══════════════════════════════════════════════════════════════════════════
+/// Inventory Count (الجرد الدوري)
+/// ═══════════════════════════════════════════════════════════════════════════
+
+/// Inventory Counts table - جدول عمليات الجرد
+class InventoryCounts extends Table {
+  TextColumn get id => text()();
+  TextColumn get countNumber => text()(); // رقم الجرد
+  TextColumn get warehouseId => text().references(Warehouses, #id)();
+  TextColumn get status => text().withDefault(const Constant(
+      'draft'))(); // draft, in_progress, completed, cancelled, approved
+  TextColumn get countType =>
+      text().withDefault(const Constant('full'))(); // full, partial, cycle
+  TextColumn get notes => text().nullable()();
+  TextColumn get createdBy => text().nullable()(); // المستخدم الذي أنشأ الجرد
+  TextColumn get approvedBy =>
+      text().nullable()(); // المستخدم الذي وافق على الجرد
+  IntColumn get totalItems =>
+      integer().withDefault(const Constant(0))(); // عدد الأصناف
+  IntColumn get countedItems =>
+      integer().withDefault(const Constant(0))(); // عدد الأصناف المجرودة
+  IntColumn get varianceItems =>
+      integer().withDefault(const Constant(0))(); // عدد الأصناف بها فروقات
+  RealColumn get totalVarianceValue =>
+      real().withDefault(const Constant(0))(); // إجمالي قيمة الفروقات
+  TextColumn get syncStatus => text().withDefault(const Constant('pending'))();
+  DateTimeColumn get countDate =>
+      dateTime().withDefault(currentDateAndTime)(); // تاريخ الجرد
+  DateTimeColumn get completedAt => dateTime().nullable()();
+  DateTimeColumn get approvedAt => dateTime().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Inventory Count Items table - جدول عناصر الجرد
+class InventoryCountItems extends Table {
+  TextColumn get id => text()();
+  TextColumn get countId => text().references(InventoryCounts, #id)();
+  TextColumn get productId => text().references(Products, #id)();
+  TextColumn get productName => text()();
+  TextColumn get productSku => text().nullable()();
+  TextColumn get productBarcode => text().nullable()();
+  IntColumn get systemQuantity => integer()(); // الكمية في النظام
+  IntColumn get physicalQuantity =>
+      integer().nullable()(); // الكمية الفعلية (المعدودة)
+  IntColumn get variance => integer().nullable()(); // الفرق (physical - system)
+  RealColumn get unitCost => real()(); // تكلفة الوحدة
+  RealColumn get varianceValue => real().nullable()(); // قيمة الفرق
+  TextColumn get varianceReason => text().nullable()(); // سبب الفرق
+  BoolColumn get isCounted =>
+      boolean().withDefault(const Constant(false))(); // هل تم العد
+  TextColumn get location => text().nullable()(); // موقع المنتج في المستودع
+  TextColumn get notes => text().nullable()();
+  TextColumn get syncStatus => text().withDefault(const Constant('pending'))();
+  DateTimeColumn get countedAt => dateTime().nullable()(); // وقت العد
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Inventory Adjustments table - جدول تسويات الجرد
+class InventoryAdjustments extends Table {
+  TextColumn get id => text()();
+  TextColumn get adjustmentNumber => text()(); // رقم التسوية
+  TextColumn get countId =>
+      text().nullable().references(InventoryCounts, #id)(); // مرتبط بجرد
+  TextColumn get warehouseId => text().references(Warehouses, #id)();
+  TextColumn get type => text()(); // increase, decrease, write_off, correction
+  TextColumn get reason => text()(); // سبب التسوية
+  TextColumn get status => text()
+      .withDefault(const Constant('pending'))(); // pending, approved, rejected
+  TextColumn get approvedBy => text().nullable()();
+  RealColumn get totalValue =>
+      real().withDefault(const Constant(0))(); // إجمالي قيمة التسوية
+  TextColumn get notes => text().nullable()();
+  TextColumn get syncStatus => text().withDefault(const Constant('pending'))();
+  DateTimeColumn get adjustmentDate =>
+      dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get approvedAt => dateTime().nullable()();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// Inventory Adjustment Items table - جدول عناصر تسويات الجرد
+class InventoryAdjustmentItems extends Table {
+  TextColumn get id => text()();
+  TextColumn get adjustmentId => text().references(InventoryAdjustments, #id)();
+  TextColumn get productId => text().references(Products, #id)();
+  TextColumn get productName => text()();
+  IntColumn get quantityBefore => integer()(); // الكمية قبل التسوية
+  IntColumn get quantityAdjusted => integer()(); // الكمية المعدلة
+  IntColumn get quantityAfter => integer()(); // الكمية بعد التسوية
+  RealColumn get unitCost => real()(); // تكلفة الوحدة
+  RealColumn get adjustmentValue => real()(); // قيمة التسوية
+  TextColumn get reason => text().nullable()(); // سبب محدد لهذا الصنف
+  TextColumn get syncStatus => text().withDefault(const Constant('pending'))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 
   @override

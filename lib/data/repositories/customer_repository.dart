@@ -88,6 +88,18 @@ class CustomerRepository extends BaseRepository<Customer, CustomersCompanion> {
     );
   }
 
+  /// حذف عميل
+  Future<void> deleteCustomer(String id) async {
+    await database.deleteCustomer(id);
+
+    // حذف من Cloud أيضاً
+    try {
+      await collection.doc(id).delete();
+    } catch (e) {
+      debugPrint('Error deleting customer from cloud: $e');
+    }
+  }
+
   // ==================== Cloud Sync ====================
 
   @override

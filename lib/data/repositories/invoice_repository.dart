@@ -8,14 +8,46 @@ import '../../core/constants/app_constants.dart';
 import '../../core/services/currency_service.dart';
 import '../../core/di/injection.dart';
 import 'base_repository.dart';
+import 'cash_repository.dart';
+import 'customer_repository.dart';
+import 'supplier_repository.dart';
+import 'inventory_repository.dart';
 
 class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
   StreamSubscription? _invoiceFirestoreSubscription;
+
+  // Repositories للتكامل
+  CashRepository? _cashRepo;
+  CustomerRepository? _customerRepo;
+  SupplierRepository? _supplierRepo;
+  InventoryRepository? _inventoryRepo;
 
   InvoiceRepository({
     required super.database,
     required super.firestore,
   }) : super(collectionName: AppConstants.invoicesCollection);
+
+  /// تعيين الـ Repositories للتكامل (يُستدعى من injection)
+  void setIntegrationRepositories({
+    CashRepository? cashRepo,
+    CustomerRepository? customerRepo,
+    SupplierRepository? supplierRepo,
+    InventoryRepository? inventoryRepo,
+  }) {
+    _cashRepo = cashRepo;
+    _customerRepo = customerRepo;
+    _supplierRepo = supplierRepo;
+    _inventoryRepo = inventoryRepo;
+  }
+
+  // Lazy getters للـ Repositories
+  CashRepository get cashRepo => _cashRepo ?? getIt<CashRepository>();
+  CustomerRepository get customerRepo =>
+      _customerRepo ?? getIt<CustomerRepository>();
+  SupplierRepository get supplierRepo =>
+      _supplierRepo ?? getIt<SupplierRepository>();
+  InventoryRepository get inventoryRepo =>
+      _inventoryRepo ?? getIt<InventoryRepository>();
 
   // ==================== Local Operations ====================
 
@@ -42,6 +74,7 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
     required String type,
     String? customerId,
     String? supplierId,
+    String? warehouseId, // معرف المستودع (جديد)
     required List<Map<String, dynamic>> items,
     double discountAmount = 0,
     required String paymentMethod,
@@ -96,6 +129,7 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
       type: Value(type),
       customerId: Value(customerId),
       supplierId: Value(supplierId),
+      warehouseId: Value(warehouseId), // حفظ معرف المستودع
       subtotal: Value(subtotal),
       taxAmount: const Value(0),
       discountAmount: Value(discountAmount),
@@ -115,10 +149,141 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
     // Insert invoice items
     await database.insertInvoiceItems(invoiceItems);
 
-    // Update inventory based on invoice type
-    await _updateInventory(type, items);
+    // Update inventory based on invoice type (مع دعم المستودعات)
+    await _updateInventory(type, items,
+        warehouseId: warehouseId, invoiceId: id, invoiceNumber: invoiceNumber);
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // تسجيل حركة الصندوق تلقائياً (إذا كان هناك وردية مفتوحة)
+    // ═══════════════════════════════════════════════════════════════════════════
+    if (shiftId != null) {
+      await _recordCashMovement(
+        type: type,
+        amount: total,
+        invoiceId: id,
+        invoiceNumber: invoiceNumber,
+        shiftId: shiftId,
+        paymentMethod: paymentMethod,
+      );
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // تحديث رصيد العميل/المورد للفواتير الآجلة
+    // ═══════════════════════════════════════════════════════════════════════════
+    await _updateCustomerSupplierBalance(
+      type: type,
+      customerId: customerId,
+      supplierId: supplierId,
+      total: total,
+      paidAmount: paidAmount,
+      paymentMethod: paymentMethod,
+    );
 
     return id;
+  }
+
+  /// تسجيل حركة الصندوق للفاتورة
+  Future<void> _recordCashMovement({
+    required String type,
+    required double amount,
+    required String invoiceId,
+    required String invoiceNumber,
+    required String shiftId,
+    required String paymentMethod,
+  }) async {
+    // لا نسجل حركة للفواتير الآجلة
+    if (paymentMethod == 'credit') return;
+
+    try {
+      switch (type) {
+        case 'sale':
+          await cashRepo.recordSale(
+            shiftId: shiftId,
+            amount: amount,
+            invoiceId: invoiceId,
+            paymentMethod: paymentMethod,
+          );
+          break;
+        case 'purchase':
+          await cashRepo.recordPurchase(
+            shiftId: shiftId,
+            amount: amount,
+            invoiceId: invoiceId,
+            paymentMethod: paymentMethod,
+          );
+          break;
+        case 'sale_return':
+          // مرتجع البيع = خصم من الصندوق
+          await cashRepo.addExpense(
+            shiftId: shiftId,
+            amount: amount,
+            description: 'مرتجع مبيعات - فاتورة: $invoiceNumber',
+            category: 'sale_return',
+            paymentMethod: paymentMethod,
+          );
+          break;
+        case 'purchase_return':
+          // مرتجع الشراء = إضافة للصندوق
+          await cashRepo.addIncome(
+            shiftId: shiftId,
+            amount: amount,
+            description: 'مرتجع مشتريات - فاتورة: $invoiceNumber',
+            category: 'purchase_return',
+            paymentMethod: paymentMethod,
+          );
+          break;
+      }
+    } catch (e) {
+      debugPrint('Error recording cash movement for invoice: $e');
+    }
+  }
+
+  /// تحديث رصيد العميل/المورد
+  Future<void> _updateCustomerSupplierBalance({
+    required String type,
+    String? customerId,
+    String? supplierId,
+    required double total,
+    required double paidAmount,
+    required String paymentMethod,
+  }) async {
+    try {
+      // حساب المبلغ المتبقي (الدين)
+      final remainingAmount = total - paidAmount;
+
+      switch (type) {
+        case 'sale':
+          // فاتورة بيع آجلة = زيادة رصيد العميل (دين على العميل)
+          if (customerId != null &&
+              (paymentMethod == 'credit' || remainingAmount > 0)) {
+            await customerRepo.updateBalance(
+                customerId, remainingAmount > 0 ? remainingAmount : total);
+          }
+          break;
+        case 'purchase':
+          // فاتورة شراء آجلة = زيادة رصيد المورد (دين للمورد)
+          if (supplierId != null &&
+              (paymentMethod == 'credit' || remainingAmount > 0)) {
+            await supplierRepo.updateBalance(
+                supplierId, remainingAmount > 0 ? remainingAmount : total);
+          }
+          break;
+        case 'sale_return':
+          // مرتجع بيع = خصم من رصيد العميل
+          if (customerId != null) {
+            await customerRepo.updateBalance(customerId, -total);
+          }
+          break;
+        case 'purchase_return':
+          // مرتجع شراء = خصم من رصيد المورد
+          if (supplierId != null) {
+            await supplierRepo.updateBalance(supplierId, -total);
+          }
+          break;
+      }
+    } catch (e) {
+      debugPrint('Error updating customer/supplier balance: $e');
+    }
   }
 
   Future<String> _generateInvoiceNumber(String type) async {
@@ -146,97 +311,65 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
     return '$prefix-$dateStr-${count.toString().padLeft(4, '0')}';
   }
 
-  Future<void> _updateInventory(
-      String type, List<Map<String, dynamic>> items) async {
+  Future<void> _updateInventory(String type, List<Map<String, dynamic>> items,
+      {String? warehouseId, String? invoiceId, String? invoiceNumber}) async {
     for (final item in items) {
       final productId = item['productId'] as String;
       final quantity = item['quantity'] as int;
-      final product = await database.getProductById(productId);
 
-      if (product == null) continue;
-
-      int adjustment;
-      String movementType;
-
-      switch (type) {
-        case 'sale':
-          adjustment = -quantity;
-          movementType = 'sale';
-          break;
-        case 'purchase':
-          adjustment = quantity;
-          movementType = 'purchase';
-          break;
-        case 'sale_return':
-          adjustment = quantity;
-          movementType = 'return';
-          break;
-        case 'purchase_return':
-          adjustment = -quantity;
-          movementType = 'return';
-          break;
-        default:
-          continue;
-      }
-
-      final newQuantity = product.quantity + adjustment;
-      await database.updateProductQuantity(productId, newQuantity);
-
-      await database.insertInventoryMovement(InventoryMovementsCompanion(
-        id: Value(generateId()),
-        productId: Value(productId),
-        type: Value(movementType),
-        quantity: Value(quantity),
-        previousQuantity: Value(product.quantity),
-        newQuantity: Value(newQuantity),
-        reason: Value('Invoice: $type'),
-        syncStatus: const Value('pending'),
-        createdAt: Value(DateTime.now()),
-      ));
+      await inventoryRepo.updateStockForTransaction(
+        productId: productId,
+        quantity: quantity,
+        transactionType: type,
+        warehouseId: warehouseId,
+        referenceId: invoiceId,
+        referenceNumber: invoiceNumber,
+      );
     }
   }
 
   /// عكس تأثير الفاتورة على المخزون (قبل التعديل أو الحذف)
   Future<void> _reverseInventory(String type, List<InvoiceItem> items) async {
+    String reverseType;
+    switch (type) {
+      case 'sale':
+        reverseType = 'sale_return';
+        break;
+      case 'purchase':
+        reverseType = 'purchase_return';
+        break;
+      case 'sale_return':
+        reverseType = 'sale';
+        break;
+      case 'purchase_return':
+        reverseType = 'purchase';
+        break;
+      default:
+        return;
+    }
+
     for (final item in items) {
-      final product = await database.getProductById(item.productId);
-      if (product == null) continue;
+      // نحتاج معرف المستودع إذا كان موجوداً في الفاتورة الأصلية
+      // هنا نفترض أننا لا نملك معرف المستودع بسهولة من InvoiceItem
+      // لكن يمكننا جلبه إذا لزم الأمر، أو الاعتماد على أن updateStockForTransaction
+      // سيعمل بدونه (فقط تحديث الكمية الكلية) إذا لم نمرره.
+      // ولكن، إذا كانت الفاتورة مرتبطة بمستودع، يجب عكس المخزون في المستودع أيضاً.
 
-      int adjustment;
-      String movementType = 'adjustment';
+      // الحل: جلب الفاتورة لمعرفة المستودع
+      String? warehouseId;
+      try {
+        final invoice = await database.getInvoiceById(item.invoiceId);
+        warehouseId = invoice?.warehouseId;
+      } catch (_) {}
 
-      // عكس التأثير - يعني العكس تماماً
-      switch (type) {
-        case 'sale':
-          adjustment = item.quantity; // إرجاع الكمية للمخزون
-          break;
-        case 'purchase':
-          adjustment = -item.quantity; // خصم الكمية من المخزون
-          break;
-        case 'sale_return':
-          adjustment = -item.quantity;
-          break;
-        case 'purchase_return':
-          adjustment = item.quantity;
-          break;
-        default:
-          continue;
-      }
-
-      final newQuantity = product.quantity + adjustment;
-      await database.updateProductQuantity(item.productId, newQuantity);
-
-      await database.insertInventoryMovement(InventoryMovementsCompanion(
-        id: Value(generateId()),
-        productId: Value(item.productId),
-        type: Value(movementType),
-        quantity: Value(item.quantity),
-        previousQuantity: Value(product.quantity),
-        newQuantity: Value(newQuantity),
-        reason: Value('Invoice edit reversal: $type'),
-        syncStatus: const Value('pending'),
-        createdAt: Value(DateTime.now()),
-      ));
+      await inventoryRepo.updateStockForTransaction(
+        productId: item.productId,
+        quantity: item.quantity,
+        transactionType: reverseType,
+        warehouseId: warehouseId,
+        referenceId: item.invoiceId,
+        referenceNumber: 'Reversal',
+      );
     }
   }
 
@@ -322,7 +455,10 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
     await database.insertInvoiceItems(invoiceItems);
 
     // تحديث المخزون بالعناصر الجديدة
-    await _updateInventory(oldInvoice.type, items);
+    await _updateInventory(oldInvoice.type, items,
+        warehouseId: oldInvoice.warehouseId,
+        invoiceId: invoiceId,
+        invoiceNumber: oldInvoice.invoiceNumber);
   }
 
   /// حذف فاتورة مع عكس تأثيرها على المخزون

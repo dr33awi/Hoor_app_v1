@@ -370,7 +370,6 @@ class _InvoiceDetailsScreenState extends State<InvoiceDetailsScreen> {
 
   Widget _buildContactCard() {
     final isCustomer = _customer != null;
-    final contact = isCustomer ? _customer : _supplier;
     final name = isCustomer ? _customer!.name : _supplier!.name;
     final phone = isCustomer ? _customer!.phone : _supplier!.phone;
 
@@ -548,9 +547,9 @@ class _InvoiceDetailsScreenState extends State<InvoiceDetailsScreen> {
                             color: Colors.green.shade600,
                           ),
                         ),
-                        if ((item.discountAmount ?? 0) > 0)
+                        if (item.discountAmount > 0)
                           Text(
-                            '-${formatAmount(item.discountAmount!)}',
+                            '-${formatAmount(item.discountAmount)}',
                             style: TextStyle(
                               fontSize: 11.sp,
                               color: AppColors.error,

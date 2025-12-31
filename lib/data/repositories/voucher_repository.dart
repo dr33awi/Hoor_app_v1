@@ -6,8 +6,11 @@ import 'package:uuid/uuid.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/services/currency_service.dart';
+import '../../core/di/injection.dart';
 import '../database/app_database.dart';
 import 'base_repository.dart';
+import 'customer_repository.dart';
+import 'supplier_repository.dart';
 
 /// أنواع السندات
 enum VoucherType {
@@ -59,6 +62,10 @@ class VoucherRepository extends BaseRepository<Voucher, VouchersCompanion> {
   StreamSubscription? _voucherFirestoreSubscription;
   StreamSubscription? _categoryFirestoreSubscription;
 
+  // Repositories للتكامل
+  CustomerRepository? _customerRepo;
+  SupplierRepository? _supplierRepo;
+
   VoucherRepository({
     required AppDatabase database,
     required FirebaseFirestore firestore,
@@ -68,6 +75,21 @@ class VoucherRepository extends BaseRepository<Voucher, VouchersCompanion> {
           firestore: firestore,
           collectionName: AppConstants.vouchersCollection,
         );
+
+  /// تعيين الـ Repositories للتكامل
+  void setIntegrationRepositories({
+    CustomerRepository? customerRepo,
+    SupplierRepository? supplierRepo,
+  }) {
+    _customerRepo = customerRepo;
+    _supplierRepo = supplierRepo;
+  }
+
+  // Lazy getters للـ Repositories
+  CustomerRepository get customerRepo =>
+      _customerRepo ?? getIt<CustomerRepository>();
+  SupplierRepository get supplierRepo =>
+      _supplierRepo ?? getIt<SupplierRepository>();
 
   /// Collection للتصنيفات
   CollectionReference get categoryCollection =>
@@ -214,10 +236,54 @@ class VoucherRepository extends BaseRepository<Voucher, VouchersCompanion> {
       );
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // تحديث رصيد العميل/المورد تلقائياً
+    // ═══════════════════════════════════════════════════════════════════════════
+    await _updateCustomerSupplierBalance(
+      type: type,
+      amount: amount,
+      customerId: customerId,
+      supplierId: supplierId,
+    );
+
     // Sync to Firestore immediately
     _syncVoucherToFirestore(id);
 
     return id;
+  }
+
+  /// تحديث رصيد العميل/المورد عند إنشاء سند
+  Future<void> _updateCustomerSupplierBalance({
+    required VoucherType type,
+    required double amount,
+    String? customerId,
+    String? supplierId,
+  }) async {
+    try {
+      switch (type) {
+        case VoucherType.receipt:
+          // سند قبض من عميل = خصم من رصيد العميل (العميل دفع)
+          if (customerId != null) {
+            await customerRepo.updateBalance(customerId, -amount);
+            debugPrint(
+                'Updated customer $customerId balance by -$amount (receipt voucher)');
+          }
+          break;
+        case VoucherType.payment:
+          // سند دفع للمورد = خصم من رصيد المورد (دفعنا للمورد)
+          if (supplierId != null) {
+            await supplierRepo.updateBalance(supplierId, -amount);
+            debugPrint(
+                'Updated supplier $supplierId balance by -$amount (payment voucher)');
+          }
+          break;
+        case VoucherType.expense:
+          // سند مصاريف لا يؤثر على العملاء/الموردين
+          break;
+      }
+    } catch (e) {
+      debugPrint('Error updating customer/supplier balance from voucher: $e');
+    }
   }
 
   /// تحديث سند

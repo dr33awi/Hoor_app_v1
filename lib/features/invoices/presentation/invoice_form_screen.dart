@@ -12,8 +12,6 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/services/currency_service.dart';
 import '../../../core/widgets/invoice_widgets.dart';
 import '../../../core/widgets/invoice_actions_sheet.dart';
-import '../../../core/services/printing/printing_services.dart';
-import '../../../core/services/print_settings_service.dart';
 import '../../../data/database/app_database.dart';
 import '../../../data/repositories/product_repository.dart';
 import '../../../data/repositories/invoice_repository.dart';
@@ -41,7 +39,6 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
   final _cashRepo = getIt<CashRepository>();
   final _customerRepo = getIt<CustomerRepository>();
   final _supplierRepo = getIt<SupplierRepository>();
-  final _printSettingsService = getIt<PrintSettingsService>();
   final _currencyService = getIt<CurrencyService>();
 
   final _searchController = TextEditingController();
@@ -55,7 +52,6 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
   bool _isLoading = false;
   bool _isLoadingInvoice = false; // للتحميل أثناء التعديل
   Shift? _currentShift;
-  Invoice? _existingInvoice; // الفاتورة الموجودة عند التعديل
 
   // العميل والمورد (اختياري)
   Customer? _selectedCustomer;
@@ -90,8 +86,6 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
         }
         return;
       }
-
-      _existingInvoice = invoice;
 
       // تحميل عناصر الفاتورة
       final items = await _invoiceRepo.getInvoiceItems(widget.invoiceId!);
@@ -167,7 +161,6 @@ class _InvoiceFormScreenState extends ConsumerState<InvoiceFormScreen> {
   }
 
   String get _typeTitle {
-    final prefix = widget.isEditMode ? 'تعديل' : 'جديدة';
     switch (widget.type) {
       case 'sale':
         return widget.isEditMode

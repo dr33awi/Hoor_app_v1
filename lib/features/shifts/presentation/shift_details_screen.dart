@@ -22,7 +22,6 @@ class ShiftDetailsScreen extends ConsumerStatefulWidget {
 
 class _ShiftDetailsScreenState extends ConsumerState<ShiftDetailsScreen> {
   final _shiftRepo = getIt<ShiftRepository>();
-  final _currencyService = getIt<CurrencyService>();
 
   Map<String, dynamic>? _summary;
   bool _isLoading = true;

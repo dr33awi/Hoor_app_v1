@@ -19,6 +19,8 @@ import '../../data/repositories/cash_repository.dart';
 import '../../data/repositories/customer_repository.dart';
 import '../../data/repositories/supplier_repository.dart';
 import '../../data/repositories/voucher_repository.dart';
+import '../../data/repositories/warehouse_repository.dart';
+import '../../data/repositories/inventory_count_repository.dart';
 
 final getIt = GetIt.instance;
 
@@ -145,5 +147,38 @@ Future<void> configureDependencies() async {
       firestore: getIt<FirebaseFirestore>(),
       connectivity: getIt<ConnectivityService>(),
     ),
+  );
+
+  // Warehouse Repository
+  getIt.registerSingleton<WarehouseRepository>(
+    WarehouseRepository(
+      database: getIt<AppDatabase>(),
+      firestore: getIt<FirebaseFirestore>(),
+    ),
+  );
+
+  // Inventory Count Repository
+  getIt.registerSingleton<InventoryCountRepository>(
+    InventoryCountRepository(
+      database: getIt<AppDatabase>(),
+      firestore: getIt<FirebaseFirestore>(),
+    ),
+  );
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // تكامل الخدمات - ربط الـ Repositories ببعضها البعض
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  // تكامل InvoiceRepository مع Cash, Customer, Supplier
+  getIt<InvoiceRepository>().setIntegrationRepositories(
+    cashRepo: getIt<CashRepository>(),
+    customerRepo: getIt<CustomerRepository>(),
+    supplierRepo: getIt<SupplierRepository>(),
+  );
+
+  // تكامل VoucherRepository مع Customer, Supplier
+  getIt<VoucherRepository>().setIntegrationRepositories(
+    customerRepo: getIt<CustomerRepository>(),
+    supplierRepo: getIt<SupplierRepository>(),
   );
 }

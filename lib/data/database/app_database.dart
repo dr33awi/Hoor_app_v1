@@ -25,12 +25,16 @@ part 'app_database.g.dart';
   WarehouseStock,
   StockTransfers,
   StockTransferItems,
+  InventoryCounts,
+  InventoryCountItems,
+  InventoryAdjustments,
+  InventoryAdjustmentItems,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration {
@@ -81,6 +85,19 @@ class AppDatabase extends _$AppDatabase {
             INSERT INTO warehouses (id, name, code, is_default, is_active, sync_status, created_at, updated_at)
             VALUES ('default_warehouse', 'المستودع الرئيسي', 'MAIN', 1, 1, 'pending', datetime('now'), datetime('now'))
           ''');
+        }
+        if (from < 8) {
+          // إنشاء جداول الجرد الدوري
+          await m.createTable(inventoryCounts);
+          await m.createTable(inventoryCountItems);
+          await m.createTable(inventoryAdjustments);
+          await m.createTable(inventoryAdjustmentItems);
+        }
+        if (from < 9) {
+          // إضافة عمود warehouseId للفواتير
+          await customStatement(
+            "ALTER TABLE invoices ADD COLUMN warehouse_id TEXT",
+          );
         }
       },
     );
@@ -536,6 +553,16 @@ class AppDatabase extends _$AppDatabase {
         .getSingleOrNull();
   }
 
+  Future<List<CashMovement>> getCashMovementsByDateRange(
+      DateTime start, DateTime end) {
+    return (select(cashMovements)
+          ..where((m) =>
+              m.createdAt.isBiggerOrEqualValue(start) &
+              m.createdAt.isSmallerOrEqualValue(end))
+          ..orderBy([(m) => OrderingTerm.desc(m.createdAt)]))
+        .get();
+  }
+
   // ==================== Customers ====================
 
   Future<List<Customer>> getAllCustomers() => select(customers).get();
@@ -580,6 +607,116 @@ class AppDatabase extends _$AppDatabase {
 
   Future<int> deleteSupplier(String id) {
     return (delete(suppliers)..where((s) => s.id.equals(id))).go();
+  }
+
+  /// حساب رصيد العميل بالدولار من الفواتير والسندات (باستخدام سعر الصرف المحفوظ لكل عملية)
+  Future<double> getCustomerBalanceInUsd(String customerId) async {
+    double totalUsd = 0;
+
+    // الفواتير الآجلة للعميل (زيادة في الرصيد)
+    final customerInvoices = await (select(invoices)
+          ..where((i) =>
+              i.customerId.equals(customerId) &
+              (i.type.equals('sale') | i.type.equals('purchase_return')) &
+              i.paymentMethod.equals('credit')))
+        .get();
+
+    for (final invoice in customerInvoices) {
+      final rate = invoice.exchangeRate ?? 1;
+      if (rate > 0) {
+        totalUsd += invoice.total / rate;
+      }
+    }
+
+    // سندات القبض (تقليل في الرصيد)
+    final customerVouchers = await (select(vouchers)
+          ..where((v) =>
+              v.customerId.equals(customerId) & v.type.equals('receipt')))
+        .get();
+
+    for (final voucher in customerVouchers) {
+      final rate = voucher.exchangeRate;
+      if (rate > 0) {
+        totalUsd -= voucher.amount / rate;
+      }
+    }
+
+    return totalUsd;
+  }
+
+  /// حساب رصيد المورد بالدولار من الفواتير والسندات (باستخدام سعر الصرف المحفوظ لكل عملية)
+  Future<double> getSupplierBalanceInUsd(String supplierId) async {
+    double totalUsd = 0;
+
+    // الفواتير الآجلة للمورد (زيادة في الرصيد)
+    final supplierInvoices = await (select(invoices)
+          ..where((i) =>
+              i.supplierId.equals(supplierId) &
+              (i.type.equals('purchase') | i.type.equals('sale_return')) &
+              i.paymentMethod.equals('credit')))
+        .get();
+
+    for (final invoice in supplierInvoices) {
+      final rate = invoice.exchangeRate ?? 1;
+      if (rate > 0) {
+        totalUsd += invoice.total / rate;
+      }
+    }
+
+    // سندات الصرف (تقليل في الرصيد)
+    final supplierVouchers = await (select(vouchers)
+          ..where((v) =>
+              v.supplierId.equals(supplierId) & v.type.equals('payment')))
+        .get();
+
+    for (final voucher in supplierVouchers) {
+      final rate = voucher.exchangeRate;
+      if (rate > 0) {
+        totalUsd -= voucher.amount / rate;
+      }
+    }
+
+    return totalUsd;
+  }
+
+  /// حساب قيمة الفواتير بالدولار في فترة زمنية (باستخدام سعر الصرف المحفوظ لكل فاتورة)
+  Future<double> getInvoicesTotalInUsd(List<Invoice> invoicesList) async {
+    double totalUsd = 0;
+    for (final invoice in invoicesList) {
+      final rate = invoice.exchangeRate ?? 1;
+      if (rate > 0) {
+        totalUsd += invoice.total / rate;
+      }
+    }
+    return totalUsd;
+  }
+
+  /// حساب قيمة السندات بالدولار (باستخدام سعر الصرف المحفوظ لكل سند)
+  Future<double> getVouchersTotalInUsd(List<Voucher> vouchersList) async {
+    double totalUsd = 0;
+    for (final voucher in vouchersList) {
+      final rate = voucher.exchangeRate;
+      if (rate > 0) {
+        totalUsd += voucher.amount / rate;
+      }
+    }
+    return totalUsd;
+  }
+
+  /// الحصول على سندات القبض لعميل معين
+  Future<List<Voucher>> getVouchersByCustomer(String customerId) {
+    return (select(vouchers)
+          ..where((v) => v.customerId.equals(customerId))
+          ..orderBy([(v) => OrderingTerm.desc(v.voucherDate)]))
+        .get();
+  }
+
+  /// الحصول على سندات الدفع لمورد معين
+  Future<List<Voucher>> getVouchersBySupplier(String supplierId) {
+    return (select(vouchers)
+          ..where((v) => v.supplierId.equals(supplierId))
+          ..orderBy([(v) => OrderingTerm.desc(v.voucherDate)]))
+        .get();
   }
 
   // ==================== Settings ====================
@@ -1175,6 +1312,626 @@ class AppDatabase extends _$AppDatabase {
               'lowStockCount': row.read<int>('low_stock_count'),
             })
         .toList();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Inventory Counts - الجرد الدوري
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  Future<List<InventoryCount>> getAllInventoryCounts() =>
+      (select(inventoryCounts)
+            ..orderBy([(c) => OrderingTerm.desc(c.createdAt)]))
+          .get();
+
+  Stream<List<InventoryCount>> watchAllInventoryCounts() =>
+      (select(inventoryCounts)
+            ..orderBy([(c) => OrderingTerm.desc(c.createdAt)]))
+          .watch();
+
+  Future<List<InventoryCount>> getInventoryCountsByStatus(String status) =>
+      (select(inventoryCounts)
+            ..where((c) => c.status.equals(status))
+            ..orderBy([(c) => OrderingTerm.desc(c.createdAt)]))
+          .get();
+
+  Stream<List<InventoryCount>> watchActiveInventoryCounts() =>
+      (select(inventoryCounts)
+            ..where((c) =>
+                c.status.equals('draft') | c.status.equals('in_progress'))
+            ..orderBy([(c) => OrderingTerm.desc(c.createdAt)]))
+          .watch();
+
+  Future<InventoryCount?> getInventoryCountById(String id) =>
+      (select(inventoryCounts)..where((c) => c.id.equals(id)))
+          .getSingleOrNull();
+
+  Future<int> insertInventoryCount(InventoryCountsCompanion count) =>
+      into(inventoryCounts).insert(count);
+
+  Future<int> updateInventoryCount(InventoryCountsCompanion count) =>
+      (update(inventoryCounts)..where((c) => c.id.equals(count.id.value)))
+          .write(count);
+
+  Future<int> deleteInventoryCount(String id) =>
+      (delete(inventoryCounts)..where((c) => c.id.equals(id))).go();
+
+  // ==================== Inventory Count Items ====================
+
+  Future<List<InventoryCountItem>> getInventoryCountItems(String countId) =>
+      (select(inventoryCountItems)..where((i) => i.countId.equals(countId)))
+          .get();
+
+  Stream<List<InventoryCountItem>> watchInventoryCountItems(String countId) =>
+      (select(inventoryCountItems)..where((i) => i.countId.equals(countId)))
+          .watch();
+
+  Future<List<InventoryCountItem>> getUncountedItems(String countId) => (select(
+          inventoryCountItems)
+        ..where((i) => i.countId.equals(countId) & i.isCounted.equals(false)))
+      .get();
+
+  Future<List<InventoryCountItem>> getItemsWithVariance(String countId) =>
+      (select(inventoryCountItems)
+            ..where((i) =>
+                i.countId.equals(countId) &
+                    i.variance.isNotNull() &
+                    i.variance.isBiggerThanValue(0) |
+                i.variance.isSmallerThanValue(0)))
+          .get();
+
+  Future<int> insertInventoryCountItem(InventoryCountItemsCompanion item) =>
+      into(inventoryCountItems).insert(item);
+
+  Future<void> insertInventoryCountItems(
+      List<InventoryCountItemsCompanion> items) async {
+    await batch((batch) {
+      batch.insertAll(inventoryCountItems, items);
+    });
+  }
+
+  Future<int> updateInventoryCountItem(InventoryCountItemsCompanion item) =>
+      (update(inventoryCountItems)..where((i) => i.id.equals(item.id.value)))
+          .write(item);
+
+  Future<int> deleteInventoryCountItems(String countId) =>
+      (delete(inventoryCountItems)..where((i) => i.countId.equals(countId)))
+          .go();
+
+  /// تحديث عنصر جرد بالكمية الفعلية
+  Future<void> updateCountItemPhysicalQuantity(
+      String itemId, int physicalQuantity, String? reason) async {
+    final item = await (select(inventoryCountItems)
+          ..where((i) => i.id.equals(itemId)))
+        .getSingleOrNull();
+    if (item == null) return;
+
+    final variance = physicalQuantity - item.systemQuantity;
+    final varianceValue = variance * item.unitCost;
+
+    await (update(inventoryCountItems)..where((i) => i.id.equals(itemId)))
+        .write(InventoryCountItemsCompanion(
+      physicalQuantity: Value(physicalQuantity),
+      variance: Value(variance),
+      varianceValue: Value(varianceValue),
+      varianceReason: Value(reason),
+      isCounted: const Value(true),
+      countedAt: Value(DateTime.now()),
+    ));
+  }
+
+  /// الحصول على إحصائيات الجرد
+  Future<Map<String, dynamic>> getInventoryCountStats(String countId) async {
+    final result = await customSelect(
+      '''
+      SELECT 
+        COUNT(*) as total_items,
+        SUM(CASE WHEN is_counted = 1 THEN 1 ELSE 0 END) as counted_items,
+        SUM(CASE WHEN variance != 0 AND variance IS NOT NULL THEN 1 ELSE 0 END) as variance_items,
+        COALESCE(SUM(CASE WHEN variance > 0 THEN variance_value ELSE 0 END), 0) as positive_variance,
+        COALESCE(SUM(CASE WHEN variance < 0 THEN ABS(variance_value) ELSE 0 END), 0) as negative_variance,
+        COALESCE(SUM(variance_value), 0) as total_variance_value
+      FROM inventory_count_items
+      WHERE count_id = ?
+      ''',
+      variables: [Variable.withString(countId)],
+      readsFrom: {inventoryCountItems},
+    ).getSingleOrNull();
+
+    if (result == null) {
+      return {
+        'totalItems': 0,
+        'countedItems': 0,
+        'varianceItems': 0,
+        'positiveVariance': 0.0,
+        'negativeVariance': 0.0,
+        'totalVarianceValue': 0.0,
+        'progress': 0.0,
+      };
+    }
+
+    final totalItems = result.read<int>('total_items');
+    final countedItems = result.read<int>('counted_items');
+
+    return {
+      'totalItems': totalItems,
+      'countedItems': countedItems,
+      'varianceItems': result.read<int>('variance_items'),
+      'positiveVariance': result.read<double>('positive_variance'),
+      'negativeVariance': result.read<double>('negative_variance'),
+      'totalVarianceValue': result.read<double>('total_variance_value'),
+      'progress': totalItems > 0 ? (countedItems / totalItems) * 100 : 0.0,
+    };
+  }
+
+  // ==================== Inventory Adjustments ====================
+
+  Future<List<InventoryAdjustment>> getAllInventoryAdjustments() =>
+      (select(inventoryAdjustments)
+            ..orderBy([(a) => OrderingTerm.desc(a.createdAt)]))
+          .get();
+
+  Stream<List<InventoryAdjustment>> watchAllInventoryAdjustments() =>
+      (select(inventoryAdjustments)
+            ..orderBy([(a) => OrderingTerm.desc(a.createdAt)]))
+          .watch();
+
+  Future<List<InventoryAdjustment>> getPendingAdjustments() =>
+      (select(inventoryAdjustments)
+            ..where((a) => a.status.equals('pending'))
+            ..orderBy([(a) => OrderingTerm.desc(a.createdAt)]))
+          .get();
+
+  Future<InventoryAdjustment?> getInventoryAdjustmentById(String id) =>
+      (select(inventoryAdjustments)..where((a) => a.id.equals(id)))
+          .getSingleOrNull();
+
+  Future<int> insertInventoryAdjustment(InventoryAdjustmentsCompanion adj) =>
+      into(inventoryAdjustments).insert(adj);
+
+  Future<int> updateInventoryAdjustment(InventoryAdjustmentsCompanion adj) =>
+      (update(inventoryAdjustments)..where((a) => a.id.equals(adj.id.value)))
+          .write(adj);
+
+  Future<int> deleteInventoryAdjustment(String id) =>
+      (delete(inventoryAdjustments)..where((a) => a.id.equals(id))).go();
+
+  // ==================== Inventory Adjustment Items ====================
+
+  Future<List<InventoryAdjustmentItem>> getInventoryAdjustmentItems(
+          String adjustmentId) =>
+      (select(inventoryAdjustmentItems)
+            ..where((i) => i.adjustmentId.equals(adjustmentId)))
+          .get();
+
+  Future<int> insertInventoryAdjustmentItem(
+          InventoryAdjustmentItemsCompanion item) =>
+      into(inventoryAdjustmentItems).insert(item);
+
+  Future<void> insertInventoryAdjustmentItems(
+      List<InventoryAdjustmentItemsCompanion> items) async {
+    await batch((batch) {
+      batch.insertAll(inventoryAdjustmentItems, items);
+    });
+  }
+
+  Future<int> deleteInventoryAdjustmentItems(String adjustmentId) =>
+      (delete(inventoryAdjustmentItems)
+            ..where((i) => i.adjustmentId.equals(adjustmentId)))
+          .go();
+
+  /// تطبيق تسوية الجرد على المخزون
+  Future<void> applyInventoryAdjustment(String adjustmentId) async {
+    final adjustment = await getInventoryAdjustmentById(adjustmentId);
+    if (adjustment == null || adjustment.status != 'pending') return;
+
+    final items = await getInventoryAdjustmentItems(adjustmentId);
+
+    await transaction(() async {
+      for (final item in items) {
+        // تحديث المخزون في المستودع
+        final stock = await getWarehouseStockByProductAndWarehouse(
+            item.productId, adjustment.warehouseId);
+
+        if (stock != null) {
+          await updateWarehouseStockQuantity(
+              adjustment.warehouseId, item.productId, item.quantityAfter);
+        } else {
+          // إنشاء سجل مخزون جديد
+          await insertWarehouseStock(WarehouseStockCompanion(
+            id: Value(
+                'ws_${DateTime.now().millisecondsSinceEpoch}_${item.productId}'),
+            warehouseId: Value(adjustment.warehouseId),
+            productId: Value(item.productId),
+            quantity: Value(item.quantityAfter),
+          ));
+        }
+
+        // تحديث كمية المنتج الإجمالية
+        final product = await getProductById(item.productId);
+        if (product != null) {
+          final totalStock = await getTotalStockForProduct(item.productId);
+          await updateProductQuantity(item.productId, totalStock);
+        }
+
+        // تسجيل حركة المخزون
+        await insertInventoryMovement(InventoryMovementsCompanion(
+          id: Value(
+              'mov_adj_${DateTime.now().millisecondsSinceEpoch}_${item.productId}'),
+          productId: Value(item.productId),
+          warehouseId: Value(adjustment.warehouseId),
+          type: Value(adjustment.type),
+          quantity: Value(item.quantityAdjusted.abs()),
+          previousQuantity: Value(item.quantityBefore),
+          newQuantity: Value(item.quantityAfter),
+          reason: Value(item.reason ?? adjustment.reason),
+          referenceId: Value(adjustmentId),
+          referenceType: const Value('adjustment'),
+        ));
+      }
+
+      // تحديث حالة التسوية
+      await updateInventoryAdjustment(InventoryAdjustmentsCompanion(
+        id: Value(adjustmentId),
+        status: const Value('approved'),
+        approvedAt: Value(DateTime.now()),
+      ));
+    });
+  }
+
+  /// إنشاء جرد جديد لمستودع
+  Future<String> createInventoryCount({
+    required String warehouseId,
+    required String countType,
+    String? notes,
+    List<String>? productIds, // للجرد الجزئي
+  }) async {
+    final countNumber = 'CNT${DateTime.now().millisecondsSinceEpoch}';
+    final countId = 'count_${DateTime.now().millisecondsSinceEpoch}';
+
+    // الحصول على المنتجات للجرد
+    List<WarehouseStockData> stockItems;
+    if (countType == 'partial' && productIds != null) {
+      stockItems = [];
+      for (final pid in productIds) {
+        final item =
+            await getWarehouseStockByProductAndWarehouse(pid, warehouseId);
+        if (item != null) stockItems.add(item);
+      }
+    } else {
+      stockItems = await getWarehouseStockByWarehouse(warehouseId);
+    }
+
+    // إنشاء عملية الجرد
+    await insertInventoryCount(InventoryCountsCompanion(
+      id: Value(countId),
+      countNumber: Value(countNumber),
+      warehouseId: Value(warehouseId),
+      countType: Value(countType),
+      status: const Value('draft'),
+      totalItems: Value(stockItems.length),
+      notes: Value(notes),
+    ));
+
+    // إنشاء عناصر الجرد
+    final countItems = <InventoryCountItemsCompanion>[];
+    for (final stock in stockItems) {
+      final product = await getProductById(stock.productId);
+      if (product != null) {
+        countItems.add(InventoryCountItemsCompanion(
+          id: Value(
+              'ci_${DateTime.now().millisecondsSinceEpoch}_${stock.productId}'),
+          countId: Value(countId),
+          productId: Value(stock.productId),
+          productName: Value(product.name),
+          productSku: Value(product.sku),
+          productBarcode: Value(product.barcode),
+          systemQuantity: Value(stock.quantity),
+          unitCost: Value(product.purchasePrice),
+          location: Value(stock.location),
+        ));
+      }
+    }
+
+    if (countItems.isNotEmpty) {
+      await insertInventoryCountItems(countItems);
+    }
+
+    return countId;
+  }
+
+  /// إكمال الجرد وإنشاء تسوية
+  Future<String?> completeInventoryCount(String countId) async {
+    final count = await getInventoryCountById(countId);
+    if (count == null) return null;
+
+    final stats = await getInventoryCountStats(countId);
+    final itemsWithVariance = await getItemsWithVariance(countId);
+
+    // تحديث إحصائيات الجرد
+    await updateInventoryCount(InventoryCountsCompanion(
+      id: Value(countId),
+      status: const Value('completed'),
+      countedItems: Value(stats['countedItems'] as int),
+      varianceItems: Value(stats['varianceItems'] as int),
+      totalVarianceValue: Value(stats['totalVarianceValue'] as double),
+      completedAt: Value(DateTime.now()),
+    ));
+
+    // إنشاء تسوية إذا كان هناك فروقات
+    if (itemsWithVariance.isNotEmpty) {
+      final adjustmentId = 'adj_${DateTime.now().millisecondsSinceEpoch}';
+      final adjustmentNumber = 'ADJ${DateTime.now().millisecondsSinceEpoch}';
+
+      await insertInventoryAdjustment(InventoryAdjustmentsCompanion(
+        id: Value(adjustmentId),
+        adjustmentNumber: Value(adjustmentNumber),
+        countId: Value(countId),
+        warehouseId: Value(count.warehouseId),
+        type: const Value('correction'),
+        reason: const Value('تسوية جرد'),
+        totalValue: Value(stats['totalVarianceValue'] as double),
+      ));
+
+      final adjustmentItems = <InventoryAdjustmentItemsCompanion>[];
+      for (final item in itemsWithVariance) {
+        if (item.physicalQuantity != null) {
+          adjustmentItems.add(InventoryAdjustmentItemsCompanion(
+            id: Value(
+                'ai_${DateTime.now().millisecondsSinceEpoch}_${item.productId}'),
+            adjustmentId: Value(adjustmentId),
+            productId: Value(item.productId),
+            productName: Value(item.productName),
+            quantityBefore: Value(item.systemQuantity),
+            quantityAdjusted: Value(item.variance ?? 0),
+            quantityAfter: Value(item.physicalQuantity!),
+            unitCost: Value(item.unitCost),
+            adjustmentValue: Value(item.varianceValue ?? 0),
+            reason: Value(item.varianceReason),
+          ));
+        }
+      }
+
+      if (adjustmentItems.isNotEmpty) {
+        await insertInventoryAdjustmentItems(adjustmentItems);
+      }
+
+      return adjustmentId;
+    }
+
+    return null;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // تحسينات الأداء - Optimized Queries
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// البحث السريع في المنتجات بالباركود أو الاسم مع index
+  Future<List<Product>> searchProductsFast(String query) async {
+    return customSelect(
+      '''
+      SELECT * FROM products 
+      WHERE is_active = 1 AND (
+        barcode = ? OR 
+        name LIKE ? OR 
+        sku LIKE ?
+      )
+      LIMIT 50
+      ''',
+      variables: [
+        Variable.withString(query),
+        Variable.withString('%$query%'),
+        Variable.withString('%$query%'),
+      ],
+      readsFrom: {products},
+    )
+        .map((row) => Product(
+              id: row.read<String>('id'),
+              name: row.read<String>('name'),
+              sku: row.readNullable<String>('sku'),
+              barcode: row.readNullable<String>('barcode'),
+              categoryId: row.readNullable<String>('category_id'),
+              purchasePrice: row.read<double>('purchase_price'),
+              purchasePriceUsd: row.readNullable<double>('purchase_price_usd'),
+              salePrice: row.read<double>('sale_price'),
+              quantity: row.read<int>('quantity'),
+              minQuantity: row.read<int>('min_quantity'),
+              taxRate: row.readNullable<double>('tax_rate'),
+              description: row.readNullable<String>('description'),
+              imageUrl: row.readNullable<String>('image_url'),
+              isActive: row.read<bool>('is_active'),
+              syncStatus: row.read<String>('sync_status'),
+              createdAt: row.read<DateTime>('created_at'),
+              updatedAt: row.read<DateTime>('updated_at'),
+            ))
+        .get();
+  }
+
+  /// الحصول على ملخص المبيعات اليومية بشكل محسّن
+  Future<Map<String, dynamic>> getDailySalesSummaryOptimized(
+      DateTime date) async {
+    final startOfDay = DateTime(date.year, date.month, date.day);
+    final endOfDay = startOfDay.add(const Duration(days: 1));
+
+    final result = await customSelect(
+      '''
+      SELECT 
+        COALESCE(SUM(CASE WHEN type = 'sale' THEN total ELSE 0 END), 0) as sales,
+        COALESCE(SUM(CASE WHEN type = 'sale_return' THEN total ELSE 0 END), 0) as returns,
+        COALESCE(SUM(CASE WHEN type = 'purchase' THEN total ELSE 0 END), 0) as purchases,
+        COUNT(CASE WHEN type = 'sale' THEN 1 END) as sale_count,
+        COUNT(CASE WHEN type = 'purchase' THEN 1 END) as purchase_count
+      FROM invoices 
+      WHERE invoice_date >= ? AND invoice_date < ?
+      ''',
+      variables: [
+        Variable.withDateTime(startOfDay),
+        Variable.withDateTime(endOfDay),
+      ],
+      readsFrom: {invoices},
+    ).getSingleOrNull();
+
+    if (result == null) {
+      return {
+        'sales': 0.0,
+        'returns': 0.0,
+        'purchases': 0.0,
+        'netSales': 0.0,
+        'saleCount': 0,
+        'purchaseCount': 0,
+      };
+    }
+
+    final sales = result.read<double>('sales');
+    final returns = result.read<double>('returns');
+
+    return {
+      'sales': sales,
+      'returns': returns,
+      'purchases': result.read<double>('purchases'),
+      'netSales': sales - returns,
+      'saleCount': result.read<int>('sale_count'),
+      'purchaseCount': result.read<int>('purchase_count'),
+    };
+  }
+
+  /// الحصول على حالة المخزون الكاملة بشكل محسّن
+  Future<List<Map<String, dynamic>>> getFullStockStatusOptimized() async {
+    return customSelect(
+      '''
+      SELECT 
+        p.id,
+        p.name,
+        p.sku,
+        p.barcode,
+        p.quantity as total_quantity,
+        p.min_quantity,
+        p.purchase_price,
+        p.sale_price,
+        c.name as category_name,
+        CASE 
+          WHEN p.quantity <= 0 THEN 'out_of_stock'
+          WHEN p.quantity <= p.min_quantity THEN 'low_stock'
+          ELSE 'in_stock'
+        END as stock_status
+      FROM products p
+      LEFT JOIN categories c ON p.category_id = c.id
+      WHERE p.is_active = 1
+      ORDER BY 
+        CASE 
+          WHEN p.quantity <= 0 THEN 0
+          WHEN p.quantity <= p.min_quantity THEN 1
+          ELSE 2
+        END,
+        p.name
+      ''',
+      readsFrom: {products, categories},
+    )
+        .map((row) => {
+              'id': row.read<String>('id'),
+              'name': row.read<String>('name'),
+              'sku': row.readNullable<String>('sku'),
+              'barcode': row.readNullable<String>('barcode'),
+              'totalQuantity': row.read<int>('total_quantity'),
+              'minQuantity': row.read<int>('min_quantity'),
+              'purchasePrice': row.read<double>('purchase_price'),
+              'salePrice': row.read<double>('sale_price'),
+              'categoryName': row.readNullable<String>('category_name'),
+              'stockStatus': row.read<String>('stock_status'),
+            })
+        .get();
+  }
+
+  /// الحصول على ملخص العملاء مع الأرصدة
+  Future<List<Map<String, dynamic>>> getCustomersWithBalanceSummary() async {
+    return customSelect(
+      '''
+      SELECT 
+        c.id,
+        c.name,
+        c.phone,
+        c.balance,
+        COALESCE(inv.total_purchases, 0) as total_purchases,
+        COALESCE(inv.invoice_count, 0) as invoice_count,
+        inv.last_purchase
+      FROM customers c
+      LEFT JOIN (
+        SELECT 
+          customer_id,
+          SUM(total) as total_purchases,
+          COUNT(*) as invoice_count,
+          MAX(invoice_date) as last_purchase
+        FROM invoices
+        WHERE type = 'sale' AND customer_id IS NOT NULL
+        GROUP BY customer_id
+      ) inv ON c.id = inv.customer_id
+      WHERE c.is_active = 1
+      ORDER BY c.balance DESC, c.name
+      ''',
+      readsFrom: {customers, invoices},
+    )
+        .map((row) => {
+              'id': row.read<String>('id'),
+              'name': row.read<String>('name'),
+              'phone': row.readNullable<String>('phone'),
+              'balance': row.read<double>('balance'),
+              'totalPurchases': row.read<double>('total_purchases'),
+              'invoiceCount': row.read<int>('invoice_count'),
+              'lastPurchase': row.readNullable<DateTime>('last_purchase'),
+            })
+        .get();
+  }
+
+  /// الحصول على تقرير الأرباح
+  Future<Map<String, dynamic>> getProfitReport(
+      DateTime start, DateTime end) async {
+    final result = await customSelect(
+      '''
+      SELECT 
+        COALESCE(SUM(ii.total), 0) as total_revenue,
+        COALESCE(SUM(ii.quantity * ii.purchase_price), 0) as total_cost,
+        COALESCE(SUM(ii.total) - SUM(ii.quantity * ii.purchase_price), 0) as gross_profit,
+        COUNT(DISTINCT i.id) as invoice_count,
+        SUM(ii.quantity) as total_items_sold
+      FROM invoice_items ii
+      JOIN invoices i ON ii.invoice_id = i.id
+      WHERE i.type = 'sale' AND i.invoice_date BETWEEN ? AND ?
+      ''',
+      variables: [
+        Variable.withDateTime(start),
+        Variable.withDateTime(end),
+      ],
+      readsFrom: {invoiceItems, invoices},
+    ).getSingleOrNull();
+
+    // حساب المصاريف
+    final expenses = await customSelect(
+      '''
+      SELECT COALESCE(SUM(amount), 0) as total
+      FROM vouchers
+      WHERE type = 'expense' AND voucher_date BETWEEN ? AND ?
+      ''',
+      variables: [
+        Variable.withDateTime(start),
+        Variable.withDateTime(end),
+      ],
+      readsFrom: {vouchers},
+    ).getSingleOrNull();
+
+    final totalRevenue = result?.read<double>('total_revenue') ?? 0;
+    final totalCost = result?.read<double>('total_cost') ?? 0;
+    final grossProfit = result?.read<double>('gross_profit') ?? 0;
+    final totalExpenses = expenses?.read<double>('total') ?? 0;
+
+    return {
+      'totalRevenue': totalRevenue,
+      'totalCost': totalCost,
+      'grossProfit': grossProfit,
+      'totalExpenses': totalExpenses,
+      'netProfit': grossProfit - totalExpenses,
+      'profitMargin': totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0,
+      'invoiceCount': result?.read<int>('invoice_count') ?? 0,
+      'totalItemsSold': result?.read<int>('total_items_sold') ?? 0,
+    };
   }
 }
 

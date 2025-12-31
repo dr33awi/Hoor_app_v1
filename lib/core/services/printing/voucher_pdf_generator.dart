@@ -5,7 +5,6 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:intl/intl.dart' show DateFormat;
 
 import '../../di/injection.dart';
 import '../../theme/pdf_theme.dart';

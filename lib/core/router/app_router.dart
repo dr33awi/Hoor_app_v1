@@ -11,6 +11,8 @@ import '../../features/invoices/presentation/invoice_form_screen.dart';
 import '../../features/invoices/presentation/invoice_details_screen.dart';
 import '../../features/inventory/presentation/inventory_screen.dart';
 import '../../features/inventory/presentation/inventory_count_screen.dart';
+import '../../features/inventory/presentation/stock_transfer_screen.dart';
+import '../../features/inventory/presentation/warehouses_screen.dart';
 import '../../features/shifts/presentation/shifts_screen.dart';
 import '../../features/shifts/presentation/shift_details_screen.dart';
 import '../../features/cash/presentation/cash_screen.dart';
@@ -18,11 +20,15 @@ import '../../features/vouchers/presentation/vouchers_screen.dart';
 import '../../features/reports/presentation/reports_screen.dart';
 import '../../features/reports/presentation/sales_report_screen.dart';
 import '../../features/reports/presentation/inventory_report_screen.dart';
+import '../../features/reports/presentation/receivables_report_screen.dart';
+import '../../features/reports/presentation/payables_report_screen.dart';
+import '../../features/reports/presentation/profit_loss_report_screen.dart';
 import '../../features/settings/presentation/settings_screen.dart';
 import '../../features/settings/presentation/print_settings_screen.dart';
 import '../../features/backup/presentation/backup_screen.dart';
 import '../../features/customers/presentation/customers_screen.dart';
 import '../../features/suppliers/presentation/suppliers_screen.dart';
+import '../../features/alerts/alerts_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -114,6 +120,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             name: 'inventory-count',
             builder: (context, state) => const InventoryCountScreen(),
           ),
+          GoRoute(
+            path: 'transfer',
+            name: 'stock-transfer',
+            builder: (context, state) => const StockTransferScreen(),
+          ),
+          GoRoute(
+            path: 'transfer/new',
+            name: 'new-stock-transfer',
+            builder: (context, state) => const NewStockTransferScreen(),
+          ),
+          GoRoute(
+            path: 'warehouses',
+            name: 'warehouses',
+            builder: (context, state) => const WarehousesScreen(),
+          ),
         ],
       ),
 
@@ -163,6 +184,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             name: 'inventory-report',
             builder: (context, state) => const InventoryReportScreen(),
           ),
+          GoRoute(
+            path: 'receivables',
+            name: 'receivables-report',
+            builder: (context, state) => const ReceivablesReportScreen(),
+          ),
+          GoRoute(
+            path: 'payables',
+            name: 'payables-report',
+            builder: (context, state) => const PayablesReportScreen(),
+          ),
+          GoRoute(
+            path: 'profit-loss',
+            name: 'profit-loss-report',
+            builder: (context, state) => const ProfitLossReportScreen(),
+          ),
         ],
       ),
 
@@ -199,6 +235,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/backup',
         name: 'backup',
         builder: (context, state) => const BackupScreen(),
+      ),
+
+      // Alerts
+      GoRoute(
+        path: '/alerts',
+        name: 'alerts',
+        builder: (context, state) => const AlertsScreen(),
       ),
     ],
   );

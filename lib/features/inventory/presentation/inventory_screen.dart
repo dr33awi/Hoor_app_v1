@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:gap/gap.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
 
@@ -47,6 +48,18 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen>
       appBar: AppBar(
         title: const Text('إدارة المخزون'),
         actions: [
+          // زر المستودعات
+          IconButton(
+            icon: const Icon(Icons.warehouse_outlined),
+            tooltip: 'المستودعات',
+            onPressed: () => context.push('/inventory/warehouses'),
+          ),
+          // زر نقل المخزون
+          IconButton(
+            icon: const Icon(Icons.swap_horiz_outlined),
+            tooltip: 'نقل المخزون',
+            onPressed: () => context.push('/inventory/transfer'),
+          ),
           ExportMenuButton(
             onExport: _handleExport,
           ),

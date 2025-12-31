@@ -88,6 +88,18 @@ class SupplierRepository extends BaseRepository<Supplier, SuppliersCompanion> {
     );
   }
 
+  /// حذف مورد
+  Future<void> deleteSupplier(String id) async {
+    await database.deleteSupplier(id);
+
+    // حذف من Cloud أيضاً
+    try {
+      await collection.doc(id).delete();
+    } catch (e) {
+      debugPrint('Error deleting supplier from cloud: $e');
+    }
+  }
+
   // ==================== Cloud Sync ====================
 
   @override
