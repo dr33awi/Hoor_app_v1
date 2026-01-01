@@ -59,7 +59,7 @@ class ExportMenuButton extends StatelessWidget {
     }
 
     return PopupMenuButton<ExportType>(
-      icon: Icon(icon ?? Icons.more_vert, size: iconSize ?? 24.sp),
+      icon: Icon(icon ?? Icons.ios_share_rounded, size: iconSize ?? 24.sp),
       tooltip: tooltip ?? 'خيارات التصدير',
       onSelected: onExport,
       itemBuilder: (context) => [

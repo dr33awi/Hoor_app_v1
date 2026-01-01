@@ -7,17 +7,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/theme/pro/design_tokens.dart';
+import '../../../core/services/export/export_button.dart';
 
 class ProductsHeader extends StatelessWidget {
   final VoidCallback onBack;
   final int totalProducts;
   final VoidCallback onAddProduct;
+  final void Function(ExportType type)? onExport;
+  final bool isExporting;
 
   const ProductsHeader({
     super.key,
     required this.onBack,
     required this.totalProducts,
     required this.onAddProduct,
+    this.onExport,
+    this.isExporting = false,
   });
 
   @override
@@ -91,50 +96,13 @@ class ProductsHeader extends StatelessWidget {
             tooltip: 'مسح الباركود',
           ),
 
-          // Import/Export
-          PopupMenuButton<String>(
-            icon: Icon(
-              Icons.more_vert_rounded,
-              size: AppIconSize.md,
-              color: AppColors.textSecondary,
+          // Export Menu Button (Unified)
+          if (onExport != null)
+            ExportMenuButton(
+              onExport: onExport!,
+              isLoading: isExporting,
+              tooltip: 'تصدير ومشاركة',
             ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'import',
-                child: Row(
-                  children: [
-                    Icon(Icons.upload_rounded, size: AppIconSize.sm),
-                    SizedBox(width: AppSpacing.sm),
-                    const Text('استيراد'),
-                  ],
-                ),
-              ),
-              PopupMenuItem(
-                value: 'export',
-                child: Row(
-                  children: [
-                    Icon(Icons.download_rounded, size: AppIconSize.sm),
-                    SizedBox(width: AppSpacing.sm),
-                    const Text('تصدير'),
-                  ],
-                ),
-              ),
-              const PopupMenuDivider(),
-              PopupMenuItem(
-                value: 'print',
-                child: Row(
-                  children: [
-                    Icon(Icons.print_rounded, size: AppIconSize.sm),
-                    SizedBox(width: AppSpacing.sm),
-                    const Text('طباعة قائمة'),
-                  ],
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );

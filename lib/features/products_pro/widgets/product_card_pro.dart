@@ -44,55 +44,84 @@ class ProductCardPro extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Product Image / Placeholder
-              _buildImageSection(),
+              AspectRatio(
+                aspectRatio: 1.2,
+                child: Stack(
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(AppRadius.lg - 1),
+                        ),
+                      ),
+                      child: product['image'] != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(AppRadius.lg - 1),
+                              ),
+                              child: Image.network(
+                                product['image'],
+                                fit: BoxFit.cover,
+                              ),
+                            )
+                          : Center(
+                              child: Icon(
+                                Icons.inventory_2_outlined,
+                                color: AppColors.textTertiary,
+                                size: 40.sp,
+                              ),
+                            ),
+                    ),
+                    // Status Badge
+                    Positioned(
+                      top: AppSpacing.xs,
+                      right: AppSpacing.xs,
+                      child: _buildStatusBadge(),
+                    ),
+                  ],
+                ),
+              ),
 
               // Product Info
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.all(AppSpacing.sm),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Name
-                      Text(
-                        product['name'],
-                        style: AppTypography.titleSmall.copyWith(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+              Padding(
+                padding: EdgeInsets.all(AppSpacing.sm),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Name
+                    Text(
+                      product['name'],
+                      style: AppTypography.labelMedium.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w600,
                       ),
-                      SizedBox(height: 4.h),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: 4.h),
 
-                      // SKU
-                      Text(
-                        product['sku'],
-                        style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.textTertiary,
-                          fontFamily: 'JetBrains Mono',
-                        ),
-                      ),
-
-                      const Spacer(),
-
-                      // Price & Stock
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
+                    // Price & Stock
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Flexible(
+                          child: Text(
                             '${product['price'].toStringAsFixed(0)} ر.س',
-                            style: AppTypography.titleMedium.copyWith(
+                            style: AppTypography.labelLarge.copyWith(
                               color: AppColors.secondary,
                               fontWeight: FontWeight.w700,
                               fontFamily: 'JetBrains Mono',
                             ),
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          _buildStockBadge(),
-                        ],
-                      ),
-                    ],
-                  ),
+                        ),
+                        _buildStockBadge(),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -219,25 +248,21 @@ class ProductCardPro extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
+                onSelected: (value) {
+                  if (value == 'edit') {
+                    onEdit();
+                  } else if (value == 'delete') {
+                    // Handle delete
+                  }
+                },
                 itemBuilder: (context) => [
-                  PopupMenuItem(
+                  const PopupMenuItem(
                     value: 'edit',
-                    onTap: onEdit,
                     child: Row(
                       children: [
-                        Icon(Icons.edit_outlined, size: AppIconSize.sm),
-                        SizedBox(width: AppSpacing.sm),
-                        const Text('تعديل'),
-                      ],
-                    ),
-                  ),
-                  PopupMenuItem(
-                    value: 'duplicate',
-                    child: Row(
-                      children: [
-                        Icon(Icons.copy_outlined, size: AppIconSize.sm),
-                        SizedBox(width: AppSpacing.sm),
-                        const Text('نسخ'),
+                        Icon(Icons.edit_outlined, size: 20),
+                        SizedBox(width: 8),
+                        Text('تعديل'),
                       ],
                     ),
                   ),
@@ -246,10 +271,9 @@ class ProductCardPro extends StatelessWidget {
                     value: 'delete',
                     child: Row(
                       children: [
-                        Icon(Icons.delete_outline,
-                            size: AppIconSize.sm, color: AppColors.error),
-                        SizedBox(width: AppSpacing.sm),
-                        Text('حذف', style: TextStyle(color: AppColors.error)),
+                        Icon(Icons.delete_outline, size: 20, color: Colors.red),
+                        SizedBox(width: 8),
+                        Text('حذف', style: TextStyle(color: Colors.red)),
                       ],
                     ),
                   ),
@@ -258,47 +282,6 @@ class ProductCardPro extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildImageSection() {
-    return Expanded(
-      flex: 3,
-      child: Stack(
-        children: [
-          Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.vertical(
-                top: Radius.circular(AppRadius.lg - 1),
-              ),
-            ),
-            child: product['image'] != null
-                ? ClipRRect(
-                    borderRadius: BorderRadius.vertical(
-                      top: Radius.circular(AppRadius.lg - 1),
-                    ),
-                    child: Image.network(
-                      product['image'],
-                      fit: BoxFit.cover,
-                    ),
-                  )
-                : Icon(
-                    Icons.inventory_2_outlined,
-                    color: AppColors.textTertiary,
-                    size: 48.sp,
-                  ),
-          ),
-
-          // Status Badge
-          Positioned(
-            top: AppSpacing.xs,
-            right: AppSpacing.xs,
-            child: _buildStatusBadge(),
-          ),
-        ],
       ),
     );
   }

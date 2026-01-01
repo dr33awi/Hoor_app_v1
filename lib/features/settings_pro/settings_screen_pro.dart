@@ -4,24 +4,52 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../core/theme/pro/design_tokens.dart';
+import '../../core/di/injection.dart';
+import '../../core/providers/app_providers.dart';
+import '../../core/services/backup_service.dart';
 
-class SettingsScreenPro extends StatefulWidget {
+class SettingsScreenPro extends ConsumerStatefulWidget {
   const SettingsScreenPro({super.key});
 
   @override
-  State<SettingsScreenPro> createState() => _SettingsScreenProState();
+  ConsumerState<SettingsScreenPro> createState() => _SettingsScreenProState();
 }
 
-class _SettingsScreenProState extends State<SettingsScreenPro> {
-  bool _darkMode = false;
+class _SettingsScreenProState extends ConsumerState<SettingsScreenPro> {
   bool _notifications = true;
-  bool _biometricAuth = false;
-  String _language = 'ar';
   String _currency = 'SAR';
+  String _appVersion = '';
+  String _buildNumber = '';
+  DateTime? _lastBackupDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAppInfo();
+    _loadLastBackupDate();
+  }
+
+  Future<void> _loadAppInfo() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    setState(() {
+      _appVersion = packageInfo.version;
+      _buildNumber = packageInfo.buildNumber;
+    });
+  }
+
+  Future<void> _loadLastBackupDate() async {
+    final backupService = getIt<BackupService>();
+    final lastBackupTime = await backupService.getLastBackupTime();
+    setState(() {
+      _lastBackupDate = lastBackupTime;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,47 +84,10 @@ class _SettingsScreenProState extends State<SettingsScreenPro> {
             // ═══════════════════════════════════════════════════════════════
             _buildSectionTitle('إعدادات التطبيق'),
             _buildSettingsTile(
-              icon: Icons.dark_mode_outlined,
-              title: 'الوضع الداكن',
-              subtitle: 'تفعيل المظهر الداكن',
-              trailing: Switch.adaptive(
-                value: _darkMode,
-                onChanged: (value) => setState(() => _darkMode = value),
-                activeColor: AppColors.secondary,
-              ),
-            ),
-            _buildSettingsTile(
-              icon: Icons.language_outlined,
-              title: 'اللغة',
-              subtitle: _language == 'ar' ? 'العربية' : 'English',
-              onTap: () => _showLanguageDialog(),
-            ),
-            _buildSettingsTile(
               icon: Icons.attach_money_rounded,
               title: 'العملة',
               subtitle: _currency == 'SAR' ? 'ريال سعودي' : _currency,
               onTap: () => _showCurrencyDialog(),
-            ),
-
-            // ═══════════════════════════════════════════════════════════════
-            // Security
-            // ═══════════════════════════════════════════════════════════════
-            _buildSectionTitle('الأمان'),
-            _buildSettingsTile(
-              icon: Icons.fingerprint_rounded,
-              title: 'تسجيل الدخول بالبصمة',
-              subtitle: 'استخدام البصمة لفتح التطبيق',
-              trailing: Switch.adaptive(
-                value: _biometricAuth,
-                onChanged: (value) => setState(() => _biometricAuth = value),
-                activeColor: AppColors.secondary,
-              ),
-            ),
-            _buildSettingsTile(
-              icon: Icons.lock_outline_rounded,
-              title: 'تغيير كلمة المرور',
-              subtitle: 'تحديث كلمة المرور',
-              onTap: () {},
             ),
 
             // ═══════════════════════════════════════════════════════════════
@@ -127,20 +118,10 @@ class _SettingsScreenProState extends State<SettingsScreenPro> {
             _buildSettingsTile(
               icon: Icons.cloud_upload_outlined,
               title: 'النسخ الاحتياطي',
-              subtitle: 'آخر نسخة: اليوم 10:30 ص',
-              onTap: () {},
-            ),
-            _buildSettingsTile(
-              icon: Icons.cloud_download_outlined,
-              title: 'استعادة البيانات',
-              subtitle: 'استعادة من نسخة احتياطية',
-              onTap: () {},
-            ),
-            _buildSettingsTile(
-              icon: Icons.upload_file_outlined,
-              title: 'تصدير البيانات',
-              subtitle: 'تصدير البيانات بصيغة Excel',
-              onTap: () {},
+              subtitle: _lastBackupDate != null
+                  ? 'آخر نسخة: ${_formatDate(_lastBackupDate!)}'
+                  : 'لم يتم إنشاء نسخة احتياطية',
+              onTap: () => context.push('/backup'),
             ),
 
             // ═══════════════════════════════════════════════════════════════
@@ -163,29 +144,6 @@ class _SettingsScreenProState extends State<SettingsScreenPro> {
               icon: Icons.percent_rounded,
               title: 'إعدادات الضريبة',
               subtitle: 'ضريبة القيمة المضافة 15%',
-              onTap: () {},
-            ),
-
-            // ═══════════════════════════════════════════════════════════════
-            // About & Support
-            // ═══════════════════════════════════════════════════════════════
-            _buildSectionTitle('حول التطبيق'),
-            _buildSettingsTile(
-              icon: Icons.help_outline_rounded,
-              title: 'المساعدة والدعم',
-              subtitle: 'الأسئلة الشائعة والتواصل',
-              onTap: () {},
-            ),
-            _buildSettingsTile(
-              icon: Icons.info_outline_rounded,
-              title: 'حول Hoor Manager',
-              subtitle: 'الإصدار 2.0.0',
-              onTap: () {},
-            ),
-            _buildSettingsTile(
-              icon: Icons.star_outline_rounded,
-              title: 'تقييم التطبيق',
-              subtitle: 'قيّم التطبيق على المتجر',
               onTap: () {},
             ),
 
@@ -239,48 +197,99 @@ class _SettingsScreenProState extends State<SettingsScreenPro> {
         ),
         borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
-      child: Row(
+      child: Column(
         children: [
-          Container(
-            width: 64.w,
-            height: 64.w,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: Icon(
-              Icons.store_rounded,
-              color: Colors.white,
-              size: 32.sp,
-            ),
+          Row(
+            children: [
+              Container(
+                width: 64.w,
+                height: 64.w,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: Icon(
+                  Icons.store_rounded,
+                  color: Colors.white,
+                  size: 32.sp,
+                ),
+              ),
+              SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'مؤسسة الهور التجارية',
+                      style: AppTypography.titleMedium.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: 4.h),
+                    Text(
+                      'الباقة المميزة',
+                      style: AppTypography.bodySmall.copyWith(
+                        color: Colors.white.withOpacity(0.8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: () {},
+                icon: Icon(
+                  Icons.edit_outlined,
+                  color: Colors.white.withOpacity(0.8),
+                ),
+              ),
+            ],
           ),
-          SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          SizedBox(height: AppSpacing.md),
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                Icon(
+                  Icons.info_outline_rounded,
+                  color: Colors.white.withOpacity(0.9),
+                  size: 16.sp,
+                ),
+                SizedBox(width: AppSpacing.xs),
                 Text(
-                  'مؤسسة الهور التجارية',
-                  style: AppTypography.titleMedium.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
+                  'Hoor Manager',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: Colors.white.withOpacity(0.9),
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-                SizedBox(height: 4.h),
-                Text(
-                  'الباقة المميزة',
-                  style: AppTypography.bodySmall.copyWith(
-                    color: Colors.white.withOpacity(0.8),
+                SizedBox(width: AppSpacing.sm),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                    vertical: 2.h,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(AppRadius.xs),
+                  ),
+                  child: Text(
+                    'v$_appVersion${_buildNumber.isNotEmpty ? ' ($_buildNumber)' : ''}',
+                    style: AppTypography.labelSmall.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
-            ),
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: Icon(
-              Icons.edit_outlined,
-              color: Colors.white.withOpacity(0.8),
             ),
           ),
         ],
@@ -342,36 +351,17 @@ class _SettingsScreenProState extends State<SettingsScreenPro> {
     );
   }
 
-  void _showLanguageDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('اختر اللغة'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            RadioListTile(
-              value: 'ar',
-              groupValue: _language,
-              onChanged: (value) {
-                setState(() => _language = value!);
-                Navigator.pop(context);
-              },
-              title: const Text('العربية'),
-            ),
-            RadioListTile(
-              value: 'en',
-              groupValue: _language,
-              onChanged: (value) {
-                setState(() => _language = value!);
-                Navigator.pop(context);
-              },
-              title: const Text('English'),
-            ),
-          ],
-        ),
-      ),
-    );
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final diff = now.difference(date);
+
+    if (diff.inDays == 0) {
+      return 'اليوم ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+    } else if (diff.inDays == 1) {
+      return 'أمس ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+    } else {
+      return '${date.day}/${date.month}/${date.year}';
+    }
   }
 
   void _showCurrencyDialog() {

@@ -94,6 +94,35 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
     }
   }
 
+  void _generateBarcode() {
+    // Generate EAN-13 compatible barcode
+    final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+    final prefix = '200'; // Custom prefix for internal products
+    final uniquePart = timestamp.substring(timestamp.length - 9);
+    final barcodeWithoutCheck = '$prefix$uniquePart';
+
+    // Calculate check digit for EAN-13
+    int sum = 0;
+    for (int i = 0; i < 12; i++) {
+      int digit = int.parse(barcodeWithoutCheck[i]);
+      sum += (i % 2 == 0) ? digit : digit * 3;
+    }
+    int checkDigit = (10 - (sum % 10)) % 10;
+
+    final barcode = '$barcodeWithoutCheck$checkDigit';
+    setState(() {
+      _barcodeController.text = barcode;
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('تم توليد الباركود: $barcode'),
+        backgroundColor: AppColors.success,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -211,14 +240,28 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
                       controller: _barcodeController,
                       label: 'الباركود',
                       hint: 'امسح أو أدخل الباركود',
-                      suffixIcon: IconButton(
-                        onPressed: () {
-                          // TODO: Open barcode scanner
-                        },
-                        icon: Icon(
-                          Icons.qr_code_scanner_rounded,
-                          color: AppColors.secondary,
-                        ),
+                      suffixIcon: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            onPressed: _generateBarcode,
+                            icon: Icon(
+                              Icons.autorenew_rounded,
+                              color: AppColors.success,
+                            ),
+                            tooltip: 'توليد باركود تلقائي',
+                          ),
+                          IconButton(
+                            onPressed: () {
+                              // TODO: Open barcode scanner
+                            },
+                            icon: Icon(
+                              Icons.qr_code_scanner_rounded,
+                              color: AppColors.secondary,
+                            ),
+                            tooltip: 'مسح الباركود',
+                          ),
+                        ],
                       ),
                     ),
                   ),

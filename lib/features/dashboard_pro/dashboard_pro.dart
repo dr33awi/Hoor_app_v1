@@ -11,6 +11,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/theme/pro/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/widgets/pro_navigation_drawer.dart';
 import 'widgets/kpi_card.dart';
 import 'widgets/quick_action_button.dart';
 import 'widgets/recent_transactions_list.dart';
@@ -29,6 +30,7 @@ class _DashboardProState extends ConsumerState<DashboardPro>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   int _currentNavIndex = 0;
 
@@ -74,7 +76,9 @@ class _DashboardProState extends ConsumerState<DashboardPro>
         statusBarIconBrightness: Brightness.dark,
       ),
       child: Scaffold(
+        key: _scaffoldKey,
         backgroundColor: AppColors.background,
+        drawer: const ProNavigationDrawer(currentRoute: '/'),
         body: SafeArea(
           child: FadeTransition(
             opacity: _fadeAnimation,
@@ -155,6 +159,13 @@ class _DashboardProState extends ConsumerState<DashboardPro>
       padding: EdgeInsets.all(AppSpacing.screenPadding.w),
       child: Row(
         children: [
+          // Menu Button
+          _buildHeaderAction(
+            icon: Icons.menu_rounded,
+            onTap: () => _scaffoldKey.currentState?.openDrawer(),
+          ),
+          SizedBox(width: AppSpacing.sm.w),
+
           // Logo & Title
           Expanded(
             child: Row(

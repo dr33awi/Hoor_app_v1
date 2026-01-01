@@ -7,9 +7,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 
 import '../../core/theme/pro/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/services/export/export_button.dart';
 import '../../data/database/app_database.dart';
 import 'widgets/product_card_pro.dart';
 import 'widgets/products_header.dart';
@@ -29,6 +33,7 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
   String _selectedCategory = 'الكل';
   String _sortBy = 'name';
   bool _isGridView = true;
+  bool _isExporting = false;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
@@ -87,6 +92,115 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
     }
   }
 
+  Future<void> _handleExport(ExportType type, List<Product> products) async {
+    setState(() => _isExporting = true);
+
+    try {
+      switch (type) {
+        case ExportType.excel:
+          await _exportToExcel(products);
+          break;
+        case ExportType.pdf:
+          await _exportToPdf(products);
+          break;
+        case ExportType.sharePdf:
+          await _sharePdf(products);
+          break;
+        case ExportType.shareExcel:
+          await _shareExcel(products);
+          break;
+      }
+    } finally {
+      if (mounted) setState(() => _isExporting = false);
+    }
+  }
+
+  Future<void> _exportToExcel(List<Product> products) async {
+    try {
+      final csvData = StringBuffer();
+      csvData.writeln(
+          'الاسم,الباركود,SKU,سعر البيع,سعر الشراء,الكمية,الحد الأدنى');
+
+      for (final product in products) {
+        csvData.writeln(
+            '${product.name},${product.barcode ?? ''},${product.sku ?? ''},${product.salePrice},${product.purchasePrice},${product.quantity},${product.minQuantity}');
+      }
+
+      final directory = await getApplicationDocumentsDirectory();
+      final file = File('${directory.path}/products_export.csv');
+      await file.writeAsString(csvData.toString());
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تم تصدير ${products.length} منتج إلى Excel بنجاح'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('خطأ في التصدير: $e'),
+            backgroundColor: AppColors.expense,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _exportToPdf(List<Product> products) async {
+    // TODO: Implement PDF export
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تصدير PDF - قريباً')),
+      );
+    }
+  }
+
+  Future<void> _sharePdf(List<Product> products) async {
+    // TODO: Implement PDF share
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('مشاركة PDF - قريباً')),
+      );
+    }
+  }
+
+  Future<void> _shareExcel(List<Product> products) async {
+    try {
+      final shareText = StringBuffer();
+      shareText.writeln('قائمة المنتجات:');
+      shareText.writeln('═══════════════════');
+
+      for (final product in products) {
+        shareText.writeln('• ${product.name}');
+        shareText
+            .writeln('  السعر: ${product.salePrice.toStringAsFixed(0)} ر.س');
+        shareText.writeln('  المخزون: ${product.quantity} وحدة');
+        if (product.barcode != null) {
+          shareText.writeln('  الباركود: ${product.barcode}');
+        }
+        shareText.writeln('');
+      }
+
+      shareText.writeln('═══════════════════');
+      shareText.writeln('إجمالي المنتجات: ${products.length}');
+
+      await Share.share(shareText.toString(), subject: 'قائمة المنتجات');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('خطأ في المشاركة: $e'),
+            backgroundColor: AppColors.expense,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final productsAsync = ref.watch(activeProductsStreamProvider);
@@ -105,16 +219,20 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
                 onBack: () => context.go('/'),
                 totalProducts: 0,
                 onAddProduct: () => context.push('/products/add'),
+                isExporting: _isExporting,
               ),
               error: (_, __) => ProductsHeader(
                 onBack: () => context.go('/'),
                 totalProducts: 0,
                 onAddProduct: () => context.push('/products/add'),
+                isExporting: _isExporting,
               ),
               data: (products) => ProductsHeader(
                 onBack: () => context.go('/'),
                 totalProducts: products.length,
                 onAddProduct: () => context.push('/products/add'),
+                onExport: (type) => _handleExport(type, products),
+                isExporting: _isExporting,
               ),
             ),
 
@@ -214,7 +332,7 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
       padding: EdgeInsets.all(AppSpacing.screenPadding.w),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.75,
+        childAspectRatio: 0.72,
         crossAxisSpacing: AppSpacing.md.w,
         mainAxisSpacing: AppSpacing.md.h,
       ),
@@ -223,6 +341,7 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
         final product = products[index];
         return ProductCardPro(
           product: _productToMap(product),
+          isListView: false,
           onTap: () => context.push('/products/${product.id}'),
           onEdit: () => context.push('/products/${product.id}/edit'),
         );
@@ -239,6 +358,7 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
         final product = products[index];
         return ProductCardPro(
           product: _productToMap(product),
+          isListView: true,
           onTap: () => context.push('/products/${product.id}'),
           onEdit: () => context.push('/products/${product.id}/edit'),
         );

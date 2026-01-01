@@ -8,6 +8,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:printing/printing.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 
 import '../../core/theme/pro/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
@@ -149,8 +152,6 @@ class _ProductDetailsView extends StatelessWidget {
                 onSelected: (value) => _handleMenuAction(context, value),
                 itemBuilder: (context) => [
                   const PopupMenuItem(
-                      value: 'duplicate', child: Text('نسخ المنتج')),
-                  const PopupMenuItem(
                       value: 'print', child: Text('طباعة الباركود')),
                   const PopupMenuItem(
                       value: 'history', child: Text('سجل الحركات')),
@@ -224,6 +225,14 @@ class _ProductDetailsView extends StatelessWidget {
 
   void _handleMenuAction(BuildContext context, String action) async {
     switch (action) {
+      case 'print':
+        _printBarcode(context);
+        break;
+      case 'history':
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('سجل الحركات - قريباً')),
+        );
+        break;
       case 'delete':
         final confirm = await showDialog<bool>(
           context: context,
@@ -266,6 +275,158 @@ class _ProductDetailsView extends StatelessWidget {
         }
         break;
     }
+  }
+
+  void _printBarcode(BuildContext context) async {
+    final barcodeValue = product.barcode ?? product.id;
+
+    final pdf = pw.Document();
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.roll57,
+        build: (pw.Context ctx) {
+          return pw.Center(
+            child: pw.BarcodeWidget(
+              barcode: pw.Barcode.code128(),
+              data: barcodeValue,
+              width: 150,
+              height: 50,
+              drawText: false,
+            ),
+          );
+        },
+      ),
+    );
+
+    await Printing.layoutPdf(
+      onLayout: (PdfPageFormat format) async => pdf.save(),
+      name: 'barcode_${product.name}',
+    );
+  }
+
+  void _showStockAdjustmentDialog(BuildContext context) {
+    final quantityController = TextEditingController();
+    String adjustmentType = 'add';
+    String reason = '';
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('تعديل المخزون'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'الكمية الحالية: ${product.quantity}',
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              SizedBox(height: AppSpacing.md),
+              Row(
+                children: [
+                  Expanded(
+                    child: RadioListTile<String>(
+                      title: const Text('إضافة'),
+                      value: 'add',
+                      groupValue: adjustmentType,
+                      onChanged: (value) =>
+                          setDialogState(() => adjustmentType = value!),
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                    ),
+                  ),
+                  Expanded(
+                    child: RadioListTile<String>(
+                      title: const Text('سحب'),
+                      value: 'subtract',
+                      groupValue: adjustmentType,
+                      onChanged: (value) =>
+                          setDialogState(() => adjustmentType = value!),
+                      contentPadding: EdgeInsets.zero,
+                      dense: true,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: AppSpacing.sm),
+              TextField(
+                controller: quantityController,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: 'الكمية',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                  ),
+                ),
+              ),
+              SizedBox(height: AppSpacing.sm),
+              TextField(
+                onChanged: (value) => reason = value,
+                decoration: InputDecoration(
+                  labelText: 'السبب (اختياري)',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('إلغاء'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                final quantity = int.tryParse(quantityController.text) ?? 0;
+                if (quantity <= 0) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('أدخل كمية صحيحة')),
+                  );
+                  return;
+                }
+
+                try {
+                  final adjustment =
+                      adjustmentType == 'add' ? quantity : -quantity;
+                  final productRepo = ref.read(productRepositoryProvider);
+                  await productRepo.adjustStock(product.id, adjustment,
+                      reason.isEmpty ? 'تعديل يدوي' : reason);
+
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('تم تعديل المخزون بنجاح'),
+                        backgroundColor: AppColors.success,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('خطأ: $e'),
+                        backgroundColor: AppColors.error,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('تأكيد'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _addToSale(BuildContext context) {
+    // Navigate to sales screen with product pre-selected
+    context.push('/sales', extra: {'productId': product.id});
   }
 
   Widget _buildHeader() {
@@ -629,9 +790,7 @@ class _ProductDetailsView extends StatelessWidget {
           children: [
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: () {
-                  // TODO: Adjust stock
-                },
+                onPressed: () => _showStockAdjustmentDialog(context),
                 icon: const Icon(Icons.inventory_rounded),
                 label: const Text('تعديل المخزون'),
                 style: OutlinedButton.styleFrom(
@@ -642,9 +801,7 @@ class _ProductDetailsView extends StatelessWidget {
             SizedBox(width: AppSpacing.md),
             Expanded(
               child: FilledButton.icon(
-                onPressed: () {
-                  // TODO: Add to sale
-                },
+                onPressed: () => _addToSale(context),
                 icon: const Icon(Icons.shopping_cart_rounded),
                 label: const Text('إضافة للبيع'),
                 style: FilledButton.styleFrom(
@@ -676,19 +833,19 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(AppSpacing.md),
+      padding: EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.md),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
         border: Border.all(color: AppColors.border),
       ),
       child: Column(
         children: [
-          Icon(icon, size: AppIconSize.md, color: color),
-          SizedBox(height: AppSpacing.xs),
+          Icon(icon, size: AppIconSize.sm, color: color),
+          SizedBox(height: 2.h),
           Text(
             value,
-            style: AppTypography.titleLarge.copyWith(
+            style: AppTypography.titleMedium.copyWith(
               color: AppColors.textPrimary,
               fontWeight: FontWeight.w700,
               fontFamily: 'JetBrains Mono',
@@ -696,7 +853,7 @@ class _StatCard extends StatelessWidget {
           ),
           Text(
             label,
-            style: AppTypography.bodySmall.copyWith(
+            style: AppTypography.labelSmall.copyWith(
               color: AppColors.textTertiary,
             ),
           ),
