@@ -1,23 +1,28 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // Recent Transactions List Component
-// Displays the most recent financial transactions
+// Displays the most recent financial transactions FROM REAL DATABASE
 // ═══════════════════════════════════════════════════════════════════════════
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/theme/pro/design_tokens.dart';
+import '../../../core/providers/app_providers.dart';
+import '../../../data/database/app_database.dart';
 
 /// Transaction types for visual differentiation
 enum TransactionType {
   sale,
   purchase,
+  saleReturn,
+  purchaseReturn,
   receiptVoucher,
   paymentVoucher,
   expense,
-  refund,
 }
 
 /// Transaction status
@@ -28,9 +33,9 @@ enum TransactionStatus {
   cancelled,
 }
 
-/// Transaction data model
-class Transaction {
-  const Transaction({
+/// Transaction data model (mapped from real data)
+class TransactionItem {
+  const TransactionItem({
     required this.id,
     required this.type,
     required this.title,
@@ -39,6 +44,7 @@ class Transaction {
     required this.dateTime,
     required this.status,
     this.customerName,
+    this.supplierName,
   });
 
   final String id;
@@ -49,53 +55,242 @@ class Transaction {
   final DateTime dateTime;
   final TransactionStatus status;
   final String? customerName;
+  final String? supplierName;
+
+  /// Create from Invoice
+  factory TransactionItem.fromInvoice(Invoice invoice,
+      {String? customerName, String? supplierName}) {
+    final type = switch (invoice.type) {
+      'sale' => TransactionType.sale,
+      'purchase' => TransactionType.purchase,
+      'sale_return' => TransactionType.saleReturn,
+      'purchase_return' => TransactionType.purchaseReturn,
+      _ => TransactionType.sale,
+    };
+
+    final typeLabel = switch (invoice.type) {
+      'sale' => 'فاتورة بيع',
+      'purchase' => 'فاتورة شراء',
+      'sale_return' => 'مرتجع مبيعات',
+      'purchase_return' => 'مرتجع مشتريات',
+      _ => 'فاتورة',
+    };
+
+    final isIncome =
+        invoice.type == 'sale' || invoice.type == 'purchase_return';
+
+    return TransactionItem(
+      id: invoice.id,
+      type: type,
+      title: '$typeLabel #${invoice.invoiceNumber.split('-').last}',
+      subtitle: invoice.paymentMethod == 'cash' ? 'نقداً' : 'آجل',
+      amount: isIncome ? invoice.total : -invoice.total,
+      dateTime: invoice.invoiceDate,
+      status: _mapStatus(invoice.status),
+      customerName: customerName,
+      supplierName: supplierName,
+    );
+  }
+
+  /// Create from Voucher
+  factory TransactionItem.fromVoucher(Voucher voucher,
+      {String? customerName, String? supplierName}) {
+    final type = switch (voucher.type) {
+      'receipt' => TransactionType.receiptVoucher,
+      'payment' => TransactionType.paymentVoucher,
+      'expense' => TransactionType.expense,
+      _ => TransactionType.expense,
+    };
+
+    final typeLabel = switch (voucher.type) {
+      'receipt' => 'سند قبض',
+      'payment' => 'سند دفع',
+      'expense' => 'سند مصاريف',
+      _ => 'سند',
+    };
+
+    final isIncome = voucher.type == 'receipt';
+
+    return TransactionItem(
+      id: voucher.id,
+      type: type,
+      title: '$typeLabel #${voucher.voucherNumber.split('-').last}',
+      subtitle: voucher.description ?? '',
+      amount: isIncome ? voucher.amount : -voucher.amount,
+      dateTime: voucher.voucherDate,
+      status: TransactionStatus.completed,
+      customerName: customerName,
+      supplierName: supplierName,
+    );
+  }
+
+  static TransactionStatus _mapStatus(String status) {
+    return switch (status) {
+      'completed' => TransactionStatus.completed,
+      'pending' => TransactionStatus.pending,
+      'overdue' => TransactionStatus.overdue,
+      'cancelled' => TransactionStatus.cancelled,
+      _ => TransactionStatus.completed,
+    };
+  }
 }
 
-class RecentTransactionsList extends StatelessWidget {
+/// Provider for recent transactions (combines invoices and vouchers)
+final recentTransactionsProvider =
+    FutureProvider<List<TransactionItem>>((ref) async {
+  final db = ref.watch(databaseProvider);
+
+  // Get recent transactions from the last 7 days
+  final now = DateTime.now();
+  final sevenDaysAgo = now.subtract(const Duration(days: 7));
+
+  // Fetch invoices
+  final invoices = await db.getInvoicesByDateRange(sevenDaysAgo, now);
+
+  // Fetch vouchers
+  final vouchers = await db.getVouchersByDateRange(sevenDaysAgo, now);
+
+  // Fetch customers and suppliers for names
+  final customers = await db.getAllCustomers();
+  final suppliers = await db.getAllSuppliers();
+
+  final customerMap = {for (var c in customers) c.id: c.name};
+  final supplierMap = {for (var s in suppliers) s.id: s.name};
+
+  // Convert to TransactionItems
+  final List<TransactionItem> transactions = [];
+
+  for (final invoice in invoices) {
+    transactions.add(TransactionItem.fromInvoice(
+      invoice,
+      customerName:
+          invoice.customerId != null ? customerMap[invoice.customerId] : null,
+      supplierName:
+          invoice.supplierId != null ? supplierMap[invoice.supplierId] : null,
+    ));
+  }
+
+  for (final voucher in vouchers) {
+    transactions.add(TransactionItem.fromVoucher(
+      voucher,
+      customerName:
+          voucher.customerId != null ? customerMap[voucher.customerId] : null,
+      supplierName:
+          voucher.supplierId != null ? supplierMap[voucher.supplierId] : null,
+    ));
+  }
+
+  // Sort by date descending
+  transactions.sort((a, b) => b.dateTime.compareTo(a.dateTime));
+
+  return transactions;
+});
+
+class RecentTransactionsList extends ConsumerWidget {
   const RecentTransactionsList({
     super.key,
-    this.transactions,
-    this.onTransactionTap,
     this.maxItems = 5,
   });
 
-  final List<Transaction>? transactions;
-  final void Function(Transaction)? onTransactionTap;
   final int maxItems;
 
   @override
-  Widget build(BuildContext context) {
-    // Sample data - replace with actual data
-    final items = transactions ?? _sampleTransactions;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final transactionsAsync = ref.watch(recentTransactionsProvider);
 
-    if (items.isEmpty) {
-      return _buildEmptyState();
+    return transactionsAsync.when(
+      loading: () => _buildLoadingState(),
+      error: (error, _) => _buildErrorState(error.toString()),
+      data: (transactions) {
+        if (transactions.isEmpty) {
+          return _buildEmptyState();
+        }
+
+        return Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: AppColors.border),
+            boxShadow: AppShadows.card,
+          ),
+          child: Column(
+            children: [
+              for (int i = 0; i < transactions.take(maxItems).length; i++) ...[
+                _TransactionRow(
+                  transaction: transactions[i],
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    _navigateToTransaction(context, transactions[i]);
+                  },
+                ),
+                if (i < transactions.take(maxItems).length - 1)
+                  Divider(
+                    height: 1,
+                    color: AppColors.divider,
+                    indent:
+                        AppSpacing.md.w + AppIconSize.xl.w + AppSpacing.md.w,
+                  ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _navigateToTransaction(
+      BuildContext context, TransactionItem transaction) {
+    switch (transaction.type) {
+      case TransactionType.sale:
+      case TransactionType.purchase:
+      case TransactionType.saleReturn:
+      case TransactionType.purchaseReturn:
+        context.push('/invoices/${transaction.id}');
+        break;
+      case TransactionType.receiptVoucher:
+      case TransactionType.paymentVoucher:
+      case TransactionType.expense:
+        context.push('/vouchers');
+        break;
     }
+  }
 
+  Widget _buildLoadingState() {
     return Container(
+      padding: EdgeInsets.all(AppSpacing.xxl.w),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: AppColors.border),
-        boxShadow: AppShadows.card,
+      ),
+      child: const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(String error) {
+    return Container(
+      padding: EdgeInsets.all(AppSpacing.xxl.w),
+      decoration: BoxDecoration(
+        color: AppColors.expenseSurface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.expense.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
-          for (int i = 0; i < items.take(maxItems).length; i++) ...[
-            _TransactionRow(
-              transaction: items[i],
-              onTap: () {
-                HapticFeedback.lightImpact();
-                onTransactionTap?.call(items[i]);
-              },
+          Icon(
+            Icons.error_outline_rounded,
+            color: AppColors.expense,
+            size: AppIconSize.huge,
+          ),
+          SizedBox(height: AppSpacing.md.h),
+          Text(
+            'حدث خطأ في تحميل المعاملات',
+            style: AppTypography.titleMedium.copyWith(
+              color: AppColors.expense,
             ),
-            if (i < items.take(maxItems).length - 1)
-              Divider(
-                height: 1,
-                color: AppColors.divider,
-                indent: AppSpacing.md.w + AppIconSize.xl.w + AppSpacing.md.w,
-              ),
-          ],
+          ),
         ],
       ),
     );
@@ -134,57 +329,6 @@ class RecentTransactionsList extends StatelessWidget {
       ),
     );
   }
-
-  static final _sampleTransactions = [
-    Transaction(
-      id: 'INV-1234',
-      type: TransactionType.sale,
-      title: 'فاتورة بيع #1234',
-      subtitle: '3 منتجات',
-      amount: 1500.00,
-      dateTime: DateTime.now().subtract(const Duration(hours: 1)),
-      status: TransactionStatus.completed,
-      customerName: 'أحمد محمد',
-    ),
-    Transaction(
-      id: 'PUR-567',
-      type: TransactionType.purchase,
-      title: 'فاتورة شراء #567',
-      subtitle: 'مورد الأمانة',
-      amount: -3200.00,
-      dateTime: DateTime.now().subtract(const Duration(hours: 3)),
-      status: TransactionStatus.pending,
-    ),
-    Transaction(
-      id: 'RV-89',
-      type: TransactionType.receiptVoucher,
-      title: 'سند قبض #89',
-      subtitle: 'تحصيل مستحقات',
-      amount: 500.00,
-      dateTime: DateTime.now().subtract(const Duration(hours: 5)),
-      status: TransactionStatus.completed,
-      customerName: 'خالد علي',
-    ),
-    Transaction(
-      id: 'INV-1233',
-      type: TransactionType.sale,
-      title: 'فاتورة بيع #1233',
-      subtitle: '1 منتج',
-      amount: 750.00,
-      dateTime: DateTime.now().subtract(const Duration(days: 1)),
-      status: TransactionStatus.completed,
-      customerName: 'سارة أحمد',
-    ),
-    Transaction(
-      id: 'PV-45',
-      type: TransactionType.paymentVoucher,
-      title: 'سند صرف #45',
-      subtitle: 'دفعة للمورد',
-      amount: -1200.00,
-      dateTime: DateTime.now().subtract(const Duration(days: 1, hours: 2)),
-      status: TransactionStatus.completed,
-    ),
-  ];
 }
 
 class _TransactionRow extends StatelessWidget {
@@ -193,7 +337,7 @@ class _TransactionRow extends StatelessWidget {
     this.onTap,
   });
 
-  final Transaction transaction;
+  final TransactionItem transaction;
   final VoidCallback? onTap;
 
   @override
@@ -254,20 +398,43 @@ class _TransactionRow extends StatelessWidget {
                             size: AppIconSize.xs,
                           ),
                           SizedBox(width: AppSpacing.xxxs.w),
-                          Text(
-                            transaction.customerName!,
-                            style: AppTypography.bodySmall.copyWith(
-                              color: AppColors.textSecondary,
+                          Flexible(
+                            child: Text(
+                              transaction.customerName!,
+                              style: AppTypography.bodySmall.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          SizedBox(width: AppSpacing.sm.w),
+                        ] else if (transaction.supplierName != null) ...[
+                          Icon(
+                            Icons.business_outlined,
+                            color: AppColors.textTertiary,
+                            size: AppIconSize.xs,
+                          ),
+                          SizedBox(width: AppSpacing.xxxs.w),
+                          Flexible(
+                            child: Text(
+                              transaction.supplierName!,
+                              style: AppTypography.bodySmall.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           SizedBox(width: AppSpacing.sm.w),
                         ],
-                        Text(
-                          transaction.subtitle,
-                          style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.textTertiary,
+                        if (transaction.subtitle.isNotEmpty)
+                          Text(
+                            transaction.subtitle,
+                            style: AppTypography.bodySmall.copyWith(
+                              color: AppColors.textTertiary,
+                            ),
                           ),
-                        ),
                         const Spacer(),
                         Text(
                           _formatTime(transaction.dateTime),
@@ -354,6 +521,14 @@ class _TransactionRow extends StatelessWidget {
           icon: Icons.shopping_cart_outlined,
           color: AppColors.purchases
         ),
+      TransactionType.saleReturn => (
+          icon: Icons.replay_outlined,
+          color: AppColors.warning
+        ),
+      TransactionType.purchaseReturn => (
+          icon: Icons.replay_outlined,
+          color: AppColors.info
+        ),
       TransactionType.receiptVoucher => (
           icon: Icons.payments_outlined,
           color: AppColors.income
@@ -365,10 +540,6 @@ class _TransactionRow extends StatelessWidget {
       TransactionType.expense => (
           icon: Icons.account_balance_wallet_outlined,
           color: AppColors.expense
-        ),
-      TransactionType.refund => (
-          icon: Icons.replay_outlined,
-          color: AppColors.warning
         ),
     };
   }
@@ -394,7 +565,9 @@ class _TransactionRow extends StatelessWidget {
     final now = DateTime.now();
     final diff = now.difference(dateTime);
 
-    if (diff.inMinutes < 60) {
+    if (diff.inMinutes < 1) {
+      return 'الآن';
+    } else if (diff.inMinutes < 60) {
       return 'منذ ${diff.inMinutes} دقيقة';
     } else if (diff.inHours < 24) {
       return 'منذ ${diff.inHours} ساعة';

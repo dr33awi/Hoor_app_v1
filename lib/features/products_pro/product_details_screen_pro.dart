@@ -4,12 +4,16 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/theme/pro/design_tokens.dart';
+import '../../core/providers/app_providers.dart';
+import '../../data/database/app_database.dart';
 
-class ProductDetailsScreenPro extends StatelessWidget {
+class ProductDetailsScreenPro extends ConsumerWidget {
   final String productId;
 
   const ProductDetailsScreenPro({
@@ -17,25 +21,73 @@ class ProductDetailsScreenPro extends StatelessWidget {
     required this.productId,
   });
 
-  // Sample product data
-  Map<String, dynamic> get _product => {
-        'id': productId,
-        'name': 'لابتوب HP ProBook',
-        'sku': 'LAP-001',
-        'barcode': '8901234567890',
-        'price': 2500.00,
-        'cost': 2000.00,
-        'stock': 15,
-        'minStock': 5,
-        'sold': 45,
-        'category': 'إلكترونيات',
-        'unit': 'قطعة',
-        'description': 'لابتوب احترافي بمعالج Intel Core i7 وذاكرة 16GB RAM',
-        'isActive': true,
-        'isTaxable': true,
-        'createdAt': '2024-01-15',
-        'updatedAt': '2024-06-20',
-      };
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final productsAsync = ref.watch(productsStreamProvider);
+    final categoriesAsync = ref.watch(categoriesStreamProvider);
+
+    return productsAsync.when(
+      loading: () => Scaffold(
+        backgroundColor: AppColors.background,
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, _) => Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.surface,
+          leading: IconButton(
+            onPressed: () => context.pop(),
+            icon: Icon(Icons.arrow_back_ios_rounded,
+                color: AppColors.textSecondary),
+          ),
+        ),
+        body: Center(child: Text('خطأ: $error')),
+      ),
+      data: (products) {
+        final product = products.where((p) => p.id == productId).firstOrNull;
+        if (product == null) {
+          return Scaffold(
+            backgroundColor: AppColors.background,
+            appBar: AppBar(
+              backgroundColor: AppColors.surface,
+              leading: IconButton(
+                onPressed: () => context.pop(),
+                icon: Icon(Icons.arrow_back_ios_rounded,
+                    color: AppColors.textSecondary),
+              ),
+            ),
+            body: Center(child: Text('المنتج غير موجود')),
+          );
+        }
+
+        final categories = categoriesAsync.asData?.value ?? [];
+        final category =
+            categories.where((c) => c.id == product.categoryId).firstOrNull;
+
+        return _ProductDetailsView(
+          product: product,
+          category: category,
+          ref: ref,
+        );
+      },
+    );
+  }
+}
+
+class _ProductDetailsView extends StatelessWidget {
+  final Product product;
+  final Category? category;
+  final WidgetRef ref;
+
+  const _ProductDetailsView({
+    required this.product,
+    this.category,
+    required this.ref,
+  });
+
+  double get profit => product.salePrice - product.purchasePrice;
+  double get margin =>
+      product.salePrice > 0 ? (profit / product.salePrice * 100) : 0;
 
   @override
   Widget build(BuildContext context) {
@@ -67,7 +119,7 @@ class ProductDetailsScreenPro extends StatelessWidget {
             ),
             actions: [
               IconButton(
-                onPressed: () => context.push('/products/edit/$productId'),
+                onPressed: () => context.push('/products/edit/${product.id}'),
                 icon: Container(
                   padding: EdgeInsets.all(AppSpacing.xs),
                   decoration: BoxDecoration(
@@ -94,6 +146,7 @@ class ProductDetailsScreenPro extends StatelessWidget {
                     color: AppColors.textPrimary,
                   ),
                 ),
+                onSelected: (value) => _handleMenuAction(context, value),
                 itemBuilder: (context) => [
                   const PopupMenuItem(
                       value: 'duplicate', child: Text('نسخ المنتج')),
@@ -114,13 +167,15 @@ class ProductDetailsScreenPro extends StatelessWidget {
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 color: AppColors.background,
-                child: Center(
-                  child: Icon(
-                    Icons.inventory_2_outlined,
-                    size: 100.sp,
-                    color: AppColors.textTertiary,
-                  ),
-                ),
+                child: product.imageUrl != null
+                    ? Image.network(product.imageUrl!, fit: BoxFit.cover)
+                    : Center(
+                        child: Icon(
+                          Icons.inventory_2_outlined,
+                          size: 100.sp,
+                          color: AppColors.textTertiary,
+                        ),
+                      ),
               ),
             ),
           ),
@@ -167,31 +222,78 @@ class ProductDetailsScreenPro extends StatelessWidget {
     );
   }
 
+  void _handleMenuAction(BuildContext context, String action) async {
+    switch (action) {
+      case 'delete':
+        final confirm = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('حذف المنتج'),
+            content: const Text('هل أنت متأكد من حذف هذا المنتج؟'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('إلغاء'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                child: const Text('حذف'),
+              ),
+            ],
+          ),
+        );
+        if (confirm == true) {
+          try {
+            final productRepo = ref.read(productRepositoryProvider);
+            await productRepo.deleteProduct(product.id);
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                    content: Text('تم حذف المنتج بنجاح'),
+                    backgroundColor: AppColors.success),
+              );
+              context.pop();
+            }
+          } catch (e) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                    content: Text('خطأ: $e'), backgroundColor: AppColors.error),
+              );
+            }
+          }
+        }
+        break;
+    }
+  }
+
   Widget _buildHeader() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: AppSpacing.sm,
-                vertical: AppSpacing.xs,
-              ),
-              decoration: BoxDecoration(
-                color: AppColors.secondary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-              ),
-              child: Text(
-                _product['category'],
-                style: AppTypography.labelSmall.copyWith(
-                  color: AppColors.secondary,
-                  fontWeight: FontWeight.w600,
+            if (category != null)
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: AppSpacing.xs,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.secondary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: Text(
+                  category!.name,
+                  style: AppTypography.labelSmall.copyWith(
+                    color: AppColors.secondary,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-            ),
             SizedBox(width: AppSpacing.sm),
-            if (_product['isActive'])
+            if (product.isActive)
               Container(
                 padding: EdgeInsets.symmetric(
                   horizontal: AppSpacing.sm,
@@ -213,7 +315,7 @@ class ProductDetailsScreenPro extends StatelessWidget {
         ),
         SizedBox(height: AppSpacing.sm),
         Text(
-          _product['name'],
+          product.name,
           style: AppTypography.headlineMedium.copyWith(
             color: AppColors.textPrimary,
             fontWeight: FontWeight.w700,
@@ -222,20 +324,22 @@ class ProductDetailsScreenPro extends StatelessWidget {
         SizedBox(height: AppSpacing.xs),
         Row(
           children: [
-            Icon(
-              Icons.qr_code_rounded,
-              size: AppIconSize.xs,
-              color: AppColors.textTertiary,
-            ),
-            SizedBox(width: AppSpacing.xs),
-            Text(
-              _product['sku'],
-              style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
-                fontFamily: 'JetBrains Mono',
+            if (product.sku != null) ...[
+              Icon(
+                Icons.qr_code_rounded,
+                size: AppIconSize.xs,
+                color: AppColors.textTertiary,
               ),
-            ),
-            if (_product['barcode'] != null) ...[
+              SizedBox(width: AppSpacing.xs),
+              Text(
+                product.sku!,
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.textSecondary,
+                  fontFamily: 'JetBrains Mono',
+                ),
+              ),
+            ],
+            if (product.barcode != null) ...[
               SizedBox(width: AppSpacing.md),
               Icon(
                 Icons.view_week_rounded,
@@ -244,7 +348,7 @@ class ProductDetailsScreenPro extends StatelessWidget {
               ),
               SizedBox(width: AppSpacing.xs),
               Text(
-                _product['barcode'],
+                product.barcode!,
                 style: AppTypography.bodySmall.copyWith(
                   color: AppColors.textTertiary,
                   fontFamily: 'JetBrains Mono',
@@ -263,8 +367,8 @@ class ProductDetailsScreenPro extends StatelessWidget {
         Expanded(
           child: _StatCard(
             icon: Icons.shopping_cart_outlined,
-            label: 'المبيعات',
-            value: '${_product['sold']}',
+            label: 'سعر البيع',
+            value: '${product.salePrice.toStringAsFixed(0)}',
             color: AppColors.secondary,
           ),
         ),
@@ -273,8 +377,8 @@ class ProductDetailsScreenPro extends StatelessWidget {
           child: _StatCard(
             icon: Icons.inventory_2_outlined,
             label: 'المخزون',
-            value: '${_product['stock']}',
-            color: _product['stock'] > _product['minStock']
+            value: '${product.quantity}',
+            color: product.quantity > product.minQuantity
                 ? AppColors.success
                 : AppColors.warning,
           ),
@@ -284,7 +388,7 @@ class ProductDetailsScreenPro extends StatelessWidget {
           child: _StatCard(
             icon: Icons.trending_up_rounded,
             label: 'هامش الربح',
-            value: '20%',
+            value: '${margin.toStringAsFixed(0)}%',
             color: AppColors.success,
           ),
         ),
@@ -293,10 +397,6 @@ class ProductDetailsScreenPro extends StatelessWidget {
   }
 
   Widget _buildPriceSection() {
-    final profit = _product['price'] - _product['cost'];
-    final margin =
-        (_product['price'] > 0) ? (profit / _product['price'] * 100) : 0.0;
-
     return _buildCard(
       title: 'التسعير',
       icon: Icons.attach_money_rounded,
@@ -304,7 +404,7 @@ class ProductDetailsScreenPro extends StatelessWidget {
         children: [
           _buildInfoRow(
             'سعر البيع',
-            '${_product['price'].toStringAsFixed(0)} ر.س',
+            '${product.salePrice.toStringAsFixed(0)} ر.س',
             valueStyle: AppTypography.titleLarge.copyWith(
               color: AppColors.secondary,
               fontWeight: FontWeight.w700,
@@ -314,7 +414,7 @@ class ProductDetailsScreenPro extends StatelessWidget {
           Divider(height: AppSpacing.lg, color: AppColors.border),
           _buildInfoRow(
             'سعر التكلفة',
-            '${_product['cost'].toStringAsFixed(0)} ر.س',
+            '${product.purchasePrice.toStringAsFixed(0)} ر.س',
             valueStyle: AppTypography.bodyLarge.copyWith(
               color: AppColors.textSecondary,
               fontFamily: 'JetBrains Mono',
@@ -341,18 +441,16 @@ class ProductDetailsScreenPro extends StatelessWidget {
       icon: Icons.inventory_outlined,
       child: Column(
         children: [
-          _buildInfoRow(
-              'الكمية المتوفرة', '${_product['stock']} ${_product['unit']}'),
+          _buildInfoRow('الكمية المتوفرة', '${product.quantity} وحدة'),
           SizedBox(height: AppSpacing.sm),
-          _buildInfoRow(
-              'حد التنبيه', '${_product['minStock']} ${_product['unit']}'),
+          _buildInfoRow('حد التنبيه', '${product.minQuantity} وحدة'),
           SizedBox(height: AppSpacing.md),
 
           // Stock Status
           Container(
             padding: EdgeInsets.all(AppSpacing.md),
             decoration: BoxDecoration(
-              color: _product['stock'] > _product['minStock']
+              color: product.quantity > product.minQuantity
                   ? AppColors.success.withOpacity(0.1)
                   : AppColors.warning.withOpacity(0.1),
               borderRadius: BorderRadius.circular(AppRadius.md),
@@ -360,21 +458,21 @@ class ProductDetailsScreenPro extends StatelessWidget {
             child: Row(
               children: [
                 Icon(
-                  _product['stock'] > _product['minStock']
+                  product.quantity > product.minQuantity
                       ? Icons.check_circle_outline
                       : Icons.warning_amber_rounded,
-                  color: _product['stock'] > _product['minStock']
+                  color: product.quantity > product.minQuantity
                       ? AppColors.success
                       : AppColors.warning,
                 ),
                 SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Text(
-                    _product['stock'] > _product['minStock']
+                    product.quantity > product.minQuantity
                         ? 'المخزون كافي'
                         : 'المخزون منخفض - يُنصح بإعادة الطلب',
                     style: AppTypography.bodyMedium.copyWith(
-                      color: _product['stock'] > _product['minStock']
+                      color: product.quantity > product.minQuantity
                           ? AppColors.success
                           : AppColors.warning,
                     ),
@@ -389,15 +487,18 @@ class ProductDetailsScreenPro extends StatelessWidget {
   }
 
   Widget _buildDetailsSection() {
+    final dateFormat = DateFormat('yyyy/MM/dd', 'ar');
+
     return _buildCard(
       title: 'التفاصيل',
       icon: Icons.info_outline_rounded,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (_product['description'] != null) ...[
+          if (product.description != null &&
+              product.description!.isNotEmpty) ...[
             Text(
-              _product['description'],
+              product.description!,
               style: AppTypography.bodyMedium.copyWith(
                 color: AppColors.textSecondary,
               ),
@@ -406,16 +507,14 @@ class ProductDetailsScreenPro extends StatelessWidget {
             Divider(color: AppColors.border),
             SizedBox(height: AppSpacing.md),
           ],
-          _buildInfoRow('الوحدة', _product['unit']),
-          SizedBox(height: AppSpacing.sm),
           _buildInfoRow(
             'خاضع للضريبة',
-            _product['isTaxable'] ? 'نعم' : 'لا',
+            product.taxRate != null && product.taxRate! > 0 ? 'نعم' : 'لا',
           ),
           SizedBox(height: AppSpacing.sm),
-          _buildInfoRow('تاريخ الإضافة', _product['createdAt']),
+          _buildInfoRow('تاريخ الإضافة', dateFormat.format(product.createdAt)),
           SizedBox(height: AppSpacing.sm),
-          _buildInfoRow('آخر تحديث', _product['updatedAt']),
+          _buildInfoRow('آخر تحديث', dateFormat.format(product.updatedAt)),
         ],
       ),
     );

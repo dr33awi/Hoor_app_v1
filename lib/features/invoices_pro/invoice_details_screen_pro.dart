@@ -4,12 +4,16 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/theme/pro/design_tokens.dart';
+import '../../core/providers/app_providers.dart';
+import '../../data/database/app_database.dart';
 
-class InvoiceDetailsScreenPro extends StatelessWidget {
+class InvoiceDetailsScreenPro extends ConsumerStatefulWidget {
   final String invoiceId;
 
   const InvoiceDetailsScreenPro({
@@ -17,52 +21,104 @@ class InvoiceDetailsScreenPro extends StatelessWidget {
     required this.invoiceId,
   });
 
-  // Sample data
-  Map<String, dynamic> get _invoice => {
-        'id': invoiceId,
-        'customer': 'شركة النور للتجارة',
-        'customerPhone': '0551234567',
-        'date': '20 يونيو 2024',
-        'dueDate': '20 يوليو 2024',
-        'status': 'partial',
-        'subtotal': 5375.00,
-        'discount': 200.00,
-        'tax': 776.25,
-        'total': 5951.25,
-        'paid': 3000.00,
-        'type': 'sale',
-        'paymentMethod': 'آجل',
-        'notes': 'تسليم خلال 3 أيام عمل',
-        'items': [
-          {
-            'name': 'لابتوب HP ProBook',
-            'sku': 'LAP-001',
-            'quantity': 2,
-            'price': 2500.00,
-            'discount': 0,
-            'total': 5000.00,
-          },
-          {
-            'name': 'ماوس لاسلكي',
-            'sku': 'MOU-002',
-            'quantity': 5,
-            'price': 75.00,
-            'discount': 0,
-            'total': 375.00,
-          },
-        ],
-        'payments': [
-          {'date': '20 يونيو 2024', 'amount': 2000.00, 'method': 'تحويل بنكي'},
-          {'date': '22 يونيو 2024', 'amount': 1000.00, 'method': 'نقدي'},
-        ],
-      };
+  @override
+  ConsumerState<InvoiceDetailsScreenPro> createState() =>
+      _InvoiceDetailsScreenProState();
+}
 
-  bool get isSales => _invoice['type'] == 'sale';
-  double get remaining => _invoice['total'] - _invoice['paid'];
-  double get paidPercentage => _invoice['paid'] / _invoice['total'];
+class _InvoiceDetailsScreenProState
+    extends ConsumerState<InvoiceDetailsScreenPro> {
+  Invoice? _invoice;
+  List<InvoiceItem> _invoiceItems = [];
+  Customer? _customer;
+  Supplier? _supplier;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInvoiceData();
+  }
+
+  Future<void> _loadInvoiceData() async {
+    try {
+      final invoiceRepo = ref.read(invoiceRepositoryProvider);
+      final customerRepo = ref.read(customerRepositoryProvider);
+      final supplierRepo = ref.read(supplierRepositoryProvider);
+
+      final invoice = await invoiceRepo.getInvoiceById(widget.invoiceId);
+      if (invoice != null) {
+        final items = await invoiceRepo.getInvoiceItems(widget.invoiceId);
+
+        Customer? customer;
+        Supplier? supplier;
+
+        if (invoice.customerId != null) {
+          customer = await customerRepo.getCustomerById(invoice.customerId!);
+        }
+        if (invoice.supplierId != null) {
+          supplier = await supplierRepo.getSupplierById(invoice.supplierId!);
+        }
+
+        if (mounted) {
+          setState(() {
+            _invoice = invoice;
+            _invoiceItems = items;
+            _customer = customer;
+            _supplier = supplier;
+            _isLoading = false;
+          });
+        }
+      } else {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  bool get isSales => _invoice?.type == 'sale';
+  double get remaining => (_invoice?.total ?? 0) - (_invoice?.paidAmount ?? 0);
+  double get paidPercentage => _invoice != null && _invoice!.total > 0
+      ? _invoice!.paidAmount / _invoice!.total
+      : 0;
+  String get customerName => _customer?.name ?? _supplier?.name ?? 'غير محدد';
+  String get customerPhone => _customer?.phone ?? _supplier?.phone ?? '';
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.surface,
+          leading: IconButton(
+            onPressed: () => context.pop(),
+            icon: Icon(Icons.arrow_back_ios_rounded,
+                color: AppColors.textSecondary),
+          ),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_invoice == null) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.surface,
+          leading: IconButton(
+            onPressed: () => context.pop(),
+            icon: Icon(Icons.arrow_back_ios_rounded,
+                color: AppColors.textSecondary),
+          ),
+        ),
+        body: Center(child: Text('الفاتورة غير موجودة')),
+      );
+    }
+
+    final dateFormat = DateFormat('dd MMMM yyyy', 'ar');
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -77,7 +133,7 @@ class InvoiceDetailsScreenPro extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              _invoice['id'],
+              _invoice!.invoiceNumber,
               style: AppTypography.titleMedium.copyWith(
                 color: AppColors.textPrimary,
                 fontFamily: 'JetBrains Mono',
@@ -106,8 +162,8 @@ class InvoiceDetailsScreenPro extends StatelessWidget {
           ),
           PopupMenuButton<String>(
             icon: Icon(Icons.more_vert_rounded, color: AppColors.textSecondary),
+            onSelected: (value) => _handleMenuAction(value),
             itemBuilder: (context) => [
-              const PopupMenuItem(value: 'edit', child: Text('تعديل')),
               const PopupMenuItem(value: 'duplicate', child: Text('نسخ')),
               const PopupMenuItem(value: 'return', child: Text('مرتجع')),
               const PopupMenuDivider(),
@@ -125,7 +181,7 @@ class InvoiceDetailsScreenPro extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Status Card
-            _buildStatusCard(),
+            _buildStatusCard(dateFormat),
             SizedBox(height: AppSpacing.lg),
 
             // Customer Info
@@ -140,14 +196,8 @@ class InvoiceDetailsScreenPro extends StatelessWidget {
             _buildTotalsCard(),
             SizedBox(height: AppSpacing.lg),
 
-            // Payments
-            if (_invoice['status'] != 'paid') ...[
-              _buildPaymentsCard(),
-              SizedBox(height: AppSpacing.lg),
-            ],
-
             // Notes
-            if (_invoice['notes'] != null) ...[
+            if (_invoice!.notes != null && _invoice!.notes!.isNotEmpty) ...[
               _buildNotesCard(),
               SizedBox(height: AppSpacing.lg),
             ],
@@ -156,36 +206,75 @@ class InvoiceDetailsScreenPro extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomBar(context),
+      bottomNavigationBar: remaining > 0 ? _buildBottomBar(context) : null,
     );
   }
 
-  Widget _buildStatusCard() {
-    final status = _invoice['status'];
+  void _handleMenuAction(String action) async {
+    switch (action) {
+      case 'delete':
+        final confirm = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('حذف الفاتورة'),
+            content: const Text('هل أنت متأكد من حذف هذه الفاتورة؟'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('إلغاء'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                child: const Text('حذف'),
+              ),
+            ],
+          ),
+        );
+        if (confirm == true && mounted) {
+          try {
+            final invoiceRepo = ref.read(invoiceRepositoryProvider);
+            await invoiceRepo.deleteInvoiceWithReverse(widget.invoiceId);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                    content: Text('تم حذف الفاتورة'),
+                    backgroundColor: AppColors.success),
+              );
+              context.pop();
+            }
+          } catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                    content: Text('خطأ: $e'), backgroundColor: AppColors.error),
+              );
+            }
+          }
+        }
+        break;
+    }
+  }
+
+  Widget _buildStatusCard(DateFormat dateFormat) {
+    final status = _invoice!.status;
+    final isPaid = _invoice!.paidAmount >= _invoice!.total;
     Color statusColor;
     String statusText;
     IconData statusIcon;
 
-    switch (status) {
-      case 'paid':
-        statusColor = AppColors.success;
-        statusText = 'مدفوعة بالكامل';
-        statusIcon = Icons.check_circle_outline_rounded;
-        break;
-      case 'partial':
-        statusColor = AppColors.warning;
-        statusText = 'مدفوعة جزئياً';
-        statusIcon = Icons.timelapse_rounded;
-        break;
-      case 'overdue':
-        statusColor = AppColors.error;
-        statusText = 'متأخرة';
-        statusIcon = Icons.warning_amber_rounded;
-        break;
-      default:
-        statusColor = AppColors.textSecondary;
-        statusText = 'معلقة';
-        statusIcon = Icons.schedule_rounded;
+    if (isPaid) {
+      statusColor = AppColors.success;
+      statusText = 'مدفوعة بالكامل';
+      statusIcon = Icons.check_circle_outline_rounded;
+    } else if (_invoice!.paidAmount > 0) {
+      statusColor = AppColors.warning;
+      statusText = 'مدفوعة جزئياً';
+      statusIcon = Icons.timelapse_rounded;
+    } else {
+      statusColor = AppColors.textSecondary;
+      statusText = 'معلقة';
+      statusIcon = Icons.schedule_rounded;
     }
 
     return Container(
@@ -226,7 +315,7 @@ class InvoiceDetailsScreenPro extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      _invoice['date'],
+                      dateFormat.format(_invoice!.invoiceDate),
                       style: AppTypography.bodySmall.copyWith(
                         color: AppColors.textSecondary,
                       ),
@@ -238,14 +327,14 @@ class InvoiceDetailsScreenPro extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    '${_invoice['total'].toStringAsFixed(2)} ر.س',
+                    '${_invoice!.total.toStringAsFixed(2)} ر.س',
                     style: AppTypography.headlineSmall.copyWith(
                       color: isSales ? AppColors.success : AppColors.secondary,
                       fontWeight: FontWeight.w700,
                       fontFamily: 'JetBrains Mono',
                     ),
                   ),
-                  if (status != 'paid')
+                  if (!isPaid)
                     Text(
                       'متبقي: ${remaining.toStringAsFixed(0)} ر.س',
                       style: AppTypography.bodySmall.copyWith(
@@ -257,7 +346,7 @@ class InvoiceDetailsScreenPro extends StatelessWidget {
               ),
             ],
           ),
-          if (status == 'partial') ...[
+          if (_invoice!.paidAmount > 0 && !isPaid) ...[
             SizedBox(height: AppSpacing.md),
             ClipRRect(
               borderRadius: BorderRadius.circular(AppRadius.full),
@@ -279,7 +368,7 @@ class InvoiceDetailsScreenPro extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${_invoice['paid'].toStringAsFixed(0)} من ${_invoice['total'].toStringAsFixed(0)} ر.س',
+                  '${_invoice!.paidAmount.toStringAsFixed(0)} من ${_invoice!.total.toStringAsFixed(0)} ر.س',
                   style: AppTypography.labelSmall.copyWith(
                     color: AppColors.textSecondary,
                     fontFamily: 'JetBrains Mono',
@@ -303,7 +392,7 @@ class InvoiceDetailsScreenPro extends StatelessWidget {
             radius: 24.r,
             backgroundColor: AppColors.secondary.withOpacity(0.1),
             child: Text(
-              _invoice['customer'][0],
+              customerName.isNotEmpty ? customerName[0] : '?',
               style: AppTypography.titleLarge.copyWith(
                 color: AppColors.secondary,
               ),
@@ -315,34 +404,37 @@ class InvoiceDetailsScreenPro extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _invoice['customer'],
+                  customerName,
                   style: AppTypography.titleSmall.copyWith(
                     color: AppColors.textPrimary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                Text(
-                  _invoice['customerPhone'],
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
-                    fontFamily: 'JetBrains Mono',
+                if (customerPhone.isNotEmpty)
+                  Text(
+                    customerPhone,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                      fontFamily: 'JetBrains Mono',
+                    ),
                   ),
-                ),
               ],
             ),
           ),
-          Row(
-            children: [
-              IconButton(
-                onPressed: () {},
-                icon: Icon(Icons.phone_outlined, color: AppColors.secondary),
-              ),
-              IconButton(
-                onPressed: () {},
-                icon: Icon(Icons.message_outlined, color: AppColors.secondary),
-              ),
-            ],
-          ),
+          if (customerPhone.isNotEmpty)
+            Row(
+              children: [
+                IconButton(
+                  onPressed: () {},
+                  icon: Icon(Icons.phone_outlined, color: AppColors.secondary),
+                ),
+                IconButton(
+                  onPressed: () {},
+                  icon:
+                      Icon(Icons.message_outlined, color: AppColors.secondary),
+                ),
+              ],
+            ),
         ],
       ),
     );
@@ -353,14 +445,14 @@ class InvoiceDetailsScreenPro extends StatelessWidget {
       title: 'الأصناف',
       icon: Icons.inventory_2_outlined,
       trailing: Text(
-        '${_invoice['items'].length} صنف',
+        '${_invoiceItems.length} صنف',
         style: AppTypography.labelMedium.copyWith(
           color: AppColors.textTertiary,
         ),
       ),
       child: Column(
         children: [
-          ...(_invoice['items'] as List).asMap().entries.map((entry) {
+          ..._invoiceItems.asMap().entries.map((entry) {
             final index = entry.key;
             final item = entry.value;
             return Column(
@@ -379,7 +471,7 @@ class InvoiceDetailsScreenPro extends StatelessWidget {
                       ),
                       child: Center(
                         child: Text(
-                          '${item['quantity']}x',
+                          '${item.quantity}x',
                           style: AppTypography.labelMedium.copyWith(
                             color: AppColors.secondary,
                             fontFamily: 'JetBrains Mono',
@@ -393,13 +485,13 @@ class InvoiceDetailsScreenPro extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            item['name'],
+                            item.productName,
                             style: AppTypography.titleSmall.copyWith(
                               color: AppColors.textPrimary,
                             ),
                           ),
                           Text(
-                            '${item['price'].toStringAsFixed(0)} ر.س للوحدة',
+                            '${item.unitPrice.toStringAsFixed(0)} ر.س للوحدة',
                             style: AppTypography.bodySmall.copyWith(
                               color: AppColors.textTertiary,
                               fontFamily: 'JetBrains Mono',
@@ -409,7 +501,7 @@ class InvoiceDetailsScreenPro extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '${item['total'].toStringAsFixed(0)} ر.س',
+                      '${item.total.toStringAsFixed(0)} ر.س',
                       style: AppTypography.titleSmall.copyWith(
                         color: AppColors.textPrimary,
                         fontWeight: FontWeight.w600,
@@ -432,11 +524,11 @@ class InvoiceDetailsScreenPro extends StatelessWidget {
       icon: Icons.receipt_outlined,
       child: Column(
         children: [
-          _buildTotalRow('المجموع الفرعي', _invoice['subtotal']),
+          _buildTotalRow('المجموع الفرعي', _invoice!.subtotal),
           SizedBox(height: AppSpacing.sm),
-          _buildTotalRow('الخصم', -_invoice['discount'], isNegative: true),
+          _buildTotalRow('الخصم', -_invoice!.discountAmount, isNegative: true),
           SizedBox(height: AppSpacing.sm),
-          _buildTotalRow('الضريبة (15%)', _invoice['tax']),
+          _buildTotalRow('الضريبة', _invoice!.taxAmount),
           Divider(height: AppSpacing.lg, color: AppColors.border),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -449,7 +541,7 @@ class InvoiceDetailsScreenPro extends StatelessWidget {
                 ),
               ),
               Text(
-                '${_invoice['total'].toStringAsFixed(2)} ر.س',
+                '${_invoice!.total.toStringAsFixed(2)} ر.س',
                 style: AppTypography.titleLarge.copyWith(
                   color: isSales ? AppColors.success : AppColors.secondary,
                   fontWeight: FontWeight.w700,
@@ -463,86 +555,12 @@ class InvoiceDetailsScreenPro extends StatelessWidget {
     );
   }
 
-  Widget _buildPaymentsCard() {
-    return _buildCard(
-      title: 'الدفعات',
-      icon: Icons.payments_outlined,
-      trailing: TextButton(
-        onPressed: () {},
-        child: Text(
-          'إضافة دفعة',
-          style: AppTypography.labelMedium.copyWith(
-            color: AppColors.secondary,
-          ),
-        ),
-      ),
-      child: Column(
-        children: [
-          ...(_invoice['payments'] as List).asMap().entries.map((entry) {
-            final index = entry.key;
-            final payment = entry.value;
-            return Column(
-              children: [
-                if (index > 0)
-                  Divider(height: AppSpacing.lg, color: AppColors.border),
-                Row(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(AppSpacing.sm),
-                      decoration: BoxDecoration(
-                        color: AppColors.success.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(AppRadius.sm),
-                      ),
-                      child: Icon(
-                        Icons.check_rounded,
-                        color: AppColors.success,
-                        size: AppIconSize.sm,
-                      ),
-                    ),
-                    SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            payment['method'],
-                            style: AppTypography.titleSmall.copyWith(
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          Text(
-                            payment['date'],
-                            style: AppTypography.bodySmall.copyWith(
-                              color: AppColors.textTertiary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Text(
-                      '${payment['amount'].toStringAsFixed(0)} ر.س',
-                      style: AppTypography.titleSmall.copyWith(
-                        color: AppColors.success,
-                        fontWeight: FontWeight.w600,
-                        fontFamily: 'JetBrains Mono',
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
   Widget _buildNotesCard() {
     return _buildCard(
       title: 'ملاحظات',
       icon: Icons.notes_outlined,
       child: Text(
-        _invoice['notes'],
+        _invoice!.notes ?? '',
         style: AppTypography.bodyMedium.copyWith(
           color: AppColors.textSecondary,
         ),
@@ -611,9 +629,6 @@ class InvoiceDetailsScreenPro extends StatelessWidget {
   }
 
   Widget _buildBottomBar(BuildContext context) {
-    final status = _invoice['status'];
-    if (status == 'paid') return const SizedBox.shrink();
-
     return Container(
       padding: EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(

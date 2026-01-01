@@ -4,12 +4,15 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/pro/design_tokens.dart';
+import '../../core/providers/app_providers.dart';
+import '../../data/database/app_database.dart';
 
-class CustomerFormScreenPro extends StatefulWidget {
+class CustomerFormScreenPro extends ConsumerStatefulWidget {
   final String? customerId;
 
   const CustomerFormScreenPro({
@@ -20,10 +23,11 @@ class CustomerFormScreenPro extends StatefulWidget {
   bool get isEditing => customerId != null;
 
   @override
-  State<CustomerFormScreenPro> createState() => _CustomerFormScreenProState();
+  ConsumerState<CustomerFormScreenPro> createState() =>
+      _CustomerFormScreenProState();
 }
 
-class _CustomerFormScreenProState extends State<CustomerFormScreenPro> {
+class _CustomerFormScreenProState extends ConsumerState<CustomerFormScreenPro> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -35,6 +39,9 @@ class _CustomerFormScreenProState extends State<CustomerFormScreenPro> {
 
   String _customerType = 'individual';
   bool _isActive = true;
+  bool _isLoading = false;
+  bool _isSaving = false;
+  Customer? _existingCustomer;
 
   @override
   void initState() {
@@ -44,12 +51,31 @@ class _CustomerFormScreenProState extends State<CustomerFormScreenPro> {
     }
   }
 
-  void _loadCustomerData() {
-    // TODO: Load customer data
-    _nameController.text = 'شركة النور للتجارة';
-    _phoneController.text = '0551234567';
-    _emailController.text = 'info@alnoor.com';
-    _customerType = 'company';
+  Future<void> _loadCustomerData() async {
+    if (widget.customerId == null) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final customerRepo = ref.read(customerRepositoryProvider);
+      final customer = await customerRepo.getCustomerById(widget.customerId!);
+
+      if (customer != null && mounted) {
+        setState(() {
+          _existingCustomer = customer;
+          _nameController.text = customer.name;
+          _phoneController.text = customer.phone ?? '';
+          _emailController.text = customer.email ?? '';
+          _addressController.text = customer.address ?? '';
+          _notesController.text = customer.notes ?? '';
+          _isActive = customer.isActive;
+          // Determine customer type based on name or email
+          _customerType =
+              customer.email?.contains('@') == true ? 'company' : 'individual';
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -66,6 +92,26 @@ class _CustomerFormScreenProState extends State<CustomerFormScreenPro> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.surface,
+          elevation: 0,
+          leading: IconButton(
+            onPressed: () => context.pop(),
+            icon: Icon(Icons.close_rounded, color: AppColors.textSecondary),
+          ),
+          title: Text(
+            widget.isEditing ? 'تعديل عميل' : 'عميل جديد',
+            style:
+                AppTypography.titleLarge.copyWith(color: AppColors.textPrimary),
+          ),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -83,14 +129,19 @@ class _CustomerFormScreenProState extends State<CustomerFormScreenPro> {
         ),
         actions: [
           TextButton(
-            onPressed: _saveCustomer,
-            child: Text(
-              'حفظ',
-              style: AppTypography.labelLarge.copyWith(
-                color: AppColors.secondary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            onPressed: _isSaving ? null : _saveCustomer,
+            child: _isSaving
+                ? SizedBox(
+                    width: 20.w,
+                    height: 20.w,
+                    child: CircularProgressIndicator(strokeWidth: 2))
+                : Text(
+                    'حفظ',
+                    style: AppTypography.labelLarge.copyWith(
+                      color: AppColors.secondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
           ),
           SizedBox(width: AppSpacing.sm),
         ],
@@ -431,9 +482,7 @@ class _CustomerFormScreenProState extends State<CustomerFormScreenPro> {
             if (widget.isEditing)
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () {
-                    // TODO: Show delete confirmation
-                  },
+                  onPressed: _isSaving ? null : _deleteCustomer,
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.error,
                     side: BorderSide(color: AppColors.error),
@@ -446,18 +495,24 @@ class _CustomerFormScreenProState extends State<CustomerFormScreenPro> {
             Expanded(
               flex: 2,
               child: FilledButton(
-                onPressed: _saveCustomer,
+                onPressed: _isSaving ? null : _saveCustomer,
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.secondary,
                   padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
                 ),
-                child: Text(
-                  widget.isEditing ? 'حفظ التغييرات' : 'إضافة العميل',
-                  style: AppTypography.labelLarge.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                child: _isSaving
+                    ? SizedBox(
+                        width: 20.w,
+                        height: 20.w,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
+                    : Text(
+                        widget.isEditing ? 'حفظ التغييرات' : 'إضافة العميل',
+                        style: AppTypography.labelLarge.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
               ),
             ),
           ],
@@ -466,10 +521,121 @@ class _CustomerFormScreenProState extends State<CustomerFormScreenPro> {
     );
   }
 
-  void _saveCustomer() {
-    if (_formKey.currentState?.validate() ?? false) {
-      // TODO: Save customer
-      context.pop();
+  Future<void> _deleteCustomer() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('حذف العميل'),
+        content: const Text('هل أنت متأكد من حذف هذا العميل؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !mounted) return;
+
+    setState(() => _isSaving = true);
+    try {
+      final customerRepo = ref.read(customerRepositoryProvider);
+      await customerRepo.deleteCustomer(widget.customerId!);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('تم حذف العميل بنجاح'),
+              backgroundColor: AppColors.success),
+        );
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('خطأ: $e'), backgroundColor: AppColors.error),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _saveCustomer() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    setState(() => _isSaving = true);
+    try {
+      final customerRepo = ref.read(customerRepositoryProvider);
+
+      if (widget.isEditing && _existingCustomer != null) {
+        // Update existing customer
+        await customerRepo.updateCustomer(
+          id: widget.customerId!,
+          name: _nameController.text.trim(),
+          phone: _phoneController.text.trim().isEmpty
+              ? null
+              : _phoneController.text.trim(),
+          email: _emailController.text.trim().isEmpty
+              ? null
+              : _emailController.text.trim(),
+          address: _addressController.text.trim().isEmpty
+              ? null
+              : _addressController.text.trim(),
+          notes: _notesController.text.trim().isEmpty
+              ? null
+              : _notesController.text.trim(),
+          isActive: _isActive,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text('تم تحديث العميل بنجاح'),
+                backgroundColor: AppColors.success),
+          );
+        }
+      } else {
+        // Create new customer
+        await customerRepo.createCustomer(
+          name: _nameController.text.trim(),
+          phone: _phoneController.text.trim().isEmpty
+              ? null
+              : _phoneController.text.trim(),
+          email: _emailController.text.trim().isEmpty
+              ? null
+              : _emailController.text.trim(),
+          address: _addressController.text.trim().isEmpty
+              ? null
+              : _addressController.text.trim(),
+          notes: _notesController.text.trim().isEmpty
+              ? null
+              : _notesController.text.trim(),
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text('تم إضافة العميل بنجاح'),
+                backgroundColor: AppColors.success),
+          );
+        }
+      }
+
+      if (mounted) context.pop();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('خطأ في حفظ العميل: $e'),
+              backgroundColor: AppColors.error),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 }

@@ -22,11 +22,22 @@ import '../../features/customers_pro/customer_form_screen_pro.dart';
 import '../../features/suppliers_pro/suppliers_screen_pro.dart';
 import '../../features/reports_pro/reports_screen_pro.dart';
 import '../../features/settings_pro/settings_screen_pro.dart';
+import '../../features/settings_pro/print_settings_screen_pro.dart';
 import '../../features/shifts_pro/shifts_screen_pro.dart';
 import '../../features/vouchers_pro/vouchers_screen_pro.dart';
 import '../../features/alerts_pro/alerts_screen_pro.dart';
 import '../../features/sales_pro/sales_screen_pro.dart';
 import '../../features/purchases_pro/purchases_screen_pro.dart';
+import '../../features/inventory_pro/inventory_screen_pro.dart';
+import '../../features/inventory_pro/warehouses_screen_pro.dart';
+import '../../features/inventory_pro/stock_transfer_screen_pro.dart';
+import '../../features/inventory_pro/inventory_count_screen_pro.dart';
+import '../../features/categories_pro/categories_screen_pro.dart';
+import '../../features/cash_pro/cash_screen_pro.dart';
+import '../../features/backup_pro/backup_screen_pro.dart';
+import '../../features/shifts_pro/shift_details_screen_pro.dart';
+import '../../features/returns_pro/sales_returns_screen_pro.dart';
+import '../../features/returns_pro/purchase_returns_screen_pro.dart';
 
 /// Provider for the app router
 final appRouterProProvider = Provider<GoRouter>((ref) {
@@ -237,6 +248,40 @@ final appRouterProProvider = Provider<GoRouter>((ref) {
           state,
           const ShiftsScreenPro(),
         ),
+        routes: [
+          GoRoute(
+            path: ':id',
+            name: 'shift-details',
+            pageBuilder: (context, state) => _buildSlideTransition(
+              state,
+              ShiftDetailsScreenPro(shiftId: state.pathParameters['id']!),
+            ),
+          ),
+        ],
+      ),
+
+      // ═══════════════════════════════════════════════════════════════════
+      // Returns - Sales
+      // ═══════════════════════════════════════════════════════════════════
+      GoRoute(
+        path: '/returns/sales',
+        name: 'sales-returns',
+        pageBuilder: (context, state) => _buildSlideTransition(
+          state,
+          const SalesReturnsScreenPro(),
+        ),
+      ),
+
+      // ═══════════════════════════════════════════════════════════════════
+      // Returns - Purchases
+      // ═══════════════════════════════════════════════════════════════════
+      GoRoute(
+        path: '/returns/purchases',
+        name: 'purchase-returns',
+        pageBuilder: (context, state) => _buildSlideTransition(
+          state,
+          const PurchaseReturnsScreenPro(),
+        ),
       ),
 
       // ═══════════════════════════════════════════════════════════════════
@@ -295,6 +340,16 @@ final appRouterProProvider = Provider<GoRouter>((ref) {
           state,
           const SettingsScreenPro(),
         ),
+        routes: [
+          GoRoute(
+            path: 'print',
+            name: 'print-settings',
+            pageBuilder: (context, state) => _buildSlideTransition(
+              state,
+              const PrintSettingsScreenPro(),
+            ),
+          ),
+        ],
       ),
 
       // ═══════════════════════════════════════════════════════════════════
@@ -306,6 +361,80 @@ final appRouterProProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => _buildSlideTransition(
           state,
           const AlertsScreenPro(),
+        ),
+      ),
+
+      // ═══════════════════════════════════════════════════════════════════
+      // Inventory
+      // ═══════════════════════════════════════════════════════════════════
+      GoRoute(
+        path: '/inventory',
+        name: 'inventory',
+        pageBuilder: (context, state) => _buildSlideTransition(
+          state,
+          const InventoryScreenPro(),
+        ),
+        routes: [
+          GoRoute(
+            path: 'warehouses',
+            name: 'warehouses',
+            pageBuilder: (context, state) => _buildSlideTransition(
+              state,
+              const WarehousesScreenPro(),
+            ),
+          ),
+          GoRoute(
+            path: 'transfer',
+            name: 'stock-transfer',
+            pageBuilder: (context, state) => _buildSlideTransition(
+              state,
+              const StockTransferScreenPro(),
+            ),
+          ),
+          GoRoute(
+            path: 'count',
+            name: 'inventory-count',
+            pageBuilder: (context, state) => _buildSlideTransition(
+              state,
+              const InventoryCountScreenPro(),
+            ),
+          ),
+        ],
+      ),
+
+      // ═══════════════════════════════════════════════════════════════════
+      // Categories
+      // ═══════════════════════════════════════════════════════════════════
+      GoRoute(
+        path: '/categories',
+        name: 'categories',
+        pageBuilder: (context, state) => _buildSlideTransition(
+          state,
+          const CategoriesScreenPro(),
+        ),
+      ),
+
+      // ═══════════════════════════════════════════════════════════════════
+      // Cash/Drawer
+      // ═══════════════════════════════════════════════════════════════════
+      GoRoute(
+        path: '/cash',
+        name: 'cash',
+        pageBuilder: (context, state) => _buildSlideTransition(
+          state,
+          const CashScreenPro(),
+        ),
+      ),
+
+      // ═══════════════════════════════════════════════════════════════════
+      // Backup
+      // ═══════════════════════════════════════════════════════════════════
+      GoRoute(
+        path: '/backup',
+        name: 'backup',
+        pageBuilder: (context, state) => _buildSlideTransition(
+          state,
+          const BackupScreenPro(),
         ),
       ),
     ],

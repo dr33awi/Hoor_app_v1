@@ -148,6 +148,12 @@ class _SettingsScreenProState extends State<SettingsScreenPro> {
             // ═══════════════════════════════════════════════════════════════
             _buildSectionTitle('إعدادات الفواتير'),
             _buildSettingsTile(
+              icon: Icons.print_rounded,
+              title: 'إعدادات الطباعة',
+              subtitle: 'إعداد الطابعة وقالب الفاتورة',
+              onTap: () => context.push('/settings/print'),
+            ),
+            _buildSettingsTile(
               icon: Icons.receipt_outlined,
               title: 'قالب الفاتورة',
               subtitle: 'تخصيص تصميم الفاتورة',

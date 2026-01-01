@@ -5,12 +5,15 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/pro/design_tokens.dart';
+import '../../core/providers/app_providers.dart';
+import '../../data/database/app_database.dart';
 
-class InvoiceFormScreenPro extends StatefulWidget {
+class InvoiceFormScreenPro extends ConsumerStatefulWidget {
   final String type; // 'sale' or 'purchase'
   final String? invoiceId;
 
@@ -24,34 +27,24 @@ class InvoiceFormScreenPro extends StatefulWidget {
   bool get isSales => type == 'sale';
 
   @override
-  State<InvoiceFormScreenPro> createState() => _InvoiceFormScreenProState();
+  ConsumerState<InvoiceFormScreenPro> createState() =>
+      _InvoiceFormScreenProState();
 }
 
-class _InvoiceFormScreenProState extends State<InvoiceFormScreenPro> {
-  String? _selectedCustomer;
+class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
+  String? _selectedCustomerId;
+  String? _selectedCustomerName;
+  String? _selectedSupplierId;
+  String? _selectedSupplierName;
   DateTime _invoiceDate = DateTime.now();
   DateTime? _dueDate;
   String _paymentMethod = 'cash';
   final _discountController = TextEditingController();
   final _notesController = TextEditingController();
+  bool _isSaving = false;
 
-  // Sample items
-  final List<Map<String, dynamic>> _items = [
-    {
-      'id': '1',
-      'name': 'لابتوب HP ProBook',
-      'quantity': 2,
-      'price': 2500.00,
-      'discount': 0.0,
-    },
-    {
-      'id': '2',
-      'name': 'ماوس لاسلكي',
-      'quantity': 5,
-      'price': 75.00,
-      'discount': 10.0,
-    },
-  ];
+  // Items list with real products
+  final List<Map<String, dynamic>> _items = [];
 
   double get _subtotal => _items.fold(
         0.0,
@@ -189,9 +182,14 @@ class _InvoiceFormScreenProState extends State<InvoiceFormScreenPro> {
                   CircleAvatar(
                     radius: 24.r,
                     backgroundColor: AppColors.secondary.withOpacity(0.1),
-                    child: _selectedCustomer != null
+                    child: (widget.isSales
+                                ? _selectedCustomerName
+                                : _selectedSupplierName) !=
+                            null
                         ? Text(
-                            _selectedCustomer![0],
+                            (widget.isSales
+                                ? _selectedCustomerName
+                                : _selectedSupplierName)![0],
                             style: AppTypography.titleMedium.copyWith(
                               color: AppColors.secondary,
                             ),
@@ -203,18 +201,23 @@ class _InvoiceFormScreenProState extends State<InvoiceFormScreenPro> {
                   ),
                   SizedBox(width: AppSpacing.md),
                   Expanded(
-                    child: _selectedCustomer != null
+                    child: (widget.isSales
+                                ? _selectedCustomerName
+                                : _selectedSupplierName) !=
+                            null
                         ? Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                _selectedCustomer!,
+                                (widget.isSales
+                                    ? _selectedCustomerName
+                                    : _selectedSupplierName)!,
                                 style: AppTypography.titleSmall.copyWith(
                                   color: AppColors.textPrimary,
                                 ),
                               ),
                               Text(
-                                'عميل آجل • رصيد: 5,000 ر.س',
+                                _paymentMethod == 'credit' ? 'آجل' : 'نقدي',
                                 style: AppTypography.bodySmall.copyWith(
                                   color: AppColors.textTertiary,
                                 ),
@@ -830,14 +833,11 @@ class _InvoiceFormScreenProState extends State<InvoiceFormScreenPro> {
             // Save as Draft
             Expanded(
               child: OutlinedButton(
-                onPressed: () {
-                  // TODO: Save draft
-                  context.pop();
-                },
+                onPressed: _isSaving ? null : () => context.pop(),
                 style: OutlinedButton.styleFrom(
                   padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
                 ),
-                child: const Text('حفظ كمسودة'),
+                child: const Text('إلغاء'),
               ),
             ),
             SizedBox(width: AppSpacing.md),
@@ -845,26 +845,33 @@ class _InvoiceFormScreenProState extends State<InvoiceFormScreenPro> {
             Expanded(
               flex: 2,
               child: FilledButton(
-                onPressed: _items.isEmpty ? null : () => _saveInvoice(),
+                onPressed:
+                    _items.isEmpty || _isSaving ? null : () => _saveInvoice(),
                 style: FilledButton.styleFrom(
                   backgroundColor:
                       widget.isSales ? AppColors.success : AppColors.secondary,
                   padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.check_rounded),
-                    SizedBox(width: AppSpacing.sm),
-                    Text(
-                      'حفظ الفاتورة',
-                      style: AppTypography.labelLarge.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
+                child: _isSaving
+                    ? SizedBox(
+                        width: 20.w,
+                        height: 20.w,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.check_rounded),
+                          SizedBox(width: AppSpacing.sm),
+                          Text(
+                            'حفظ الفاتورة',
+                            style: AppTypography.labelLarge.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
               ),
             ),
           ],
@@ -874,28 +881,243 @@ class _InvoiceFormScreenProState extends State<InvoiceFormScreenPro> {
   }
 
   void _selectCustomer() {
-    // TODO: Show customer selection bottom sheet
-    setState(() {
-      _selectedCustomer = 'شركة النور للتجارة';
-    });
+    final customersAsync = ref.read(customersStreamProvider);
+    final suppliersAsync = ref.read(suppliersStreamProvider);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+      ),
+      builder: (context) {
+        if (widget.isSales) {
+          return customersAsync.when(
+            loading: () => SizedBox(
+                height: 200.h,
+                child: Center(child: CircularProgressIndicator())),
+            error: (e, _) =>
+                SizedBox(height: 200.h, child: Center(child: Text('خطأ: $e'))),
+            data: (customers) => _buildSelectionList(
+              title: 'اختر العميل',
+              items: customers
+                  .map(
+                      (c) => {'id': c.id, 'name': c.name, 'balance': c.balance})
+                  .toList(),
+              onSelect: (item) {
+                setState(() {
+                  _selectedCustomerId = item['id'];
+                  _selectedCustomerName = item['name'];
+                });
+                Navigator.pop(context);
+              },
+            ),
+          );
+        } else {
+          return suppliersAsync.when(
+            loading: () => SizedBox(
+                height: 200.h,
+                child: Center(child: CircularProgressIndicator())),
+            error: (e, _) =>
+                SizedBox(height: 200.h, child: Center(child: Text('خطأ: $e'))),
+            data: (suppliers) => _buildSelectionList(
+              title: 'اختر المورد',
+              items: suppliers
+                  .map(
+                      (s) => {'id': s.id, 'name': s.name, 'balance': s.balance})
+                  .toList(),
+              onSelect: (item) {
+                setState(() {
+                  _selectedSupplierId = item['id'];
+                  _selectedSupplierName = item['name'];
+                });
+                Navigator.pop(context);
+              },
+            ),
+          );
+        }
+      },
+    );
+  }
+
+  Widget _buildSelectionList({
+    required String title,
+    required List<Map<String, dynamic>> items,
+    required void Function(Map<String, dynamic>) onSelect,
+  }) {
+    return Container(
+      constraints: BoxConstraints(maxHeight: 400.h),
+      padding: EdgeInsets.all(AppSpacing.md),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(title, style: AppTypography.titleMedium),
+          SizedBox(height: AppSpacing.md),
+          Expanded(
+            child: items.isEmpty
+                ? Center(child: Text('لا توجد بيانات'))
+                : ListView.builder(
+                    itemCount: items.length,
+                    itemBuilder: (context, index) {
+                      final item = items[index];
+                      return ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: AppColors.secondary.withOpacity(0.1),
+                          child: Text(item['name'][0],
+                              style: TextStyle(color: AppColors.secondary)),
+                        ),
+                        title: Text(item['name']),
+                        subtitle: Text(
+                            'الرصيد: ${(item['balance'] as double).toStringAsFixed(0)} ر.س'),
+                        onTap: () => onSelect(item),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _addItem() {
-    // TODO: Show product selection bottom sheet
-    setState(() {
-      _items.add({
-        'id': '${_items.length + 1}',
-        'name': 'منتج جديد',
-        'quantity': 1,
-        'price': 100.00,
-        'discount': 0.0,
-      });
-    });
+    final productsAsync = ref.read(activeProductsStreamProvider);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+      ),
+      builder: (context) {
+        return productsAsync.when(
+          loading: () => SizedBox(
+              height: 200.h, child: Center(child: CircularProgressIndicator())),
+          error: (e, _) =>
+              SizedBox(height: 200.h, child: Center(child: Text('خطأ: $e'))),
+          data: (products) => Container(
+            constraints: BoxConstraints(maxHeight: 500.h),
+            padding: EdgeInsets.all(AppSpacing.md),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('اختر منتج', style: AppTypography.titleMedium),
+                SizedBox(height: AppSpacing.md),
+                Expanded(
+                  child: products.isEmpty
+                      ? Center(child: Text('لا توجد منتجات'))
+                      : ListView.builder(
+                          itemCount: products.length,
+                          itemBuilder: (context, index) {
+                            final product = products[index];
+                            final alreadyAdded =
+                                _items.any((i) => i['productId'] == product.id);
+                            return ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor:
+                                    AppColors.secondary.withOpacity(0.1),
+                                child: Icon(Icons.inventory_2_outlined,
+                                    color: AppColors.secondary, size: 20),
+                              ),
+                              title: Text(product.name),
+                              subtitle: Text(
+                                  '${product.salePrice.toStringAsFixed(0)} ر.س • المخزون: ${product.quantity}'),
+                              trailing: alreadyAdded
+                                  ? Icon(Icons.check, color: AppColors.success)
+                                  : null,
+                              enabled: !alreadyAdded && product.quantity > 0,
+                              onTap: alreadyAdded || product.quantity == 0
+                                  ? null
+                                  : () {
+                                      setState(() {
+                                        _items.add({
+                                          'id': '${_items.length + 1}',
+                                          'productId': product.id,
+                                          'name': product.name,
+                                          'quantity': 1,
+                                          'price': widget.isSales
+                                              ? product.salePrice
+                                              : product.purchasePrice,
+                                          'purchasePrice':
+                                              product.purchasePrice,
+                                          'discount': 0.0,
+                                          'maxQuantity': product.quantity,
+                                        });
+                                      });
+                                      Navigator.pop(context);
+                                    },
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
-  void _saveInvoice() {
-    // TODO: Validate and save invoice
-    context.pop();
+  Future<void> _saveInvoice() async {
+    if (_items.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('أضف منتجات للفاتورة'),
+            backgroundColor: AppColors.warning),
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      final invoiceRepo = ref.read(invoiceRepositoryProvider);
+      final openShift = ref.read(openShiftStreamProvider).asData?.value;
+
+      final invoiceItems = _items
+          .map((item) => {
+                'productId': item['productId'],
+                'productName': item['name'],
+                'quantity': item['quantity'],
+                'unitPrice': item['price'],
+                'purchasePrice': item['purchasePrice'] ?? 0.0,
+                'discount':
+                    (item['quantity'] * item['price'] * item['discount'] / 100),
+              })
+          .toList();
+
+      await invoiceRepo.createInvoice(
+        type: widget.type,
+        customerId: widget.isSales ? _selectedCustomerId : null,
+        supplierId: !widget.isSales ? _selectedSupplierId : null,
+        items: invoiceItems,
+        discountAmount: _discount,
+        paymentMethod: _paymentMethod,
+        paidAmount: _paymentMethod == 'cash' ? _total : 0,
+        notes: _notesController.text.trim().isEmpty
+            ? null
+            : _notesController.text.trim(),
+        shiftId: openShift?.id,
+        invoiceDate: _invoiceDate,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('تم حفظ الفاتورة بنجاح'),
+              backgroundColor: AppColors.success),
+        );
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('خطأ: $e'), backgroundColor: AppColors.error),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 
   void _showDiscardDialog() {

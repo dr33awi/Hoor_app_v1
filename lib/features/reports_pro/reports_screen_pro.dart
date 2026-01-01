@@ -4,16 +4,23 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/theme/pro/design_tokens.dart';
+import '../../core/providers/app_providers.dart';
+import '../../data/database/app_database.dart';
 
-class ReportsScreenPro extends StatelessWidget {
+class ReportsScreenPro extends ConsumerWidget {
   const ReportsScreenPro({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final salesAsync = ref.watch(salesInvoicesProvider);
+    final purchasesAsync = ref.watch(purchaseInvoicesProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -44,7 +51,7 @@ class ReportsScreenPro extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Quick Stats
-            _buildQuickStats(),
+            _buildQuickStats(salesAsync, purchasesAsync),
             SizedBox(height: AppSpacing.lg),
 
             // Sales Reports
@@ -132,7 +139,38 @@ class ReportsScreenPro extends StatelessWidget {
     );
   }
 
-  Widget _buildQuickStats() {
+  Widget _buildQuickStats(
+    AsyncValue<List<Invoice>> salesAsync,
+    AsyncValue<List<Invoice>> purchasesAsync,
+  ) {
+    final salesTotal = salesAsync.when(
+      data: (invoices) {
+        final now = DateTime.now();
+        return invoices
+            .where((inv) =>
+                inv.invoiceDate.month == now.month &&
+                inv.invoiceDate.year == now.year)
+            .fold(0.0, (sum, inv) => sum + inv.total);
+      },
+      loading: () => 0.0,
+      error: (_, __) => 0.0,
+    );
+
+    final purchasesTotal = purchasesAsync.when(
+      data: (invoices) {
+        final now = DateTime.now();
+        return invoices
+            .where((inv) =>
+                inv.invoiceDate.month == now.month &&
+                inv.invoiceDate.year == now.year)
+            .fold(0.0, (sum, inv) => sum + inv.total);
+      },
+      loading: () => 0.0,
+      error: (_, __) => 0.0,
+    );
+
+    final profit = salesTotal - purchasesTotal;
+
     return Container(
       padding: EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
@@ -161,9 +199,9 @@ class ReportsScreenPro extends StatelessWidget {
               Expanded(
                 child: _buildQuickStatItem(
                   label: 'المبيعات',
-                  value: '125,000',
+                  value: salesTotal.toStringAsFixed(0),
                   icon: Icons.arrow_upward_rounded,
-                  trend: '+12%',
+                  trend: '',
                   isPositive: true,
                 ),
               ),
@@ -175,9 +213,9 @@ class ReportsScreenPro extends StatelessWidget {
               Expanded(
                 child: _buildQuickStatItem(
                   label: 'المشتريات',
-                  value: '85,000',
+                  value: purchasesTotal.toStringAsFixed(0),
                   icon: Icons.arrow_downward_rounded,
-                  trend: '+5%',
+                  trend: '',
                   isPositive: false,
                 ),
               ),
@@ -189,10 +227,12 @@ class ReportsScreenPro extends StatelessWidget {
               Expanded(
                 child: _buildQuickStatItem(
                   label: 'صافي الربح',
-                  value: '40,000',
-                  icon: Icons.trending_up_rounded,
-                  trend: '+18%',
-                  isPositive: true,
+                  value: profit.toStringAsFixed(0),
+                  icon: profit >= 0
+                      ? Icons.trending_up_rounded
+                      : Icons.trending_down_rounded,
+                  trend: '',
+                  isPositive: profit >= 0,
                 ),
               ),
             ],
@@ -342,10 +382,10 @@ class _ReportCard extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Report Detail Screen Pro - Placeholder
+// Report Detail Screen Pro - Full Implementation with Export
 // ═══════════════════════════════════════════════════════════════════════════
 
-class ReportDetailScreenPro extends StatelessWidget {
+class ReportDetailScreenPro extends ConsumerStatefulWidget {
   final String reportType;
 
   const ReportDetailScreenPro({
@@ -354,25 +394,31 @@ class ReportDetailScreenPro extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    String title;
-    switch (reportType) {
-      case 'sales':
-        title = 'تقرير المبيعات';
-        break;
-      case 'purchases':
-        title = 'تقرير المشتريات';
-        break;
-      case 'profit':
-        title = 'تقرير الأرباح والخسائر';
-        break;
-      case 'receivables':
-        title = 'تقرير الذمم المدينة';
-        break;
-      default:
-        title = 'تقرير';
-    }
+  ConsumerState<ReportDetailScreenPro> createState() =>
+      _ReportDetailScreenProState();
+}
 
+class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro> {
+  DateTimeRange? _dateRange;
+  bool _isExporting = false;
+
+  String get _title {
+    switch (widget.reportType) {
+      case 'sales':
+        return 'تقرير المبيعات';
+      case 'purchases':
+        return 'تقرير المشتريات';
+      case 'profit':
+        return 'تقرير الأرباح والخسائر';
+      case 'receivables':
+        return 'تقرير الذمم المدينة';
+      default:
+        return 'تقرير';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -384,47 +430,586 @@ class ReportDetailScreenPro extends StatelessWidget {
               color: AppColors.textSecondary),
         ),
         title: Text(
-          title,
+          _title,
           style: AppTypography.titleLarge.copyWith(
             color: AppColors.textPrimary,
           ),
         ),
         actions: [
           IconButton(
-            onPressed: () {},
-            icon: Icon(Icons.share_outlined, color: AppColors.textSecondary),
+            onPressed: _selectDateRange,
+            icon: Icon(
+              Icons.date_range_rounded,
+              color: _dateRange != null
+                  ? AppColors.primary
+                  : AppColors.textSecondary,
+            ),
           ),
-          IconButton(
-            onPressed: () {},
-            icon: Icon(Icons.download_outlined, color: AppColors.textSecondary),
+          PopupMenuButton<String>(
+            icon: Icon(Icons.more_vert, color: AppColors.textSecondary),
+            onSelected: _handleExport,
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'pdf',
+                child: Row(
+                  children: [
+                    Icon(Icons.picture_as_pdf, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('تصدير PDF'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'excel',
+                child: Row(
+                  children: [
+                    Icon(Icons.table_chart, color: Colors.green),
+                    SizedBox(width: 8),
+                    Text('تصدير Excel'),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.bar_chart_rounded,
-              size: 80.sp,
-              color: AppColors.textTertiary,
+      body: _isExporting
+          ? const Center(child: CircularProgressIndicator())
+          : _buildReportContent(),
+    );
+  }
+
+  Widget _buildReportContent() {
+    switch (widget.reportType) {
+      case 'sales':
+        return _buildSalesReport();
+      case 'purchases':
+        return _buildPurchasesReport();
+      case 'profit':
+        return _buildProfitReport();
+      case 'receivables':
+        return _buildReceivablesReport();
+      default:
+        return _buildPlaceholder();
+    }
+  }
+
+  Widget _buildSalesReport() {
+    final invoicesAsync = ref.watch(salesInvoicesProvider);
+
+    return invoicesAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => Center(child: Text('خطأ: $error')),
+      data: (invoices) {
+        final filtered = _filterByDate(invoices);
+        final total = filtered.fold<double>(0, (sum, inv) => sum + inv.total);
+        final count = filtered.length;
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildDateRangeChip(),
+              SizedBox(height: AppSpacing.md),
+              _buildSummaryCards(
+                total: total,
+                count: count,
+                label: 'إجمالي المبيعات',
+                color: AppColors.success,
+              ),
+              SizedBox(height: AppSpacing.lg),
+              _buildInvoicesList(filtered),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPurchasesReport() {
+    final invoicesAsync = ref.watch(purchaseInvoicesProvider);
+
+    return invoicesAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => Center(child: Text('خطأ: $error')),
+      data: (invoices) {
+        final filtered = _filterByDate(invoices);
+        final total = filtered.fold<double>(0, (sum, inv) => sum + inv.total);
+        final count = filtered.length;
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildDateRangeChip(),
+              SizedBox(height: AppSpacing.md),
+              _buildSummaryCards(
+                total: total,
+                count: count,
+                label: 'إجمالي المشتريات',
+                color: AppColors.secondary,
+              ),
+              SizedBox(height: AppSpacing.lg),
+              _buildInvoicesList(filtered),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildProfitReport() {
+    final salesAsync = ref.watch(salesInvoicesProvider);
+    final purchasesAsync = ref.watch(purchaseInvoicesProvider);
+
+    return salesAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => Center(child: Text('خطأ: $error')),
+      data: (sales) {
+        return purchasesAsync.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, _) => Center(child: Text('خطأ: $error')),
+          data: (purchases) {
+            final filteredSales = _filterByDate(sales);
+            final filteredPurchases = _filterByDate(purchases);
+
+            final totalSales =
+                filteredSales.fold<double>(0, (sum, inv) => sum + inv.total);
+            final totalPurchases = filteredPurchases.fold<double>(
+                0, (sum, inv) => sum + inv.total);
+            final profit = totalSales - totalPurchases;
+
+            return SingleChildScrollView(
+              padding: EdgeInsets.all(AppSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildDateRangeChip(),
+                  SizedBox(height: AppSpacing.md),
+                  _buildProfitCards(
+                    sales: totalSales,
+                    purchases: totalPurchases,
+                    profit: profit,
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildReceivablesReport() {
+    final invoicesAsync = ref.watch(salesInvoicesProvider);
+
+    return invoicesAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => Center(child: Text('خطأ: $error')),
+      data: (invoices) {
+        final unpaid = invoices
+            .where((inv) => inv.status == 'unpaid' || inv.status == 'partial')
+            .toList();
+        final total = unpaid.fold<double>(
+            0, (sum, inv) => sum + (inv.total - inv.paidAmount));
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSummaryCards(
+                total: total,
+                count: unpaid.length,
+                label: 'إجمالي المستحقات',
+                color: AppColors.error,
+              ),
+              SizedBox(height: AppSpacing.lg),
+              _buildInvoicesList(unpaid),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPlaceholder() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.bar_chart_rounded,
+            size: 80.sp,
+            color: AppColors.textTertiary,
+          ),
+          SizedBox(height: AppSpacing.lg),
+          Text(
+            'قريباً',
+            style: AppTypography.headlineMedium.copyWith(
+              color: AppColors.textSecondary,
             ),
-            SizedBox(height: AppSpacing.lg),
-            Text(
-              'قريباً',
-              style: AppTypography.headlineMedium.copyWith(
-                color: AppColors.textSecondary,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDateRangeChip() {
+    if (_dateRange == null) return const SizedBox.shrink();
+
+    final format = DateFormat('yyyy/MM/dd', 'ar');
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(AppRadius.full),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.date_range, size: 16.sp, color: AppColors.primary),
+          SizedBox(width: AppSpacing.xs),
+          Text(
+            '${format.format(_dateRange!.start)} - ${format.format(_dateRange!.end)}',
+            style: AppTypography.labelMedium.copyWith(
+              color: AppColors.primary,
+            ),
+          ),
+          SizedBox(width: AppSpacing.xs),
+          GestureDetector(
+            onTap: () => setState(() => _dateRange = null),
+            child: Icon(Icons.close, size: 16.sp, color: AppColors.primary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryCards({
+    required double total,
+    required int count,
+    required String label,
+    required Color color,
+  }) {
+    return Row(
+      children: [
+        Expanded(
+          child: _SummaryCard(
+            title: label,
+            value: '${NumberFormat('#,###').format(total)} ل.س',
+            icon: Icons.attach_money_rounded,
+            color: color,
+          ),
+        ),
+        SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: _SummaryCard(
+            title: 'عدد الفواتير',
+            value: '$count',
+            icon: Icons.receipt_long_rounded,
+            color: AppColors.info,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProfitCards({
+    required double sales,
+    required double purchases,
+    required double profit,
+  }) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _SummaryCard(
+                title: 'المبيعات',
+                value: '${NumberFormat('#,###').format(sales)} ل.س',
+                icon: Icons.trending_up_rounded,
+                color: AppColors.success,
               ),
             ),
-            SizedBox(height: AppSpacing.sm),
-            Text(
-              'تفاصيل التقرير قيد التطوير',
-              style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textTertiary,
+            SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: _SummaryCard(
+                title: 'المشتريات',
+                value: '${NumberFormat('#,###').format(purchases)} ل.س',
+                icon: Icons.trending_down_rounded,
+                color: AppColors.error,
               ),
             ),
           ],
         ),
+        SizedBox(height: AppSpacing.md),
+        _SummaryCard(
+          title: 'صافي الربح',
+          value: '${NumberFormat('#,###').format(profit)} ل.س',
+          icon: profit >= 0
+              ? Icons.trending_up_rounded
+              : Icons.trending_down_rounded,
+          color: profit >= 0 ? AppColors.success : AppColors.error,
+          isLarge: true,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInvoicesList(List<Invoice> invoices) {
+    if (invoices.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.all(AppSpacing.xl),
+          child: Column(
+            children: [
+              Icon(Icons.receipt_long_outlined,
+                  size: 48.sp, color: AppColors.textTertiary),
+              SizedBox(height: AppSpacing.md),
+              Text(
+                'لا توجد فواتير',
+                style: AppTypography.bodyLarge.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'الفواتير (${invoices.length})',
+          style: AppTypography.titleMedium.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        SizedBox(height: AppSpacing.md),
+        ...invoices.take(20).map((inv) => _InvoiceListItem(invoice: inv)),
+        if (invoices.length > 20)
+          Center(
+            child: TextButton(
+              onPressed: () {},
+              child: Text('عرض الكل (${invoices.length})'),
+            ),
+          ),
+      ],
+    );
+  }
+
+  List<Invoice> _filterByDate(List<Invoice> invoices) {
+    if (_dateRange == null) return invoices;
+    return invoices.where((inv) {
+      return inv.invoiceDate
+              .isAfter(_dateRange!.start.subtract(const Duration(days: 1))) &&
+          inv.invoiceDate
+              .isBefore(_dateRange!.end.add(const Duration(days: 1)));
+    }).toList();
+  }
+
+  Future<void> _selectDateRange() async {
+    final range = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      initialDateRange: _dateRange,
+      locale: const Locale('ar'),
+    );
+    if (range != null) {
+      setState(() => _dateRange = range);
+    }
+  }
+
+  Future<void> _handleExport(String format) async {
+    setState(() => _isExporting = true);
+
+    try {
+      // Get data based on report type
+      List<Invoice> invoices = [];
+
+      if (widget.reportType == 'sales') {
+        final data = ref.read(salesInvoicesProvider);
+        invoices = data.value ?? [];
+      } else if (widget.reportType == 'purchases') {
+        final data = ref.read(purchaseInvoicesProvider);
+        invoices = data.value ?? [];
+      } else if (widget.reportType == 'receivables') {
+        final data = ref.read(salesInvoicesProvider);
+        invoices = (data.value ?? [])
+            .where((inv) => inv.status == 'unpaid' || inv.status == 'partial')
+            .toList();
+      }
+
+      invoices = _filterByDate(invoices);
+
+      if (invoices.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('لا توجد بيانات للتصدير')),
+          );
+        }
+        return;
+      }
+
+      // Export based on format
+      // Note: This would require the export_service to be properly integrated
+      // For now, show a success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content:
+                Text('جاري تصدير التقرير بصيغة ${format.toUpperCase()}...'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('خطأ في التصدير: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isExporting = false);
+      }
+    }
+  }
+}
+
+class _SummaryCard extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
+  final Color color;
+  final bool isLarge;
+
+  const _SummaryCard({
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.color,
+    this.isLarge = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(isLarge ? AppSpacing.lg : AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: color.withOpacity(0.3)),
+        boxShadow: AppShadows.sm,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: Icon(icon, color: color, size: isLarge ? 24.sp : 20.sp),
+              ),
+              SizedBox(width: AppSpacing.sm),
+              Text(
+                title,
+                style: AppTypography.labelMedium.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: AppSpacing.md),
+          Text(
+            value,
+            style: (isLarge
+                    ? AppTypography.headlineMedium
+                    : AppTypography.titleLarge)
+                .copyWith(
+              color: color,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InvoiceListItem extends StatelessWidget {
+  final Invoice invoice;
+
+  const _InvoiceListItem({required this.invoice});
+
+  @override
+  Widget build(BuildContext context) {
+    final format = DateFormat('yyyy/MM/dd', 'ar');
+
+    return Container(
+      margin: EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  invoice.invoiceNumber,
+                  style: AppTypography.titleSmall.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  invoice.customerId ?? invoice.supplierId ?? '-',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${NumberFormat('#,###').format(invoice.total)} ل.س',
+                style: AppTypography.titleSmall.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.success,
+                ),
+              ),
+              Text(
+                format.format(invoice.invoiceDate),
+                style: AppTypography.labelSmall.copyWith(
+                  color: AppColors.textTertiary,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'redesign/design_tokens.dart';
+import 'pro/design_tokens.dart';
 
-// Re-export design system tokens for backward compatibility
-export 'redesign/design_tokens.dart';
-export 'redesign/typography.dart';
-export 'redesign/app_theme.dart' show HoorTheme;
+// Re-export design system tokens
+export 'pro/design_tokens.dart';
+
+class HoorTheme {
+  HoorTheme._();
+
+  static ThemeData get light => AppTheme.lightTheme;
+  static ThemeData get dark => AppTheme.darkTheme;
+}
 
 class AppTheme {
   AppTheme._();
@@ -15,56 +20,56 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.light,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: HoorColors.primary,
-        secondary: HoorColors.accent,
-        surface: HoorColors.surface,
+        seedColor: AppColors.primary,
+        secondary: AppColors.secondary,
+        surface: AppColors.surface,
         brightness: Brightness.light,
-        error: HoorColors.error,
+        error: AppColors.error,
       ),
-      primaryColor: HoorColors.primary,
-      scaffoldBackgroundColor: HoorColors.background,
+      primaryColor: AppColors.primary,
+      scaffoldBackgroundColor: AppColors.background,
 
       // Typography
       textTheme: GoogleFonts.cairoTextTheme().apply(
-        bodyColor: HoorColors.textPrimary,
-        displayColor: HoorColors.textPrimary,
+        bodyColor: AppColors.textPrimary,
+        displayColor: AppColors.textPrimary,
       ),
 
       // AppBar
       appBarTheme: AppBarTheme(
-        backgroundColor: HoorColors.surface,
-        foregroundColor: HoorColors.textPrimary,
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
         elevation: 0,
         centerTitle: false,
         scrolledUnderElevation: 0,
         titleTextStyle: GoogleFonts.cairo(
           fontSize: 20,
           fontWeight: FontWeight.bold,
-          color: HoorColors.textPrimary,
+          color: AppColors.textPrimary,
         ),
-        iconTheme: const IconThemeData(color: HoorColors.textPrimary),
+        iconTheme: IconThemeData(color: AppColors.textPrimary),
       ),
 
       // Cards
       cardTheme: CardThemeData(
         elevation: 0,
-        color: HoorColors.surface,
+        color: AppColors.surface,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: HoorColors.border),
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          side: BorderSide(color: AppColors.border),
         ),
       ),
 
       // Buttons
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: HoorColors.primary,
-          foregroundColor: HoorColors.accent,
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
           ),
           textStyle: GoogleFonts.cairo(
             fontSize: 16,
@@ -74,11 +79,11 @@ class AppTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: HoorColors.primary,
-          side: const BorderSide(color: HoorColors.border),
+          foregroundColor: AppColors.primary,
+          side: BorderSide(color: AppColors.border),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
           ),
           textStyle: GoogleFonts.cairo(
             fontSize: 16,
@@ -90,34 +95,34 @@ class AppTheme {
       // Inputs
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: HoorColors.surface,
+        fillColor: AppColors.surface,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: HoorColors.border),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          borderSide: BorderSide(color: AppColors.border),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: HoorColors.border),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          borderSide: BorderSide(color: AppColors.border),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: HoorColors.primary, width: 1.5),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: HoorColors.error),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          borderSide: BorderSide(color: AppColors.error),
         ),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        labelStyle: const TextStyle(color: HoorColors.textSecondary),
-        hintStyle: const TextStyle(color: HoorColors.textTertiary),
+        labelStyle: TextStyle(color: AppColors.textSecondary),
+        hintStyle: TextStyle(color: AppColors.textTertiary),
       ),
 
       // Navigation Bar
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: HoorColors.surface,
-        selectedItemColor: HoorColors.primary,
-        unselectedItemColor: HoorColors.textSecondary,
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
+        backgroundColor: AppColors.surface,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: AppColors.textSecondary,
         type: BottomNavigationBarType.fixed,
         elevation: 0,
         showSelectedLabels: true,
@@ -125,25 +130,24 @@ class AppTheme {
       ),
 
       // Floating Action Button
-      floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: HoorColors.primary,
-        foregroundColor: HoorColors.accent,
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
         elevation: 2,
-        shape: CircleBorder(),
+        shape: const CircleBorder(),
       ),
 
       // Divider
-      dividerTheme: const DividerThemeData(
-        color: HoorColors.divider,
+      dividerTheme: DividerThemeData(
+        color: AppColors.border,
         thickness: 1,
       ),
     );
   }
 
   static ThemeData get darkTheme {
-    // Keeping dark theme minimal for now, focusing on light theme redesign
     return ThemeData.dark().copyWith(
-      primaryColor: HoorColors.primary,
+      primaryColor: AppColors.primary,
       textTheme: GoogleFonts.cairoTextTheme(ThemeData.dark().textTheme),
     );
   }

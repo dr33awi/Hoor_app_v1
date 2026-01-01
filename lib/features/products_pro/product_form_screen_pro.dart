@@ -5,12 +5,15 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/pro/design_tokens.dart';
+import '../../core/providers/app_providers.dart';
+import '../../data/database/app_database.dart';
 
-class ProductFormScreenPro extends StatefulWidget {
+class ProductFormScreenPro extends ConsumerStatefulWidget {
   final String? productId;
 
   const ProductFormScreenPro({
@@ -21,10 +24,11 @@ class ProductFormScreenPro extends StatefulWidget {
   bool get isEditing => productId != null;
 
   @override
-  State<ProductFormScreenPro> createState() => _ProductFormScreenProState();
+  ConsumerState<ProductFormScreenPro> createState() =>
+      _ProductFormScreenProState();
 }
 
-class _ProductFormScreenProState extends State<ProductFormScreenPro> {
+class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _skuController = TextEditingController();
@@ -35,19 +39,14 @@ class _ProductFormScreenProState extends State<ProductFormScreenPro> {
   final _minStockController = TextEditingController();
   final _descriptionController = TextEditingController();
 
-  String _selectedCategory = 'إلكترونيات';
+  String? _selectedCategoryId;
   String _selectedUnit = 'قطعة';
   bool _isActive = true;
   bool _isTaxable = true;
   bool _hasExpiry = false;
-
-  final List<String> _categories = [
-    'إلكترونيات',
-    'ملابس',
-    'مواد غذائية',
-    'إكسسوارات',
-    'أخرى',
-  ];
+  bool _isLoading = false;
+  bool _isSaving = false;
+  Product? _existingProduct;
 
   final List<String> _units = [
     'قطعة',
@@ -66,14 +65,33 @@ class _ProductFormScreenProState extends State<ProductFormScreenPro> {
     }
   }
 
-  void _loadProductData() {
-    // TODO: Load product data from repository
-    _nameController.text = 'لابتوب HP ProBook';
-    _skuController.text = 'LAP-001';
-    _priceController.text = '2500';
-    _costController.text = '2000';
-    _stockController.text = '15';
-    _minStockController.text = '5';
+  Future<void> _loadProductData() async {
+    if (widget.productId == null) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final productRepo = ref.read(productRepositoryProvider);
+      final product = await productRepo.getProductById(widget.productId!);
+
+      if (product != null && mounted) {
+        setState(() {
+          _existingProduct = product;
+          _nameController.text = product.name;
+          _skuController.text = product.sku ?? '';
+          _barcodeController.text = product.barcode ?? '';
+          _priceController.text = product.salePrice.toStringAsFixed(0);
+          _costController.text = product.purchasePrice.toStringAsFixed(0);
+          _stockController.text = product.quantity.toString();
+          _minStockController.text = product.minQuantity.toString();
+          _descriptionController.text = product.description ?? '';
+          _selectedCategoryId = product.categoryId;
+          _isActive = product.isActive;
+          _isTaxable = product.taxRate != null && product.taxRate! > 0;
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -91,6 +109,28 @@ class _ProductFormScreenProState extends State<ProductFormScreenPro> {
 
   @override
   Widget build(BuildContext context) {
+    final categoriesAsync = ref.watch(categoriesStreamProvider);
+
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.surface,
+          elevation: 0,
+          leading: IconButton(
+            onPressed: () => context.pop(),
+            icon: Icon(Icons.close_rounded, color: AppColors.textSecondary),
+          ),
+          title: Text(
+            widget.isEditing ? 'تعديل منتج' : 'منتج جديد',
+            style:
+                AppTypography.titleLarge.copyWith(color: AppColors.textPrimary),
+          ),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -111,14 +151,20 @@ class _ProductFormScreenProState extends State<ProductFormScreenPro> {
         ),
         actions: [
           TextButton(
-            onPressed: _saveProduct,
-            child: Text(
-              'حفظ',
-              style: AppTypography.labelLarge.copyWith(
-                color: AppColors.secondary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+            onPressed: _isSaving ? null : _saveProduct,
+            child: _isSaving
+                ? SizedBox(
+                    width: 20.w,
+                    height: 20.w,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(
+                    'حفظ',
+                    style: AppTypography.labelLarge.copyWith(
+                      color: AppColors.secondary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
           ),
           SizedBox(width: AppSpacing.sm),
         ],
@@ -182,12 +228,10 @@ class _ProductFormScreenProState extends State<ProductFormScreenPro> {
               Row(
                 children: [
                   Expanded(
-                    child: _buildDropdown(
-                      label: 'التصنيف',
-                      value: _selectedCategory,
-                      items: _categories,
-                      onChanged: (value) =>
-                          setState(() => _selectedCategory = value!),
+                    child: categoriesAsync.when(
+                      data: (categories) => _buildCategoryDropdown(categories),
+                      loading: () => _buildLoadingDropdown('التصنيف'),
+                      error: (_, __) => _buildErrorDropdown('التصنيف'),
                     ),
                   ),
                   SizedBox(width: AppSpacing.md),
@@ -494,6 +538,108 @@ class _ProductFormScreenProState extends State<ProductFormScreenPro> {
     );
   }
 
+  Widget _buildCategoryDropdown(List<Category> categories) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'التصنيف',
+          style: AppTypography.labelMedium.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+        SizedBox(height: AppSpacing.xs),
+        Container(
+          height: 56.h,
+          padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String?>(
+              value: _selectedCategoryId,
+              isExpanded: true,
+              hint: Text('اختر التصنيف',
+                  style: AppTypography.bodyMedium
+                      .copyWith(color: AppColors.textTertiary)),
+              icon: Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: AppColors.textSecondary,
+              ),
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.textPrimary,
+              ),
+              items: [
+                DropdownMenuItem<String?>(
+                  value: null,
+                  child: Text('بدون تصنيف'),
+                ),
+                ...categories.map((cat) => DropdownMenuItem(
+                      value: cat.id,
+                      child: Text(cat.name),
+                    )),
+              ],
+              onChanged: (value) => setState(() => _selectedCategoryId = value),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLoadingDropdown(String label) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: AppTypography.labelMedium
+                .copyWith(color: AppColors.textSecondary)),
+        SizedBox(height: AppSpacing.xs),
+        Container(
+          height: 56.h,
+          padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Center(
+              child: SizedBox(
+                  width: 20.w,
+                  height: 20.w,
+                  child: CircularProgressIndicator(strokeWidth: 2))),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildErrorDropdown(String label) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: AppTypography.labelMedium
+                .copyWith(color: AppColors.textSecondary)),
+        SizedBox(height: AppSpacing.xs),
+        Container(
+          height: 56.h,
+          padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: AppColors.error),
+          ),
+          child: Center(
+              child: Text('خطأ في التحميل',
+                  style: AppTypography.bodySmall
+                      .copyWith(color: AppColors.error))),
+        ),
+      ],
+    );
+  }
+
   Widget _buildSwitchTile({
     required String title,
     required String subtitle,
@@ -592,9 +738,7 @@ class _ProductFormScreenProState extends State<ProductFormScreenPro> {
             if (widget.isEditing)
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () {
-                    // TODO: Show delete confirmation
-                  },
+                  onPressed: _isSaving ? null : _deleteProduct,
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.error,
                     side: BorderSide(color: AppColors.error),
@@ -607,18 +751,27 @@ class _ProductFormScreenProState extends State<ProductFormScreenPro> {
             Expanded(
               flex: 2,
               child: FilledButton(
-                onPressed: _saveProduct,
+                onPressed: _isSaving ? null : _saveProduct,
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.secondary,
                   padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
                 ),
-                child: Text(
-                  widget.isEditing ? 'حفظ التغييرات' : 'إضافة المنتج',
-                  style: AppTypography.labelLarge.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                child: _isSaving
+                    ? SizedBox(
+                        width: 20.w,
+                        height: 20.w,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        widget.isEditing ? 'حفظ التغييرات' : 'إضافة المنتج',
+                        style: AppTypography.labelLarge.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
               ),
             ),
           ],
@@ -627,10 +780,129 @@ class _ProductFormScreenProState extends State<ProductFormScreenPro> {
     );
   }
 
-  void _saveProduct() {
-    if (_formKey.currentState?.validate() ?? false) {
-      // TODO: Save product to repository
-      context.pop();
+  Future<void> _deleteProduct() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('حذف المنتج'),
+        content: const Text('هل أنت متأكد من حذف هذا المنتج؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !mounted) return;
+
+    setState(() => _isSaving = true);
+    try {
+      final productRepo = ref.read(productRepositoryProvider);
+      await productRepo.deleteProduct(widget.productId!);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('تم حذف المنتج بنجاح'),
+              backgroundColor: AppColors.success),
+        );
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('خطأ في حذف المنتج: $e'),
+              backgroundColor: AppColors.error),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _saveProduct() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    setState(() => _isSaving = true);
+    try {
+      final productRepo = ref.read(productRepositoryProvider);
+
+      if (widget.isEditing && _existingProduct != null) {
+        // Update existing product
+        await productRepo.updateProduct(
+          id: widget.productId!,
+          name: _nameController.text.trim(),
+          sku: _skuController.text.trim().isEmpty
+              ? null
+              : _skuController.text.trim(),
+          barcode: _barcodeController.text.trim().isEmpty
+              ? null
+              : _barcodeController.text.trim(),
+          categoryId: _selectedCategoryId,
+          purchasePrice: double.tryParse(_costController.text) ?? 0,
+          salePrice: double.tryParse(_priceController.text) ?? 0,
+          quantity: int.tryParse(_stockController.text) ?? 0,
+          minQuantity: int.tryParse(_minStockController.text) ?? 5,
+          taxRate: _isTaxable ? 15.0 : null,
+          description: _descriptionController.text.trim().isEmpty
+              ? null
+              : _descriptionController.text.trim(),
+          isActive: _isActive,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text('تم تحديث المنتج بنجاح'),
+                backgroundColor: AppColors.success),
+          );
+        }
+      } else {
+        // Create new product
+        await productRepo.createProduct(
+          name: _nameController.text.trim(),
+          sku: _skuController.text.trim().isEmpty
+              ? null
+              : _skuController.text.trim(),
+          barcode: _barcodeController.text.trim().isEmpty
+              ? null
+              : _barcodeController.text.trim(),
+          categoryId: _selectedCategoryId,
+          purchasePrice: double.tryParse(_costController.text) ?? 0,
+          salePrice: double.tryParse(_priceController.text) ?? 0,
+          quantity: int.tryParse(_stockController.text) ?? 0,
+          minQuantity: int.tryParse(_minStockController.text) ?? 5,
+          taxRate: _isTaxable ? 15.0 : null,
+          description: _descriptionController.text.trim().isEmpty
+              ? null
+              : _descriptionController.text.trim(),
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text('تم إضافة المنتج بنجاح'),
+                backgroundColor: AppColors.success),
+          );
+        }
+      }
+
+      if (mounted) context.pop();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('خطأ في حفظ المنتج: $e'),
+              backgroundColor: AppColors.error),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 }

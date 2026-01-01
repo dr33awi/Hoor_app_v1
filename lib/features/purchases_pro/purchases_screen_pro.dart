@@ -7,10 +7,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/animations/pro_animations.dart';
 import '../../core/widgets/pro_navigation_drawer.dart';
+import '../../core/providers/app_providers.dart';
+import '../../data/database/app_database.dart';
 
 class PurchasesScreenPro extends ConsumerStatefulWidget {
   const PurchasesScreenPro({super.key});
@@ -23,11 +26,15 @@ class _PurchasesScreenProState extends ConsumerState<PurchasesScreenPro>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    _searchController.addListener(() {
+      setState(() => _searchQuery = _searchController.text);
+    });
   }
 
   @override
@@ -37,44 +44,10 @@ class _PurchasesScreenProState extends ConsumerState<PurchasesScreenPro>
     super.dispose();
   }
 
-  // Sample data
-  final List<_PurchaseOrder> _orders = [
-    _PurchaseOrder(
-      id: 'PO-2024-001',
-      supplierName: 'شركة الأغذية المتحدة',
-      date: DateTime.now(),
-      total: 15750.0,
-      status: 'completed',
-      itemsCount: 25,
-    ),
-    _PurchaseOrder(
-      id: 'PO-2024-002',
-      supplierName: 'مؤسسة المشروبات',
-      date: DateTime.now().subtract(const Duration(days: 1)),
-      total: 8500.0,
-      status: 'pending',
-      itemsCount: 12,
-    ),
-    _PurchaseOrder(
-      id: 'PO-2024-003',
-      supplierName: 'مصنع المعجنات',
-      date: DateTime.now().subtract(const Duration(days: 2)),
-      total: 3200.0,
-      status: 'partial',
-      itemsCount: 8,
-    ),
-    _PurchaseOrder(
-      id: 'PO-2024-004',
-      supplierName: 'شركة الألبان الطازجة',
-      date: DateTime.now().subtract(const Duration(days: 3)),
-      total: 5600.0,
-      status: 'cancelled',
-      itemsCount: 15,
-    ),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final invoicesAsync = ref.watch(purchaseInvoicesProvider);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       drawer: const ProNavigationDrawer(currentRoute: '/purchases'),
@@ -82,18 +55,28 @@ class _PurchasesScreenProState extends ConsumerState<PurchasesScreenPro>
         child: Column(
           children: [
             _buildHeader(),
-            _buildStatsRow(),
+            invoicesAsync.when(
+              loading: () => const SizedBox.shrink(),
+              error: (_, __) => const SizedBox.shrink(),
+              data: (invoices) => _buildStatsRow(invoices),
+            ),
             _buildTabBar(),
-            Expanded(child: _buildOrdersList()),
+            Expanded(
+              child: invoicesAsync.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, _) => Center(child: Text('خطأ: $error')),
+                data: (invoices) => _buildOrdersList(invoices),
+              ),
+            ),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/purchases/add'),
+        onPressed: () => context.push('/invoices/add/purchase'),
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add, color: Colors.white),
         label: Text(
-          'طلب شراء جديد',
+          'فاتورة شراء جديدة',
           style: AppTypography.labelLarge.copyWith(color: Colors.white),
         ),
       ),
@@ -171,14 +154,24 @@ class _PurchasesScreenProState extends ConsumerState<PurchasesScreenPro>
     );
   }
 
-  Widget _buildStatsRow() {
+  Widget _buildStatsRow(List<Invoice> invoices) {
+    final total = invoices.fold(0.0, (sum, inv) => sum + inv.total);
+    final thisMonth = invoices.where((inv) {
+      final now = DateTime.now();
+      return inv.invoiceDate.month == now.month &&
+          inv.invoiceDate.year == now.year;
+    }).fold(0.0, (sum, inv) => sum + inv.total);
+    final pendingCount = invoices
+        .where((inv) => inv.status == 'pending' || inv.status == 'partial')
+        .length;
+
     return Container(
       padding: EdgeInsets.all(AppSpacing.md),
       child: Row(
         children: [
           _buildMiniStat(
             'إجمالي المشتريات',
-            '33,050',
+            total.toStringAsFixed(0),
             'ر.س',
             Icons.shopping_cart,
             AppColors.primary,
@@ -187,7 +180,7 @@ class _PurchasesScreenProState extends ConsumerState<PurchasesScreenPro>
           SizedBox(width: AppSpacing.md),
           _buildMiniStat(
             'هذا الشهر',
-            '24,250',
+            thisMonth.toStringAsFixed(0),
             'ر.س',
             Icons.calendar_month,
             AppColors.info,
@@ -196,7 +189,7 @@ class _PurchasesScreenProState extends ConsumerState<PurchasesScreenPro>
           SizedBox(width: AppSpacing.md),
           _buildMiniStat(
             'طلبات معلقة',
-            '3',
+            '$pendingCount',
             '',
             Icons.pending_actions,
             AppColors.warning,
@@ -281,19 +274,31 @@ class _PurchasesScreenProState extends ConsumerState<PurchasesScreenPro>
     );
   }
 
-  Widget _buildOrdersList() {
+  Widget _buildOrdersList(List<Invoice> invoices) {
+    // Filter based on search query
+    var filtered = invoices.where((inv) {
+      if (_searchQuery.isEmpty) return true;
+      return inv.invoiceNumber
+          .toLowerCase()
+          .contains(_searchQuery.toLowerCase());
+    }).toList();
+
     return TabBarView(
       controller: _tabController,
       children: [
-        _buildList(_orders),
-        _buildList(_orders.where((o) => o.status == 'pending').toList()),
-        _buildList(_orders.where((o) => o.status == 'completed').toList()),
-        _buildList(_orders.where((o) => o.status == 'cancelled').toList()),
+        _buildList(filtered),
+        _buildList(filtered
+            .where((o) => o.status == 'pending' || o.status == 'partial')
+            .toList()),
+        _buildList(filtered
+            .where((o) => o.status == 'completed' || o.status == 'paid')
+            .toList()),
+        _buildList(filtered.where((o) => o.status == 'cancelled').toList()),
       ],
     );
   }
 
-  Widget _buildList(List<_PurchaseOrder> orders) {
+  Widget _buildList(List<Invoice> orders) {
     if (orders.isEmpty) {
       return Center(
         child: Column(
@@ -320,15 +325,28 @@ class _PurchasesScreenProState extends ConsumerState<PurchasesScreenPro>
       padding: EdgeInsets.all(AppSpacing.md),
       itemCount: orders.length,
       itemBuilder: (context, index) {
+        final invoice = orders[index];
         return StaggeredListAnimation(
           index: index,
           child: _PurchaseOrderCard(
-            order: orders[index],
-            onTap: () => context.push('/purchases/${orders[index].id}'),
+            invoice: invoice,
+            supplierNameFuture: _getSupplierName(invoice.supplierId),
+            onTap: () => context.push('/invoices/${invoice.id}'),
           ),
         );
       },
     );
+  }
+
+  Future<String> _getSupplierName(String? supplierId) async {
+    if (supplierId == null) return 'غير محدد';
+    try {
+      final supplierRepo = ref.read(supplierRepositoryProvider);
+      final supplier = await supplierRepo.getSupplierById(supplierId);
+      return supplier?.name ?? 'غير محدد';
+    } catch (_) {
+      return 'غير محدد';
+    }
   }
 }
 
@@ -337,17 +355,20 @@ class _PurchasesScreenProState extends ConsumerState<PurchasesScreenPro>
 // ═══════════════════════════════════════════════════════════════════════════
 
 class _PurchaseOrderCard extends StatelessWidget {
-  final _PurchaseOrder order;
+  final Invoice invoice;
+  final Future<String> supplierNameFuture;
   final VoidCallback onTap;
 
   const _PurchaseOrderCard({
-    required this.order,
+    required this.invoice,
+    required this.supplierNameFuture,
     required this.onTap,
   });
 
   Color get _statusColor {
-    switch (order.status) {
+    switch (invoice.status) {
       case 'completed':
+      case 'paid':
         return AppColors.success;
       case 'pending':
         return AppColors.warning;
@@ -361,8 +382,9 @@ class _PurchaseOrderCard extends StatelessWidget {
   }
 
   String get _statusText {
-    switch (order.status) {
+    switch (invoice.status) {
       case 'completed':
+      case 'paid':
         return 'مكتمل';
       case 'pending':
         return 'معلق';
@@ -371,12 +393,14 @@ class _PurchaseOrderCard extends StatelessWidget {
       case 'cancelled':
         return 'ملغي';
       default:
-        return order.status;
+        return invoice.status;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final dateFormat = DateFormat('dd/MM/yyyy');
+
     return Container(
       margin: EdgeInsets.only(bottom: AppSpacing.md),
       decoration: BoxDecoration(
@@ -417,16 +441,21 @@ class _PurchaseOrderCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            order.id,
+                            invoice.invoiceNumber,
                             style: AppTypography.titleSmall.copyWith(
                               fontFamily: 'JetBrains Mono',
                             ),
                           ),
-                          Text(
-                            order.supplierName,
-                            style: AppTypography.bodyMedium.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
+                          FutureBuilder<String>(
+                            future: supplierNameFuture,
+                            builder: (context, snapshot) {
+                              return Text(
+                                snapshot.data ?? '...',
+                                style: AppTypography.bodyMedium.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),
@@ -458,16 +487,16 @@ class _PurchaseOrderCard extends StatelessWidget {
                   children: [
                     _buildInfoItem(
                       Icons.calendar_today,
-                      '${order.date.day}/${order.date.month}/${order.date.year}',
+                      dateFormat.format(invoice.invoiceDate),
                     ),
                     SizedBox(width: AppSpacing.lg),
                     _buildInfoItem(
                       Icons.inventory_2,
-                      '${order.itemsCount} صنف',
+                      'فاتورة شراء',
                     ),
                     const Spacer(),
                     Text(
-                      '${order.total.toStringAsFixed(2)} ر.س',
+                      '${invoice.total.toStringAsFixed(2)} ر.س',
                       style: AppTypography.titleMedium.copyWith(
                         fontFamily: 'JetBrains Mono',
                         fontWeight: FontWeight.bold,
@@ -502,26 +531,4 @@ class _PurchaseOrderCard extends StatelessWidget {
       ],
     );
   }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════
-// Data Model
-// ═══════════════════════════════════════════════════════════════════════════
-
-class _PurchaseOrder {
-  final String id;
-  final String supplierName;
-  final DateTime date;
-  final double total;
-  final String status;
-  final int itemsCount;
-
-  _PurchaseOrder({
-    required this.id,
-    required this.supplierName,
-    required this.date,
-    required this.total,
-    required this.status,
-    required this.itemsCount,
-  });
 }

@@ -22,6 +22,7 @@ import '../services/backup_service.dart';
 import '../services/currency_service.dart';
 import '../services/accounting_service.dart';
 import '../services/connectivity_service.dart';
+import '../services/print_settings_service.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CORE SERVICES PROVIDERS
@@ -38,6 +39,8 @@ final backupServiceProvider =
     Provider<BackupService>((ref) => getIt<BackupService>());
 final accountingServiceProvider =
     Provider<AccountingService>((ref) => getIt<AccountingService>());
+final printSettingsServiceProvider =
+    Provider<PrintSettingsService>((ref) => getIt<PrintSettingsService>());
 
 // ═══════════════════════════════════════════════════════════════════════════
 // REPOSITORY PROVIDERS
@@ -116,6 +119,48 @@ final shiftsStreamProvider = StreamProvider<List<Shift>>((ref) {
 /// All Vouchers Stream
 final vouchersStreamProvider = StreamProvider<List<Voucher>>((ref) {
   return ref.watch(voucherRepositoryProvider).watchAllVouchers();
+});
+
+/// All Inventory Movements Stream
+final inventoryMovementsStreamProvider =
+    StreamProvider<List<InventoryMovement>>((ref) {
+  return ref.watch(inventoryRepositoryProvider).watchAllMovements();
+});
+
+/// Cash Movements by Shift Stream (Family Provider)
+final cashMovementsByShiftProvider =
+    StreamProvider.family<List<CashMovement>, String>((ref, shiftId) {
+  return ref.watch(cashRepositoryProvider).watchMovementsByShift(shiftId);
+});
+
+/// All Warehouses Stream
+final warehousesStreamProvider = StreamProvider<List<Warehouse>>((ref) {
+  return ref.watch(warehouseRepositoryProvider).watchAllWarehouses();
+});
+
+/// Active Warehouses Stream
+final activeWarehousesStreamProvider = StreamProvider<List<Warehouse>>((ref) {
+  return ref.watch(warehouseRepositoryProvider).watchActiveWarehouses();
+});
+
+/// Stock Transfers Stream
+final stockTransfersStreamProvider = StreamProvider<List<StockTransfer>>((ref) {
+  return ref.watch(databaseProvider).watchAllStockTransfers();
+});
+
+/// Sales Returns Stream (filtered from invoices)
+final salesReturnsStreamProvider = StreamProvider<List<Invoice>>((ref) {
+  return ref.watch(invoiceRepositoryProvider).watchAllInvoices().map(
+        (invoices) => invoices.where((i) => i.type == 'sale_return').toList(),
+      );
+});
+
+/// Purchase Returns Stream (filtered from invoices)
+final purchaseReturnsStreamProvider = StreamProvider<List<Invoice>>((ref) {
+  return ref.watch(invoiceRepositoryProvider).watchAllInvoices().map(
+        (invoices) =>
+            invoices.where((i) => i.type == 'purchase_return').toList(),
+      );
 });
 
 // ═══════════════════════════════════════════════════════════════════════════

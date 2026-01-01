@@ -146,6 +146,11 @@ class _DashboardProState extends ConsumerState<DashboardPro>
   // ═══════════════════════════════════════════════════════════════════════════
 
   Widget _buildHeader() {
+    // Get real alerts count
+    final alertsAsync = ref.watch(dashboardAlertsProvider);
+    final alertsCount =
+        alertsAsync.whenOrNull(data: (alerts) => alerts.length) ?? 0;
+
     return Padding(
       padding: EdgeInsets.all(AppSpacing.screenPadding.w),
       child: Row(
@@ -185,7 +190,7 @@ class _DashboardProState extends ConsumerState<DashboardPro>
             children: [
               _buildHeaderAction(
                 icon: Icons.notifications_outlined,
-                badge: 2,
+                badge: alertsCount,
                 onTap: () => context.push('/alerts'),
               ),
               SizedBox(width: AppSpacing.xs.w),
@@ -461,7 +466,7 @@ class _DashboardProState extends ConsumerState<DashboardPro>
         ),
         SizedBox(height: AppSpacing.md.h),
         SizedBox(
-          height: 100.h,
+          height: 90.h,
           child: ListView(
             scrollDirection: Axis.horizontal,
             padding:
@@ -802,8 +807,11 @@ class _DashboardProState extends ConsumerState<DashboardPro>
 
   Future<void> _handleRefresh() async {
     HapticFeedback.mediumImpact();
+    // Refresh all dashboard data providers
     ref.invalidate(dashboardStatsProvider);
     ref.invalidate(openShiftStreamProvider);
+    ref.invalidate(recentTransactionsProvider);
+    ref.invalidate(dashboardAlertsProvider);
     await Future.delayed(const Duration(milliseconds: 500));
   }
 

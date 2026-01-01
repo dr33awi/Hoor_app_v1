@@ -83,10 +83,13 @@ class _QuickActionButtonState extends State<QuickActionButton>
           );
         },
         child: Container(
-          width: 80.w,
+          constraints: BoxConstraints(
+            minWidth: 70.w,
+            maxWidth: 90.w,
+          ),
           padding: EdgeInsets.symmetric(
-            horizontal: AppSpacing.sm.w,
-            vertical: AppSpacing.md.h,
+            horizontal: AppSpacing.xs.w,
+            vertical: AppSpacing.sm.h,
           ),
           decoration: BoxDecoration(
             color: AppColors.surface,
@@ -102,7 +105,7 @@ class _QuickActionButtonState extends State<QuickActionButton>
                 clipBehavior: Clip.none,
                 children: [
                   Container(
-                    padding: EdgeInsets.all(AppSpacing.sm.w),
+                    padding: EdgeInsets.all(AppSpacing.xs.w),
                     decoration: BoxDecoration(
                       color: widget.color.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(AppRadius.md),
@@ -110,7 +113,7 @@ class _QuickActionButtonState extends State<QuickActionButton>
                     child: Icon(
                       widget.icon,
                       color: widget.color,
-                      size: AppIconSize.lg,
+                      size: AppIconSize.md,
                     ),
                   ),
                   if (widget.badge != null && widget.badge! > 0)
@@ -118,7 +121,7 @@ class _QuickActionButtonState extends State<QuickActionButton>
                       top: -4.h,
                       right: -4.w,
                       child: Container(
-                        padding: EdgeInsets.all(4.w),
+                        padding: EdgeInsets.all(3.w),
                         decoration: BoxDecoration(
                           color: AppColors.expense,
                           shape: BoxShape.circle,
@@ -127,7 +130,7 @@ class _QuickActionButtonState extends State<QuickActionButton>
                           widget.badge! > 99 ? '99+' : widget.badge.toString(),
                           style: AppTypography.caption.copyWith(
                             color: Colors.white,
-                            fontSize: 9.sp,
+                            fontSize: 8.sp,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -135,17 +138,20 @@ class _QuickActionButtonState extends State<QuickActionButton>
                     ),
                 ],
               ),
-              SizedBox(height: AppSpacing.sm.h),
+              SizedBox(height: AppSpacing.xs.h),
 
               // Label
-              Text(
-                widget.label,
-                style: AppTypography.labelSmall.copyWith(
-                  color: AppColors.textPrimary,
+              Flexible(
+                child: Text(
+                  widget.label,
+                  style: AppTypography.labelSmall.copyWith(
+                    color: AppColors.textPrimary,
+                    fontSize: 10.sp,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),

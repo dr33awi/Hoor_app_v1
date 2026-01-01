@@ -104,6 +104,20 @@ class ProNavigationDrawer extends StatelessWidget {
                         route: '/products',
                         currentRoute: currentRoute,
                       ),
+                      _NavItem(
+                        icon: Icons.warehouse_outlined,
+                        activeIcon: Icons.warehouse,
+                        label: 'المخزون',
+                        route: '/inventory',
+                        currentRoute: currentRoute,
+                      ),
+                      _NavItem(
+                        icon: Icons.category_outlined,
+                        activeIcon: Icons.category,
+                        label: 'التصنيفات',
+                        route: '/categories',
+                        currentRoute: currentRoute,
+                      ),
                     ],
                   ),
                   _NavSection(
@@ -114,6 +128,13 @@ class ProNavigationDrawer extends StatelessWidget {
                         activeIcon: Icons.account_balance_wallet,
                         label: 'السندات',
                         route: '/vouchers',
+                        currentRoute: currentRoute,
+                      ),
+                      _NavItem(
+                        icon: Icons.point_of_sale_outlined,
+                        activeIcon: Icons.point_of_sale,
+                        label: 'الصندوق',
+                        route: '/cash',
                         currentRoute: currentRoute,
                       ),
                       _NavItem(
@@ -128,6 +149,32 @@ class ProNavigationDrawer extends StatelessWidget {
                         activeIcon: Icons.bar_chart,
                         label: 'التقارير',
                         route: '/reports',
+                        currentRoute: currentRoute,
+                      ),
+                    ],
+                  ),
+                  _NavSection(
+                    title: 'النظام',
+                    children: [
+                      _NavItem(
+                        icon: Icons.notifications_outlined,
+                        activeIcon: Icons.notifications,
+                        label: 'التنبيهات',
+                        route: '/alerts',
+                        currentRoute: currentRoute,
+                      ),
+                      _NavItem(
+                        icon: Icons.backup_outlined,
+                        activeIcon: Icons.backup,
+                        label: 'النسخ الاحتياطي',
+                        route: '/backup',
+                        currentRoute: currentRoute,
+                      ),
+                      _NavItem(
+                        icon: Icons.settings_outlined,
+                        activeIcon: Icons.settings,
+                        label: 'الإعدادات',
+                        route: '/settings',
                         currentRoute: currentRoute,
                       ),
                     ],

@@ -4,70 +4,99 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/pro/design_tokens.dart';
+import '../../core/providers/app_providers.dart';
+import '../../data/database/app_database.dart';
 
-class AlertsScreenPro extends StatefulWidget {
+class AlertsScreenPro extends ConsumerStatefulWidget {
   const AlertsScreenPro({super.key});
 
   @override
-  State<AlertsScreenPro> createState() => _AlertsScreenProState();
+  ConsumerState<AlertsScreenPro> createState() => _AlertsScreenProState();
 }
 
-class _AlertsScreenProState extends State<AlertsScreenPro> {
-  final List<Map<String, dynamic>> _alerts = [
-    {
-      'id': '1',
-      'type': 'low_stock',
-      'title': 'مخزون منخفض',
-      'message': '5 منتجات وصلت للحد الأدنى',
-      'time': 'منذ 10 دقائق',
-      'isRead': false,
-      'priority': 'high',
-    },
-    {
-      'id': '2',
-      'type': 'overdue',
-      'title': 'فواتير متأخرة',
-      'message': '3 فواتير تجاوزت تاريخ الاستحقاق',
-      'time': 'منذ ساعة',
-      'isRead': false,
-      'priority': 'high',
-    },
-    {
-      'id': '3',
-      'type': 'payment',
-      'title': 'دفعة مستلمة',
-      'message': 'تم استلام 5,000 ر.س من شركة النور',
-      'time': 'منذ 2 ساعة',
-      'isRead': true,
-      'priority': 'normal',
-    },
-    {
-      'id': '4',
-      'type': 'backup',
-      'title': 'نسخ احتياطي ناجح',
-      'message': 'تم إنشاء نسخة احتياطية بنجاح',
-      'time': 'اليوم 10:30 ص',
-      'isRead': true,
-      'priority': 'low',
-    },
-    {
-      'id': '5',
-      'type': 'sync',
-      'title': 'مزامنة البيانات',
-      'message': 'تمت مزامنة جميع البيانات',
-      'time': 'أمس 5:00 م',
-      'isRead': true,
-      'priority': 'low',
-    },
-  ];
+class _AlertsScreenProState extends ConsumerState<AlertsScreenPro> {
+  final List<Map<String, dynamic>> _systemAlerts = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAlerts();
+  }
+
+  Future<void> _loadAlerts() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final alerts = <Map<String, dynamic>>[];
+
+      // Check for low stock products
+      final productsAsync = ref.read(activeProductsStreamProvider);
+      productsAsync.whenData((products) {
+        final lowStock =
+            products.where((p) => p.quantity <= p.minQuantity).toList();
+        if (lowStock.isNotEmpty) {
+          alerts.add({
+            'id': 'low_stock',
+            'type': 'low_stock',
+            'title': 'مخزون منخفض',
+            'message': '${lowStock.length} منتجات وصلت للحد الأدنى',
+            'time': 'تحديث تلقائي',
+            'isRead': false,
+            'priority': 'high',
+            'items': lowStock,
+          });
+        }
+      });
+
+      // Check for unpaid invoices older than 30 days
+      final invoicesAsync = ref.read(salesInvoicesProvider);
+      invoicesAsync.whenData((invoices) {
+        final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
+        final overdue = invoices.where((inv) {
+          if (inv.status == 'paid' || inv.status == 'completed') return false;
+          return inv.invoiceDate.isBefore(thirtyDaysAgo);
+        }).toList();
+        if (overdue.isNotEmpty) {
+          alerts.add({
+            'id': 'overdue',
+            'type': 'overdue',
+            'title': 'فواتير متأخرة',
+            'message': '${overdue.length} فواتير لم تسدد منذ أكثر من 30 يوم',
+            'time': 'تحديث تلقائي',
+            'isRead': false,
+            'priority': 'high',
+            'items': overdue,
+          });
+        }
+      });
+
+      if (mounted) {
+        setState(() {
+          _systemAlerts.clear();
+          _systemAlerts.addAll(alerts);
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final unreadCount = _alerts.where((a) => !a['isRead']).length;
+    // Listen to changes
+    ref.listen(activeProductsStreamProvider, (_, __) => _loadAlerts());
+    ref.listen(salesInvoicesProvider, (_, __) => _loadAlerts());
+
+    final unreadCount = _systemAlerts.where((a) => !a['isRead']).length;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -110,11 +139,15 @@ class _AlertsScreenProState extends State<AlertsScreenPro> {
           ],
         ),
         actions: [
+          IconButton(
+            onPressed: _loadAlerts,
+            icon: Icon(Icons.refresh_rounded, color: AppColors.textSecondary),
+          ),
           if (unreadCount > 0)
             TextButton(
               onPressed: () {
                 setState(() {
-                  for (var alert in _alerts) {
+                  for (var alert in _systemAlerts) {
                     alert['isRead'] = true;
                   }
                 });
@@ -126,36 +159,42 @@ class _AlertsScreenProState extends State<AlertsScreenPro> {
                 ),
               ),
             ),
-          PopupMenuButton<String>(
-            icon: Icon(Icons.more_vert_rounded, color: AppColors.textSecondary),
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                  value: 'settings', child: Text('إعدادات التنبيهات')),
-              const PopupMenuItem(value: 'clear', child: Text('مسح الكل')),
-            ],
-          ),
         ],
       ),
-      body: _alerts.isEmpty
-          ? _buildEmptyState()
-          : ListView.builder(
-              padding: EdgeInsets.all(AppSpacing.md),
-              itemCount: _alerts.length,
-              itemBuilder: (context, index) {
-                final alert = _alerts[index];
-                return _AlertCard(
-                  alert: alert,
-                  onTap: () {
-                    setState(() => alert['isRead'] = true);
-                    // Navigate based on type
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _systemAlerts.isEmpty
+              ? _buildEmptyState()
+              : ListView.builder(
+                  padding: EdgeInsets.all(AppSpacing.md),
+                  itemCount: _systemAlerts.length,
+                  itemBuilder: (context, index) {
+                    final alert = _systemAlerts[index];
+                    return _AlertCard(
+                      alert: alert,
+                      onTap: () {
+                        setState(() => alert['isRead'] = true);
+                        _handleAlertTap(alert);
+                      },
+                      onDismiss: () {
+                        setState(() => _systemAlerts.removeAt(index));
+                      },
+                    );
                   },
-                  onDismiss: () {
-                    setState(() => _alerts.removeAt(index));
-                  },
-                );
-              },
-            ),
+                ),
     );
+  }
+
+  void _handleAlertTap(Map<String, dynamic> alert) {
+    final type = alert['type'] as String;
+    switch (type) {
+      case 'low_stock':
+        context.push('/products');
+        break;
+      case 'overdue':
+        context.push('/invoices');
+        break;
+    }
   }
 
   Widget _buildEmptyState() {
