@@ -63,8 +63,8 @@ class _PurchasesScreenProState extends ConsumerState<PurchasesScreenPro>
             _buildTabBar(),
             Expanded(
               child: invoicesAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, _) => Center(child: Text('خطأ: $error')),
+                loading: () => ProLoadingState.list(),
+                error: (error, _) => ProEmptyState.error(error: error.toString()),
                 data: (invoices) => _buildOrdersList(invoices),
               ),
             ),

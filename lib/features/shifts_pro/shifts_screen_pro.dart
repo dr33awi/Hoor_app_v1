@@ -26,10 +26,8 @@ class ShiftsScreenPro extends ConsumerWidget {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: shiftsAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, stack) => Center(
-            child: Text('خطأ: $error', style: AppTypography.bodyMedium),
-          ),
+          loading: () => ProLoadingState.list(),
+          error: (error, stack) => ProEmptyState.error(error: error.toString()),
           data: (shifts) {
             final openShift = openShiftAsync.asData?.value;
             return Column(

@@ -64,8 +64,8 @@ class _CategoriesScreenProState extends ConsumerState<CategoriesScreenPro> {
           _buildHeader(categoriesAsync),
           Expanded(
             child: categoriesAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) => Center(child: Text('خطأ: $error')),
+              loading: () => ProLoadingState.list(),
+              error: (error, _) => ProEmptyState.error(error: error.toString()),
               data: (categories) => _buildCategoriesList(categories),
             ),
           ),

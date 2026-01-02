@@ -81,10 +81,8 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: vouchersAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, stack) => Center(
-            child: Text('خطأ: $error', style: AppTypography.bodyMedium),
-          ),
+          loading: () => ProLoadingState.list(),
+          error: (error, stack) => ProEmptyState.error(error: error.toString()),
           data: (vouchers) {
             return Column(
               children: [

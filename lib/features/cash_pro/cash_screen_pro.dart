@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/widgets/widgets.dart';
 import '../../data/database/app_database.dart';
 
 class CashScreenPro extends ConsumerStatefulWidget {
@@ -50,8 +51,8 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
         ],
       ),
       body: shiftAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('خطأ: $error')),
+        loading: () => ProLoadingState.simple(),
+        error: (error, _) => ProEmptyState.error(error: error.toString()),
         data: (shift) {
           if (shift == null) {
             return _buildNoShiftView();

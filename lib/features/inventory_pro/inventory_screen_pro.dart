@@ -186,8 +186,8 @@ class _InventoryScreenProState extends ConsumerState<InventoryScreenPro>
     final movementsAsync = ref.watch(inventoryMovementsStreamProvider);
 
     return movementsAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(child: Text('خطأ: $error')),
+      loading: () => ProLoadingState.list(),
+      error: (error, _) => ProEmptyState.error(error: error.toString()),
       data: (movements) {
         var filtered = movements.where((m) {
           if (_searchQuery.isEmpty) return true;
@@ -218,8 +218,8 @@ class _InventoryScreenProState extends ConsumerState<InventoryScreenPro>
     final productsAsync = ref.watch(activeProductsStreamProvider);
 
     return productsAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(child: Text('خطأ: $error')),
+      loading: () => ProLoadingState.list(),
+      error: (error, _) => ProEmptyState.error(error: error.toString()),
       data: (products) {
         final lowStock =
             products.where((p) => p.quantity <= p.minQuantity).toList();
@@ -247,8 +247,8 @@ class _InventoryScreenProState extends ConsumerState<InventoryScreenPro>
     final productsAsync = ref.watch(activeProductsStreamProvider);
 
     return productsAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(child: Text('خطأ: $error')),
+      loading: () => ProLoadingState.list(),
+      error: (error, _) => ProEmptyState.error(error: error.toString()),
       data: (products) {
         var filtered = products.where((p) {
           if (_searchQuery.isEmpty) return true;
