@@ -196,10 +196,10 @@ class _InventoryScreenProState extends ConsumerState<InventoryScreenPro>
         }).toList();
 
         if (filtered.isEmpty) {
-          return _buildEmptyState(
+          return const ProEmptyState(
             icon: Icons.swap_vert_rounded,
             title: 'لا توجد حركات',
-            message: 'سجل حركات المخزون ستظهر هنا',
+            subtitle: 'سجل حركات المخزون ستظهر هنا',
           );
         }
 
@@ -225,10 +225,10 @@ class _InventoryScreenProState extends ConsumerState<InventoryScreenPro>
             products.where((p) => p.quantity <= p.minQuantity).toList();
 
         if (lowStock.isEmpty) {
-          return _buildEmptyState(
+          return const ProEmptyState(
             icon: Icons.check_circle_outline,
             title: 'لا توجد تنبيهات',
-            message: 'جميع المنتجات لديها مخزون كافٍ',
+            subtitle: 'جميع المنتجات لديها مخزون كافٍ',
           );
         }
 
@@ -256,10 +256,9 @@ class _InventoryScreenProState extends ConsumerState<InventoryScreenPro>
         }).toList();
 
         if (filtered.isEmpty) {
-          return _buildEmptyState(
+          return ProEmptyState.list(
+            itemName: 'منتج',
             icon: Icons.inventory_2_outlined,
-            title: 'لا توجد منتجات',
-            message: 'أضف منتجات لعرض المخزون',
           );
         }
 
@@ -271,35 +270,6 @@ class _InventoryScreenProState extends ConsumerState<InventoryScreenPro>
           },
         );
       },
-    );
-  }
-
-  Widget _buildEmptyState({
-    required IconData icon,
-    required String title,
-    required String message,
-  }) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 64.sp, color: AppColors.textTertiary),
-          SizedBox(height: AppSpacing.md),
-          Text(
-            title,
-            style: AppTypography.titleMedium.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-          SizedBox(height: AppSpacing.xs),
-          Text(
-            message,
-            style: AppTypography.bodySmall.copyWith(
-              color: AppColors.textTertiary,
-            ),
-          ),
-        ],
-      ),
     );
   }
 

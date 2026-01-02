@@ -9,6 +9,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/design_tokens.dart';
+import '../../core/widgets/widgets.dart';
 import '../../core/providers/app_providers.dart';
 
 class AlertsScreenPro extends ConsumerStatefulWidget {
@@ -163,7 +164,11 @@ class _AlertsScreenProState extends ConsumerState<AlertsScreenPro> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _systemAlerts.isEmpty
-              ? _buildEmptyState()
+              ? const ProEmptyState(
+                  icon: Icons.notifications_none_rounded,
+                  title: 'لا توجد تنبيهات',
+                  subtitle: 'ستظهر التنبيهات الجديدة هنا',
+                )
               : ListView.builder(
                   padding: EdgeInsets.all(AppSpacing.md),
                   itemCount: _systemAlerts.length,
@@ -196,34 +201,6 @@ class _AlertsScreenProState extends ConsumerState<AlertsScreenPro> {
     }
   }
 
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.notifications_none_rounded,
-            size: 80.sp,
-            color: AppColors.textTertiary,
-          ),
-          SizedBox(height: AppSpacing.lg),
-          Text(
-            'لا توجد تنبيهات',
-            style: AppTypography.headlineMedium.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-          SizedBox(height: AppSpacing.sm),
-          Text(
-            'ستظهر التنبيهات الجديدة هنا',
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textTertiary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _AlertCard extends StatelessWidget {

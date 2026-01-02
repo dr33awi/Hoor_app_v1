@@ -292,7 +292,21 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
                   filteredProducts = _sortProducts(filteredProducts);
 
                   if (filteredProducts.isEmpty) {
-                    return _buildEmptyState();
+                    final hasFilter = _searchController.text.isNotEmpty ||
+                        _selectedCategoryId != 'all';
+                    return hasFilter
+                        ? ProEmptyState.noResults(
+                            onClear: () {
+                              setState(() {
+                                _searchController.clear();
+                                _selectedCategoryId = 'all';
+                              });
+                            },
+                          )
+                        : ProEmptyState.list(
+                            itemName: 'منتج',
+                            onAdd: () => context.push('/products/add'),
+                          );
                   }
 
                   return FadeTransition(
@@ -390,63 +404,5 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
       'status': status,
       'isActive': product.isActive,
     };
-  }
-
-  Widget _buildEmptyState() {
-    final hasFilter =
-        _searchController.text.isNotEmpty || _selectedCategoryId != 'all';
-
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            hasFilter ? Icons.search_off_rounded : Icons.inventory_2_outlined,
-            size: 80.sp,
-            color: AppColors.textTertiary,
-          ),
-          SizedBox(height: AppSpacing.lg),
-          Text(
-            hasFilter ? 'لا توجد نتائج' : 'لا توجد منتجات',
-            style: AppTypography.titleLarge.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-          SizedBox(height: AppSpacing.sm),
-          Text(
-            hasFilter ? 'جرب تغيير معايير البحث' : 'أضف منتجات جديدة للبدء',
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textTertiary,
-            ),
-          ),
-          SizedBox(height: AppSpacing.xl),
-          if (hasFilter)
-            OutlinedButton.icon(
-              onPressed: () {
-                setState(() {
-                  _searchController.clear();
-                  _selectedCategoryId = 'all';
-                });
-              },
-              icon: const Icon(Icons.clear),
-              label: const Text('مسح الفلاتر'),
-            )
-          else
-            ElevatedButton.icon(
-              onPressed: () => context.push('/products/add'),
-              icon: const Icon(Icons.add),
-              label: const Text('إضافة منتج'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.secondary,
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(
-                  horizontal: AppSpacing.xl,
-                  vertical: AppSpacing.md,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
   }
 }
