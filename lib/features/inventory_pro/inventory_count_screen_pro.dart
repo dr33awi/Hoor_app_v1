@@ -247,36 +247,12 @@ class _InventoryCountScreenProState
   Future<void> _saveCount() async {
     if (_countedQuantities.isEmpty) return;
 
-    final confirm = await showDialog<bool>(
+    final confirm = await showProConfirmDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-        ),
-        title: Text('تأكيد الحفظ', style: AppTypography.titleLarge),
-        content: Text(
-          'سيتم تحديث كميات ${_countedQuantities.length} منتج.\nهل أنت متأكد؟',
-          style: AppTypography.bodyMedium,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('إلغاء', style: AppTypography.labelLarge),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-              ),
-            ),
-            onPressed: () => Navigator.pop(context, true),
-            child: Text('حفظ',
-                style: AppTypography.labelLarge.copyWith(color: Colors.white)),
-          ),
-        ],
-      ),
+      title: 'تأكيد الحفظ',
+      message: 'سيتم تحديث كميات ${_countedQuantities.length} منتج.\nهل أنت متأكد؟',
+      icon: Icons.save_outlined,
+      confirmText: 'حفظ',
     );
 
     if (confirm != true) return;

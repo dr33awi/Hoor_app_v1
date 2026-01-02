@@ -879,36 +879,13 @@ class _PrintSettingsScreenProState
   }
 
   Future<void> _resetToDefaults() async {
-    final confirm = await showDialog<bool>(
+    final confirm = await showProConfirmDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-        ),
-        title: Text('إعادة التعيين', style: AppTypography.titleLarge),
-        content: Text(
-          'سيتم إعادة جميع الإعدادات للقيم الافتراضية.\nهل أنت متأكد؟',
-          style: AppTypography.bodyMedium,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('إلغاء', style: AppTypography.labelLarge),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-              ),
-            ),
-            onPressed: () => Navigator.pop(context, true),
-            child: Text('إعادة التعيين',
-                style: AppTypography.labelLarge.copyWith(color: Colors.white)),
-          ),
-        ],
-      ),
+      title: 'إعادة التعيين',
+      message: 'سيتم إعادة جميع الإعدادات للقيم الافتراضية.\nهل أنت متأكد؟',
+      icon: Icons.restore_rounded,
+      isDanger: true,
+      confirmText: 'إعادة التعيين',
     );
 
     if (confirm != true) return;

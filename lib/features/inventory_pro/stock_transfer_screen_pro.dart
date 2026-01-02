@@ -526,24 +526,14 @@ class _StockTransferScreenProState extends ConsumerState<StockTransferScreenPro>
   }
 
   Future<void> _cancelTransfer(StockTransfer transfer) async {
-    final confirm = await showDialog<bool>(
+    final confirm = await showProConfirmDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('تأكيد الإلغاء'),
-        content: const Text('هل تريد إلغاء عملية النقل هذه؟'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('لا'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child:
-                const Text('نعم، إلغاء', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+      title: 'تأكيد الإلغاء',
+      message: 'هل تريد إلغاء عملية النقل هذه؟',
+      icon: Icons.cancel_outlined,
+      isDanger: true,
+      confirmText: 'نعم، إلغاء',
+      cancelText: 'لا',
     );
 
     if (confirm != true) return;

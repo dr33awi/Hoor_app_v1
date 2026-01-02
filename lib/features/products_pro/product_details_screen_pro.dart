@@ -231,23 +231,9 @@ class _ProductDetailsView extends StatelessWidget {
         await _generateAndSaveBarcode(context);
         break;
       case 'delete':
-        final confirm = await showDialog<bool>(
+        final confirm = await showProDeleteDialog(
           context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('حذف المنتج'),
-            content: const Text('هل أنت متأكد من حذف هذا المنتج؟'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('إلغاء'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: TextButton.styleFrom(foregroundColor: AppColors.error),
-                child: const Text('حذف'),
-              ),
-            ],
-          ),
+          itemName: 'المنتج',
         );
         if (confirm == true) {
           try {

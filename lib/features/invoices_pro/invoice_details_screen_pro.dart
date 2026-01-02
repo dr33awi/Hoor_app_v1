@@ -437,23 +437,9 @@ class _InvoiceDetailsScreenProState
   void _handleMenuAction(String action) async {
     switch (action) {
       case 'delete':
-        final confirm = await showDialog<bool>(
+        final confirm = await showProDeleteDialog(
           context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('حذف الفاتورة'),
-            content: const Text('هل أنت متأكد من حذف هذه الفاتورة؟'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('إلغاء'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                style: TextButton.styleFrom(foregroundColor: AppColors.error),
-                child: const Text('حذف'),
-              ),
-            ],
-          ),
+          itemName: 'الفاتورة',
         );
         if (confirm == true && mounted) {
           try {

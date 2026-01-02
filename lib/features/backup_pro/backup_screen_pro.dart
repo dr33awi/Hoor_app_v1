@@ -328,26 +328,14 @@ class _BackupScreenProState extends ConsumerState<BackupScreenPro> {
   }
 
   Future<void> _restoreBackup() async {
-    final confirm = await showDialog<bool>(
+    final confirm = await showProConfirmDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('استعادة النسخة الاحتياطية'),
-        content: const Text(
-          'سيتم استبدال جميع البيانات الحالية بالبيانات من النسخة الاحتياطية. '
-          'هل أنت متأكد من المتابعة؟',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('إلغاء'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.warning),
-            child: const Text('استعادة'),
-          ),
-        ],
-      ),
+      title: 'استعادة النسخة الاحتياطية',
+      message: 'سيتم استبدال جميع البيانات الحالية بالبيانات من النسخة الاحتياطية. هل أنت متأكد من المتابعة؟',
+      icon: Icons.restore_rounded,
+      iconColor: AppColors.warning,
+      confirmText: 'استعادة',
+      confirmColor: AppColors.warning,
     );
 
     if (confirm != true) return;

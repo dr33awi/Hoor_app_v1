@@ -408,23 +408,9 @@ class _CustomerFormScreenProState extends ConsumerState<CustomerFormScreenPro> {
   }
 
   Future<void> _deleteCustomer() async {
-    final confirm = await showDialog<bool>(
+    final confirm = await showProDeleteDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('حذف العميل'),
-        content: const Text('هل أنت متأكد من حذف هذا العميل؟'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('إلغاء'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('حذف'),
-          ),
-        ],
-      ),
+      itemName: 'العميل',
     );
 
     if (confirm != true || !mounted) return;
