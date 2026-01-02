@@ -19,3 +19,4 @@ export 'pro_button.dart';
 export 'pro_bottom_sheet.dart';
 export 'pro_dialog.dart';
 export 'pro_snackbar.dart';
+export 'pro_app_bar.dart';
