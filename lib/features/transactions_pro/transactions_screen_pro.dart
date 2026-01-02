@@ -297,37 +297,11 @@ class _TransactionsScreenProState extends ConsumerState<TransactionsScreenPro>
   }
 
   Widget _buildSearchBar() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
-      child: TextField(
-        controller: _searchController,
-        decoration: InputDecoration(
-          hintText: 'بحث برقم الفاتورة أو ${widget.type.partyLabel}...',
-          hintStyle:
-              AppTypography.bodyMedium.copyWith(color: AppColors.textTertiary),
-          prefixIcon: const Icon(Icons.search_rounded),
-          suffixIcon: _searchController.text.isNotEmpty
-              ? IconButton(
-                  onPressed: () {
-                    _searchController.clear();
-                    setState(() {});
-                  },
-                  icon: const Icon(Icons.close_rounded),
-                )
-              : null,
-          filled: true,
-          fillColor: AppColors.surfaceMuted,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-            borderSide: BorderSide.none,
-          ),
-          contentPadding: EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.md,
-          ),
-        ),
-        onChanged: (value) => setState(() {}),
-      ),
+    return ProSearchBar(
+      controller: _searchController,
+      hintText: 'بحث برقم الفاتورة أو ${widget.type.partyLabel}...',
+      onChanged: (value) => setState(() {}),
+      onClear: () => setState(() {}),
     );
   }
 

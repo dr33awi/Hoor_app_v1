@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/widgets/widgets.dart';
 import '../../data/database/app_database.dart';
 
 class VouchersScreenPro extends ConsumerStatefulWidget {
@@ -133,48 +134,10 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
   }
 
   Widget _buildHeader(int totalVouchers) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border(bottom: BorderSide(color: AppColors.border)),
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => context.go('/'),
-            icon: Icon(
-              Icons.arrow_back_ios_rounded,
-              size: AppIconSize.sm,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'السندات',
-                  style: AppTypography.headlineSmall.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  '$totalVouchers سند',
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textTertiary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+    return ProHeader(
+      title: 'السندات',
+      subtitle: '$totalVouchers سند',
+      onBack: () => context.go('/'),
     );
   }
 
@@ -215,33 +178,10 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
   }
 
   Widget _buildSearchBar() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
-      child: Container(
-        height: 48.h,
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: TextField(
-          controller: _searchController,
-          onChanged: (value) => setState(() {}),
-          decoration: InputDecoration(
-            hintText: 'ابحث برقم السند أو الوصف...',
-            hintStyle: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textTertiary,
-            ),
-            prefixIcon:
-                Icon(Icons.search_rounded, color: AppColors.textTertiary),
-            border: InputBorder.none,
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.sm,
-            ),
-          ),
-        ),
-      ),
+    return ProSearchBar(
+      controller: _searchController,
+      hintText: 'ابحث برقم السند أو الوصف...',
+      onChanged: (value) => setState(() {}),
     );
   }
 
