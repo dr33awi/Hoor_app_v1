@@ -1108,10 +1108,9 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
         if (widget.isSales) {
           return customersAsync.when(
             loading: () => SizedBox(
-                height: 200.h,
-                child: ProLoadingState.list(itemCount: 3)),
-            error: (e, _) =>
-                SizedBox(height: 200.h, child: ProEmptyState.error(error: e.toString())),
+                height: 200.h, child: ProLoadingState.list(itemCount: 3)),
+            error: (e, _) => SizedBox(
+                height: 200.h, child: ProEmptyState.error(error: e.toString())),
             data: (customers) => _buildSelectionList(
               title: 'اختر العميل',
               items: customers
@@ -1130,10 +1129,9 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
         } else {
           return suppliersAsync.when(
             loading: () => SizedBox(
-                height: 200.h,
-                child: ProLoadingState.list(itemCount: 3)),
-            error: (e, _) =>
-                SizedBox(height: 200.h, child: ProEmptyState.error(error: e.toString())),
+                height: 200.h, child: ProLoadingState.list(itemCount: 3)),
+            error: (e, _) => SizedBox(
+                height: 200.h, child: ProEmptyState.error(error: e.toString())),
             data: (suppliers) => _buildSelectionList(
               title: 'اختر المورد',
               items: suppliers
@@ -1207,8 +1205,8 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
         return productsAsync.when(
           loading: () => SizedBox(
               height: 200.h, child: ProLoadingState.list(itemCount: 3)),
-          error: (e, _) =>
-              SizedBox(height: 200.h, child: ProEmptyState.error(error: e.toString())),
+          error: (e, _) => SizedBox(
+              height: 200.h, child: ProEmptyState.error(error: e.toString())),
           data: (products) => Container(
             constraints: BoxConstraints(maxHeight: 500.h),
             padding: EdgeInsets.all(AppSpacing.md),

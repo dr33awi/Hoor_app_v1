@@ -167,7 +167,7 @@ class _AlertsScreenProState extends ConsumerState<AlertsScreenPro> {
               ? const ProEmptyState(
                   icon: Icons.notifications_none_rounded,
                   title: 'لا توجد تنبيهات',
-                  subtitle: 'ستظهر التنبيهات الجديدة هنا',
+                  message: 'ستظهر التنبيهات الجديدة هنا',
                 )
               : ListView.builder(
                   padding: EdgeInsets.all(AppSpacing.md),

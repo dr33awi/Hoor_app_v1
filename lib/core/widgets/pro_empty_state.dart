@@ -163,35 +163,17 @@ class ProEmptyState extends StatelessWidget {
       iconColor: isSales ? AppColors.income : AppColors.purchases,
     );
   }
-}
 
-/// حالة التحميل الموحدة
-class ProLoadingState extends StatelessWidget {
-  final String? message;
-
-  const ProLoadingState({
-    super.key,
-    this.message,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircularProgressIndicator(color: AppColors.primary),
-          if (message != null) ...[
-            SizedBox(height: AppSpacing.md),
-            Text(
-              message!,
-              style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ],
-      ),
+  /// حالة لا توجد نتائج
+  factory ProEmptyState.noResults({
+    VoidCallback? onClear,
+  }) {
+    return ProEmptyState(
+      icon: Icons.search_off_rounded,
+      title: 'لا توجد نتائج',
+      message: 'جرب تغيير معايير البحث',
+      actionLabel: onClear != null ? 'مسح الفلاتر' : null,
+      onAction: onClear,
     );
   }
 }

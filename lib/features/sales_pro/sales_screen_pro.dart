@@ -142,7 +142,8 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: productsAsync.when(
-          loading: () => ProLoadingState.withMessage('جاري التحميل...'),
+          loading: () =>
+              ProLoadingState.withMessage(message: 'جاري التحميل...'),
           error: (e, s) => ProEmptyState.error(
             error: e.toString(),
             onRetry: () {
@@ -151,7 +152,8 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
             },
           ),
           data: (products) => categoriesAsync.when(
-            loading: () => ProLoadingState.withMessage('جاري التحميل...'),
+            loading: () =>
+                ProLoadingState.withMessage(message: 'جاري التحميل...'),
             error: (e, s) => ProEmptyState.error(
               error: e.toString(),
               onRetry: () {

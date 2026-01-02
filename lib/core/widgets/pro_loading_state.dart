@@ -48,7 +48,7 @@ class ProLoadingState extends StatelessWidget {
   }
 
   /// حالة تحميل مع رسالة
-  factory ProLoadingState.withMessage([String? message]) {
+  factory ProLoadingState.withMessage({String? message}) {
     return ProLoadingState(
       message: message ?? 'جاري التحميل...',
     );

@@ -199,7 +199,7 @@ class _InventoryScreenProState extends ConsumerState<InventoryScreenPro>
           return const ProEmptyState(
             icon: Icons.swap_vert_rounded,
             title: 'لا توجد حركات',
-            subtitle: 'سجل حركات المخزون ستظهر هنا',
+            message: 'سجل حركات المخزون ستظهر هنا',
           );
         }
 
@@ -228,7 +228,7 @@ class _InventoryScreenProState extends ConsumerState<InventoryScreenPro>
           return const ProEmptyState(
             icon: Icons.check_circle_outline,
             title: 'لا توجد تنبيهات',
-            subtitle: 'جميع المنتجات لديها مخزون كافٍ',
+            message: 'جميع المنتجات لديها مخزون كافٍ',
           );
         }
 
@@ -258,7 +258,6 @@ class _InventoryScreenProState extends ConsumerState<InventoryScreenPro>
         if (filtered.isEmpty) {
           return ProEmptyState.list(
             itemName: 'منتج',
-            icon: Icons.inventory_2_outlined,
           );
         }
 
