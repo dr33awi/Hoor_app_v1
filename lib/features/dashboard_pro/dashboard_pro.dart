@@ -11,6 +11,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/widgets/widgets.dart';
 import 'widgets/pro_navigation_drawer.dart';
 import 'widgets/kpi_card.dart';
 import 'widgets/quick_action_button.dart';
@@ -990,7 +991,7 @@ class _QuickAddOption extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ProCard(
-      backgroundColor: color.withValues(alpha: 0.1),
+      color: color.soft,
       onTap: onTap,
       child: Row(
         children: [

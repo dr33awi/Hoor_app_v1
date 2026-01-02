@@ -1215,8 +1215,7 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
                                 _items.any((i) => i['productId'] == product.id);
                             return ListTile(
                               leading: CircleAvatar(
-                                backgroundColor:
-                                    AppColors.secondary.soft,
+                                backgroundColor: AppColors.secondary.soft,
                                 child: Icon(Icons.inventory_2_outlined,
                                     color: AppColors.secondary, size: 20),
                               ),

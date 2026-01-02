@@ -1177,8 +1177,7 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
                             final customer = customers[index];
                             return ListTile(
                               leading: CircleAvatar(
-                                backgroundColor:
-                                    AppColors.secondary.soft,
+                                backgroundColor: AppColors.secondary.soft,
                                 child: Text(
                                   customer.name[0],
                                   style: TextStyle(color: AppColors.secondary),
@@ -1337,9 +1336,7 @@ class _ProductCard extends StatelessWidget {
         child: Container(
           padding: EdgeInsets.all(AppSpacing.sm),
           decoration: BoxDecoration(
-            color: inCart
-                ? AppColors.success.subtle
-                : AppColors.surface,
+            color: inCart ? AppColors.success.subtle : AppColors.surface,
             borderRadius: BorderRadius.circular(AppRadius.lg),
             border: Border.all(
               color: inCart
@@ -1673,10 +1670,7 @@ class _PaymentSheetState extends State<_PaymentSheet> {
                 padding: EdgeInsets.all(AppSpacing.lg),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [
-                      AppColors.success,
-                      AppColors.success.overlayHeavy
-                    ],
+                    colors: [AppColors.success, AppColors.success.overlayHeavy],
                   ),
                   borderRadius: BorderRadius.circular(AppRadius.lg),
                 ),
@@ -1921,8 +1915,7 @@ class _PaymentSheetState extends State<_PaymentSheet> {
                   decoration: BoxDecoration(
                     color: AppColors.warning.soft,
                     borderRadius: BorderRadius.circular(AppRadius.md),
-                    border:
-                        Border.all(color: AppColors.warning.border),
+                    border: Border.all(color: AppColors.warning.border),
                   ),
                   child: Row(
                     children: [
@@ -2035,9 +2028,7 @@ class _PaymentMethodButton extends StatelessWidget {
         child: Container(
           padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
           decoration: BoxDecoration(
-            color: isSelected
-                ? AppColors.primary.soft
-                : AppColors.background,
+            color: isSelected ? AppColors.primary.soft : AppColors.background,
             borderRadius: BorderRadius.circular(AppRadius.md),
             border: Border.all(
               color: isSelected ? AppColors.primary : AppColors.border,

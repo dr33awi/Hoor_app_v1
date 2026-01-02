@@ -514,8 +514,7 @@ class _ShiftDetailsScreenProState extends ConsumerState<ShiftDetailsScreenPro> {
           Container(
             padding: EdgeInsets.all(AppSpacing.sm),
             decoration: BoxDecoration(
-              color: (isPositive ? AppColors.success : AppColors.error)
-                  .soft,
+              color: (isPositive ? AppColors.success : AppColors.error).soft,
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),
             child: Row(
@@ -676,8 +675,7 @@ class _ShiftDetailsScreenProState extends ConsumerState<ShiftDetailsScreenPro> {
           Container(
             padding: EdgeInsets.all(AppSpacing.xs),
             decoration: BoxDecoration(
-              color: (isIncome ? AppColors.success : AppColors.error)
-                  .soft,
+              color: (isIncome ? AppColors.success : AppColors.error).soft,
               borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
             child: Icon(

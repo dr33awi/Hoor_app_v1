@@ -440,6 +440,7 @@ class _PurchaseOrderCard extends StatelessWidget {
             ],
           ),
         ],
+      ),
     );
   }
 

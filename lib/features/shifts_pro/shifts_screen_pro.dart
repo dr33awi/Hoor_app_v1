@@ -257,8 +257,8 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ProCard(
-      backgroundColor: color.withValues(alpha: 0.1),
-      borderColor: color.withValues(alpha: 0.3),
+      color: color.soft,
+      borderColor: color.border,
       child: Row(
         children: [
           Icon(icon, color: color, size: AppIconSize.md),
