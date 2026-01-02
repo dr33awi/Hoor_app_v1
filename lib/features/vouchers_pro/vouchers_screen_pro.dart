@@ -333,19 +333,6 @@ class _VoucherCard extends StatelessWidget {
     }
   }
 
-  String get _typeLabel {
-    switch (voucher.type) {
-      case 'receipt':
-        return 'قبض';
-      case 'payment':
-        return 'صرف';
-      case 'expense':
-        return 'مصاريف';
-      default:
-        return voucher.type;
-    }
-  }
-
   IconData get _typeIcon {
     switch (voucher.type) {
       case 'receipt':

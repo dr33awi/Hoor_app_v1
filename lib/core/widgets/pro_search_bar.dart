@@ -125,9 +125,8 @@ class ProSearchBarWithFilter extends StatelessWidget {
             height: 48.h,
             width: 48.h,
             decoration: BoxDecoration(
-              color: hasActiveFilters
-                  ? AppColors.primary.soft
-                  : AppColors.surface,
+              color:
+                  hasActiveFilters ? AppColors.primary.soft : AppColors.surface,
               borderRadius: BorderRadius.circular(AppRadius.md),
               border: Border.all(
                 color: hasActiveFilters ? AppColors.primary : AppColors.border,

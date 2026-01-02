@@ -114,7 +114,7 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
     try {
       switch (type) {
         case ExportType.excel:
-          final filePath = await ProductsExportService.exportToExcel(
+          await ProductsExportService.exportToExcel(
             products: products,
             fileName: 'products_list',
           );
@@ -129,8 +129,7 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
           final bytes = await ProductsExportService.generatePdf(
             products: products,
           );
-          final filePath =
-              await ProductsExportService.savePdf(bytes, 'products_list');
+          await ProductsExportService.savePdf(bytes, 'products_list');
           if (mounted) {
             ProSnackbar.success(
               context,

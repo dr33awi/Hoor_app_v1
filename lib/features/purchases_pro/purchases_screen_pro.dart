@@ -339,38 +339,6 @@ class _PurchaseOrderCard extends StatelessWidget {
     required this.onTap,
   });
 
-  Color get _statusColor {
-    switch (invoice.status) {
-      case 'completed':
-      case 'paid':
-        return AppColors.success;
-      case 'pending':
-        return AppColors.warning;
-      case 'partial':
-        return AppColors.info;
-      case 'cancelled':
-        return AppColors.error;
-      default:
-        return AppColors.textSecondary;
-    }
-  }
-
-  String get _statusText {
-    switch (invoice.status) {
-      case 'completed':
-      case 'paid':
-        return 'مكتمل';
-      case 'pending':
-        return 'معلق';
-      case 'partial':
-        return 'جزئي';
-      case 'cancelled':
-        return 'ملغي';
-      default:
-        return invoice.status;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('dd/MM/yyyy');

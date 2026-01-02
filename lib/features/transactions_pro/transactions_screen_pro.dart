@@ -525,33 +525,6 @@ class _InvoiceCard extends StatelessWidget {
     required this.onTap,
   });
 
-  Color get _statusColor {
-    switch (invoice.status) {
-      case 'completed':
-      case 'paid':
-        return AppColors.success;
-      case 'pending':
-        return AppColors.warning;
-      case 'partial':
-        return AppColors.info;
-      case 'cancelled':
-        return AppColors.error;
-      default:
-        return AppColors.textSecondary;
-    }
-  }
-
-  String get _statusText {
-    final isPaid = invoice.paidAmount >= invoice.total;
-    final isPartial =
-        invoice.paidAmount > 0 && invoice.paidAmount < invoice.total;
-
-    if (invoice.status == 'cancelled') return 'ملغية';
-    if (isPaid) return 'مكتملة';
-    if (isPartial) return 'جزئي';
-    return 'معلقة';
-  }
-
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('dd/MM/yyyy');

@@ -582,19 +582,6 @@ class _TransferCard extends ConsumerWidget {
     }
   }
 
-  String _getStatusText() {
-    switch (transfer.status) {
-      case 'pending':
-        return 'معلقة';
-      case 'completed':
-        return 'مكتملة';
-      case 'cancelled':
-        return 'ملغية';
-      default:
-        return transfer.status;
-    }
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final warehousesAsync = ref.watch(warehousesStreamProvider);

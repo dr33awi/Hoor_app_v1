@@ -321,9 +321,8 @@ class _PrintSettingsScreenProState
         child: Container(
           padding: EdgeInsets.all(AppSpacing.sm),
           decoration: BoxDecoration(
-            color: isSelected
-                ? AppColors.secondary.soft
-                : AppColors.surfaceMuted,
+            color:
+                isSelected ? AppColors.secondary.soft : AppColors.surfaceMuted,
             borderRadius: BorderRadius.circular(AppRadius.md),
             border: Border.all(
               color: isSelected ? AppColors.secondary : AppColors.border,

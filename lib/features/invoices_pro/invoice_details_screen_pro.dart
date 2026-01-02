@@ -128,7 +128,7 @@ class _InvoiceDetailsScreenProState
           break;
 
         case PrintType.save:
-          final filePath = await InvoicePdfGenerator.saveInvoiceAsPdf(
+          await InvoicePdfGenerator.saveInvoiceAsPdf(
             invoice: _invoice!,
             items: _invoiceItems,
             customer: _customer,

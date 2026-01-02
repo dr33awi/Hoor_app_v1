@@ -15,7 +15,6 @@ import 'package:printing/printing.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/widgets/widgets.dart';
-import '../../data/database/app_database.dart';
 
 class ProductFormScreenPro extends ConsumerStatefulWidget {
   final String? productId; // null for new product
@@ -47,7 +46,6 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
   bool _isLoading = false;
   bool _isLoadingProduct = false;
   bool _isPrintingBarcode = false;
-  Product? _existingProduct; // للاستخدام عند تحميل بيانات المنتج
 
   bool get isEditing => widget.productId != null;
 
@@ -85,8 +83,6 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
       final product = await productRepo.getProductById(widget.productId!);
 
       if (product != null && mounted) {
-        _existingProduct = product;
-
         // ملء الحقول ببيانات المنتج
         _nameController.text = product.name;
         _barcodeController.text = product.barcode ?? '';
