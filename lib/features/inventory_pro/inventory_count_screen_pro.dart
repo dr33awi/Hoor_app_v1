@@ -193,38 +193,12 @@ class _InventoryCountScreenProState
   }
 
   Widget _buildSearchBar() {
-    return Container(
+    return ProSearchBar(
+      controller: _searchController,
+      hintText: 'بحث بالاسم أو الباركود...',
       margin: EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: TextField(
-        controller: _searchController,
-        style: AppTypography.bodyMedium,
-        decoration: InputDecoration(
-          hintText: 'بحث بالاسم أو الباركود...',
-          hintStyle: AppTypography.bodyMedium.copyWith(
-            color: AppColors.textSecondary,
-          ),
-          prefixIcon:
-              Icon(Icons.search_rounded, color: AppColors.textSecondary),
-          suffixIcon: _searchQuery.isNotEmpty
-              ? IconButton(
-                  icon:
-                      Icon(Icons.clear_rounded, color: AppColors.textSecondary),
-                  onPressed: () {
-                    _searchController.clear();
-                    setState(() => _searchQuery = '');
-                  },
-                )
-              : null,
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
-        ),
-        onChanged: (value) => setState(() => _searchQuery = value),
-      ),
+      onChanged: (value) => setState(() => _searchQuery = value),
+      onClear: () => setState(() => _searchQuery = ''),
     );
   }
 

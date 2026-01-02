@@ -12,6 +12,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/widgets/widgets.dart';
 import '../../core/services/printing/print_settings.dart';
 import '../../core/services/printing/invoice_pdf_generator.dart';
 
@@ -179,62 +180,31 @@ class _PrintSettingsScreenProState
   }
 
   Widget _buildHeader() {
-    return Container(
-      padding: EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border(bottom: BorderSide(color: AppColors.border)),
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => context.pop(),
-            icon: Icon(Icons.arrow_back_ios_rounded,
-                color: AppColors.textSecondary),
-          ),
-          SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'إعدادات الطباعة',
-                  style: AppTypography.headlineSmall.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  'إعداد الطابعة وقالب الفاتورة',
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textTertiary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (!_isLoading)
-            TextButton.icon(
-              onPressed: _isSaving ? null : _saveSettings,
-              icon: _isSaving
-                  ? SizedBox(
-                      width: 16.w,
-                      height: 16.w,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: AppColors.primary,
-                      ),
-                    )
-                  : Icon(Icons.save_rounded, color: AppColors.primary),
-              label: Text(
-                'حفظ',
-                style: AppTypography.labelLarge.copyWith(
-                  color: AppColors.primary,
-                ),
+    return ProHeader(
+      title: 'إعدادات الطباعة',
+      subtitle: 'إعداد الطابعة وقالب الفاتورة',
+      actions: [
+        if (!_isLoading)
+          TextButton.icon(
+            onPressed: _isSaving ? null : _saveSettings,
+            icon: _isSaving
+                ? SizedBox(
+                    width: 16.w,
+                    height: 16.w,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.primary,
+                    ),
+                  )
+                : Icon(Icons.save_rounded, color: AppColors.primary),
+            label: Text(
+              'حفظ',
+              style: AppTypography.labelLarge.copyWith(
+                color: AppColors.primary,
               ),
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 

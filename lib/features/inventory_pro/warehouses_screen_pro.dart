@@ -96,33 +96,12 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
   }
 
   Widget _buildSearchBar() {
-    return Padding(
-      padding: EdgeInsets.all(AppSpacing.md),
-      child: Container(
-        height: 48.h,
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: TextField(
-          controller: _searchController,
-          onChanged: (value) => setState(() => _searchQuery = value),
-          decoration: InputDecoration(
-            hintText: 'البحث عن مستودع...',
-            hintStyle: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textTertiary,
-            ),
-            prefixIcon:
-                Icon(Icons.search_rounded, color: AppColors.textTertiary),
-            border: InputBorder.none,
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.sm,
-            ),
-          ),
-        ),
-      ),
+    return ProSearchBar(
+      controller: _searchController,
+      hintText: 'البحث عن مستودع...',
+      margin: EdgeInsets.all(AppSpacing.md),
+      onChanged: (value) => setState(() => _searchQuery = value),
+      onClear: () => setState(() => _searchQuery = ''),
     );
   }
 

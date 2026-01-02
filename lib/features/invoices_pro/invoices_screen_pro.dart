@@ -190,47 +190,19 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
   }
 
   Widget _buildHeader() {
-    return Container(
-      padding: EdgeInsets.all(AppSpacing.screenPadding.w),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => context.go('/'),
-            icon: const Icon(Icons.arrow_back_ios_rounded),
-            style: IconButton.styleFrom(
-              backgroundColor: AppColors.surfaceMuted,
-            ),
+    return ProHeader(
+      title: isSales ? 'فواتير المبيعات' : 'فواتير المشتريات',
+      subtitle: 'إدارة الفواتير والمدفوعات',
+      onBack: () => context.go('/'),
+      actions: [
+        IconButton(
+          onPressed: _showFilterSheet,
+          icon: const Icon(Icons.filter_list_rounded),
+          style: IconButton.styleFrom(
+            backgroundColor: AppColors.surfaceMuted,
           ),
-          SizedBox(width: AppSpacing.md.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  isSales ? 'فواتير المبيعات' : 'فواتير المشتريات',
-                  style: AppTypography.headlineSmall.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  'إدارة الفواتير والمدفوعات',
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: _showFilterSheet,
-            icon: const Icon(Icons.filter_list_rounded),
-            style: IconButton.styleFrom(
-              backgroundColor: AppColors.surfaceMuted,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
