@@ -101,13 +101,11 @@ class ShiftsScreenPro extends ConsumerWidget {
               ],
             ),
           ),
-          ElevatedButton(
+          ProButton(
+            label: 'إغلاق',
             onPressed: () => _closeShift(context, ref, shift),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('إغلاق'),
+            color: AppColors.error,
+            size: ProButtonSize.small,
           ),
         ],
       ),

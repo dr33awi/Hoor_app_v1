@@ -270,7 +270,8 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
                     SizedBox(width: AppSpacing.md),
                     Expanded(
                       flex: 2,
-                      child: ElevatedButton(
+                      child: ProButton(
+                        label: isEditing ? 'تحديث' : 'إضافة',
                         onPressed: () => _saveWarehouse(
                           isEditing: isEditing,
                           warehouse: warehouse,
@@ -281,19 +282,8 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
                           notes: notesController.text,
                           isDefault: isDefault,
                         ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.secondary,
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.all(AppSpacing.md),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.md),
-                          ),
-                        ),
-                        child: Text(
-                          isEditing ? 'تحديث' : 'إضافة',
-                          style: AppTypography.labelLarge
-                              .copyWith(color: Colors.white),
-                        ),
+                        color: AppColors.secondary,
+                        fullWidth: true,
                       ),
                     ),
                   ],
