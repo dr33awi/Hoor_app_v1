@@ -65,9 +65,8 @@ class ProBottomSheetContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: maxHeight != null
-          ? BoxConstraints(maxHeight: maxHeight!)
-          : null,
+      constraints:
+          maxHeight != null ? BoxConstraints(maxHeight: maxHeight!) : null,
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
       ),
@@ -220,9 +219,8 @@ Future<T?> showProActionsSheet<T>({
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        children: actions
-            .map((action) => _ActionTile<T>(action: action))
-            .toList(),
+        children:
+            actions.map((action) => _ActionTile<T>(action: action)).toList(),
       ),
     ),
   );

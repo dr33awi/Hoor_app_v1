@@ -350,12 +350,7 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
     required bool isDefault,
   }) async {
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('أدخل اسم المستودع'),
-          backgroundColor: AppColors.error,
-        ),
-      );
+      ProSnackbar.warning(context, 'أدخل اسم المستودع');
       return;
     }
 
@@ -385,44 +380,22 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
 
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content:
-                Text(isEditing ? 'تم تحديث المستودع' : 'تم إضافة المستودع'),
-            backgroundColor: AppColors.success,
-          ),
+        ProSnackbar.success(
+          context,
+          isEditing ? 'تم تحديث المستودع' : 'تم إضافة المستودع',
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('خطأ: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ProSnackbar.error(context, 'خطأ: $e');
       }
     }
   }
 
   Future<void> _deleteWarehouse(Warehouse warehouse) async {
-    final confirm = await showDialog<bool>(
+    final confirm = await showProDeleteDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('تأكيد الحذف'),
-        content: Text('هل تريد حذف المستودع "${warehouse.name}"؟'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('حذف', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+      itemName: 'المستودع "${warehouse.name}"',
     );
 
     if (confirm != true) return;
@@ -431,21 +404,11 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
       final warehouseRepo = ref.read(warehouseRepositoryProvider);
       await warehouseRepo.deleteWarehouse(warehouse.id);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('تم حذف المستودع'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        ProSnackbar.deleted(context, 'المستودع');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('خطأ في الحذف: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ProSnackbar.error(context, 'خطأ في الحذف: $e');
       }
     }
   }
@@ -459,21 +422,11 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
         isDefault: true,
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('تم تعيين "${warehouse.name}" كافتراضي'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        ProSnackbar.success(context, 'تم تعيين "${warehouse.name}" كافتراضي');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('خطأ: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ProSnackbar.error(context, 'خطأ: $e');
       }
     }
   }

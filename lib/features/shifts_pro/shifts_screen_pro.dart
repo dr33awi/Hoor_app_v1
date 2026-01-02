@@ -182,93 +182,63 @@ class ShiftsScreenPro extends ConsumerWidget {
     );
   }
 
-  void _openNewShift(BuildContext context, WidgetRef ref) {
-    showDialog(
+  void _openNewShift(BuildContext context, WidgetRef ref) async {
+    final confirm = await showProConfirmDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('فتح وردية جديدة'),
-        content: const Text('هل تريد فتح وردية جديدة؟'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              try {
-                final shiftRepo = ref.read(shiftRepositoryProvider);
-                await shiftRepo.openShift(
-                    openingBalance: 0); // Default opening balance
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('تم فتح الوردية بنجاح')),
-                );
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('خطأ: $e')),
-                );
-              }
-            },
-            child: const Text('فتح'),
-          ),
-        ],
-      ),
+      title: 'فتح وردية جديدة',
+      message: 'هل تريد فتح وردية جديدة؟',
+      icon: Icons.play_arrow_rounded,
+      iconColor: AppColors.success,
+      confirmText: 'فتح',
     );
+
+    if (confirm == true && context.mounted) {
+      try {
+        final shiftRepo = ref.read(shiftRepositoryProvider);
+        await shiftRepo.openShift(openingBalance: 0);
+        if (context.mounted) {
+          ProSnackbar.success(context, 'تم فتح الوردية بنجاح');
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ProSnackbar.error(context, 'خطأ: $e');
+        }
+      }
+    }
   }
 
-  void _closeShift(BuildContext context, WidgetRef ref, Shift shift) {
-    showDialog(
+  void _closeShift(BuildContext context, WidgetRef ref, Shift shift) async {
+    final confirm = await showProConfirmDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('إغلاق الوردية'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-                'رصيد الافتتاح: ${shift.openingBalance.toStringAsFixed(0)} ر.س'),
-            Text('المبيعات: ${shift.totalSales.toStringAsFixed(0)} ر.س'),
-            Text('المصاريف: ${shift.totalExpenses.toStringAsFixed(0)} ر.س'),
-            const Divider(),
-            const Text('هل تريد إغلاق الوردية؟'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              try {
-                final shiftRepo = ref.read(shiftRepositoryProvider);
-                // Calculate expected closing balance
-                final closingBalance = shift.openingBalance +
-                    shift.totalSales -
-                    shift.totalExpenses;
-                await shiftRepo.closeShift(
-                  shiftId: shift.id,
-                  closingBalance: closingBalance,
-                );
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('تم إغلاق الوردية بنجاح')),
-                );
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('خطأ: $e')),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('إغلاق'),
-          ),
-        ],
-      ),
+      title: 'إغلاق الوردية',
+      message: 'رصيد الافتتاح: ${shift.openingBalance.toStringAsFixed(0)} ر.س\n'
+          'المبيعات: ${shift.totalSales.toStringAsFixed(0)} ر.س\n'
+          'المصاريف: ${shift.totalExpenses.toStringAsFixed(0)} ر.س\n\n'
+          'هل تريد إغلاق الوردية؟',
+      icon: Icons.stop_rounded,
+      isDanger: true,
+      confirmText: 'إغلاق',
     );
+
+    if (confirm == true && context.mounted) {
+      try {
+        final shiftRepo = ref.read(shiftRepositoryProvider);
+        final closingBalance = shift.openingBalance +
+            shift.totalSales -
+            shift.totalExpenses;
+        await shiftRepo.closeShift(
+          shiftId: shift.id,
+          closingBalance: closingBalance,
+        );
+        if (context.mounted) {
+          ProSnackbar.success(context, 'تم إغلاق الوردية بنجاح');
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ProSnackbar.error(context, 'خطأ: $e');
+        }
+      }
+    }
   }
 }
 
@@ -368,7 +338,8 @@ class _ShiftCard extends StatelessWidget {
                           ),
                         ),
                         SizedBox(width: AppSpacing.sm),
-                        ProStatusBadge.fromShiftStatus(shift.status, small: true),
+                        ProStatusBadge.fromShiftStatus(shift.status,
+                            small: true),
                       ],
                     ),
                     Text(

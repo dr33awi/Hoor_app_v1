@@ -35,9 +35,7 @@ class ProIconBox extends StatelessWidget {
       height: boxSize,
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: circular 
-            ? null 
-            : BorderRadius.circular(AppRadius.md),
+        borderRadius: circular ? null : BorderRadius.circular(AppRadius.md),
         shape: circular ? BoxShape.circle : BoxShape.rectangle,
       ),
       child: Icon(

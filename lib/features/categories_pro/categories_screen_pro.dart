@@ -294,9 +294,7 @@ class _CategoriesScreenProState extends ConsumerState<CategoriesScreenPro> {
                 child: ElevatedButton(
                   onPressed: () async {
                     if (nameController.text.trim().isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('أدخل اسم الفئة')),
-                      );
+                      ProSnackbar.warning(context, 'أدخل اسم الفئة');
                       return;
                     }
 
@@ -321,23 +319,14 @@ class _CategoriesScreenProState extends ConsumerState<CategoriesScreenPro> {
 
                       if (context.mounted) {
                         Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(isEditing
-                                ? 'تم تحديث الفئة'
-                                : 'تم إضافة الفئة'),
-                            backgroundColor: AppColors.success,
-                          ),
+                        ProSnackbar.success(
+                          context,
+                          isEditing ? 'تم تحديث الفئة' : 'تم إضافة الفئة',
                         );
                       }
                     } catch (e) {
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('خطأ: $e'),
-                            backgroundColor: AppColors.error,
-                          ),
-                        );
+                        ProSnackbar.error(context, 'خطأ: $e');
                       }
                     }
                   },
@@ -363,48 +352,25 @@ class _CategoriesScreenProState extends ConsumerState<CategoriesScreenPro> {
     );
   }
 
-  void _confirmDelete(Category category) {
-    showDialog(
+  void _confirmDelete(Category category) async {
+    final confirm = await showProDeleteDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('حذف الفئة'),
-        content: Text('هل أنت متأكد من حذف "${category.name}"؟'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              try {
-                final categoryRepo = ref.read(categoryRepositoryProvider);
-                await categoryRepo.deleteCategory(category.id);
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('تم حذف الفئة'),
-                      backgroundColor: AppColors.success,
-                    ),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('خطأ: $e'),
-                      backgroundColor: AppColors.error,
-                    ),
-                  );
-                }
-              }
-            },
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('حذف'),
-          ),
-        ],
-      ),
+      itemName: 'الفئة "${category.name}"',
     );
+
+    if (confirm == true && mounted) {
+      try {
+        final categoryRepo = ref.read(categoryRepositoryProvider);
+        await categoryRepo.deleteCategory(category.id);
+        if (mounted) {
+          ProSnackbar.deleted(context, 'الفئة');
+        }
+      } catch (e) {
+        if (mounted) {
+          ProSnackbar.error(context, 'خطأ: $e');
+        }
+      }
+    }
   }
 }
 

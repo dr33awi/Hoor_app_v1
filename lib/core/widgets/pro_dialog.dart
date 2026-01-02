@@ -157,7 +157,8 @@ Future<bool?> showProDeleteDialog({
   return showProConfirmDialog(
     context: context,
     title: 'حذف $itemName',
-    message: message ?? 'هل أنت متأكد من حذف $itemName؟ لا يمكن التراجع عن هذا الإجراء.',
+    message: message ??
+        'هل أنت متأكد من حذف $itemName؟ لا يمكن التراجع عن هذا الإجراء.',
     icon: Icons.delete_outline_rounded,
     isDanger: true,
     confirmText: 'حذف',
@@ -177,7 +178,8 @@ Future<void> showProSuccessDialog({
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        ProIconBox.large(icon: Icons.check_circle_rounded, color: AppColors.success),
+        ProIconBox.large(
+            icon: Icons.check_circle_rounded, color: AppColors.success),
         SizedBox(height: AppSpacing.md),
         Text(
           title,
@@ -221,7 +223,8 @@ Future<void> showProErrorDialog({
     child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        ProIconBox.large(icon: Icons.error_outline_rounded, color: AppColors.error),
+        ProIconBox.large(
+            icon: Icons.error_outline_rounded, color: AppColors.error),
         SizedBox(height: AppSpacing.md),
         Text(
           title,

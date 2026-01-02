@@ -507,7 +507,8 @@ class _MovementCard extends StatelessWidget {
       child: Row(
         children: [
           ProIconBox(
-            icon: isAdd ? Icons.add_circle_outline : Icons.remove_circle_outline,
+            icon:
+                isAdd ? Icons.add_circle_outline : Icons.remove_circle_outline,
             color: isAdd ? AppColors.success : AppColors.error,
           ),
           SizedBox(width: AppSpacing.md),

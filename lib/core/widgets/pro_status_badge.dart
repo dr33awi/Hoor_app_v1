@@ -35,7 +35,8 @@ class ProStatusBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: outlined ? Colors.transparent : color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppRadius.full),
-        border: outlined ? Border.all(color: color.withValues(alpha: 0.5)) : null,
+        border:
+            outlined ? Border.all(color: color.withValues(alpha: 0.5)) : null,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -50,8 +51,9 @@ class ProStatusBadge extends StatelessWidget {
           ],
           Text(
             label,
-            style: (small ? AppTypography.labelSmall : AppTypography.labelMedium)
-                .copyWith(
+            style:
+                (small ? AppTypography.labelSmall : AppTypography.labelMedium)
+                    .copyWith(
               color: color,
               fontWeight: FontWeight.w600,
             ),
@@ -213,7 +215,8 @@ class ProStatusBadge extends StatelessWidget {
   }
 
   /// من حالة الفاتورة
-  factory ProStatusBadge.fromInvoiceStatus(String status, {bool small = false}) {
+  factory ProStatusBadge.fromInvoiceStatus(String status,
+      {bool small = false}) {
     switch (status) {
       case 'completed':
       case 'paid':
@@ -268,7 +271,8 @@ class ProStatusBadge extends StatelessWidget {
   }
 
   /// من حالة النقل
-  factory ProStatusBadge.fromTransferStatus(String status, {bool small = false}) {
+  factory ProStatusBadge.fromTransferStatus(String status,
+      {bool small = false}) {
     switch (status) {
       case 'pending':
         return ProStatusBadge.pending(label: 'معلقة', small: small);
@@ -304,7 +308,7 @@ class ProSelectableChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = selectedColor ?? AppColors.primary;
-    
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
