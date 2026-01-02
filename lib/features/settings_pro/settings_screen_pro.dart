@@ -391,29 +391,17 @@ class _SettingsScreenProState extends ConsumerState<SettingsScreenPro> {
     );
   }
 
-  void _showLogoutDialog() {
-    showDialog(
+  void _showLogoutDialog() async {
+    final confirm = await showProConfirmDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('تسجيل الخروج'),
-        content: const Text('هل أنت متأكد من تسجيل الخروج؟'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء'),
-          ),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(context);
-              // TODO: Handle logout
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.error,
-            ),
-            child: const Text('تسجيل الخروج'),
-          ),
-        ],
-      ),
+      title: 'تسجيل الخروج',
+      message: 'هل أنت متأكد من تسجيل الخروج؟',
+      icon: Icons.logout_rounded,
+      isDanger: true,
+      confirmText: 'تسجيل الخروج',
     );
+    if (confirm == true) {
+      // TODO: Handle logout
+    }
   }
 }

@@ -304,23 +304,23 @@ class _BackupScreenProState extends ConsumerState<BackupScreenPro> {
 
   Future<void> _createCloudBackup() async {
     // Show coming soon dialog
-    showDialog(
+    showProDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.cloud_rounded, color: AppColors.primary),
-            SizedBox(width: AppSpacing.sm),
-            const Text('النسخ السحابي'),
-          ],
-        ),
-        content: const Text(
-          'هذه الميزة قيد التطوير وستكون متاحة قريباً.',
-        ),
-        actions: [
-          TextButton(
+      icon: Icons.cloud_rounded,
+      iconColor: AppColors.primary,
+      title: 'النسخ السحابي',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'هذه الميزة قيد التطوير وستكون متاحة قريباً.',
+            style: AppTypography.bodyMedium,
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: AppSpacing.lg),
+          ProButton(
+            label: 'حسناً',
             onPressed: () => Navigator.pop(context),
-            child: const Text('حسناً'),
           ),
         ],
       ),

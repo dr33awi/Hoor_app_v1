@@ -91,44 +91,25 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
     setState(() => _cartItems.removeAt(index));
   }
 
-  void _clearCart() {
+  void _clearCart() async {
     if (_cartItems.isEmpty) return;
 
-    showDialog(
+    final confirm = await showProConfirmDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-        ),
-        title: Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: AppColors.warning),
-            SizedBox(width: AppSpacing.sm),
-            const Text('تأكيد'),
-          ],
-        ),
-        content: const Text('هل تريد مسح جميع المنتجات من السلة؟'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('إلغاء'),
-          ),
-          FilledButton(
-            onPressed: () {
-              setState(() {
-                _cartItems.clear();
-                _discount = 0;
-              });
-              Navigator.pop(context);
-            },
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.error,
-            ),
-            child: const Text('مسح'),
-          ),
-        ],
-      ),
+      title: 'تأكيد',
+      message: 'هل تريد مسح جميع المنتجات من السلة؟',
+      icon: Icons.warning_amber_rounded,
+      iconColor: AppColors.warning,
+      isDanger: true,
+      confirmText: 'مسح',
     );
+
+    if (confirm == true) {
+      setState(() {
+        _cartItems.clear();
+        _discount = 0;
+      });
+    }
   }
 
   @override
