@@ -181,7 +181,8 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
     }
 
     if (!_isValidEAN13(barcode)) {
-      ProSnackbar.warning(context, 'الباركود غير صالح. يجب أن يكون EAN-13 صحيح');
+      ProSnackbar.warning(
+          context, 'الباركود غير صالح. يجب أن يكون EAN-13 صحيح');
       return;
     }
 
@@ -542,8 +543,8 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
             Container(
               height: 48.h,
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
-                border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                color: AppColors.primary.soft,
+                border: Border.all(color: AppColors.primary.border),
               ),
               child: IconButton(
                 onPressed: _onGenerateBarcodePressed,
@@ -559,8 +560,8 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
             Container(
               height: 48.h,
               decoration: BoxDecoration(
-                color: AppColors.secondary.withOpacity(0.1),
-                border: Border.all(color: AppColors.secondary.withOpacity(0.3)),
+                color: AppColors.secondary.soft,
+                border: Border.all(color: AppColors.secondary.border),
                 borderRadius: BorderRadius.horizontal(
                   left: Radius.circular(AppRadius.md),
                 ),

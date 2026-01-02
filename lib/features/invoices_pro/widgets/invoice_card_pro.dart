@@ -57,7 +57,7 @@ class InvoiceCardPro extends StatelessWidget {
                   Container(
                     padding: EdgeInsets.all(AppSpacing.sm),
                     decoration: BoxDecoration(
-                      color: _getStatusColor(status).withOpacity(0.1),
+                      color: _getStatusColor(status).soft,
                       borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
                     child: Icon(
@@ -266,7 +266,7 @@ class InvoiceCardPro extends StatelessWidget {
         vertical: AppSpacing.xs,
       ),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.soft,
         borderRadius: BorderRadius.circular(AppRadius.full),
       ),
       child: Text(

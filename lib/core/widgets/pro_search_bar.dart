@@ -126,7 +126,7 @@ class ProSearchBarWithFilter extends StatelessWidget {
             width: 48.h,
             decoration: BoxDecoration(
               color: hasActiveFilters
-                  ? AppColors.primary.withOpacity(0.1)
+                  ? AppColors.primary.soft
                   : AppColors.surface,
               borderRadius: BorderRadius.circular(AppRadius.md),
               border: Border.all(
@@ -195,7 +195,7 @@ class ProSearchBarWithDateRange extends StatelessWidget {
             height: 48.h,
             decoration: BoxDecoration(
               color: dateRange != null
-                  ? AppColors.primary.withOpacity(0.1)
+                  ? AppColors.primary.soft
                   : AppColors.surface,
               borderRadius: BorderRadius.circular(AppRadius.md),
               border: Border.all(

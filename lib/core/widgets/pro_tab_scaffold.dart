@@ -65,7 +65,7 @@ class ProTabBar extends StatelessWidget {
                 vertical: 2,
               ),
               decoration: BoxDecoration(
-                color: tab.badgeColor ?? AppColors.primary.withOpacity(0.1),
+                color: tab.badgeColor ?? AppColors.primary.soft,
                 borderRadius: BorderRadius.circular(AppRadius.xs),
               ),
               child: Text(

@@ -38,7 +38,7 @@ class ProEmptyState extends StatelessWidget {
             Container(
               padding: EdgeInsets.all(AppSpacing.xl),
               decoration: BoxDecoration(
-                color: (iconColor ?? AppColors.textTertiary).withOpacity(0.1),
+                color: (iconColor ?? AppColors.textTertiary).soft,
                 shape: BoxShape.circle,
               ),
               child: Icon(
@@ -200,7 +200,7 @@ class ProErrorState extends StatelessWidget {
             Container(
               padding: EdgeInsets.all(AppSpacing.lg),
               decoration: BoxDecoration(
-                color: AppColors.error.withOpacity(0.1),
+                color: AppColors.error.soft,
                 shape: BoxShape.circle,
               ),
               child: Icon(

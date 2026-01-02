@@ -257,7 +257,7 @@ class _ReturnsScreenProState extends ConsumerState<ReturnsScreenPro> {
                     Container(
                       padding: EdgeInsets.all(AppSpacing.sm),
                       decoration: BoxDecoration(
-                        color: widget.type.accentColor.withOpacity(0.1),
+                        color: widget.type.accentColor.soft,
                         borderRadius: BorderRadius.circular(AppRadius.md),
                       ),
                       child: Icon(

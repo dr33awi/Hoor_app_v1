@@ -834,7 +834,8 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro> {
       // Note: This would require the export_service to be properly integrated
       // For now, show a success message
       if (mounted) {
-        ProSnackbar.success(context, 'جاري تصدير التقرير بصيغة ${format.toUpperCase()}...');
+        ProSnackbar.success(
+            context, 'جاري تصدير التقرير بصيغة ${format.toUpperCase()}...');
       }
     } catch (e) {
       if (mounted) {

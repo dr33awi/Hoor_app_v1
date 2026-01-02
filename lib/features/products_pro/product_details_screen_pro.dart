@@ -298,7 +298,8 @@ class _ProductDetailsView extends StatelessWidget {
     final barcodeValue = product.barcode;
 
     if (barcodeValue == null || barcodeValue.isEmpty) {
-      ProSnackbar.warning(context, 'لا يوجد باركود لهذا المنتج. قم بتوليد باركود أولاً.');
+      ProSnackbar.warning(
+          context, 'لا يوجد باركود لهذا المنتج. قم بتوليد باركود أولاً.');
       return;
     }
 
@@ -419,7 +420,8 @@ class _ProductDetailsView extends StatelessWidget {
                 // التحقق من عدم السحب أكثر من المتوفر
                 if (adjustmentType == 'subtract' &&
                     quantity > product.quantity) {
-                  ProSnackbar.error(context, 'لا يمكن سحب أكثر من الكمية المتوفرة (${product.quantity})');
+                  ProSnackbar.error(context,
+                      'لا يمكن سحب أكثر من الكمية المتوفرة (${product.quantity})');
                   return;
                 }
 
@@ -432,9 +434,11 @@ class _ProductDetailsView extends StatelessWidget {
 
                   if (context.mounted) {
                     Navigator.pop(context);
-                    ProSnackbar.success(context, adjustmentType == 'add'
-                        ? 'تم إضافة $quantity وحدة'
-                        : 'تم سحب $quantity وحدة');
+                    ProSnackbar.success(
+                        context,
+                        adjustmentType == 'add'
+                            ? 'تم إضافة $quantity وحدة'
+                            : 'تم سحب $quantity وحدة');
                   }
                 } catch (e) {
                   if (context.mounted) {
@@ -478,7 +482,7 @@ class _ProductDetailsView extends StatelessWidget {
                   vertical: AppSpacing.xs,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.secondary.withOpacity(0.1),
+                  color: AppColors.secondary.soft,
                   borderRadius: BorderRadius.circular(AppRadius.sm),
                 ),
                 child: Text(
@@ -497,7 +501,7 @@ class _ProductDetailsView extends StatelessWidget {
                   vertical: AppSpacing.xs,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.success.withOpacity(0.1),
+                  color: AppColors.success.soft,
                   borderRadius: BorderRadius.circular(AppRadius.sm),
                 ),
                 child: Text(
@@ -651,10 +655,10 @@ class _ProductDetailsView extends StatelessWidget {
             padding: EdgeInsets.all(AppSpacing.sm),
             decoration: BoxDecoration(
               color: product.quantity > product.minQuantity
-                  ? AppColors.success.withOpacity(0.1)
+                  ? AppColors.success.soft
                   : product.quantity > 0
-                      ? AppColors.warning.withOpacity(0.1)
-                      : AppColors.error.withOpacity(0.1),
+                      ? AppColors.warning.soft
+                      : AppColors.error.soft,
               borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
             child: Row(

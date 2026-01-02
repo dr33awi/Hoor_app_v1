@@ -325,7 +325,7 @@ class _CustomerFormScreenProState extends ConsumerState<CustomerFormScreenPro> {
         padding: EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.secondary.withOpacity(0.1)
+              ? AppColors.secondary.soft
               : AppColors.background,
           borderRadius: BorderRadius.circular(AppRadius.md),
           border: Border.all(

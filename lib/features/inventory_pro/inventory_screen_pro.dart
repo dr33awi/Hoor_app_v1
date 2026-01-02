@@ -441,7 +441,8 @@ class _InventoryScreenProState extends ConsumerState<InventoryScreenPro>
 
                           if (context.mounted) {
                             Navigator.pop(context);
-                            ProSnackbar.success(context, 'تم تسجيل الحركة بنجاح');
+                            ProSnackbar.success(
+                                context, 'تم تسجيل الحركة بنجاح');
                           }
                         } catch (e) {
                           if (context.mounted) {

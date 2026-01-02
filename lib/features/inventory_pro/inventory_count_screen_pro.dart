@@ -250,7 +250,8 @@ class _InventoryCountScreenProState
     final confirm = await showProConfirmDialog(
       context: context,
       title: 'تأكيد الحفظ',
-      message: 'سيتم تحديث كميات ${_countedQuantities.length} منتج.\nهل أنت متأكد؟',
+      message:
+          'سيتم تحديث كميات ${_countedQuantities.length} منتج.\nهل أنت متأكد؟',
       icon: Icons.save_outlined,
       confirmText: 'حفظ',
     );

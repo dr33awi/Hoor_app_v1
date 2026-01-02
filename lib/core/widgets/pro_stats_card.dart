@@ -33,9 +33,9 @@ class ProStatCard extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(compact ? AppSpacing.sm : AppSpacing.md),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        color: color.o8,
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.light),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -137,12 +137,12 @@ class ProStatCardLarge extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              color.withOpacity(0.1),
-              color.withOpacity(0.05),
+              color.soft,
+              color.subtle,
             ],
           ),
           borderRadius: BorderRadius.circular(AppRadius.lg),
-          border: Border.all(color: color.withOpacity(0.2)),
+          border: Border.all(color: color.light),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -153,7 +153,7 @@ class ProStatCardLarge extends StatelessWidget {
                 Container(
                   padding: EdgeInsets.all(AppSpacing.sm),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.15),
+                    color: color.muted,
                     borderRadius: BorderRadius.circular(AppRadius.md),
                   ),
                   child: Icon(icon, color: color, size: 24.sp),
@@ -161,7 +161,7 @@ class ProStatCardLarge extends StatelessWidget {
                 if (onTap != null)
                   Icon(
                     Icons.arrow_forward_ios_rounded,
-                    color: color.withOpacity(0.5),
+                    color: color.borderStrong,
                     size: 16.sp,
                   ),
               ],
@@ -257,7 +257,7 @@ class ProStatsChip extends StatelessWidget {
         vertical: AppSpacing.xs,
       ),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.soft,
         borderRadius: BorderRadius.circular(AppRadius.md),
       ),
       child: Column(

@@ -331,7 +331,8 @@ class _BackupScreenProState extends ConsumerState<BackupScreenPro> {
     final confirm = await showProConfirmDialog(
       context: context,
       title: 'استعادة النسخة الاحتياطية',
-      message: 'سيتم استبدال جميع البيانات الحالية بالبيانات من النسخة الاحتياطية. هل أنت متأكد من المتابعة؟',
+      message:
+          'سيتم استبدال جميع البيانات الحالية بالبيانات من النسخة الاحتياطية. هل أنت متأكد من المتابعة؟',
       icon: Icons.restore_rounded,
       iconColor: AppColors.warning,
       confirmText: 'استعادة',
@@ -346,7 +347,8 @@ class _BackupScreenProState extends ConsumerState<BackupScreenPro> {
       await _backupService.restoreFromCloud();
 
       if (mounted) {
-        ProSnackbar.success(context, 'تمت الاستعادة بنجاح. يرجى إعادة تشغيل التطبيق.');
+        ProSnackbar.success(
+            context, 'تمت الاستعادة بنجاح. يرجى إعادة تشغيل التطبيق.');
       }
     } catch (e) {
       if (mounted) {
