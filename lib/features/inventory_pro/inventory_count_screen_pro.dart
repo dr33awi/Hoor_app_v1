@@ -78,68 +78,37 @@ class _InventoryCountScreenProState
   }
 
   Widget _buildHeader() {
-    return Container(
-      padding: EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border(bottom: BorderSide(color: AppColors.border)),
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => context.pop(),
-            icon: Icon(Icons.arrow_back_ios_rounded,
-                color: AppColors.textSecondary),
-          ),
-          SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'جرد المخزون',
-                  style: AppTypography.headlineSmall.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  'تحديث الكميات الفعلية',
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textTertiary,
-                  ),
-                ),
-              ],
+    return ProHeader(
+      title: 'جرد المخزون',
+      subtitle: 'تحديث الكميات الفعلية',
+      actions: [
+        // Barcode Scanner Button
+        IconButton(
+          onPressed: _scanBarcode,
+          icon: Container(
+            padding: EdgeInsets.all(AppSpacing.xs),
+            decoration: BoxDecoration(
+              color: AppColors.secondary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
+            child: Icon(Icons.qr_code_scanner_rounded,
+                color: AppColors.secondary, size: 20.sp),
           ),
-          // Barcode Scanner Button
-          IconButton(
-            onPressed: _scanBarcode,
-            icon: Container(
-              padding: EdgeInsets.all(AppSpacing.xs),
-              decoration: BoxDecoration(
-                color: AppColors.secondary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-              ),
-              child: Icon(Icons.qr_code_scanner_rounded,
-                  color: AppColors.secondary, size: 20.sp),
-            ),
-          ),
-          // Save Button
-          if (_countedQuantities.isNotEmpty)
-            TextButton.icon(
-              onPressed: _saveCount,
-              icon: Icon(Icons.save_rounded,
-                  color: AppColors.success, size: 20.sp),
-              label: Text(
-                'حفظ (${_countedQuantities.length})',
-                style: AppTypography.labelMedium.copyWith(
-                  color: AppColors.success,
-                ),
+        ),
+        // Save Button
+        if (_countedQuantities.isNotEmpty)
+          TextButton.icon(
+            onPressed: _saveCount,
+            icon: Icon(Icons.save_rounded,
+                color: AppColors.success, size: 20.sp),
+            label: Text(
+              'حفظ (${_countedQuantities.length})',
+              style: AppTypography.labelMedium.copyWith(
+                color: AppColors.success,
               ),
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 

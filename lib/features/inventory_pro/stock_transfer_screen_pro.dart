@@ -85,47 +85,16 @@ class _StockTransferScreenProState extends ConsumerState<StockTransferScreenPro>
   }
 
   Widget _buildHeader() {
-    return Container(
-      padding: EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border(bottom: BorderSide(color: AppColors.border)),
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => context.pop(),
-            icon: Icon(Icons.arrow_back_ios_rounded,
-                color: AppColors.textSecondary),
-          ),
-          SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'نقل المخزون',
-                  style: AppTypography.headlineSmall.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  'نقل البضائع بين المستودعات',
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textTertiary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: () => context.push('/inventory/warehouses'),
-            icon: Icon(Icons.warehouse_outlined, color: AppColors.secondary),
-            tooltip: 'المستودعات',
-          ),
-        ],
-      ),
+    return ProHeader(
+      title: 'نقل المخزون',
+      subtitle: 'نقل البضائع بين المستودعات',
+      actions: [
+        IconButton(
+          onPressed: () => context.push('/inventory/warehouses'),
+          icon: Icon(Icons.warehouse_outlined, color: AppColors.secondary),
+          tooltip: 'المستودعات',
+        ),
+      ],
     );
   }
 

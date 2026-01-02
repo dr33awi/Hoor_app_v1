@@ -142,7 +142,7 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: productsAsync.when(
-          loading: () => _buildLoadingState(),
+          loading: () => ProLoadingState.withMessage('جاري التحميل...'),
           error: (e, s) => ProEmptyState.error(
             error: e.toString(),
             onRetry: () {
@@ -151,7 +151,7 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
             },
           ),
           data: (products) => categoriesAsync.when(
-            loading: () => _buildLoadingState(),
+            loading: () => ProLoadingState.withMessage('جاري التحميل...'),
             error: (e, s) => ProEmptyState.error(
               error: e.toString(),
               onRetry: () {
@@ -1303,26 +1303,8 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Loading & Error States
+  // Loading & Error States (handled by ProLoadingState and ProEmptyState)
   // ═══════════════════════════════════════════════════════════════════════════
-
-  Widget _buildLoadingState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          CircularProgressIndicator(color: AppColors.primary),
-          SizedBox(height: AppSpacing.md),
-          Text(
-            'جاري التحميل...',
-            style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

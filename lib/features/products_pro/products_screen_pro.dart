@@ -279,7 +279,7 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
             // ═══════════════════════════════════════════════════════════════
             Expanded(
               child: productsAsync.when(
-                loading: () => _buildLoadingState(),
+                loading: () => ProLoadingState.grid(),
                 error: (error, _) => ProEmptyState.error(
                   error: error.toString(),
                   onRetry: () => ref.invalidate(activeProductsStreamProvider),
@@ -390,27 +390,6 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
       'status': status,
       'isActive': product.isActive,
     };
-  }
-
-  Widget _buildLoadingState() {
-    return GridView.builder(
-      padding: EdgeInsets.all(AppSpacing.md),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.78,
-        crossAxisSpacing: AppSpacing.sm,
-        mainAxisSpacing: AppSpacing.sm,
-      ),
-      itemCount: 6,
-      itemBuilder: (context, index) {
-        return Container(
-          decoration: BoxDecoration(
-            color: AppColors.surfaceMuted,
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-          ),
-        );
-      },
-    );
   }
 
   Widget _buildEmptyState() {

@@ -154,7 +154,7 @@ class AlertsWidget extends ConsumerWidget {
     final alertsAsync = ref.watch(dashboardAlertsProvider);
 
     return alertsAsync.when(
-      loading: () => _buildLoadingState(),
+      loading: () => _buildAlertLoadingCard(),
       error: (error, _) => ProEmptyState.error(error: 'خطأ في تحميل التنبيهات'),
       data: (alerts) {
         if (alerts.isEmpty) {
@@ -182,7 +182,7 @@ class AlertsWidget extends ConsumerWidget {
     );
   }
 
-  Widget _buildLoadingState() {
+  Widget _buildAlertLoadingCard() {
     return Container(
       padding: EdgeInsets.all(AppSpacing.lg.w),
       decoration: BoxDecoration(

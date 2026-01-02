@@ -140,7 +140,7 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
             // ═══════════════════════════════════════════════════════════════
             Expanded(
               child: invoicesAsync.when(
-                loading: () => _buildLoadingState(),
+                loading: () => ProLoadingState.list(),
                 error: (error, _) => ProEmptyState.error(
                   error: error.toString(),
                   onRetry: () => ref.invalidate(invoicesStreamProvider),
@@ -430,23 +430,6 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildLoadingState() {
-    return ListView.separated(
-      padding: EdgeInsets.all(AppSpacing.screenPadding.w),
-      itemCount: 5,
-      separatorBuilder: (_, __) => SizedBox(height: AppSpacing.md.h),
-      itemBuilder: (context, index) {
-        return Container(
-          height: 120.h,
-          decoration: BoxDecoration(
-            color: AppColors.surfaceMuted,
-            borderRadius: BorderRadius.circular(AppRadius.xl),
-          ),
-        );
-      },
     );
   }
 

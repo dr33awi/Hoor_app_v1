@@ -200,7 +200,7 @@ class RecentTransactionsList extends ConsumerWidget {
     final transactionsAsync = ref.watch(recentTransactionsProvider);
 
     return transactionsAsync.when(
-      loading: () => _buildLoadingState(),
+      loading: () => _buildTransactionsLoadingCard(),
       error: (error, _) => ProEmptyState.error(error: 'خطأ في تحميل المعاملات'),
       data: (transactions) {
         if (transactions.isEmpty) {
@@ -256,7 +256,7 @@ class RecentTransactionsList extends ConsumerWidget {
     }
   }
 
-  Widget _buildLoadingState() {
+  Widget _buildTransactionsLoadingCard() {
     return Container(
       padding: EdgeInsets.all(AppSpacing.xxl.w),
       decoration: BoxDecoration(
