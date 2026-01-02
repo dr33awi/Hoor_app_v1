@@ -430,19 +430,7 @@ class _CategoryCard extends StatelessWidget {
       onTap: onEdit,
       child: Row(
         children: [
-          Container(
-            width: 48.w,
-            height: 48.h,
-            decoration: BoxDecoration(
-              color: AppColors.secondary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: Icon(
-              Icons.folder_outlined,
-              color: AppColors.secondary,
-              size: 24.sp,
-            ),
-          ),
+          ProIconBox.category(),
           SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(

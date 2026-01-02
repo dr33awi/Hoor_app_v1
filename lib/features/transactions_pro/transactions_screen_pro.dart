@@ -563,19 +563,7 @@ class _InvoiceCard extends StatelessWidget {
           Row(
             children: [
               // Type Icon
-              Container(
-                width: 48.w,
-                height: 48.h,
-                decoration: BoxDecoration(
-                  color: type.color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                ),
-                child: Icon(
-                  type.icon,
-                  color: type.color,
-                  size: 24.sp,
-                ),
-              ),
+              ProIconBox(icon: type.icon, color: type.color),
               SizedBox(width: AppSpacing.md),
               // Invoice Info
               Expanded(

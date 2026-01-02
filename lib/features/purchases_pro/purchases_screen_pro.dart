@@ -383,19 +383,7 @@ class _PurchaseOrderCard extends StatelessWidget {
           Row(
             children: [
               // Supplier Icon
-              Container(
-                width: 48.w,
-                height: 48.h,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                ),
-                child: Icon(
-                  Icons.local_shipping_outlined,
-                  color: AppColors.primary,
-                  size: 24.sp,
-                ),
-              ),
+              ProIconBox.suppliers(),
               SizedBox(width: AppSpacing.md),
               // Order Info
               Expanded(

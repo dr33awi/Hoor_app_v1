@@ -14,3 +14,4 @@ export 'pro_section_title.dart';
 export 'pro_switch_tile.dart';
 export 'pro_card.dart';
 export 'pro_status_badge.dart';
+export 'pro_icon_box.dart';

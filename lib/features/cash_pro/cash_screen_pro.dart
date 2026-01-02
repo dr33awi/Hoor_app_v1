@@ -592,20 +592,11 @@ class _MovementCard extends StatelessWidget {
       margin: EdgeInsets.only(bottom: AppSpacing.sm),
       child: Row(
         children: [
-          Container(
-            width: 48.w,
-            height: 48.h,
-            decoration: BoxDecoration(
-              color: (isIncome ? AppColors.success : AppColors.error)
-                  .withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: Icon(
-              isIncome
-                  ? Icons.arrow_downward_rounded
-                  : Icons.arrow_upward_rounded,
-              color: isIncome ? AppColors.success : AppColors.error,
-            ),
+          ProIconBox(
+            icon: isIncome
+                ? Icons.arrow_downward_rounded
+                : Icons.arrow_upward_rounded,
+            color: isIncome ? AppColors.success : AppColors.error,
           ),
           SizedBox(width: AppSpacing.md),
           Expanded(

@@ -994,14 +994,7 @@ class _QuickAddOption extends StatelessWidget {
       onTap: onTap,
       child: Row(
         children: [
-          Container(
-            padding: EdgeInsets.all(AppSpacing.sm.w),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: Icon(icon, color: color, size: AppIconSize.md),
-          ),
+          ProIconBox(icon: icon, color: color),
           SizedBox(width: AppSpacing.sm.w),
           Expanded(
             child: Text(

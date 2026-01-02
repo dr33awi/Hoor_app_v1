@@ -367,15 +367,7 @@ class _VoucherCard extends StatelessWidget {
       margin: EdgeInsets.only(bottom: AppSpacing.sm),
       child: Row(
         children: [
-          Container(
-            width: 48.w,
-            height: 48.h,
-            decoration: BoxDecoration(
-              color: _typeColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: Icon(_typeIcon, color: _typeColor, size: AppIconSize.md),
-          ),
+          ProIconBox(icon: _typeIcon, color: _typeColor),
           SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(

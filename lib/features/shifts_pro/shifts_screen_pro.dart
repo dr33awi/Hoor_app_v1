@@ -79,19 +79,7 @@ class ShiftsScreenPro extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          Container(
-            width: 48.w,
-            height: 48.h,
-            decoration: BoxDecoration(
-              color: AppColors.success.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: Icon(
-              Icons.access_time_rounded,
-              color: AppColors.success,
-              size: AppIconSize.md,
-            ),
-          ),
+          ProIconBox(icon: Icons.access_time_rounded, color: AppColors.success),
           SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(

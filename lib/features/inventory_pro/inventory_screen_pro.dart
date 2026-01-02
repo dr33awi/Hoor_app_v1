@@ -506,18 +506,9 @@ class _MovementCard extends StatelessWidget {
       margin: EdgeInsets.only(bottom: AppSpacing.sm),
       child: Row(
         children: [
-          Container(
-            width: 48.w,
-            height: 48.h,
-            decoration: BoxDecoration(
-              color: (isAdd ? AppColors.success : AppColors.error)
-                  .withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: Icon(
-              isAdd ? Icons.add_circle_outline : Icons.remove_circle_outline,
-              color: isAdd ? AppColors.success : AppColors.error,
-            ),
+          ProIconBox(
+            icon: isAdd ? Icons.add_circle_outline : Icons.remove_circle_outline,
+            color: isAdd ? AppColors.success : AppColors.error,
           ),
           SizedBox(width: AppSpacing.md),
           Expanded(
@@ -567,15 +558,7 @@ class _LowStockCard extends StatelessWidget {
       borderColor: AppColors.warning.withValues(alpha: 0.3),
       child: Row(
         children: [
-          Container(
-            width: 48.w,
-            height: 48.h,
-            decoration: BoxDecoration(
-              color: AppColors.warning.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: Icon(Icons.warning_amber_rounded, color: AppColors.warning),
-          ),
+          ProIconBox.warning(),
           SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
@@ -633,15 +616,7 @@ class _StockCard extends StatelessWidget {
       margin: EdgeInsets.only(bottom: AppSpacing.sm),
       child: Row(
         children: [
-          Container(
-            width: 48.w,
-            height: 48.h,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: Icon(Icons.inventory_2_outlined, color: AppColors.primary),
-          ),
+          ProIconBox.inventory(),
           SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
