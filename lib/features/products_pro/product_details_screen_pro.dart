@@ -254,19 +254,12 @@ class _ProductDetailsView extends StatelessWidget {
             final productRepo = ref.read(productRepositoryProvider);
             await productRepo.deleteProduct(product.id);
             if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                    content: const Text('تم حذف المنتج بنجاح'),
-                    backgroundColor: AppColors.success),
-              );
+              ProSnackbar.deleted(context);
               context.pop();
             }
           } catch (e) {
             if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                    content: Text('خطأ: $e'), backgroundColor: AppColors.error),
-              );
+              ProSnackbar.showError(context, e);
             }
           }
         }
@@ -304,28 +297,12 @@ class _ProductDetailsView extends StatelessWidget {
       );
 
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('تم توليد الباركود: $newBarcode'),
-            backgroundColor: AppColors.success,
-            action: SnackBarAction(
-              label: 'نسخ',
-              textColor: Colors.white,
-              onPressed: () {
-                Clipboard.setData(ClipboardData(text: newBarcode));
-              },
-            ),
-          ),
-        );
+        ProSnackbar.success(context, 'تم توليد الباركود: $newBarcode');
+        Clipboard.setData(ClipboardData(text: newBarcode));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('خطأ في حفظ الباركود: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ProSnackbar.showError(context, e);
       }
     }
   }
@@ -335,18 +312,7 @@ class _ProductDetailsView extends StatelessWidget {
     final barcodeValue = product.barcode;
 
     if (barcodeValue == null || barcodeValue.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content:
-              const Text('لا يوجد باركود لهذا المنتج. قم بتوليد باركود أولاً.'),
-          backgroundColor: AppColors.warning,
-          action: SnackBarAction(
-            label: 'توليد',
-            textColor: Colors.white,
-            onPressed: () => _generateAndSaveBarcode(context),
-          ),
-        ),
-      );
+      ProSnackbar.warning(context, 'لا يوجد باركود لهذا المنتج. قم بتوليد باركود أولاً.');
       return;
     }
 
@@ -460,22 +426,14 @@ class _ProductDetailsView extends StatelessWidget {
               onPressed: () async {
                 final quantity = int.tryParse(quantityController.text) ?? 0;
                 if (quantity <= 0) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('أدخل كمية صحيحة')),
-                  );
+                  ProSnackbar.warning(context, 'أدخل كمية صحيحة');
                   return;
                 }
 
                 // التحقق من عدم السحب أكثر من المتوفر
                 if (adjustmentType == 'subtract' &&
                     quantity > product.quantity) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                          'لا يمكن سحب أكثر من الكمية المتوفرة (${product.quantity})'),
-                      backgroundColor: AppColors.error,
-                    ),
-                  );
+                  ProSnackbar.error(context, 'لا يمكن سحب أكثر من الكمية المتوفرة (${product.quantity})');
                   return;
                 }
 
@@ -488,25 +446,13 @@ class _ProductDetailsView extends StatelessWidget {
 
                   if (context.mounted) {
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          adjustmentType == 'add'
-                              ? 'تم إضافة $quantity وحدة'
-                              : 'تم سحب $quantity وحدة',
-                        ),
-                        backgroundColor: AppColors.success,
-                      ),
-                    );
+                    ProSnackbar.success(context, adjustmentType == 'add'
+                        ? 'تم إضافة $quantity وحدة'
+                        : 'تم سحب $quantity وحدة');
                   }
                 } catch (e) {
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('خطأ: $e'),
-                        backgroundColor: AppColors.error,
-                      ),
-                    );
+                    ProSnackbar.showError(context, e);
                   }
                 }
               },

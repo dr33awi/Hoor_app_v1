@@ -107,21 +107,11 @@ class _PrintSettingsScreenProState
       await printSettingsService.saveSettings(updatedSettings);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('تم حفظ الإعدادات بنجاح'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        ProSnackbar.saved(context);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('خطأ في حفظ الإعدادات: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ProSnackbar.showError(context, e);
       }
     } finally {
       setState(() => _isSaving = false);
@@ -876,12 +866,7 @@ class _PrintSettingsScreenProState
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('جاري الطباعة...'),
-                  backgroundColor: AppColors.info,
-                ),
-              );
+              ProSnackbar.info(context, 'جاري الطباعة...');
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,

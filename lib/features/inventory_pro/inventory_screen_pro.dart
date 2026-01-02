@@ -408,17 +408,13 @@ class _InventoryScreenProState extends ConsumerState<InventoryScreenPro>
                     child: ElevatedButton(
                       onPressed: () async {
                         if (selectedProduct == null) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('اختر المنتج')),
-                          );
+                          ProSnackbar.warning(context, 'اختر المنتج');
                           return;
                         }
                         final quantity =
                             int.tryParse(quantityController.text) ?? 0;
                         if (quantity <= 0) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('أدخل كمية صحيحة')),
-                          );
+                          ProSnackbar.warning(context, 'أدخل كمية صحيحة');
                           return;
                         }
 
@@ -445,21 +441,11 @@ class _InventoryScreenProState extends ConsumerState<InventoryScreenPro>
 
                           if (context.mounted) {
                             Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: const Text('تم تسجيل الحركة بنجاح'),
-                                backgroundColor: AppColors.success,
-                              ),
-                            );
+                            ProSnackbar.success(context, 'تم تسجيل الحركة بنجاح');
                           }
                         } catch (e) {
                           if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('خطأ: $e'),
-                                backgroundColor: AppColors.error,
-                              ),
-                            );
+                            ProSnackbar.showError(context, e);
                           }
                         }
                       },

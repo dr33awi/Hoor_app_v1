@@ -291,26 +291,11 @@ class _BackupScreenProState extends ConsumerState<BackupScreenPro> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('تم إنشاء النسخة الاحتياطية بنجاح'),
-            backgroundColor: AppColors.success,
-            action: SnackBarAction(
-              label: 'مشاركة',
-              textColor: Colors.white,
-              onPressed: _shareBackup,
-            ),
-          ),
-        );
+        ProSnackbar.success(context, 'تم إنشاء النسخة الاحتياطية بنجاح');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('خطأ في إنشاء النسخة: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ProSnackbar.showError(context, e);
       }
     } finally {
       setState(() => _isCreatingBackup = false);
@@ -373,22 +358,11 @@ class _BackupScreenProState extends ConsumerState<BackupScreenPro> {
       await _backupService.restoreFromCloud();
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content:
-                const Text('تمت الاستعادة بنجاح. يرجى إعادة تشغيل التطبيق.'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        ProSnackbar.success(context, 'تمت الاستعادة بنجاح. يرجى إعادة تشغيل التطبيق.');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('خطأ في الاستعادة: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ProSnackbar.showError(context, e);
       }
     } finally {
       setState(() => _isRestoring = false);
@@ -409,12 +383,7 @@ class _BackupScreenProState extends ConsumerState<BackupScreenPro> {
         );
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('خطأ في المشاركة: $e'),
-              backgroundColor: AppColors.error,
-            ),
-          );
+          ProSnackbar.showError(context, e);
         }
       }
     }

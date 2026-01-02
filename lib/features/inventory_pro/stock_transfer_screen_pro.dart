@@ -407,12 +407,7 @@ class _StockTransferScreenProState extends ConsumerState<StockTransferScreenPro>
         toWarehouse == null ||
         product == null ||
         quantity <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('يرجى ملء جميع الحقول المطلوبة'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ProSnackbar.warning(context, 'يرجى ملء جميع الحقول المطلوبة');
       return;
     }
 
@@ -433,21 +428,11 @@ class _StockTransferScreenProState extends ConsumerState<StockTransferScreenPro>
 
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('تم إنشاء عملية النقل بنجاح'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        ProSnackbar.success(context, 'تم إنشاء عملية النقل بنجاح');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('خطأ: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ProSnackbar.showError(context, e);
       }
     }
   }
@@ -531,21 +516,11 @@ class _StockTransferScreenProState extends ConsumerState<StockTransferScreenPro>
       final warehouseRepo = ref.read(warehouseRepositoryProvider);
       await warehouseRepo.completeTransfer(transfer.id);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('تم إكمال النقل بنجاح'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        ProSnackbar.success(context, 'تم إكمال النقل بنجاح');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('خطأ: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ProSnackbar.showError(context, e);
       }
     }
   }
@@ -577,21 +552,11 @@ class _StockTransferScreenProState extends ConsumerState<StockTransferScreenPro>
       final warehouseRepo = ref.read(warehouseRepositoryProvider);
       await warehouseRepo.cancelTransfer(transfer.id);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('تم إلغاء النقل'),
-            backgroundColor: AppColors.warning,
-          ),
-        );
+        ProSnackbar.warning(context, 'تم إلغاء النقل');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('خطأ: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ProSnackbar.showError(context, e);
       }
     }
   }

@@ -825,9 +825,7 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro> {
 
       if (invoices.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('لا توجد بيانات للتصدير')),
-          );
+          ProSnackbar.warning(context, 'لا توجد بيانات للتصدير');
         }
         return;
       }
@@ -836,22 +834,11 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro> {
       // Note: This would require the export_service to be properly integrated
       // For now, show a success message
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content:
-                Text('جاري تصدير التقرير بصيغة ${format.toUpperCase()}...'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        ProSnackbar.success(context, 'جاري تصدير التقرير بصيغة ${format.toUpperCase()}...');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('خطأ في التصدير: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ProSnackbar.showError(context, e);
       }
     } finally {
       if (mounted) {

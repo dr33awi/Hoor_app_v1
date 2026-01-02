@@ -1260,22 +1260,14 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
 
   Future<void> _saveInvoice() async {
     if (_items.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('أضف منتجات للفاتورة'),
-            backgroundColor: AppColors.warning),
-      );
+      ProSnackbar.warning(context, 'أضف منتجات للفاتورة');
       return;
     }
 
     // التحقق من إدخال المبلغ المدفوع عند الدفع الجزئي
     if (_paymentMethod == 'partial' &&
         _paidAmountController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('الرجاء إدخال المبلغ المدفوع'),
-            backgroundColor: AppColors.warning),
-      );
+      ProSnackbar.warning(context, 'الرجاء إدخال المبلغ المدفوع');
       return;
     }
 
@@ -1372,9 +1364,7 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: $e'), backgroundColor: AppColors.error),
-        );
+        ProSnackbar.showError(context, e);
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);

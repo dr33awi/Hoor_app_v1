@@ -425,21 +425,11 @@ class _ReturnsScreenProState extends ConsumerState<ReturnsScreenPro> {
 
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('تم إنشاء المرتجع بنجاح'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        ProSnackbar.success(context, 'تم إنشاء المرتجع بنجاح');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('خطأ: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ProSnackbar.showError(context, e);
       }
     }
   }

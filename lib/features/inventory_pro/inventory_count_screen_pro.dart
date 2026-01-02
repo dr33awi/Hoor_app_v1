@@ -301,22 +301,12 @@ class _InventoryCountScreenProState
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('تم حفظ الجرد بنجاح'),
-            backgroundColor: AppColors.success,
-          ),
-        );
+        ProSnackbar.saved(context);
         context.pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('خطأ في الحفظ: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        ProSnackbar.showError(context, e);
       }
     }
   }

@@ -434,18 +434,12 @@ class _CustomerFormScreenProState extends ConsumerState<CustomerFormScreenPro> {
       final customerRepo = ref.read(customerRepositoryProvider);
       await customerRepo.deleteCustomer(widget.customerId!);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('تم حذف العميل بنجاح'),
-              backgroundColor: AppColors.success),
-        );
+        ProSnackbar.deleted(context);
         context.pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('خطأ: $e'), backgroundColor: AppColors.error),
-        );
+        ProSnackbar.showError(context, e);
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
@@ -479,11 +473,7 @@ class _CustomerFormScreenProState extends ConsumerState<CustomerFormScreenPro> {
           isActive: _isActive,
         );
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text('تم تحديث العميل بنجاح'),
-                backgroundColor: AppColors.success),
-          );
+          ProSnackbar.success(context, 'تم تحديث العميل بنجاح');
         }
       } else {
         // Create new customer
@@ -503,22 +493,14 @@ class _CustomerFormScreenProState extends ConsumerState<CustomerFormScreenPro> {
               : _notesController.text.trim(),
         );
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text('تم إضافة العميل بنجاح'),
-                backgroundColor: AppColors.success),
-          );
+          ProSnackbar.success(context, 'تم إضافة العميل بنجاح');
         }
       }
 
       if (mounted) context.pop();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('خطأ في حفظ العميل: $e'),
-              backgroundColor: AppColors.error),
-        );
+        ProSnackbar.showError(context, e);
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);
