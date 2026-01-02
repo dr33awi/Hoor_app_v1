@@ -14,6 +14,7 @@ import 'package:printing/printing.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/widgets/widgets.dart';
 import '../../data/database/app_database.dart';
 
 class ProductFormScreenPro extends ConsumerStatefulWidget {
@@ -46,7 +47,7 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
   bool _isLoading = false;
   bool _isLoadingProduct = false;
   bool _isPrintingBarcode = false;
-  Product? _existingProduct;
+  Product? _existingProduct; // للاستخدام عند تحميل بيانات المنتج
 
   bool get isEditing => widget.productId != null;
 
@@ -409,9 +410,9 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
         padding: EdgeInsets.all(AppSpacing.md),
         children: [
           // Product Name
-          _buildSectionTitle('معلومات المنتج'),
+          const ProSectionTitle('معلومات المنتج'),
           SizedBox(height: AppSpacing.sm),
-          _buildTextField(
+          ProTextField(
             controller: _nameController,
             label: 'اسم المنتج',
             hint: 'أدخل اسم المنتج',
@@ -429,7 +430,7 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
           SizedBox(height: AppSpacing.md),
 
           // Description
-          _buildTextField(
+          ProTextField(
             controller: _descriptionController,
             label: 'الوصف',
             hint: 'أدخل وصف المنتج (اختياري)',
@@ -438,19 +439,15 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
           SizedBox(height: AppSpacing.lg),
 
           // Pricing Section
-          _buildSectionTitle('التسعير'),
+          const ProSectionTitle('التسعير'),
           SizedBox(height: AppSpacing.sm),
           Row(
             children: [
               Expanded(
-                child: _buildTextField(
+                child: ProNumberField(
                   controller: _costPriceController,
                   label: 'سعر التكلفة',
                   hint: '0.00',
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
-                  ],
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
                       return 'الرجاء إدخال سعر التكلفة';
@@ -461,14 +458,10 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
               ),
               SizedBox(width: AppSpacing.md),
               Expanded(
-                child: _buildTextField(
+                child: ProNumberField(
                   controller: _salePriceController,
                   label: 'سعر البيع (اختياري)',
                   hint: '0.00',
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'[\d.]')),
-                  ],
                 ),
               ),
             ],
@@ -476,19 +469,16 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
           SizedBox(height: AppSpacing.lg),
 
           // Stock Section
-          _buildSectionTitle('المخزون'),
+          const ProSectionTitle('المخزون'),
           SizedBox(height: AppSpacing.sm),
           Row(
             children: [
               Expanded(
-                child: _buildTextField(
+                child: ProNumberField(
                   controller: _stockController,
                   label: 'الكمية الحالية',
                   hint: '0',
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                  ],
+                  allowDecimal: false,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
                       return 'الرجاء إدخال الكمية';
@@ -499,14 +489,11 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
               ),
               SizedBox(width: AppSpacing.md),
               Expanded(
-                child: _buildTextField(
+                child: ProNumberField(
                   controller: _minStockController,
                   label: 'الحد الأدنى',
                   hint: '0',
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                  ],
+                  allowDecimal: false,
                 ),
               ),
             ],
@@ -514,7 +501,7 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
           SizedBox(height: AppSpacing.md),
 
           // SKU
-          _buildTextField(
+          ProTextField(
             controller: _skuController,
             label: 'رمز المنتج (SKU)',
             hint: 'رمز المنتج الفريد (اختياري)',
@@ -522,79 +509,6 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
           SizedBox(height: AppSpacing.xl),
         ],
       ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: AppTypography.titleMedium.copyWith(
-        color: AppColors.textPrimary,
-        fontWeight: FontWeight.w600,
-      ),
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    String? hint,
-    int maxLines = 1,
-    TextInputType? keyboardType,
-    List<TextInputFormatter>? inputFormatters,
-    String? Function(String?)? validator,
-    Widget? suffix,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: AppTypography.labelMedium.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-        SizedBox(height: AppSpacing.xs),
-        TextFormField(
-          controller: controller,
-          maxLines: maxLines,
-          keyboardType: keyboardType,
-          inputFormatters: inputFormatters,
-          validator: validator,
-          style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.textPrimary,
-          ),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textTertiary,
-            ),
-            filled: true,
-            fillColor: AppColors.surface,
-            suffixIcon: suffix,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              borderSide: BorderSide(color: AppColors.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              borderSide: BorderSide(color: AppColors.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              borderSide: BorderSide(color: AppColors.primary, width: 2),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              borderSide: BorderSide(color: AppColors.error),
-            ),
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.sm,
-            ),
-          ),
-        ),
-      ],
     );
   }
 

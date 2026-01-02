@@ -495,7 +495,6 @@ class _InvoiceDetailsScreenProState
   }
 
   Widget _buildStatusCard(DateFormat dateFormat) {
-    final status = _invoice!.status;
     final isPaid = _invoice!.paidAmount >= _invoice!.total;
     Color statusColor;
     String statusText;

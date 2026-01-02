@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/widgets/widgets.dart';
 import '../../data/database/app_database.dart';
 
 class CustomerFormScreenPro extends ConsumerStatefulWidget {
@@ -158,15 +159,15 @@ class _CustomerFormScreenProState extends ConsumerState<CustomerFormScreenPro> {
               SizedBox(height: AppSpacing.lg),
 
               // Basic Info Section
-              _buildSectionTitle('المعلومات الأساسية'),
+              const ProSectionTitle('المعلومات الأساسية'),
               SizedBox(height: AppSpacing.md),
-              _buildTextField(
+              ProTextField(
                 controller: _nameController,
                 label: _customerType == 'company' ? 'اسم الشركة' : 'اسم العميل',
                 hint: _customerType == 'company'
                     ? 'أدخل اسم الشركة'
                     : 'أدخل اسم العميل',
-                icon: _customerType == 'company'
+                prefixIcon: _customerType == 'company'
                     ? Icons.business_outlined
                     : Icons.person_outline,
                 validator: (value) =>
@@ -177,11 +178,11 @@ class _CustomerFormScreenProState extends ConsumerState<CustomerFormScreenPro> {
               Row(
                 children: [
                   Expanded(
-                    child: _buildTextField(
+                    child: ProTextField(
                       controller: _phoneController,
                       label: 'رقم الجوال',
                       hint: '05xxxxxxxx',
-                      icon: Icons.phone_outlined,
+                      prefixIcon: Icons.phone_outlined,
                       keyboardType: TextInputType.phone,
                       validator: (value) =>
                           value?.isEmpty ?? true ? 'رقم الجوال مطلوب' : null,
@@ -189,11 +190,11 @@ class _CustomerFormScreenProState extends ConsumerState<CustomerFormScreenPro> {
                   ),
                   SizedBox(width: AppSpacing.md),
                   Expanded(
-                    child: _buildTextField(
+                    child: ProTextField(
                       controller: _emailController,
                       label: 'البريد الإلكتروني',
                       hint: 'email@example.com',
-                      icon: Icons.email_outlined,
+                      prefixIcon: Icons.email_outlined,
                       keyboardType: TextInputType.emailAddress,
                     ),
                   ),
@@ -201,23 +202,23 @@ class _CustomerFormScreenProState extends ConsumerState<CustomerFormScreenPro> {
               ),
               SizedBox(height: AppSpacing.md),
 
-              _buildTextField(
+              ProTextField(
                 controller: _addressController,
                 label: 'العنوان',
                 hint: 'أدخل العنوان',
-                icon: Icons.location_on_outlined,
+                prefixIcon: Icons.location_on_outlined,
                 maxLines: 2,
               ),
 
               if (_customerType == 'company') ...[
                 SizedBox(height: AppSpacing.lg),
-                _buildSectionTitle('معلومات الشركة'),
+                const ProSectionTitle('معلومات الشركة'),
                 SizedBox(height: AppSpacing.md),
-                _buildTextField(
+                ProTextField(
                   controller: _taxNumberController,
                   label: 'الرقم الضريبي',
                   hint: 'أدخل الرقم الضريبي',
-                  icon: Icons.numbers_outlined,
+                  prefixIcon: Icons.numbers_outlined,
                   keyboardType: TextInputType.number,
                 ),
               ],
@@ -225,13 +226,13 @@ class _CustomerFormScreenProState extends ConsumerState<CustomerFormScreenPro> {
               SizedBox(height: AppSpacing.lg),
 
               // Financial Settings
-              _buildSectionTitle('الإعدادات المالية'),
+              const ProSectionTitle('الإعدادات المالية'),
               SizedBox(height: AppSpacing.md),
-              _buildTextField(
+              ProTextField(
                 controller: _creditLimitController,
                 label: 'حد الائتمان',
                 hint: '0.00',
-                icon: Icons.credit_card_outlined,
+                prefixIcon: Icons.credit_card_outlined,
                 keyboardType: TextInputType.number,
                 suffixText: 'ر.س',
               ),
@@ -239,7 +240,7 @@ class _CustomerFormScreenProState extends ConsumerState<CustomerFormScreenPro> {
               SizedBox(height: AppSpacing.lg),
 
               // Status Toggle
-              _buildSwitchTile(
+              ProSwitchTile(
                 title: 'عميل نشط',
                 subtitle: 'يظهر في قوائم الاختيار',
                 value: _isActive,
@@ -249,9 +250,9 @@ class _CustomerFormScreenProState extends ConsumerState<CustomerFormScreenPro> {
               SizedBox(height: AppSpacing.lg),
 
               // Notes
-              _buildSectionTitle('ملاحظات'),
+              const ProSectionTitle('ملاحظات'),
               SizedBox(height: AppSpacing.md),
-              _buildTextField(
+              ProTextField(
                 controller: _notesController,
                 label: 'ملاحظات إضافية',
                 hint: 'أضف ملاحظات عن العميل...',
@@ -350,121 +351,6 @@ class _CustomerFormScreenProState extends ConsumerState<CustomerFormScreenPro> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: AppTypography.titleMedium.copyWith(
-        color: AppColors.textPrimary,
-        fontWeight: FontWeight.w600,
-      ),
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required String hint,
-    IconData? icon,
-    TextInputType? keyboardType,
-    int maxLines = 1,
-    String? suffixText,
-    String? Function(String?)? validator,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: AppTypography.labelMedium.copyWith(
-            color: AppColors.textSecondary,
-          ),
-        ),
-        SizedBox(height: AppSpacing.xs),
-        TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          maxLines: maxLines,
-          validator: validator,
-          style: AppTypography.bodyMedium,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textTertiary,
-            ),
-            prefixIcon: icon != null
-                ? Icon(icon,
-                    color: AppColors.textTertiary, size: AppIconSize.sm)
-                : null,
-            suffixText: suffixText,
-            filled: true,
-            fillColor: AppColors.surface,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              borderSide: BorderSide(color: AppColors.border),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              borderSide: BorderSide(color: AppColors.border),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              borderSide: BorderSide(color: AppColors.secondary, width: 2),
-            ),
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.md,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSwitchTile({
-    required String title,
-    required String subtitle,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
-    return Container(
-      padding: EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: AppTypography.titleSmall.copyWith(
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                SizedBox(height: 2.h),
-                Text(
-                  subtitle,
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textTertiary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Switch.adaptive(
-            value: value,
-            onChanged: onChanged,
-            activeColor: AppColors.secondary,
-          ),
-        ],
       ),
     );
   }

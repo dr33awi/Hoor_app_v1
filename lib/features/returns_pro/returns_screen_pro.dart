@@ -1,6 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Purchase Returns Screen Pro - Professional Design System
-// Modern Purchase Returns Management Interface
+// Returns Screen Pro - Unified Returns Management
+// Handles both Sales Returns and Purchase Returns
+// Replaces: sales_returns_screen_pro.dart & purchase_returns_screen_pro.dart
 // ═══════════════════════════════════════════════════════════════════════════
 
 import 'package:flutter/material.dart';
@@ -10,19 +11,53 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/theme/design_tokens.dart';
+import '../../core/widgets/widgets.dart';
 import '../../core/providers/app_providers.dart';
 import '../../data/database/app_database.dart';
 
-class PurchaseReturnsScreenPro extends ConsumerStatefulWidget {
-  const PurchaseReturnsScreenPro({super.key});
-
-  @override
-  ConsumerState<PurchaseReturnsScreenPro> createState() =>
-      _PurchaseReturnsScreenProState();
+/// نوع المرتجع
+enum ReturnType {
+  sales,
+  purchase,
 }
 
-class _PurchaseReturnsScreenProState
-    extends ConsumerState<PurchaseReturnsScreenPro> {
+extension ReturnTypeExtension on ReturnType {
+  String get title =>
+      this == ReturnType.sales ? 'مرتجعات المبيعات' : 'مرتجعات المشتريات';
+  String get subtitle => this == ReturnType.sales
+      ? 'إدارة مرتجعات العملاء'
+      : 'إدارة مرتجعات الموردين';
+  String get invoiceType =>
+      this == ReturnType.sales ? 'sale_return' : 'purchase_return';
+  String get originalInvoiceType =>
+      this == ReturnType.sales ? 'sale' : 'purchase';
+  String get newReturnTitle =>
+      this == ReturnType.sales ? 'مرتجع مبيعات جديد' : 'مرتجع مشتريات جديد';
+  String get selectInvoiceLabel => this == ReturnType.sales
+      ? 'اختر فاتورة المبيعات'
+      : 'اختر فاتورة المشتريات';
+  String get partyField =>
+      this == ReturnType.sales ? 'customerId' : 'supplierId';
+  String get searchHint => this == ReturnType.sales
+      ? 'بحث برقم الفاتورة أو العميل...'
+      : 'بحث برقم الفاتورة أو المورد...';
+  Color get accentColor =>
+      this == ReturnType.sales ? AppColors.error : AppColors.warning;
+}
+
+class ReturnsScreenPro extends ConsumerStatefulWidget {
+  final ReturnType type;
+
+  const ReturnsScreenPro({
+    super.key,
+    required this.type,
+  });
+
+  @override
+  ConsumerState<ReturnsScreenPro> createState() => _ReturnsScreenProState();
+}
+
+class _ReturnsScreenProState extends ConsumerState<ReturnsScreenPro> {
   final _searchController = TextEditingController();
   String _searchQuery = '';
   DateTimeRange? _dateRange;
@@ -33,51 +68,28 @@ class _PurchaseReturnsScreenProState
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final returnsAsync = ref.watch(purchaseReturnsStreamProvider);
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Data Provider based on type
+  // ═══════════════════════════════════════════════════════════════════════════
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            _buildFilters(),
-            Expanded(
-              child: returnsAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, _) => _buildErrorState(error.toString()),
-                data: (returns) {
-                  var filtered = _filterReturns(returns);
-                  return filtered.isEmpty
-                      ? _buildEmptyState()
-                      : _buildReturnsList(filtered);
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showNewReturnSheet(),
-        backgroundColor: AppColors.warning,
-        icon: const Icon(Icons.assignment_return_rounded, color: Colors.white),
-        label: Text(
-          'مرتجع جديد',
-          style: AppTypography.labelLarge.copyWith(color: Colors.white),
-        ),
-      ),
-    );
-  }
+  StreamProvider<List<Invoice>> get _returnsProvider =>
+      widget.type == ReturnType.sales
+          ? salesReturnsStreamProvider
+          : purchaseReturnsStreamProvider;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Filter Logic
+  // ═══════════════════════════════════════════════════════════════════════════
 
   List<Invoice> _filterReturns(List<Invoice> returns) {
     var filtered = returns;
 
     if (_searchQuery.isNotEmpty) {
       filtered = filtered.where((r) {
+        final partyId =
+            widget.type == ReturnType.sales ? r.customerId : r.supplierId;
         return r.invoiceNumber.contains(_searchQuery) ||
-            (r.supplierId?.toLowerCase().contains(_searchQuery.toLowerCase()) ??
+            (partyId?.toLowerCase().contains(_searchQuery.toLowerCase()) ??
                 false);
       }).toList();
     }
@@ -94,252 +106,117 @@ class _PurchaseReturnsScreenProState
     return filtered;
   }
 
-  Widget _buildHeader() {
-    return Container(
-      padding: EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border(bottom: BorderSide(color: AppColors.border)),
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Build UI
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  @override
+  Widget build(BuildContext context) {
+    final returnsAsync = ref.watch(_returnsProvider);
+
+    return ProSimpleScaffold(
+      header: _buildHeader(returnsAsync),
+      searchWidget: _buildFilters(),
+      body: returnsAsync.when(
+        loading: () => const ProLoadingState(),
+        error: (error, _) => ProErrorState(
+          message: error.toString(),
+          onRetry: () => ref.invalidate(_returnsProvider),
+        ),
+        data: (returns) {
+          final filtered = _filterReturns(returns);
+          return filtered.isEmpty
+              ? ProEmptyState.returns(isSales: widget.type == ReturnType.sales)
+              : _buildReturnsList(filtered);
+        },
       ),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => context.pop(),
-            icon: Icon(Icons.arrow_back_ios_rounded,
-                color: AppColors.textSecondary),
-          ),
-          SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'مرتجعات المشتريات',
-                  style: AppTypography.headlineSmall.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  'إدارة مرتجعات الموردين',
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textTertiary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          _buildStatsChip(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatsChip() {
-    final returnsAsync = ref.watch(purchaseReturnsStreamProvider);
-
-    return returnsAsync.when(
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
-      data: (returns) {
-        final total = returns.fold<double>(0, (sum, r) => sum + r.total);
-        return Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: AppSpacing.sm,
-            vertical: AppSpacing.xs,
-          ),
-          decoration: BoxDecoration(
-            color: AppColors.warning.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(AppRadius.md),
-          ),
-          child: Column(
-            children: [
-              Text(
-                '${returns.length}',
-                style: AppTypography.titleMedium.copyWith(
-                  color: AppColors.warning,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                NumberFormat.compact(locale: 'ar').format(total),
-                style: AppTypography.labelSmall.copyWith(
-                  color: AppColors.warning,
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildFilters() {
-    return Container(
-      padding: EdgeInsets.all(AppSpacing.md),
-      child: Row(
-        children: [
-          // Search
-          Expanded(
-            child: Container(
-              height: 44.h,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: TextField(
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'بحث برقم الفاتورة أو المورد...',
-                  hintStyle: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.textTertiary,
-                  ),
-                  prefixIcon:
-                      Icon(Icons.search, color: AppColors.textSecondary),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm,
-                  ),
-                ),
-                onChanged: (value) => setState(() => _searchQuery = value),
-              ),
-            ),
-          ),
-          SizedBox(width: AppSpacing.sm),
-          // Date Filter
-          InkWell(
-            onTap: _selectDateRange,
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            child: Container(
-              height: 44.h,
-              padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
-              decoration: BoxDecoration(
-                color: _dateRange != null
-                    ? AppColors.secondary.withOpacity(0.1)
-                    : AppColors.surface,
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                border: Border.all(
-                  color: _dateRange != null
-                      ? AppColors.secondary
-                      : AppColors.border,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.calendar_today_rounded,
-                    size: 18.sp,
-                    color: _dateRange != null
-                        ? AppColors.secondary
-                        : AppColors.textSecondary,
-                  ),
-                  if (_dateRange != null) ...[
-                    SizedBox(width: AppSpacing.xs),
-                    IconButton(
-                      onPressed: () => setState(() => _dateRange = null),
-                      icon: Icon(Icons.close, size: 16.sp),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _selectDateRange() async {
-    final range = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-      initialDateRange: _dateRange,
-      locale: const Locale('ar'),
-    );
-    if (range != null) {
-      setState(() => _dateRange = range);
-    }
-  }
-
-  Widget _buildErrorState(String error) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.error_outline, size: 64.sp, color: AppColors.error),
-          SizedBox(height: AppSpacing.md),
-          Text('حدث خطأ', style: AppTypography.titleMedium),
-          SizedBox(height: AppSpacing.sm),
-          Text(error, style: AppTypography.bodySmall),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Padding(
-        padding: EdgeInsets.all(AppSpacing.xl),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: EdgeInsets.all(AppSpacing.xl),
-              decoration: BoxDecoration(
-                color: AppColors.warning.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.assignment_return_rounded,
-                size: 64.sp,
-                color: AppColors.warning,
-              ),
-            ),
-            SizedBox(height: AppSpacing.lg),
-            Text(
-              'لا توجد مرتجعات',
-              style: AppTypography.titleLarge.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            SizedBox(height: AppSpacing.sm),
-            Text(
-              'سجل مرتجعات المشتريات سيظهر هنا',
-              style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showNewReturnSheet(),
+        backgroundColor: widget.type.accentColor,
+        icon: const Icon(Icons.assignment_return_rounded, color: Colors.white),
+        label: Text(
+          'مرتجع جديد',
+          style: AppTypography.labelLarge.copyWith(color: Colors.white),
         ),
       ),
     );
   }
 
-  Widget _buildReturnsList(List<Invoice> returns) {
-    return ListView.builder(
-      padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
-      itemCount: returns.length,
-      itemBuilder: (context, index) {
-        return _ReturnCard(
-          returnInvoice: returns[index],
-          onTap: () => context.push('/invoices/${returns[index].id}'),
-        );
-      },
+  Widget _buildHeader(AsyncValue<List<Invoice>> returnsAsync) {
+    return ProHeader(
+      title: widget.type.title,
+      subtitle: widget.type.subtitle,
+      onBack: () => context.pop(),
+      actions: [
+        returnsAsync.when(
+          loading: () => const SizedBox.shrink(),
+          error: (_, __) => const SizedBox.shrink(),
+          data: (returns) {
+            final total = returns.fold<double>(0, (sum, r) => sum + r.total);
+            return ProStatsChip(
+              count: returns.length,
+              total: total,
+              color: widget.type.accentColor,
+            );
+          },
+        ),
+      ],
     );
   }
 
-  void _showNewReturnSheet() {
-    final invoicesAsync = ref.read(invoicesStreamProvider);
+  Widget _buildFilters() {
+    return ProSearchBarWithDateRange(
+      controller: _searchController,
+      hintText: widget.type.searchHint,
+      onChanged: (value) => setState(() => _searchQuery = value),
+      dateRange: _dateRange,
+      onDateRangeTap: _selectDateRange,
+    );
+  }
 
+  Future<void> _selectDateRange() async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      initialDateRange: _dateRange,
+      locale: const Locale('ar'),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: ColorScheme.light(primary: widget.type.accentColor),
+        ),
+        child: child!,
+      ),
+    );
+
+    if (picked != null) {
+      setState(() => _dateRange = picked);
+    }
+  }
+
+  Widget _buildReturnsList(List<Invoice> returns) {
+    return RefreshIndicator(
+      onRefresh: () async => ref.invalidate(_returnsProvider),
+      child: ListView.builder(
+        padding: EdgeInsets.all(AppSpacing.md),
+        itemCount: returns.length,
+        itemBuilder: (context, index) => _ReturnCard(
+          returnInvoice: returns[index],
+          type: widget.type,
+          onTap: () => context.push('/invoices/${returns[index].id}'),
+        ),
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // New Return Sheet
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  void _showNewReturnSheet() {
     Invoice? selectedInvoice;
     final reasonController = TextEditingController();
+    final invoicesAsync = ref.read(invoicesStreamProvider);
 
     showModalBottomSheet(
       context: context,
@@ -380,15 +257,17 @@ class _PurchaseReturnsScreenProState
                     Container(
                       padding: EdgeInsets.all(AppSpacing.sm),
                       decoration: BoxDecoration(
-                        color: AppColors.warning.withOpacity(0.1),
+                        color: widget.type.accentColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(AppRadius.md),
                       ),
-                      child: Icon(Icons.assignment_return_rounded,
-                          color: AppColors.warning),
+                      child: Icon(
+                        Icons.assignment_return_rounded,
+                        color: widget.type.accentColor,
+                      ),
                     ),
                     SizedBox(width: AppSpacing.md),
                     Text(
-                      'مرتجع مشتريات جديد',
+                      widget.type.newReturnTitle,
                       style: AppTypography.titleLarge
                           .copyWith(fontWeight: FontWeight.bold),
                     ),
@@ -397,15 +276,17 @@ class _PurchaseReturnsScreenProState
                 SizedBox(height: AppSpacing.xl),
 
                 // Select Invoice
-                Text('اختر فاتورة المشتريات', style: AppTypography.labelLarge),
+                Text(widget.type.selectInvoiceLabel,
+                    style: AppTypography.labelLarge),
                 SizedBox(height: AppSpacing.sm),
                 invoicesAsync.when(
                   loading: () => const LinearProgressIndicator(),
                   error: (_, __) => const Text('خطأ في تحميل الفواتير'),
                   data: (invoices) {
-                    final purchaseInvoices = invoices
+                    final filteredInvoices = invoices
                         .where((i) =>
-                            i.type == 'purchase' && i.status != 'returned')
+                            i.type == widget.type.originalInvoiceType &&
+                            i.status != 'returned')
                         .toList();
                     return Container(
                       padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
@@ -418,7 +299,7 @@ class _PurchaseReturnsScreenProState
                           isExpanded: true,
                           value: selectedInvoice,
                           hint: const Text('اختر الفاتورة'),
-                          items: purchaseInvoices
+                          items: filteredInvoices
                               .map((i) => DropdownMenuItem(
                                     value: i,
                                     child: Text(
@@ -442,7 +323,9 @@ class _PurchaseReturnsScreenProState
                   controller: reasonController,
                   maxLines: 3,
                   decoration: InputDecoration(
-                    hintText: 'أدخل سبب إرجاع المنتجات للمورد',
+                    hintText: widget.type == ReturnType.sales
+                        ? 'أدخل سبب إرجاع المنتجات'
+                        : 'أدخل سبب إرجاع المنتجات للمورد',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
@@ -477,7 +360,7 @@ class _PurchaseReturnsScreenProState
                                 )
                             : null,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.warning,
+                          backgroundColor: widget.type.accentColor,
                           foregroundColor: Colors.white,
                           padding: EdgeInsets.all(AppSpacing.md),
                           shape: RoundedRectangleBorder(
@@ -506,20 +389,38 @@ class _PurchaseReturnsScreenProState
       final invoiceRepo = ref.read(invoiceRepositoryProvider);
       // Get original invoice items
       final items = await invoiceRepo.getInvoiceItems(invoice.id);
-      await invoiceRepo.createInvoice(
-        type: 'purchase_return',
-        supplierId: invoice.supplierId,
-        items: items
+
+      final Map<String, dynamic> invoiceData = {
+        'type': widget.type.invoiceType,
+        'items': items
             .map((item) => {
                   'productId': item.productId,
+                  'productName': item.productName,
                   'quantity': item.quantity,
-                  'price': item.unitPrice,
+                  'unitPrice': item.unitPrice,
+                  'purchasePrice': item.purchasePrice,
                 })
             .toList(),
-        paymentMethod: invoice.paymentMethod,
-        notes: reason.isEmpty
-            ? 'مرتجع مشتريات - فاتورة رقم: ${invoice.invoiceNumber}'
+        'paymentMethod': invoice.paymentMethod,
+        'notes': reason.isEmpty
+            ? 'مرتجع ${widget.type == ReturnType.sales ? "مبيعات" : "مشتريات"} - فاتورة رقم: ${invoice.invoiceNumber}'
             : reason,
+      };
+
+      // Add customer or supplier based on type
+      if (widget.type == ReturnType.sales) {
+        invoiceData['customerId'] = invoice.customerId;
+      } else {
+        invoiceData['supplierId'] = invoice.supplierId;
+      }
+
+      await invoiceRepo.createInvoice(
+        type: invoiceData['type'],
+        customerId: invoiceData['customerId'],
+        supplierId: invoiceData['supplierId'],
+        items: invoiceData['items'],
+        paymentMethod: invoiceData['paymentMethod'],
+        notes: invoiceData['notes'],
       );
 
       if (mounted) {
@@ -550,23 +451,28 @@ class _PurchaseReturnsScreenProState
 
 class _ReturnCard extends StatelessWidget {
   final Invoice returnInvoice;
+  final ReturnType type;
   final VoidCallback onTap;
 
   const _ReturnCard({
     required this.returnInvoice,
+    required this.type,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('yyyy/MM/dd HH:mm', 'ar');
+    final partyId = type == ReturnType.sales
+        ? returnInvoice.customerId
+        : returnInvoice.supplierId;
 
     return Container(
       margin: EdgeInsets.only(bottom: AppSpacing.md),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.warning.withOpacity(0.3)),
+        border: Border.all(color: type.accentColor.withOpacity(0.3)),
         boxShadow: AppShadows.sm,
       ),
       child: InkWell(
@@ -583,12 +489,12 @@ class _ReturnCard extends StatelessWidget {
                   Container(
                     padding: EdgeInsets.all(AppSpacing.sm),
                     decoration: BoxDecoration(
-                      color: AppColors.warning.withOpacity(0.1),
+                      color: type.accentColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
                     child: Icon(
                       Icons.assignment_return_rounded,
-                      color: AppColors.warning,
+                      color: type.accentColor,
                       size: 20.sp,
                     ),
                   ),
@@ -615,13 +521,13 @@ class _ReturnCard extends StatelessWidget {
                   Text(
                     '${NumberFormat('#,###').format(returnInvoice.total)} ل.س',
                     style: AppTypography.titleMedium.copyWith(
-                      color: AppColors.warning,
+                      color: type.accentColor,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
-              if (returnInvoice.supplierId != null) ...[
+              if (partyId != null) ...[
                 SizedBox(height: AppSpacing.sm),
                 Container(
                   padding: EdgeInsets.all(AppSpacing.sm),
@@ -631,11 +537,16 @@ class _ReturnCard extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.business_outlined,
-                          size: 16.sp, color: AppColors.textSecondary),
+                      Icon(
+                        type == ReturnType.sales
+                            ? Icons.person_outline
+                            : Icons.business_outlined,
+                        size: 16.sp,
+                        color: AppColors.textSecondary,
+                      ),
                       SizedBox(width: AppSpacing.xs),
                       Text(
-                        returnInvoice.supplierId!,
+                        partyId,
                         style: AppTypography.bodySmall.copyWith(
                           color: AppColors.textSecondary,
                         ),

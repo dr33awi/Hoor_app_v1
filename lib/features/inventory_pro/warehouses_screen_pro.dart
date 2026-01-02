@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/widgets/widgets.dart';
 import '../../data/database/app_database.dart';
 
 class WarehousesScreenPro extends ConsumerStatefulWidget {
@@ -44,7 +45,10 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
             Expanded(
               child: warehousesAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, _) => _buildErrorState(error.toString()),
+                error: (error, _) => ProEmptyState.error(
+                  error: error.toString(),
+                  onRetry: () => ref.invalidate(warehousesStreamProvider),
+                ),
                 data: (warehouses) {
                   final filtered = _filterWarehouses(warehouses);
                   if (filtered.isEmpty) {
@@ -212,24 +216,6 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildErrorState(String error) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.error_outline, size: 64.sp, color: AppColors.error),
-          SizedBox(height: AppSpacing.md),
-          Text(
-            'حدث خطأ',
-            style: AppTypography.titleMedium.copyWith(color: AppColors.error),
-          ),
-          SizedBox(height: AppSpacing.sm),
-          Text(error, style: AppTypography.bodySmall),
-        ],
       ),
     );
   }

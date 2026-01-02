@@ -17,9 +17,7 @@ import '../../features/products_pro/product_details_screen_pro.dart';
 import '../../features/invoices_pro/invoices_screen_pro.dart';
 import '../../features/invoices_pro/invoice_form_screen_pro.dart';
 import '../../features/invoices_pro/invoice_details_screen_pro.dart';
-import '../../features/customers_pro/customers_screen_pro.dart';
 import '../../features/customers_pro/customer_form_screen_pro.dart';
-import '../../features/suppliers_pro/suppliers_screen_pro.dart';
 import '../../features/reports_pro/reports_screen_pro.dart';
 import '../../features/settings_pro/settings_screen_pro.dart';
 import '../../features/settings_pro/print_settings_screen_pro.dart';
@@ -27,7 +25,6 @@ import '../../features/shifts_pro/shifts_screen_pro.dart';
 import '../../features/vouchers_pro/vouchers_screen_pro.dart';
 import '../../features/alerts_pro/alerts_screen_pro.dart';
 import '../../features/sales_pro/sales_screen_pro.dart';
-import '../../features/purchases_pro/purchases_screen_pro.dart';
 import '../../features/inventory_pro/inventory_screen_pro.dart';
 import '../../features/inventory_pro/warehouses_screen_pro.dart';
 import '../../features/inventory_pro/stock_transfer_screen_pro.dart';
@@ -36,8 +33,10 @@ import '../../features/categories_pro/categories_screen_pro.dart';
 import '../../features/cash_pro/cash_screen_pro.dart';
 import '../../features/backup_pro/backup_screen_pro.dart';
 import '../../features/shifts_pro/shift_details_screen_pro.dart';
-import '../../features/returns_pro/sales_returns_screen_pro.dart';
-import '../../features/returns_pro/purchase_returns_screen_pro.dart';
+// Unified Screens (New)
+import '../../features/returns_pro/returns_screen_pro.dart';
+import '../../features/parties_pro/party_list_screen.dart';
+import '../../features/transactions_pro/transactions_screen_pro.dart';
 
 /// Provider for the app router
 final appRouterProProvider = Provider<GoRouter>((ref) {
@@ -128,14 +127,14 @@ final appRouterProProvider = Provider<GoRouter>((ref) {
       ),
 
       // ═══════════════════════════════════════════════════════════════════
-      // Invoices - Purchases
+      // Purchases (Using Unified TransactionsScreen)
       // ═══════════════════════════════════════════════════════════════════
       GoRoute(
         path: '/purchases',
         name: 'purchases',
         pageBuilder: (context, state) => _buildSlideTransition(
           state,
-          const PurchasesScreenPro(),
+          const TransactionsScreenPro(type: TransactionType.purchase),
         ),
         routes: [
           GoRoute(
@@ -181,14 +180,14 @@ final appRouterProProvider = Provider<GoRouter>((ref) {
       ),
 
       // ═══════════════════════════════════════════════════════════════════
-      // Customers
+      // Customers (Using Unified PartyListScreen)
       // ═══════════════════════════════════════════════════════════════════
       GoRoute(
         path: '/customers',
         name: 'customers',
         pageBuilder: (context, state) => _buildSlideTransition(
           state,
-          const CustomersScreenPro(),
+          const PartyListScreen(type: PartyType.customer),
         ),
         routes: [
           GoRoute(
@@ -211,14 +210,14 @@ final appRouterProProvider = Provider<GoRouter>((ref) {
       ),
 
       // ═══════════════════════════════════════════════════════════════════
-      // Suppliers
+      // Suppliers (Using Unified PartyListScreen)
       // ═══════════════════════════════════════════════════════════════════
       GoRoute(
         path: '/suppliers',
         name: 'suppliers',
         pageBuilder: (context, state) => _buildSlideTransition(
           state,
-          const SuppliersScreenPro(),
+          const PartyListScreen(type: PartyType.supplier),
         ),
       ),
 
@@ -275,26 +274,26 @@ final appRouterProProvider = Provider<GoRouter>((ref) {
       ),
 
       // ═══════════════════════════════════════════════════════════════════
-      // Returns - Sales
+      // Returns - Sales (Unified Screen)
       // ═══════════════════════════════════════════════════════════════════
       GoRoute(
         path: '/returns/sales',
         name: 'sales-returns',
         pageBuilder: (context, state) => _buildSlideTransition(
           state,
-          const SalesReturnsScreenPro(),
+          const ReturnsScreenPro(type: ReturnType.sales),
         ),
       ),
 
       // ═══════════════════════════════════════════════════════════════════
-      // Returns - Purchases
+      // Returns - Purchases (Unified Screen)
       // ═══════════════════════════════════════════════════════════════════
       GoRoute(
         path: '/returns/purchases',
         name: 'purchase-returns',
         pageBuilder: (context, state) => _buildSlideTransition(
           state,
-          const PurchaseReturnsScreenPro(),
+          const ReturnsScreenPro(type: ReturnType.purchase),
         ),
       ),
 

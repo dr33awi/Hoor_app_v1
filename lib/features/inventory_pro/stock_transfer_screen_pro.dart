@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/widgets/widgets.dart';
 import '../../data/database/app_database.dart';
 
 class StockTransferScreenPro extends ConsumerStatefulWidget {
@@ -51,7 +52,10 @@ class _StockTransferScreenProState extends ConsumerState<StockTransferScreenPro>
             Expanded(
               child: transfersAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, _) => _buildErrorState(error.toString()),
+                error: (error, _) => ProEmptyState.error(
+                  error: error.toString(),
+                  onRetry: () => ref.invalidate(stockTransfersStreamProvider),
+                ),
                 data: (transfers) => TabBarView(
                   controller: _tabController,
                   children: [
@@ -146,21 +150,6 @@ class _StockTransferScreenProState extends ConsumerState<StockTransferScreenPro>
           Tab(text: 'معلقة'),
           Tab(text: 'مكتملة'),
           Tab(text: 'الكل'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildErrorState(String error) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.error_outline, size: 64.sp, color: AppColors.error),
-          SizedBox(height: AppSpacing.md),
-          Text('حدث خطأ', style: AppTypography.titleMedium),
-          SizedBox(height: AppSpacing.sm),
-          Text(error, style: AppTypography.bodySmall),
         ],
       ),
     );

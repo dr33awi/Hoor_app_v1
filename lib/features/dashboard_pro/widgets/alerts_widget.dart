@@ -12,6 +12,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/design_tokens.dart';
 import '../../../core/providers/app_providers.dart';
+import '../../../core/widgets/widgets.dart';
 
 /// Alert severity levels
 enum AlertSeverity {
@@ -154,7 +155,7 @@ class AlertsWidget extends ConsumerWidget {
 
     return alertsAsync.when(
       loading: () => _buildLoadingState(),
-      error: (error, _) => _buildErrorState(),
+      error: (error, _) => ProEmptyState.error(error: 'خطأ في تحميل التنبيهات'),
       data: (alerts) {
         if (alerts.isEmpty) {
           return _buildEmptyState();
@@ -191,27 +192,6 @@ class AlertsWidget extends ConsumerWidget {
       ),
       child: const Center(
         child: CircularProgressIndicator(),
-      ),
-    );
-  }
-
-  Widget _buildErrorState() {
-    return Container(
-      padding: EdgeInsets.all(AppSpacing.lg.w),
-      decoration: BoxDecoration(
-        color: AppColors.expenseSurface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.expense.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.error_outline, color: AppColors.expense),
-          SizedBox(width: AppSpacing.md.w),
-          Text(
-            'خطأ في تحميل التنبيهات',
-            style: AppTypography.bodyMedium.copyWith(color: AppColors.expense),
-          ),
-        ],
       ),
     );
   }

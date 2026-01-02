@@ -12,6 +12,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/design_tokens.dart';
 import '../../../core/providers/app_providers.dart';
+import '../../../core/widgets/widgets.dart';
 import '../../../data/database/app_database.dart';
 
 /// Transaction types for visual differentiation
@@ -200,7 +201,7 @@ class RecentTransactionsList extends ConsumerWidget {
 
     return transactionsAsync.when(
       loading: () => _buildLoadingState(),
-      error: (error, _) => _buildErrorState(error.toString()),
+      error: (error, _) => ProEmptyState.error(error: 'خطأ في تحميل المعاملات'),
       data: (transactions) {
         if (transactions.isEmpty) {
           return _buildEmptyState();
@@ -265,33 +266,6 @@ class RecentTransactionsList extends ConsumerWidget {
       ),
       child: const Center(
         child: CircularProgressIndicator(),
-      ),
-    );
-  }
-
-  Widget _buildErrorState(String error) {
-    return Container(
-      padding: EdgeInsets.all(AppSpacing.xxl.w),
-      decoration: BoxDecoration(
-        color: AppColors.expenseSurface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.expense.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.error_outline_rounded,
-            color: AppColors.expense,
-            size: AppIconSize.huge,
-          ),
-          SizedBox(height: AppSpacing.md.h),
-          Text(
-            'حدث خطأ في تحميل المعاملات',
-            style: AppTypography.titleMedium.copyWith(
-              color: AppColors.expense,
-            ),
-          ),
-        ],
       ),
     );
   }

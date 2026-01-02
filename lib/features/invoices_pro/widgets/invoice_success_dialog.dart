@@ -83,11 +83,10 @@ class InvoiceDialogData {
     }
   }
 
-  bool get isFullyPaid => (invoice.paidAmount ?? 0) >= invoice.total;
+  bool get isFullyPaid => invoice.paidAmount >= invoice.total;
   bool get isPartiallyPaid =>
-      (invoice.paidAmount ?? 0) > 0 &&
-      (invoice.paidAmount ?? 0) < invoice.total;
-  double get remaining => invoice.total - (invoice.paidAmount ?? 0);
+      invoice.paidAmount > 0 && invoice.paidAmount < invoice.total;
+  double get remaining => invoice.total - invoice.paidAmount;
 }
 
 /// حوار نجاح الفاتورة الموحد
@@ -417,7 +416,7 @@ class _InvoiceSuccessDialogState extends State<InvoiceSuccessDialog> {
                         ),
                       ),
                       Text(
-                        '${(invoice.paidAmount ?? 0).toStringAsFixed(2)} ر.س',
+                        '${invoice.paidAmount.toStringAsFixed(2)} ر.س',
                         style: AppTypography.labelMedium.copyWith(
                           color: AppColors.success,
                           fontFamily: 'JetBrains Mono',

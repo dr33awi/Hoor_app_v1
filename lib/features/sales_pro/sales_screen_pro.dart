@@ -8,10 +8,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hoor_manager/features/invoices_pro/widgets/invoice_success_dialog.dart';
 
+import '../invoices_pro/widgets/invoice_success_dialog.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/widgets/widgets.dart';
 import '../../data/database/app_database.dart';
 
 class SalesScreenPro extends ConsumerStatefulWidget {
@@ -29,7 +30,6 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
   String? _selectedCategoryId;
   final List<CartItem> _cartItems = [];
   double _discount = 0;
-  final String _paymentMethod = 'cash';
   String? _selectedCustomerId;
   String? _selectedCustomerName;
 
@@ -143,10 +143,22 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
       body: SafeArea(
         child: productsAsync.when(
           loading: () => _buildLoadingState(),
-          error: (e, s) => _buildErrorState(e.toString()),
+          error: (e, s) => ProEmptyState.error(
+            error: e.toString(),
+            onRetry: () {
+              ref.invalidate(activeProductsStreamProvider);
+              ref.invalidate(categoriesStreamProvider);
+            },
+          ),
           data: (products) => categoriesAsync.when(
             loading: () => _buildLoadingState(),
-            error: (e, s) => _buildErrorState(e.toString()),
+            error: (e, s) => ProEmptyState.error(
+              error: e.toString(),
+              onRetry: () {
+                ref.invalidate(activeProductsStreamProvider);
+                ref.invalidate(categoriesStreamProvider);
+              },
+            ),
             data: (categories) {
               final filteredProducts = _filterProducts(products);
 
@@ -1306,45 +1318,6 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
             style: AppTypography.bodyMedium.copyWith(
               color: AppColors.textSecondary,
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildErrorState(String error) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.error_outline_rounded,
-            size: 64.sp,
-            color: AppColors.error,
-          ),
-          SizedBox(height: AppSpacing.md),
-          Text(
-            'حدث خطأ',
-            style: AppTypography.titleMedium.copyWith(
-              color: AppColors.error,
-            ),
-          ),
-          SizedBox(height: AppSpacing.sm),
-          Text(
-            error,
-            style: AppTypography.bodySmall.copyWith(
-              color: AppColors.textTertiary,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: AppSpacing.lg),
-          FilledButton.icon(
-            onPressed: () {
-              ref.invalidate(activeProductsStreamProvider);
-              ref.invalidate(categoriesStreamProvider);
-            },
-            icon: const Icon(Icons.refresh_rounded),
-            label: const Text('إعادة المحاولة'),
           ),
         ],
       ),

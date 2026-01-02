@@ -11,6 +11,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/widgets/widgets.dart';
 import '../../data/database/app_database.dart';
 
 class InventoryCountScreenPro extends ConsumerStatefulWidget {
@@ -48,7 +49,10 @@ class _InventoryCountScreenProState
             Expanded(
               child: productsAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, _) => _buildErrorState(error.toString()),
+                error: (error, _) => ProEmptyState.error(
+                  error: error.toString(),
+                  onRetry: () => ref.invalidate(activeProductsStreamProvider),
+                ),
                 data: (products) {
                   final filteredProducts = _searchQuery.isEmpty
                       ? products
@@ -251,21 +255,6 @@ class _InventoryCountScreenProState
           contentPadding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
         ),
         onChanged: (value) => setState(() => _searchQuery = value),
-      ),
-    );
-  }
-
-  Widget _buildErrorState(String error) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.error_outline, size: 64.sp, color: AppColors.error),
-          SizedBox(height: AppSpacing.md),
-          Text('حدث خطأ', style: AppTypography.titleMedium),
-          SizedBox(height: AppSpacing.sm),
-          Text(error, style: AppTypography.bodySmall),
-        ],
       ),
     );
   }

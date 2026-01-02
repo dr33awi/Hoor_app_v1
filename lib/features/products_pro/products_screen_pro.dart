@@ -10,6 +10,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/widgets/widgets.dart';
 import '../../core/services/export/export_button.dart';
 import '../../core/services/export/products_export_service.dart';
 import '../../data/database/app_database.dart';
@@ -279,7 +280,10 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
             Expanded(
               child: productsAsync.when(
                 loading: () => _buildLoadingState(),
-                error: (error, _) => _buildErrorState(error.toString()),
+                error: (error, _) => ProEmptyState.error(
+                  error: error.toString(),
+                  onRetry: () => ref.invalidate(activeProductsStreamProvider),
+                ),
                 data: (products) {
                   final categories = categoriesAsync.asData?.value ?? [];
 
@@ -462,45 +466,6 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
                 ),
               ),
             ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildErrorState(String error) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.error_outline,
-            size: 80.sp,
-            color: AppColors.error,
-          ),
-          SizedBox(height: AppSpacing.lg),
-          Text(
-            'حدث خطأ',
-            style: AppTypography.titleLarge.copyWith(
-              color: AppColors.error,
-            ),
-          ),
-          SizedBox(height: AppSpacing.sm),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-            child: Text(
-              error,
-              style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textSecondary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          SizedBox(height: AppSpacing.xl),
-          ElevatedButton.icon(
-            onPressed: () => ref.invalidate(activeProductsStreamProvider),
-            icon: const Icon(Icons.refresh),
-            label: const Text('إعادة المحاولة'),
-          ),
         ],
       ),
     );

@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/widgets/widgets.dart';
 import '../../data/database/app_database.dart';
 import 'widgets/invoice_card_pro.dart';
 import 'widgets/invoices_stats_header.dart';
@@ -140,7 +141,10 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
             Expanded(
               child: invoicesAsync.when(
                 loading: () => _buildLoadingState(),
-                error: (error, _) => _buildErrorState(error.toString()),
+                error: (error, _) => ProEmptyState.error(
+                  error: error.toString(),
+                  onRetry: () => ref.invalidate(invoicesStreamProvider),
+                ),
                 data: (invoices) {
                   final filtered = _filterInvoices(invoices);
 
@@ -480,34 +484,6 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
               backgroundColor: isSales ? AppColors.income : AppColors.purchases,
               foregroundColor: Colors.white,
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildErrorState(String error) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.error_outline,
-            size: 80.sp,
-            color: AppColors.expense,
-          ),
-          SizedBox(height: AppSpacing.lg.h),
-          Text(
-            'حدث خطأ',
-            style: AppTypography.titleLarge.copyWith(
-              color: AppColors.expense,
-            ),
-          ),
-          SizedBox(height: AppSpacing.xl.h),
-          ElevatedButton.icon(
-            onPressed: () => ref.invalidate(invoicesStreamProvider),
-            icon: const Icon(Icons.refresh),
-            label: const Text('إعادة المحاولة'),
           ),
         ],
       ),
