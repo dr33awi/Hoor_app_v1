@@ -588,14 +588,8 @@ class _MovementCard extends StatelessWidget {
         movement.type == 'opening';
     final dateFormat = DateFormat('hh:mm a', 'ar');
 
-    return Container(
+    return ProCard(
       margin: EdgeInsets.only(bottom: AppSpacing.sm),
-      padding: EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: AppShadows.sm,
-      ),
       child: Row(
         children: [
           Container(
@@ -603,7 +597,7 @@ class _MovementCard extends StatelessWidget {
             height: 48.h,
             decoration: BoxDecoration(
               color: (isIncome ? AppColors.success : AppColors.error)
-                  .withOpacity(0.1),
+                  .withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),
             child: Icon(

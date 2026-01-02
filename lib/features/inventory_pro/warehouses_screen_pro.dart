@@ -498,76 +498,64 @@ class _WarehouseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return ProCard(
       margin: EdgeInsets.only(bottom: AppSpacing.md.h),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(
-          color: warehouse.isDefault
-              ? AppColors.secondary.withOpacity(0.5)
-              : AppColors.border,
-          width: warehouse.isDefault ? 2 : 1,
-        ),
-        boxShadow: AppShadows.sm,
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        child: Padding(
-          padding: EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      borderColor: warehouse.isDefault
+          ? AppColors.secondary.withValues(alpha: 0.5)
+          : null,
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  // Icon
-                  Container(
-                    padding: EdgeInsets.all(AppSpacing.sm),
-                    decoration: BoxDecoration(
-                      color: AppColors.secondary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                    child: Icon(
-                      Icons.warehouse_rounded,
-                      color: AppColors.secondary,
-                      size: 24.sp,
-                    ),
-                  ),
-                  SizedBox(width: AppSpacing.md),
+              // Icon
+              Container(
+                padding: EdgeInsets.all(AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: AppColors.secondary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: Icon(
+                  Icons.warehouse_rounded,
+                  color: AppColors.secondary,
+                  size: 24.sp,
+                ),
+              ),
+              SizedBox(width: AppSpacing.md),
 
-                  // Name & Code
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              // Name & Code
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                warehouse.name,
-                                style: AppTypography.titleMedium.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                        Expanded(
+                          child: Text(
+                            warehouse.name,
+                            style: AppTypography.titleMedium.copyWith(
+                              fontWeight: FontWeight.w600,
                             ),
-                            if (warehouse.isDefault)
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: AppSpacing.sm,
-                                  vertical: 2.h,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.secondary.withOpacity(0.1),
-                                  borderRadius:
-                                      BorderRadius.circular(AppRadius.full),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.star_rounded,
-                                      size: 12.sp,
+                          ),
+                        ),
+                        if (warehouse.isDefault)
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: AppSpacing.sm,
+                              vertical: 2.h,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.secondary.withValues(alpha: 0.1),
+                              borderRadius:
+                                  BorderRadius.circular(AppRadius.full),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.star_rounded,
+                                  size: 12.sp,
                                       color: AppColors.secondary,
                                     ),
                                     SizedBox(width: 2.w),
@@ -675,7 +663,6 @@ class _WarehouseCard extends StatelessWidget {
                 ),
               ],
 
-              // Notes
               if (warehouse.notes != null && warehouse.notes!.isNotEmpty) ...[
                 SizedBox(height: AppSpacing.xs),
                 Text(
@@ -689,9 +676,7 @@ class _WarehouseCard extends StatelessWidget {
               ],
             ],
           ),
-        ),
-      ),
-    );
+        );
   }
 
   Widget _buildInfoChip(IconData icon, String text) {

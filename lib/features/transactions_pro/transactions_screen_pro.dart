@@ -482,13 +482,7 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(AppSpacing.sm),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        boxShadow: AppShadows.sm,
-      ),
+    return ProCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -562,88 +556,76 @@ class _InvoiceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('dd/MM/yyyy');
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: AppShadows.sm,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          child: Padding(
-            padding: EdgeInsets.all(AppSpacing.md),
-            child: Column(
-              children: [
-                Row(
+    return ProCard(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Row(
+            children: [
+              // Type Icon
+              Container(
+                width: 48.w,
+                height: 48.h,
+                decoration: BoxDecoration(
+                  color: type.color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: Icon(
+                  type.icon,
+                  color: type.color,
+                  size: 24.sp,
+                ),
+              ),
+              SizedBox(width: AppSpacing.md),
+              // Invoice Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Type Icon
-                    Container(
-                      width: 48.w,
-                      height: 48.h,
-                      decoration: BoxDecoration(
-                        color: type.color.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                      ),
-                      child: Icon(
-                        type.icon,
-                        color: type.color,
-                        size: 24.sp,
+                    Text(
+                      invoice.invoiceNumber,
+                      style: AppTypography.titleSmall.copyWith(
+                        fontFamily: 'JetBrains Mono',
                       ),
                     ),
-                    SizedBox(width: AppSpacing.md),
-                    // Invoice Info
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            invoice.invoiceNumber,
-                            style: AppTypography.titleSmall.copyWith(
-                              fontFamily: 'JetBrains Mono',
-                            ),
+                    FutureBuilder<String>(
+                      future: partyNameFuture,
+                      builder: (context, snapshot) {
+                        return Text(
+                          snapshot.data ?? '...',
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: AppColors.textSecondary,
                           ),
-                          FutureBuilder<String>(
-                            future: partyNameFuture,
-                            builder: (context, snapshot) {
-                              return Text(
-                                snapshot.data ?? '...',
-                                style: AppTypography.bodyMedium.copyWith(
-                                  color: AppColors.textSecondary,
-                                ),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Status Badge
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: AppSpacing.sm,
-                        vertical: AppSpacing.xs,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _statusColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(AppRadius.full),
-                      ),
-                      child: Text(
-                        _statusText,
-                        style: AppTypography.labelSmall.copyWith(
-                          color: _statusColor,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                        );
+                      },
                     ),
                   ],
                 ),
-                SizedBox(height: AppSpacing.md),
-                Divider(height: 1, color: AppColors.border),
-                SizedBox(height: AppSpacing.md),
-                Row(
+              ),
+              // Status Badge
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: AppSpacing.xs,
+                ),
+                decoration: BoxDecoration(
+                  color: _statusColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppRadius.full),
+                ),
+                child: Text(
+                  _statusText,
+                  style: AppTypography.labelSmall.copyWith(
+                    color: _statusColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: AppSpacing.md),
+          Divider(height: 1, color: AppColors.border),
+          SizedBox(height: AppSpacing.md),
+          Row(
                   children: [
                     Icon(
                       Icons.calendar_today_rounded,
@@ -685,9 +667,6 @@ class _InvoiceCard extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-        ),
-      ),
-    );
+          );
   }
 }

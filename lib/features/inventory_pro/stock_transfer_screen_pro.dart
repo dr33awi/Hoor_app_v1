@@ -645,77 +645,67 @@ class _TransferCard extends ConsumerWidget {
     final warehousesAsync = ref.watch(warehousesStreamProvider);
     final dateFormat = DateFormat('yyyy/MM/dd', 'ar');
 
-    return Container(
+    return ProCard(
       margin: EdgeInsets.only(bottom: AppSpacing.md.h),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.border),
-        boxShadow: AppShadows.sm,
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        child: Padding(
-          padding: EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
             children: [
-              // Header
-              Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(AppSpacing.sm),
-                    decoration: BoxDecoration(
-                      color: _getStatusColor().withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                    child: Icon(
-                      Icons.swap_horiz_rounded,
-                      color: _getStatusColor(),
-                      size: 20.sp,
-                    ),
-                  ),
-                  SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          transfer.transferNumber,
-                          style: AppTypography.titleSmall.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Text(
-                          dateFormat.format(transfer.createdAt),
-                          style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.textTertiary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sm,
-                      vertical: 4.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _getStatusColor().withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(AppRadius.full),
-                    ),
-                    child: Text(
-                      _getStatusText(),
-                      style: AppTypography.labelSmall.copyWith(
-                        color: _getStatusColor(),
+              Container(
+                padding: EdgeInsets.all(AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: _getStatusColor().withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: Icon(
+                  Icons.swap_horiz_rounded,
+                  color: _getStatusColor(),
+                  size: 20.sp,
+                ),
+              ),
+              SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      transfer.transferNumber,
+                      style: AppTypography.titleSmall.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ),
-                ],
+                    Text(
+                      dateFormat.format(transfer.createdAt),
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.textTertiary,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              SizedBox(height: AppSpacing.md),
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: 4.h,
+                ),
+                decoration: BoxDecoration(
+                  color: _getStatusColor().withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppRadius.full),
+                ),
+                child: Text(
+                  _getStatusText(),
+                  style: AppTypography.labelSmall.copyWith(
+                    color: _getStatusColor(),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: AppSpacing.md),
 
               // Warehouses Flow
               warehousesAsync.when(
@@ -812,59 +802,57 @@ class _TransferCard extends ConsumerWidget {
                   );
                 },
               ),
-              SizedBox(height: AppSpacing.sm),
+          SizedBox(height: AppSpacing.sm),
 
-              // Quantity & Actions
+          // Quantity & Actions
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Icon(Icons.inventory_2_outlined,
-                          size: 16.sp, color: AppColors.textTertiary),
-                      SizedBox(width: 4.w),
-                      Text(
-                        'عملية نقل',
-                        style: AppTypography.bodySmall.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (onComplete != null || onCancel != null)
-                    Row(
-                      children: [
-                        if (onComplete != null)
-                          TextButton.icon(
-                            onPressed: onComplete,
-                            icon: Icon(Icons.check_circle_outline,
-                                size: 16.sp, color: AppColors.success),
-                            label: Text(
-                              'إكمال',
-                              style: AppTypography.labelSmall.copyWith(
-                                color: AppColors.success,
-                              ),
-                            ),
-                          ),
-                        if (onCancel != null)
-                          TextButton.icon(
-                            onPressed: onCancel,
-                            icon: Icon(Icons.cancel_outlined,
-                                size: 16.sp, color: AppColors.error),
-                            label: Text(
-                              'إلغاء',
-                              style: AppTypography.labelSmall.copyWith(
-                                color: AppColors.error,
-                              ),
-                            ),
-                          ),
-                      ],
+                  Icon(Icons.inventory_2_outlined,
+                      size: 16.sp, color: AppColors.textTertiary),
+                  SizedBox(width: 4.w),
+                  Text(
+                    'عملية نقل',
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
                     ),
+                  ),
                 ],
               ),
+              if (onComplete != null || onCancel != null)
+                Row(
+                  children: [
+                    if (onComplete != null)
+                      TextButton.icon(
+                        onPressed: onComplete,
+                        icon: Icon(Icons.check_circle_outline,
+                            size: 16.sp, color: AppColors.success),
+                        label: Text(
+                          'إكمال',
+                          style: AppTypography.labelSmall.copyWith(
+                            color: AppColors.success,
+                          ),
+                        ),
+                      ),
+                    if (onCancel != null)
+                      TextButton.icon(
+                        onPressed: onCancel,
+                        icon: Icon(Icons.cancel_outlined,
+                            size: 16.sp, color: AppColors.error),
+                        label: Text(
+                          'إلغاء',
+                          style: AppTypography.labelSmall.copyWith(
+                            color: AppColors.error,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
             ],
           ),
-        ),
+        ],
       ),
     );
   }

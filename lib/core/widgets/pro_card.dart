@@ -292,8 +292,9 @@ class ProInfoCard extends StatelessWidget {
                             ? Icons.trending_up_rounded
                             : Icons.trending_down_rounded,
                         size: 12.sp,
-                        color:
-                            isPositiveTrend ? AppColors.success : AppColors.error,
+                        color: isPositiveTrend
+                            ? AppColors.success
+                            : AppColors.error,
                       ),
                       SizedBox(width: 2.w),
                       Text(

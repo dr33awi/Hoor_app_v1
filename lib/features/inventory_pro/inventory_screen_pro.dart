@@ -502,14 +502,8 @@ class _MovementCard extends StatelessWidget {
     final isAdd = movement.type == 'add' || movement.type == 'purchase';
     final dateFormat = DateFormat('dd/MM/yyyy hh:mm a', 'ar');
 
-    return Container(
+    return ProCard(
       margin: EdgeInsets.only(bottom: AppSpacing.sm),
-      padding: EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: AppShadows.sm,
-      ),
       child: Row(
         children: [
           Container(
@@ -517,7 +511,7 @@ class _MovementCard extends StatelessWidget {
             height: 48.h,
             decoration: BoxDecoration(
               color: (isAdd ? AppColors.success : AppColors.error)
-                  .withOpacity(0.1),
+                  .withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),
             child: Icon(
@@ -568,22 +562,16 @@ class _LowStockCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return ProCard(
       margin: EdgeInsets.only(bottom: AppSpacing.sm),
-      padding: EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.warning.withOpacity(0.3)),
-        boxShadow: AppShadows.sm,
-      ),
+      borderColor: AppColors.warning.withValues(alpha: 0.3),
       child: Row(
         children: [
           Container(
             width: 48.w,
             height: 48.h,
             decoration: BoxDecoration(
-              color: AppColors.warning.withOpacity(0.1),
+              color: AppColors.warning.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),
             child: Icon(Icons.warning_amber_rounded, color: AppColors.warning),
@@ -641,21 +629,15 @@ class _StockCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isLow = product.quantity <= product.minQuantity;
 
-    return Container(
+    return ProCard(
       margin: EdgeInsets.only(bottom: AppSpacing.sm),
-      padding: EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: AppShadows.sm,
-      ),
       child: Row(
         children: [
           Container(
             width: 48.w,
             height: 48.h,
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
+              color: AppColors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),
             child: Icon(Icons.inventory_2_outlined, color: AppColors.primary),
@@ -682,7 +664,7 @@ class _StockCard extends StatelessWidget {
             ),
             decoration: BoxDecoration(
               color: (isLow ? AppColors.warning : AppColors.success)
-                  .withOpacity(0.1),
+                  .withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppRadius.full),
             ),
             child: Text(

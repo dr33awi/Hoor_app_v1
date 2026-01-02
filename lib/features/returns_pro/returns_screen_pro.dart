@@ -467,67 +467,58 @@ class _ReturnCard extends StatelessWidget {
         ? returnInvoice.customerId
         : returnInvoice.supplierId;
 
-    return Container(
+    return ProCard(
       margin: EdgeInsets.only(bottom: AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: type.accentColor.withOpacity(0.3)),
-        boxShadow: AppShadows.sm,
-      ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        child: Padding(
-          padding: EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      borderColor: type.accentColor.withValues(alpha: 0.3),
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
             children: [
-              // Header
-              Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(AppSpacing.sm),
-                    decoration: BoxDecoration(
-                      color: type.accentColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                    child: Icon(
-                      Icons.assignment_return_rounded,
-                      color: type.accentColor,
-                      size: 20.sp,
-                    ),
-                  ),
-                  SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          returnInvoice.invoiceNumber,
-                          style: AppTypography.titleSmall.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Text(
-                          dateFormat.format(returnInvoice.createdAt),
-                          style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.textTertiary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Text(
-                    '${NumberFormat('#,###').format(returnInvoice.total)} ل.س',
-                    style: AppTypography.titleMedium.copyWith(
-                      color: type.accentColor,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+              Container(
+                padding: EdgeInsets.all(AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: type.accentColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: Icon(
+                  Icons.assignment_return_rounded,
+                  color: type.accentColor,
+                  size: 20.sp,
+                ),
               ),
-              if (partyId != null) ...[
+              SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      returnInvoice.invoiceNumber,
+                      style: AppTypography.titleSmall.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      dateFormat.format(returnInvoice.createdAt),
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.textTertiary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                '${NumberFormat('#,###').format(returnInvoice.total)} ل.س',
+                style: AppTypography.titleMedium.copyWith(
+                  color: type.accentColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          if (partyId != null) ...[
                 SizedBox(height: AppSpacing.sm),
                 Container(
                   padding: EdgeInsets.all(AppSpacing.sm),
@@ -579,8 +570,6 @@ class _ReturnCard extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
-    );
+        );
   }
 }

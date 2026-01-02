@@ -204,13 +204,7 @@ class _PurchasesScreenProState extends ConsumerState<PurchasesScreenPro>
   Widget _buildMiniStat(String title, String value, String suffix,
       IconData icon, Color color, int index) {
     return Expanded(
-      child: Container(
-        padding: EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          boxShadow: AppShadows.sm,
-        ),
+      child: ProCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -298,24 +292,9 @@ class _PurchasesScreenProState extends ConsumerState<PurchasesScreenPro>
 
   Widget _buildList(List<Invoice> orders) {
     if (orders.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.inbox_outlined,
-              size: 64.sp,
-              color: AppColors.textTertiary,
-            ),
-            SizedBox(height: AppSpacing.md),
-            Text(
-              'لا توجد طلبات',
-              style: AppTypography.titleMedium.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
+      return ProEmptyState.list(
+        itemName: 'طلبات شراء',
+        onAdd: () => context.push('/invoices/add/purchase'),
       );
     }
 
@@ -396,115 +375,99 @@ class _PurchaseOrderCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('dd/MM/yyyy');
 
-    return Container(
+    return ProCard(
       margin: EdgeInsets.only(bottom: AppSpacing.md),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: AppShadows.sm,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          child: Padding(
-            padding: EdgeInsets.all(AppSpacing.md),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    // Supplier Icon
-                    Container(
-                      width: 48.w,
-                      height: 48.h,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                      ),
-                      child: Icon(
-                        Icons.local_shipping_outlined,
-                        color: AppColors.primary,
-                        size: 24.sp,
-                      ),
-                    ),
-                    SizedBox(width: AppSpacing.md),
-                    // Order Info
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            invoice.invoiceNumber,
-                            style: AppTypography.titleSmall.copyWith(
-                              fontFamily: 'JetBrains Mono',
-                            ),
-                          ),
-                          FutureBuilder<String>(
-                            future: supplierNameFuture,
-                            builder: (context, snapshot) {
-                              return Text(
-                                snapshot.data ?? '...',
-                                style: AppTypography.bodyMedium.copyWith(
-                                  color: AppColors.textSecondary,
-                                ),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Status Badge
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: AppSpacing.sm,
-                        vertical: AppSpacing.xs,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _statusColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(AppRadius.full),
-                      ),
-                      child: Text(
-                        _statusText,
-                        style: AppTypography.labelSmall.copyWith(
-                          color: _statusColor,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
+      onTap: onTap,
+      child: Column(
+        children: [
+          Row(
+            children: [
+              // Supplier Icon
+              Container(
+                width: 48.w,
+                height: 48.h,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
-                SizedBox(height: AppSpacing.md),
-                Divider(height: 1, color: AppColors.border),
-                SizedBox(height: AppSpacing.md),
-                Row(
+                child: Icon(
+                  Icons.local_shipping_outlined,
+                  color: AppColors.primary,
+                  size: 24.sp,
+                ),
+              ),
+              SizedBox(width: AppSpacing.md),
+              // Order Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildInfoItem(
-                      Icons.calendar_today,
-                      dateFormat.format(invoice.invoiceDate),
-                    ),
-                    SizedBox(width: AppSpacing.lg),
-                    _buildInfoItem(
-                      Icons.inventory_2,
-                      'فاتورة شراء',
-                    ),
-                    const Spacer(),
                     Text(
-                      '${invoice.total.toStringAsFixed(2)} ر.س',
-                      style: AppTypography.titleMedium.copyWith(
+                      invoice.invoiceNumber,
+                      style: AppTypography.titleSmall.copyWith(
                         fontFamily: 'JetBrains Mono',
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
                       ),
+                    ),
+                    FutureBuilder<String>(
+                      future: supplierNameFuture,
+                      builder: (context, snapshot) {
+                        return Text(
+                          snapshot.data ?? '...',
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+              // Status Badge
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: AppSpacing.xs,
+                ),
+                decoration: BoxDecoration(
+                  color: _statusColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppRadius.full),
+                ),
+                child: Text(
+                  _statusText,
+                  style: AppTypography.labelSmall.copyWith(
+                    color: _statusColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ),
-      ),
+          SizedBox(height: AppSpacing.md),
+          Divider(height: 1, color: AppColors.border),
+          SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              _buildInfoItem(
+                Icons.calendar_today,
+                dateFormat.format(invoice.invoiceDate),
+              ),
+              SizedBox(width: AppSpacing.lg),
+              _buildInfoItem(
+                Icons.inventory_2,
+                'فاتورة شراء',
+              ),
+              const Spacer(),
+              Text(
+                '${invoice.total.toStringAsFixed(2)} ر.س',
+                style: AppTypography.titleMedium.copyWith(
+                  fontFamily: 'JetBrains Mono',
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+        ],
     );
   }
 
