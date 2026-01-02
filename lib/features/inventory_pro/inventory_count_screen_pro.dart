@@ -48,7 +48,7 @@ class _InventoryCountScreenProState
             _buildSearchBar(),
             Expanded(
               child: productsAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
+                loading: () => ProLoadingState.list(),
                 error: (error, _) => ProEmptyState.error(
                   error: error.toString(),
                   onRetry: () => ref.invalidate(activeProductsStreamProvider),

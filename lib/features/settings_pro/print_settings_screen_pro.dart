@@ -147,7 +147,7 @@ class _PrintSettingsScreenProState
             _buildHeader(),
             Expanded(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? ProLoadingState.withMessage(message: 'جاري تحميل الإعدادات...')
                   : Form(
                       key: _formKey,
                       child: ListView(

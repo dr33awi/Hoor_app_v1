@@ -44,7 +44,7 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
             _buildSearchBar(),
             Expanded(
               child: warehousesAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
+                loading: () => ProLoadingState.list(),
                 error: (error, _) => ProEmptyState.error(
                   error: error.toString(),
                   onRetry: () => ref.invalidate(warehousesStreamProvider),

@@ -149,8 +149,8 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
           SizedBox(height: AppSpacing.md),
 
           cashMovementsAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, _) => Center(child: Text('خطأ: $error')),
+            loading: () => ProLoadingState.list(itemCount: 3),
+            error: (error, _) => ProEmptyState.error(error: error.toString()),
             data: (movements) {
               if (movements.isEmpty) {
                 return Container(

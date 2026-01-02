@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/widgets/widgets.dart';
 import '../../data/database/app_database.dart';
 
 class ReportsScreenPro extends ConsumerWidget {
@@ -474,7 +475,7 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro> {
         ],
       ),
       body: _isExporting
-          ? const Center(child: CircularProgressIndicator())
+          ? ProLoadingState.withMessage(message: 'جاري التصدير...')
           : _buildReportContent(),
     );
   }
@@ -498,8 +499,8 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro> {
     final invoicesAsync = ref.watch(salesInvoicesProvider);
 
     return invoicesAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(child: Text('خطأ: $error')),
+      loading: () => ProLoadingState.list(),
+      error: (error, _) => ProEmptyState.error(error: error.toString()),
       data: (invoices) {
         final filtered = _filterByDate(invoices);
         final total = filtered.fold<double>(0, (sum, inv) => sum + inv.total);
@@ -531,8 +532,8 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro> {
     final invoicesAsync = ref.watch(purchaseInvoicesProvider);
 
     return invoicesAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(child: Text('خطأ: $error')),
+      loading: () => ProLoadingState.list(),
+      error: (error, _) => ProEmptyState.error(error: error.toString()),
       data: (invoices) {
         final filtered = _filterByDate(invoices);
         final total = filtered.fold<double>(0, (sum, inv) => sum + inv.total);
@@ -565,12 +566,12 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro> {
     final purchasesAsync = ref.watch(purchaseInvoicesProvider);
 
     return salesAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(child: Text('خطأ: $error')),
+      loading: () => ProLoadingState.list(),
+      error: (error, _) => ProEmptyState.error(error: error.toString()),
       data: (sales) {
         return purchasesAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => Center(child: Text('خطأ: $error')),
+          loading: () => ProLoadingState.list(),
+          error: (error, _) => ProEmptyState.error(error: error.toString()),
           data: (purchases) {
             final filteredSales = _filterByDate(sales);
             final filteredPurchases = _filterByDate(purchases);
@@ -606,8 +607,8 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro> {
     final invoicesAsync = ref.watch(salesInvoicesProvider);
 
     return invoicesAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(child: Text('خطأ: $error')),
+      loading: () => ProLoadingState.list(),
+      error: (error, _) => ProEmptyState.error(error: error.toString()),
       data: (invoices) {
         final unpaid = invoices
             .where((inv) => inv.status == 'unpaid' || inv.status == 'partial')

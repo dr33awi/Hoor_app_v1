@@ -162,7 +162,7 @@ class _AlertsScreenProState extends ConsumerState<AlertsScreenPro> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? ProLoadingState.list()
           : _systemAlerts.isEmpty
               ? const ProEmptyState(
                   icon: Icons.notifications_none_rounded,

@@ -51,7 +51,7 @@ class _StockTransferScreenProState extends ConsumerState<StockTransferScreenPro>
             _buildTabBar(),
             Expanded(
               child: transfersAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
+                loading: () => ProLoadingState.list(),
                 error: (error, _) => ProEmptyState.error(
                   error: error.toString(),
                   onRetry: () => ref.invalidate(stockTransfersStreamProvider),
