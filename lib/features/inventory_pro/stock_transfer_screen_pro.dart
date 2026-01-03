@@ -165,232 +165,156 @@ class _StockTransferScreenProState extends ConsumerState<StockTransferScreenPro>
     final quantityController = TextEditingController();
     final notesController = TextEditingController();
 
-    showModalBottomSheet(
+    showProBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setSheetState) => Container(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius:
-                BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
-          ),
-          child: SingleChildScrollView(
-            padding: EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+      title: 'نقل مخزون جديد',
+      child: StatefulBuilder(
+        builder: (context, setSheetState) => Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // From Warehouse
+            Text('من مستودع', style: AppTypography.labelLarge),
+            SizedBox(height: AppSpacing.sm),
+            warehousesAsync.when(
+              loading: () => const LinearProgressIndicator(),
+              error: (_, __) => const Text('خطأ في تحميل المستودعات'),
+              data: (warehouses) => Container(
+                padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppColors.border),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<Warehouse>(
+                    isExpanded: true,
+                    value: fromWarehouse,
+                    hint: const Text('اختر المستودع المصدر'),
+                    items: warehouses
+                        .where((w) => w != toWarehouse)
+                        .map((w) => DropdownMenuItem(
+                              value: w,
+                              child: Text(w.name),
+                            ))
+                        .toList(),
+                    onChanged: (value) =>
+                        setSheetState(() => fromWarehouse = value),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(height: AppSpacing.md),
+
+            // To Warehouse
+            Text('إلى مستودع', style: AppTypography.labelLarge),
+            SizedBox(height: AppSpacing.sm),
+            warehousesAsync.when(
+              loading: () => const LinearProgressIndicator(),
+              error: (_, __) => const Text('خطأ في تحميل المستودعات'),
+              data: (warehouses) => Container(
+                padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppColors.border),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<Warehouse>(
+                    isExpanded: true,
+                    value: toWarehouse,
+                    hint: const Text('اختر المستودع الهدف'),
+                    items: warehouses
+                        .where((w) => w != fromWarehouse)
+                        .map((w) => DropdownMenuItem(
+                              value: w,
+                              child: Text(w.name),
+                            ))
+                        .toList(),
+                    onChanged: (value) =>
+                        setSheetState(() => toWarehouse = value),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(height: AppSpacing.md),
+
+            // Product
+            Text('المنتج', style: AppTypography.labelLarge),
+            SizedBox(height: AppSpacing.sm),
+            productsAsync.when(
+              loading: () => const LinearProgressIndicator(),
+              error: (_, __) => const Text('خطأ في تحميل المنتجات'),
+              data: (products) => Container(
+                padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppColors.border),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<Product>(
+                    isExpanded: true,
+                    value: selectedProduct,
+                    hint: const Text('اختر المنتج'),
+                    items: products
+                        .map((p) => DropdownMenuItem(
+                              value: p,
+                              child: Text('${p.name} (${p.quantity} متوفر)'),
+                            ))
+                        .toList(),
+                    onChanged: (value) =>
+                        setSheetState(() => selectedProduct = value),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(height: AppSpacing.md),
+
+            // Quantity
+            ProTextField(
+              controller: quantityController,
+              label: 'الكمية',
+              prefixIcon: Icons.numbers,
+              keyboardType: TextInputType.number,
+            ),
+            SizedBox(height: AppSpacing.md),
+
+            // Notes
+            ProTextField(
+              controller: notesController,
+              label: 'ملاحظات (اختياري)',
+              prefixIcon: Icons.notes,
+              maxLines: 2,
+            ),
+            SizedBox(height: AppSpacing.xl),
+
+            // Buttons
+            Row(
               children: [
-                // Handle
-                Center(
-                  child: Container(
-                    width: 40.w,
-                    height: 4.h,
-                    decoration: BoxDecoration(
-                      color: AppColors.border,
-                      borderRadius: BorderRadius.circular(2),
+                Expanded(
+                  child: ProButton(
+                    label: 'إلغاء',
+                    onPressed: () => Navigator.pop(context),
+                    type: ProButtonType.outlined,
+                  ),
+                ),
+                SizedBox(width: AppSpacing.md),
+                Expanded(
+                  flex: 2,
+                  child: ProButton(
+                    label: 'إنشاء النقل',
+                    type: ProButtonType.filled,
+                    onPressed: () => _createTransfer(
+                      fromWarehouse: fromWarehouse,
+                      toWarehouse: toWarehouse,
+                      product: selectedProduct,
+                      quantity: int.tryParse(quantityController.text) ?? 0,
+                      notes: notesController.text,
                     ),
                   ),
                 ),
-                SizedBox(height: AppSpacing.lg),
-
-                // Title
-                Row(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(AppSpacing.sm),
-                      decoration: BoxDecoration(
-                        color: AppColors.secondary.soft,
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                      ),
-                      child: Icon(Icons.swap_horiz_rounded,
-                          color: AppColors.secondary),
-                    ),
-                    SizedBox(width: AppSpacing.md),
-                    Text(
-                      'نقل مخزون جديد',
-                      style: AppTypography.titleLarge
-                          .copyWith(fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-                SizedBox(height: AppSpacing.xl),
-
-                // From Warehouse
-                Text('من مستودع', style: AppTypography.labelLarge),
-                SizedBox(height: AppSpacing.sm),
-                warehousesAsync.when(
-                  loading: () => const LinearProgressIndicator(),
-                  error: (_, __) => const Text('خطأ في تحميل المستودعات'),
-                  data: (warehouses) => Container(
-                    padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.border),
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<Warehouse>(
-                        isExpanded: true,
-                        value: fromWarehouse,
-                        hint: const Text('اختر المستودع المصدر'),
-                        items: warehouses
-                            .where((w) => w != toWarehouse)
-                            .map((w) => DropdownMenuItem(
-                                  value: w,
-                                  child: Text(w.name),
-                                ))
-                            .toList(),
-                        onChanged: (value) =>
-                            setSheetState(() => fromWarehouse = value),
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(height: AppSpacing.md),
-
-                // To Warehouse
-                Text('إلى مستودع', style: AppTypography.labelLarge),
-                SizedBox(height: AppSpacing.sm),
-                warehousesAsync.when(
-                  loading: () => const LinearProgressIndicator(),
-                  error: (_, __) => const Text('خطأ في تحميل المستودعات'),
-                  data: (warehouses) => Container(
-                    padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.border),
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<Warehouse>(
-                        isExpanded: true,
-                        value: toWarehouse,
-                        hint: const Text('اختر المستودع الهدف'),
-                        items: warehouses
-                            .where((w) => w != fromWarehouse)
-                            .map((w) => DropdownMenuItem(
-                                  value: w,
-                                  child: Text(w.name),
-                                ))
-                            .toList(),
-                        onChanged: (value) =>
-                            setSheetState(() => toWarehouse = value),
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(height: AppSpacing.md),
-
-                // Product
-                Text('المنتج', style: AppTypography.labelLarge),
-                SizedBox(height: AppSpacing.sm),
-                productsAsync.when(
-                  loading: () => const LinearProgressIndicator(),
-                  error: (_, __) => const Text('خطأ في تحميل المنتجات'),
-                  data: (products) => Container(
-                    padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.border),
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<Product>(
-                        isExpanded: true,
-                        value: selectedProduct,
-                        hint: const Text('اختر المنتج'),
-                        items: products
-                            .map((p) => DropdownMenuItem(
-                                  value: p,
-                                  child:
-                                      Text('${p.name} (${p.quantity} متوفر)'),
-                                ))
-                            .toList(),
-                        onChanged: (value) =>
-                            setSheetState(() => selectedProduct = value),
-                      ),
-                    ),
-                  ),
-                ),
-                SizedBox(height: AppSpacing.md),
-
-                // Quantity
-                Text('الكمية', style: AppTypography.labelLarge),
-                SizedBox(height: AppSpacing.sm),
-                TextField(
-                  controller: quantityController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    hintText: 'أدخل الكمية',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                    prefixIcon: const Icon(Icons.numbers),
-                  ),
-                ),
-                SizedBox(height: AppSpacing.md),
-
-                // Notes
-                Text('ملاحظات (اختياري)', style: AppTypography.labelLarge),
-                SizedBox(height: AppSpacing.sm),
-                TextField(
-                  controller: notesController,
-                  maxLines: 2,
-                  decoration: InputDecoration(
-                    hintText: 'أدخل ملاحظات',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                    prefixIcon: const Icon(Icons.notes),
-                  ),
-                ),
-                SizedBox(height: AppSpacing.xl),
-
-                // Buttons
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: OutlinedButton.styleFrom(
-                          padding: EdgeInsets.all(AppSpacing.md),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.md),
-                          ),
-                        ),
-                        child: const Text('إلغاء'),
-                      ),
-                    ),
-                    SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      flex: 2,
-                      child: ElevatedButton(
-                        onPressed: () => _createTransfer(
-                          fromWarehouse: fromWarehouse,
-                          toWarehouse: toWarehouse,
-                          product: selectedProduct,
-                          quantity: int.tryParse(quantityController.text) ?? 0,
-                          notes: notesController.text,
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.secondary,
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.all(AppSpacing.md),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.md),
-                          ),
-                        ),
-                        child: const Text('إنشاء النقل'),
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: AppSpacing.md),
               ],
             ),
-          ),
+            SizedBox(height: AppSpacing.md),
+          ],
         ),
       ),
     );
@@ -432,49 +356,30 @@ class _StockTransferScreenProState extends ConsumerState<StockTransferScreenPro>
       }
     } catch (e) {
       if (mounted) {
-        ProSnackbar.showError(context, e);
+        ProSnackbar.error(context, e.toString());
       }
     }
   }
 
   void _showTransferDetails(StockTransfer transfer) {
     // Navigate to transfer details or show bottom sheet
-    showModalBottomSheet(
+    showProBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
-      ),
-      builder: (context) => Padding(
-        padding: EdgeInsets.all(AppSpacing.lg),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 40.w,
-                height: 4.h,
-                decoration: BoxDecoration(
-                  color: AppColors.border,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            SizedBox(height: AppSpacing.lg),
-            Text('تفاصيل النقل', style: AppTypography.titleLarge),
-            SizedBox(height: AppSpacing.md),
-            _buildDetailRow('رقم العملية', transfer.transferNumber),
-            _buildDetailRow('الحالة', _getStatusText(transfer.status)),
-            _buildDetailRow(
-              'التاريخ',
-              DateFormat('yyyy/MM/dd HH:mm', 'ar').format(transfer.createdAt),
-            ),
-            if (transfer.notes != null)
-              _buildDetailRow('ملاحظات', transfer.notes!),
-            SizedBox(height: AppSpacing.lg),
-          ],
-        ),
+      title: 'تفاصيل النقل',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildDetailRow('رقم العملية', transfer.transferNumber),
+          _buildDetailRow('الحالة', _getStatusText(transfer.status)),
+          _buildDetailRow(
+            'التاريخ',
+            DateFormat('yyyy/MM/dd HH:mm', 'ar').format(transfer.createdAt),
+          ),
+          if (transfer.notes != null)
+            _buildDetailRow('ملاحظات', transfer.notes!),
+          SizedBox(height: AppSpacing.lg),
+        ],
       ),
     );
   }
@@ -520,7 +425,7 @@ class _StockTransferScreenProState extends ConsumerState<StockTransferScreenPro>
       }
     } catch (e) {
       if (mounted) {
-        ProSnackbar.showError(context, e);
+        ProSnackbar.error(context, e.toString());
       }
     }
   }
@@ -546,7 +451,7 @@ class _StockTransferScreenProState extends ConsumerState<StockTransferScreenPro>
       }
     } catch (e) {
       if (mounted) {
-        ProSnackbar.showError(context, e);
+        ProSnackbar.error(context, e.toString());
       }
     }
   }

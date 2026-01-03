@@ -111,7 +111,7 @@ class _PrintSettingsScreenProState
       }
     } catch (e) {
       if (mounted) {
-        ProSnackbar.showError(context, e);
+        ProSnackbar.error(context, e.toString());
       }
     } finally {
       setState(() => _isSaving = false);
@@ -619,20 +619,12 @@ class _PrintSettingsScreenProState
   }
 
   Widget _buildTestPrintButton() {
-    return ElevatedButton.icon(
+    return ProButton(
       onPressed: _testPrint,
-      icon: const Icon(Icons.print_rounded, color: Colors.white),
-      label: Text(
-        'طباعة تجريبية',
-        style: AppTypography.labelLarge.copyWith(color: Colors.white),
-      ),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.primary,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
-        ),
-        padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
-      ),
+      label: 'طباعة تجريبية',
+      icon: Icons.print_rounded,
+      type: ProButtonType.filled,
+      fullWidth: true,
     );
   }
 
@@ -761,35 +753,16 @@ class _PrintSettingsScreenProState
   }
 
   void _searchPrinters() {
-    showModalBottomSheet(
+    showProBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
-      ),
-      builder: (context) => Container(
+      title: 'البحث عن الطابعات...',
+      titleIcon: Icons.bluetooth_searching,
+      titleIconColor: AppColors.secondary,
+      child: Container(
         padding: EdgeInsets.all(AppSpacing.lg),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 40.w,
-              height: 4.h,
-              decoration: BoxDecoration(
-                color: AppColors.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            SizedBox(height: AppSpacing.lg),
-            Row(
-              children: [
-                Icon(Icons.bluetooth_searching,
-                    color: AppColors.secondary, size: 24.sp),
-                SizedBox(width: AppSpacing.sm),
-                Text('البحث عن الطابعات...', style: AppTypography.titleMedium),
-              ],
-            ),
-            SizedBox(height: AppSpacing.xl),
             const CircularProgressIndicator(),
             SizedBox(height: AppSpacing.xl),
             Text(
@@ -827,6 +800,17 @@ class _PrintSettingsScreenProState
         ),
       ),
     );
+
+    // Simulate search
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) {
+        Navigator.pop(context);
+        ProSnackbar.error(
+          context,
+          'لم يتم العثور على طابعات',
+        );
+      }
+    });
   }
 
   void _testPrint() async {

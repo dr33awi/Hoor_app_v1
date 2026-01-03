@@ -405,20 +405,16 @@ class _TransactionsScreenProState extends ConsumerState<TransactionsScreenPro>
   }
 
   void _showFilterSheet() {
-    showModalBottomSheet(
+    showProBottomSheet(
       context: context,
-      builder: (context) => Container(
+      title: 'تصفية النتائج',
+      titleIcon: Icons.filter_list_rounded,
+      child: Container(
         padding: EdgeInsets.all(AppSpacing.lg),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: AppRadius.sheet,
-        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('تصفية النتائج', style: AppTypography.titleLarge),
-            SizedBox(height: AppSpacing.lg),
             ListTile(
               leading: const Icon(Icons.date_range_rounded),
               title: const Text('فترة زمنية'),
@@ -442,7 +438,9 @@ class _TransactionsScreenProState extends ConsumerState<TransactionsScreenPro>
             SizedBox(height: AppSpacing.lg),
             SizedBox(
               width: double.infinity,
-              child: OutlinedButton(
+              child: ProButton(
+                label: 'مسح الفلاتر',
+                type: ProButtonType.outlined,
                 onPressed: () {
                   setState(() {
                     _filterStatus = 'all';
@@ -452,7 +450,6 @@ class _TransactionsScreenProState extends ConsumerState<TransactionsScreenPro>
                   });
                   Navigator.pop(context);
                 },
-                child: const Text('مسح الفلاتر'),
               ),
             ),
             SizedBox(height: AppSpacing.md),

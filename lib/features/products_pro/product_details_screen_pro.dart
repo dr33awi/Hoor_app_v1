@@ -245,7 +245,7 @@ class _ProductDetailsView extends StatelessWidget {
             }
           } catch (e) {
             if (context.mounted) {
-              ProSnackbar.showError(context, e);
+              ProSnackbar.error(context, e.toString());
             }
           }
         }
@@ -288,7 +288,7 @@ class _ProductDetailsView extends StatelessWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        ProSnackbar.showError(context, e);
+        ProSnackbar.error(context, e.toString());
       }
     }
   }
@@ -337,116 +337,127 @@ class _ProductDetailsView extends StatelessWidget {
 
   void _showStockAdjustmentDialog(BuildContext context) {
     final quantityController = TextEditingController();
+    final reasonController = TextEditingController();
     String adjustmentType = 'add';
-    String reason = '';
 
-    showDialog(
+    showProDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('تعديل المخزون'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'الكمية الحالية: ${product.quantity}',
-                style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textSecondary,
-                ),
+      title: 'تعديل المخزون',
+      icon: Icons.inventory_2_rounded,
+      child: StatefulBuilder(
+        builder: (context, setDialogState) => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'الكمية الحالية: ${product.quantity}',
+              style: AppTypography.bodyMedium.copyWith(
+                color: AppColors.textSecondary,
               ),
-              SizedBox(height: AppSpacing.md),
-              Row(
-                children: [
-                  Expanded(
-                    child: RadioListTile<String>(
-                      title: const Text('إضافة'),
-                      value: 'add',
-                      groupValue: adjustmentType,
-                      onChanged: (value) =>
-                          setDialogState(() => adjustmentType = value!),
-                      contentPadding: EdgeInsets.zero,
-                      dense: true,
-                    ),
-                  ),
-                  Expanded(
-                    child: RadioListTile<String>(
-                      title: const Text('سحب'),
-                      value: 'subtract',
-                      groupValue: adjustmentType,
-                      onChanged: (value) =>
-                          setDialogState(() => adjustmentType = value!),
-                      contentPadding: EdgeInsets.zero,
-                      dense: true,
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: AppSpacing.sm),
-              TextField(
-                controller: quantityController,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  labelText: 'الكمية',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                  ),
-                ),
-              ),
-              SizedBox(height: AppSpacing.sm),
-              TextField(
-                onChanged: (value) => reason = value,
-                decoration: InputDecoration(
-                  labelText: 'السبب (اختياري)',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('إلغاء'),
             ),
-            FilledButton(
-              onPressed: () async {
-                final quantity = int.tryParse(quantityController.text) ?? 0;
-                if (quantity <= 0) {
-                  ProSnackbar.warning(context, 'أدخل كمية صحيحة');
-                  return;
-                }
+            SizedBox(height: AppSpacing.md),
+            Row(
+              children: [
+                Expanded(
+                  child: RadioListTile<String>(
+                    title: const Text('إضافة'),
+                    value: 'add',
+                    groupValue: adjustmentType,
+                    onChanged: (value) =>
+                        setDialogState(() => adjustmentType = value!),
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    activeColor: AppColors.primary,
+                  ),
+                ),
+                Expanded(
+                  child: RadioListTile<String>(
+                    title: const Text('سحب'),
+                    value: 'subtract',
+                    groupValue: adjustmentType,
+                    onChanged: (value) =>
+                        setDialogState(() => adjustmentType = value!),
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                    activeColor: AppColors.error,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: AppSpacing.sm),
+            ProTextField(
+              controller: quantityController,
+              label: 'الكمية',
+              prefixIcon: Icons.numbers,
+              keyboardType: TextInputType.number,
+            ),
+            SizedBox(height: AppSpacing.sm),
+            ProTextField(
+              controller: reasonController,
+              label: 'السبب (اختياري)',
+              prefixIcon: Icons.edit_note,
+            ),
+            SizedBox(height: AppSpacing.xl),
+            Row(
+              children: [
+                Expanded(
+                  child: ProButton(
+                    label: 'إلغاء',
+                    onPressed: () => Navigator.pop(context),
+                    type: ProButtonType.outlined,
+                  ),
+                ),
+                SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: ProButton(
+                    label: 'تأكيد',
+                    type: ProButtonType.filled,
+                    color: adjustmentType == 'add'
+                        ? AppColors.primary
+                        : AppColors.error,
+                    onPressed: () async {
+                      final quantity =
+                          int.tryParse(quantityController.text) ?? 0;
+                      if (quantity <= 0) {
+                        ProSnackbar.warning(context, 'أدخل كمية صحيحة');
+                        return;
+                      }
 
-                // التحقق من عدم السحب أكثر من المتوفر
-                if (adjustmentType == 'subtract' &&
-                    quantity > product.quantity) {
-                  ProSnackbar.error(context,
-                      'لا يمكن سحب أكثر من الكمية المتوفرة (${product.quantity})');
-                  return;
-                }
+                      // التحقق من عدم السحب أكثر من المتوفر
+                      if (adjustmentType == 'subtract' &&
+                          quantity > product.quantity) {
+                        ProSnackbar.error(context,
+                            'لا يمكن سحب أكثر من الكمية المتوفرة (${product.quantity})');
+                        return;
+                      }
 
-                try {
-                  final adjustment =
-                      adjustmentType == 'add' ? quantity : -quantity;
-                  final productRepo = ref.read(productRepositoryProvider);
-                  await productRepo.adjustStock(product.id, adjustment,
-                      reason.isEmpty ? 'تعديل يدوي' : reason);
+                      try {
+                        final adjustment =
+                            adjustmentType == 'add' ? quantity : -quantity;
+                        final productRepo = ref.read(productRepositoryProvider);
+                        await productRepo.adjustStock(
+                            product.id,
+                            adjustment,
+                            reasonController.text.isEmpty
+                                ? 'تعديل يدوي'
+                                : reasonController.text);
 
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    ProSnackbar.success(
-                        context,
-                        adjustmentType == 'add'
-                            ? 'تم إضافة $quantity وحدة'
-                            : 'تم سحب $quantity وحدة');
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ProSnackbar.showError(context, e);
-                  }
-                }
-              },
-              child: const Text('تأكيد'),
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          ProSnackbar.success(
+                              context,
+                              adjustmentType == 'add'
+                                  ? 'تم إضافة $quantity وحدة'
+                                  : 'تم سحب $quantity وحدة');
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ProSnackbar.error(context, e.toString());
+                        }
+                      }
+                    },
+                  ),
+                ),
+              ],
             ),
           ],
         ),

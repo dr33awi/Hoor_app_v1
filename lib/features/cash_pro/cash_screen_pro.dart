@@ -86,24 +86,11 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
               textAlign: TextAlign.center,
             ),
             SizedBox(height: AppSpacing.xl),
-            ElevatedButton.icon(
+            ProButton(
               onPressed: () => context.push('/shifts'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(
-                  horizontal: AppSpacing.xl,
-                  vertical: AppSpacing.md,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                ),
-              ),
-              icon: const Icon(Icons.play_arrow_rounded),
-              label: Text(
-                'فتح وردية',
-                style: AppTypography.labelLarge.copyWith(color: Colors.white),
-              ),
+              label: 'فتح وردية',
+              icon: Icons.play_arrow_rounded,
+              type: ProButtonType.filled,
             ),
           ],
         ),
@@ -426,64 +413,50 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
                 ),
               ),
               SizedBox(height: AppSpacing.lg),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    final amount = double.tryParse(amountController.text) ?? 0;
-                    if (amount <= 0) {
-                      ProSnackbar.warning(context, 'أدخل مبلغ صحيح');
-                      return;
+              ProButton(
+                label: isDeposit ? 'إيداع' : 'سحب',
+                fullWidth: true,
+                color: isDeposit ? AppColors.success : AppColors.error,
+                onPressed: () async {
+                  final amount = double.tryParse(amountController.text) ?? 0;
+                  if (amount <= 0) {
+                    ProSnackbar.warning(context, 'أدخل مبلغ صحيح');
+                    return;
+                  }
+
+                  try {
+                    final cashRepo = ref.read(cashRepositoryProvider);
+                    if (isDeposit) {
+                      await cashRepo.addIncome(
+                        shiftId: shift.id,
+                        amount: amount,
+                        description: noteController.text.isNotEmpty
+                            ? noteController.text
+                            : 'إيداع',
+                      );
+                    } else {
+                      await cashRepo.addExpense(
+                        shiftId: shift.id,
+                        amount: amount,
+                        description: noteController.text.isNotEmpty
+                            ? noteController.text
+                            : 'سحب',
+                      );
                     }
 
-                    try {
-                      final cashRepo = ref.read(cashRepositoryProvider);
-                      if (isDeposit) {
-                        await cashRepo.addIncome(
-                          shiftId: shift.id,
-                          amount: amount,
-                          description: noteController.text.isNotEmpty
-                              ? noteController.text
-                              : 'إيداع',
-                        );
-                      } else {
-                        await cashRepo.addExpense(
-                          shiftId: shift.id,
-                          amount: amount,
-                          description: noteController.text.isNotEmpty
-                              ? noteController.text
-                              : 'سحب',
-                        );
-                      }
-
-                      if (context.mounted) {
-                        Navigator.pop(context);
-                        ProSnackbar.success(
-                          context,
-                          isDeposit ? 'تم الإيداع بنجاح' : 'تم السحب بنجاح',
-                        );
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        ProSnackbar.showError(context, e);
-                      }
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                      ProSnackbar.success(
+                        context,
+                        isDeposit ? 'تم الإيداع بنجاح' : 'تم السحب بنجاح',
+                      );
                     }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        isDeposit ? AppColors.success : AppColors.error,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.all(AppSpacing.md),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                  ),
-                  child: Text(
-                    isDeposit ? 'إيداع' : 'سحب',
-                    style:
-                        AppTypography.labelLarge.copyWith(color: Colors.white),
-                  ),
-                ),
+                  } catch (e) {
+                    if (context.mounted) {
+                      ProSnackbar.showError(context, e);
+                    }
+                  }
+                },
               ),
             ],
           ),

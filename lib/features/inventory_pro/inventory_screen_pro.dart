@@ -278,195 +278,166 @@ class _InventoryScreenProState extends ConsumerState<InventoryScreenPro>
     String selectedType = 'add';
     Product? selectedProduct;
 
-    showModalBottomSheet(
+    showProBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => StatefulBuilder(
+      title: 'إضافة مخزون',
+      child: StatefulBuilder(
         builder: (context, setSheetState) {
           final productsAsync = ref.watch(activeProductsStreamProvider);
 
-          return Container(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(
-                top: Radius.circular(AppRadius.xl),
-              ),
-            ),
-            child: Padding(
-              padding: EdgeInsets.all(AppSpacing.lg),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40.w,
-                      height: 4.h,
-                      decoration: BoxDecoration(
-                        color: AppColors.border,
-                        borderRadius: BorderRadius.circular(2),
+          return Padding(
+            padding: EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40.w,
+                    height: 4.h,
+                    decoration: BoxDecoration(
+                      color: AppColors.border,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                SizedBox(height: AppSpacing.lg),
+                Text('حركة مخزون جديدة', style: AppTypography.titleLarge),
+                SizedBox(height: AppSpacing.lg),
+
+                // Movement Type
+                Text('نوع الحركة', style: AppTypography.labelLarge),
+                SizedBox(height: AppSpacing.sm),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _TypeButton(
+                        label: 'إضافة',
+                        icon: Icons.add_circle_outline,
+                        isSelected: selectedType == 'add',
+                        color: AppColors.success,
+                        onTap: () => setSheetState(() => selectedType = 'add'),
+                      ),
+                    ),
+                    SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: _TypeButton(
+                        label: 'سحب',
+                        icon: Icons.remove_circle_outline,
+                        isSelected: selectedType == 'withdraw',
+                        color: AppColors.error,
+                        onTap: () =>
+                            setSheetState(() => selectedType = 'withdraw'),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: AppSpacing.lg),
+
+                // Product Selection
+                Text('المنتج', style: AppTypography.labelLarge),
+                SizedBox(height: AppSpacing.sm),
+                productsAsync.when(
+                  loading: () => const CircularProgressIndicator(),
+                  error: (_, __) => const Text('خطأ في تحميل المنتجات'),
+                  data: (products) => Container(
+                    padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: AppColors.border),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<Product>(
+                        isExpanded: true,
+                        value: selectedProduct,
+                        hint: const Text('اختر المنتج'),
+                        items: products
+                            .map((p) => DropdownMenuItem(
+                                  value: p,
+                                  child: Text(p.name),
+                                ))
+                            .toList(),
+                        onChanged: (value) =>
+                            setSheetState(() => selectedProduct = value),
                       ),
                     ),
                   ),
-                  SizedBox(height: AppSpacing.lg),
-                  Text('حركة مخزون جديدة', style: AppTypography.titleLarge),
-                  SizedBox(height: AppSpacing.lg),
+                ),
+                SizedBox(height: AppSpacing.md),
 
-                  // Movement Type
-                  Text('نوع الحركة', style: AppTypography.labelLarge),
-                  SizedBox(height: AppSpacing.sm),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _TypeButton(
-                          label: 'إضافة',
-                          icon: Icons.add_circle_outline,
-                          isSelected: selectedType == 'add',
-                          color: AppColors.success,
-                          onTap: () =>
-                              setSheetState(() => selectedType = 'add'),
-                        ),
-                      ),
-                      SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: _TypeButton(
-                          label: 'سحب',
-                          icon: Icons.remove_circle_outline,
-                          isSelected: selectedType == 'withdraw',
-                          color: AppColors.error,
-                          onTap: () =>
-                              setSheetState(() => selectedType = 'withdraw'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: AppSpacing.lg),
-
-                  // Product Selection
-                  Text('المنتج', style: AppTypography.labelLarge),
-                  SizedBox(height: AppSpacing.sm),
-                  productsAsync.when(
-                    loading: () => const CircularProgressIndicator(),
-                    error: (_, __) => const Text('خطأ في تحميل المنتجات'),
-                    data: (products) => Container(
-                      padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: AppColors.border),
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<Product>(
-                          isExpanded: true,
-                          value: selectedProduct,
-                          hint: const Text('اختر المنتج'),
-                          items: products
-                              .map((p) => DropdownMenuItem(
-                                    value: p,
-                                    child: Text(p.name),
-                                  ))
-                              .toList(),
-                          onChanged: (value) =>
-                              setSheetState(() => selectedProduct = value),
-                        ),
-                      ),
+                // Quantity
+                TextField(
+                  controller: quantityController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: 'الكمية',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
                   ),
-                  SizedBox(height: AppSpacing.md),
+                ),
+                SizedBox(height: AppSpacing.md),
 
-                  // Quantity
-                  TextField(
-                    controller: quantityController,
-                    keyboardType: TextInputType.number,
-                    decoration: InputDecoration(
-                      labelText: 'الكمية',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                      ),
+                // Reason
+                TextField(
+                  controller: reasonController,
+                  decoration: InputDecoration(
+                    labelText: 'السبب (اختياري)',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
                   ),
-                  SizedBox(height: AppSpacing.md),
+                ),
+                SizedBox(height: AppSpacing.lg),
 
-                  // Reason
-                  TextField(
-                    controller: reasonController,
-                    decoration: InputDecoration(
-                      labelText: 'السبب (اختياري)',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: AppSpacing.lg),
+                // Save Button
+                ProButton(
+                  label: 'حفظ الحركة',
+                  fullWidth: true,
+                  onPressed: () async {
+                    if (selectedProduct == null) {
+                      ProSnackbar.warning(context, 'اختر المنتج');
+                      return;
+                    }
+                    final quantity = int.tryParse(quantityController.text) ?? 0;
+                    if (quantity <= 0) {
+                      ProSnackbar.warning(context, 'أدخل كمية صحيحة');
+                      return;
+                    }
 
-                  // Save Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () async {
-                        if (selectedProduct == null) {
-                          ProSnackbar.warning(context, 'اختر المنتج');
-                          return;
-                        }
-                        final quantity =
-                            int.tryParse(quantityController.text) ?? 0;
-                        if (quantity <= 0) {
-                          ProSnackbar.warning(context, 'أدخل كمية صحيحة');
-                          return;
-                        }
+                    try {
+                      final inventoryRepo =
+                          ref.read(inventoryRepositoryProvider);
+                      if (selectedType == 'add') {
+                        await inventoryRepo.addStock(
+                          productId: selectedProduct!.id,
+                          quantity: quantity,
+                          reason: reasonController.text.isNotEmpty
+                              ? reasonController.text
+                              : 'إضافة يدوية',
+                        );
+                      } else {
+                        await inventoryRepo.withdrawStock(
+                          productId: selectedProduct!.id,
+                          quantity: quantity,
+                          reason: reasonController.text.isNotEmpty
+                              ? reasonController.text
+                              : 'سحب يدوي',
+                        );
+                      }
 
-                        try {
-                          final inventoryRepo =
-                              ref.read(inventoryRepositoryProvider);
-                          if (selectedType == 'add') {
-                            await inventoryRepo.addStock(
-                              productId: selectedProduct!.id,
-                              quantity: quantity,
-                              reason: reasonController.text.isNotEmpty
-                                  ? reasonController.text
-                                  : 'إضافة يدوية',
-                            );
-                          } else {
-                            await inventoryRepo.withdrawStock(
-                              productId: selectedProduct!.id,
-                              quantity: quantity,
-                              reason: reasonController.text.isNotEmpty
-                                  ? reasonController.text
-                                  : 'سحب يدوي',
-                            );
-                          }
-
-                          if (context.mounted) {
-                            Navigator.pop(context);
-                            ProSnackbar.success(
-                                context, 'تم تسجيل الحركة بنجاح');
-                          }
-                        } catch (e) {
-                          if (context.mounted) {
-                            ProSnackbar.showError(context, e);
-                          }
-                        }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.all(AppSpacing.md),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppRadius.md),
-                        ),
-                      ),
-                      child: Text(
-                        'حفظ الحركة',
-                        style: AppTypography.labelLarge
-                            .copyWith(color: Colors.white),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                        ProSnackbar.success(context, 'تم تسجيل الحركة بنجاح');
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        ProSnackbar.error(context, e.toString());
+                      }
+                    }
+                  },
+                ),
+              ],
             ),
           );
         },

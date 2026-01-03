@@ -216,121 +216,69 @@ class _CategoriesScreenProState extends ConsumerState<CategoriesScreenPro> {
         TextEditingController(text: category?.description ?? '');
     final isEditing = category != null;
 
-    showModalBottomSheet(
+    showProBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
-        ),
-        child: Padding(
-          padding: EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40.w,
-                  height: 4.h,
-                  decoration: BoxDecoration(
-                    color: AppColors.border,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              SizedBox(height: AppSpacing.lg),
-              Text(
-                isEditing ? 'تعديل الفئة' : 'فئة جديدة',
-                style: AppTypography.titleLarge,
-              ),
-              SizedBox(height: AppSpacing.lg),
-              TextField(
-                controller: nameController,
-                decoration: InputDecoration(
-                  labelText: 'اسم الفئة',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                  ),
-                ),
-              ),
-              SizedBox(height: AppSpacing.md),
-              TextField(
-                controller: descriptionController,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  labelText: 'الوصف (اختياري)',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                  ),
-                ),
-              ),
-              SizedBox(height: AppSpacing.lg),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    if (nameController.text.trim().isEmpty) {
-                      ProSnackbar.warning(context, 'أدخل اسم الفئة');
-                      return;
-                    }
-
-                    try {
-                      final categoryRepo = ref.read(categoryRepositoryProvider);
-                      if (isEditing) {
-                        await categoryRepo.updateCategory(
-                          id: category.id,
-                          name: nameController.text.trim(),
-                          description: descriptionController.text.trim().isEmpty
-                              ? null
-                              : descriptionController.text.trim(),
-                        );
-                      } else {
-                        await categoryRepo.createCategory(
-                          name: nameController.text.trim(),
-                          description: descriptionController.text.trim().isEmpty
-                              ? null
-                              : descriptionController.text.trim(),
-                        );
-                      }
-
-                      if (context.mounted) {
-                        Navigator.pop(context);
-                        ProSnackbar.success(
-                          context,
-                          isEditing ? 'تم تحديث الفئة' : 'تم إضافة الفئة',
-                        );
-                      }
-                    } catch (e) {
-                      if (context.mounted) {
-                        ProSnackbar.error(context, 'خطأ: $e');
-                      }
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.all(AppSpacing.md),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                  ),
-                  child: Text(
-                    isEditing ? 'حفظ التغييرات' : 'إضافة الفئة',
-                    style:
-                        AppTypography.labelLarge.copyWith(color: Colors.white),
-                  ),
-                ),
-              ),
-            ],
+      title: isEditing ? 'تعديل الفئة' : 'فئة جديدة',
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ProTextField(
+            controller: nameController,
+            label: 'اسم الفئة',
+            prefixIcon: Icons.category_rounded,
           ),
-        ),
+          SizedBox(height: AppSpacing.md),
+          ProTextField(
+            controller: descriptionController,
+            label: 'الوصف (اختياري)',
+            prefixIcon: Icons.description_rounded,
+            maxLines: 3,
+          ),
+          SizedBox(height: AppSpacing.lg),
+          ProButton(
+            label: isEditing ? 'حفظ التغييرات' : 'إضافة الفئة',
+            fullWidth: true,
+            onPressed: () async {
+              if (nameController.text.trim().isEmpty) {
+                ProSnackbar.showError(context, 'أدخل اسم الفئة');
+                return;
+              }
+
+              try {
+                final categoryRepo = ref.read(categoryRepositoryProvider);
+                if (isEditing) {
+                  await categoryRepo.updateCategory(
+                    id: category.id,
+                    name: nameController.text.trim(),
+                    description: descriptionController.text.trim().isEmpty
+                        ? null
+                        : descriptionController.text.trim(),
+                  );
+                } else {
+                  await categoryRepo.createCategory(
+                    name: nameController.text.trim(),
+                    description: descriptionController.text.trim().isEmpty
+                        ? null
+                        : descriptionController.text.trim(),
+                  );
+                }
+
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ProSnackbar.success(
+                    context,
+                    isEditing ? 'تم تحديث الفئة' : 'تم إضافة الفئة',
+                  );
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ProSnackbar.error(context, 'خطأ: $e');
+                }
+              }
+            },
+          ),
+        ],
       ),
     );
   }

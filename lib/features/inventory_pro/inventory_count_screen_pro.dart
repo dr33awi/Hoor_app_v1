@@ -230,11 +230,10 @@ class _InventoryCountScreenProState
   }
 
   void _scanBarcode() {
-    showModalBottomSheet(
+    showProBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _BarcodeScannerSheet(
+      title: 'مسح الباركود',
+      child: _BarcodeScannerSheet(
         onBarcodeScanned: (barcode) {
           Navigator.pop(context);
           _searchController.text = barcode;
@@ -283,7 +282,7 @@ class _InventoryCountScreenProState
       }
     } catch (e) {
       if (mounted) {
-        ProSnackbar.showError(context, e);
+        ProSnackbar.error(context, e.toString());
       }
     }
   }

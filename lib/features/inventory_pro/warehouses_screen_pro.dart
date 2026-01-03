@@ -134,164 +134,106 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
     final notesController = TextEditingController(text: warehouse?.notes ?? '');
     bool isDefault = warehouse?.isDefault ?? false;
 
-    showModalBottomSheet(
+    showProBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setSheetState) => Container(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.vertical(
-              top: Radius.circular(AppRadius.xl),
+      title: isEditing ? 'تعديل المستودع' : 'مستودع جديد',
+      child: StatefulBuilder(
+        builder: (context, setSheetState) => Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Form Fields
+            _buildTextField(
+              controller: nameController,
+              label: 'اسم المستودع *',
+              icon: Icons.warehouse_outlined,
             ),
-          ),
-          child: SingleChildScrollView(
-            padding: EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+            SizedBox(height: AppSpacing.md),
+
+            _buildTextField(
+              controller: codeController,
+              label: 'رمز المستودع',
+              icon: Icons.qr_code_rounded,
+            ),
+            SizedBox(height: AppSpacing.md),
+
+            _buildTextField(
+              controller: addressController,
+              label: 'العنوان',
+              icon: Icons.location_on_outlined,
+            ),
+            SizedBox(height: AppSpacing.md),
+
+            _buildTextField(
+              controller: phoneController,
+              label: 'رقم الهاتف',
+              icon: Icons.phone_outlined,
+              keyboardType: TextInputType.phone,
+            ),
+            SizedBox(height: AppSpacing.md),
+
+            _buildTextField(
+              controller: notesController,
+              label: 'ملاحظات',
+              icon: Icons.notes_rounded,
+              maxLines: 2,
+            ),
+            SizedBox(height: AppSpacing.md),
+
+            // Default Switch
+            Container(
+              padding: EdgeInsets.all(AppSpacing.sm),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceMuted,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+              child: SwitchListTile(
+                title:
+                    Text('المستودع الافتراضي', style: AppTypography.titleSmall),
+                subtitle: Text(
+                  'سيتم اختياره تلقائياً في العمليات',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textTertiary,
+                  ),
+                ),
+                value: isDefault,
+                activeColor: AppColors.secondary,
+                onChanged: (value) => setSheetState(() => isDefault = value),
+              ),
+            ),
+            SizedBox(height: AppSpacing.xl),
+
+            // Buttons
+            Row(
               children: [
-                // Handle
-                Center(
-                  child: Container(
-                    width: 40.w,
-                    height: 4.h,
-                    decoration: BoxDecoration(
-                      color: AppColors.border,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
+                Expanded(
+                  child: ProButton(
+                    label: 'إلغاء',
+                    onPressed: () => Navigator.pop(context),
+                    type: ProButtonType.outlined,
                   ),
                 ),
-                SizedBox(height: AppSpacing.lg),
-
-                // Title
-                Row(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(AppSpacing.sm),
-                      decoration: BoxDecoration(
-                        color: AppColors.secondary.soft,
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                      ),
-                      child: Icon(Icons.warehouse_rounded,
-                          color: AppColors.secondary),
+                SizedBox(width: AppSpacing.md),
+                Expanded(
+                  flex: 2,
+                  child: ProButton(
+                    label: isEditing ? 'تحديث' : 'إضافة',
+                    onPressed: () => _saveWarehouse(
+                      isEditing: isEditing,
+                      warehouse: warehouse,
+                      name: nameController.text,
+                      code: codeController.text,
+                      address: addressController.text,
+                      phone: phoneController.text,
+                      notes: notesController.text,
+                      isDefault: isDefault,
                     ),
-                    SizedBox(width: AppSpacing.md),
-                    Text(
-                      isEditing ? 'تعديل المستودع' : 'مستودع جديد',
-                      style: AppTypography.titleLarge
-                          .copyWith(fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-                SizedBox(height: AppSpacing.lg),
-
-                // Form Fields
-                _buildTextField(
-                  controller: nameController,
-                  label: 'اسم المستودع *',
-                  icon: Icons.warehouse_outlined,
-                ),
-                SizedBox(height: AppSpacing.md),
-
-                _buildTextField(
-                  controller: codeController,
-                  label: 'رمز المستودع',
-                  icon: Icons.qr_code_rounded,
-                ),
-                SizedBox(height: AppSpacing.md),
-
-                _buildTextField(
-                  controller: addressController,
-                  label: 'العنوان',
-                  icon: Icons.location_on_outlined,
-                ),
-                SizedBox(height: AppSpacing.md),
-
-                _buildTextField(
-                  controller: phoneController,
-                  label: 'رقم الهاتف',
-                  icon: Icons.phone_outlined,
-                  keyboardType: TextInputType.phone,
-                ),
-                SizedBox(height: AppSpacing.md),
-
-                _buildTextField(
-                  controller: notesController,
-                  label: 'ملاحظات',
-                  icon: Icons.notes_rounded,
-                  maxLines: 2,
-                ),
-                SizedBox(height: AppSpacing.md),
-
-                // Default Switch
-                Container(
-                  padding: EdgeInsets.all(AppSpacing.sm),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceMuted,
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                  ),
-                  child: SwitchListTile(
-                    title: Text('المستودع الافتراضي',
-                        style: AppTypography.titleSmall),
-                    subtitle: Text(
-                      'سيتم اختياره تلقائياً في العمليات',
-                      style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.textTertiary,
-                      ),
-                    ),
-                    value: isDefault,
-                    activeThumbColor: AppColors.secondary,
-                    onChanged: (value) =>
-                        setSheetState(() => isDefault = value),
+                    type: ProButtonType.filled,
                   ),
                 ),
-                SizedBox(height: AppSpacing.xl),
-
-                // Buttons
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: OutlinedButton.styleFrom(
-                          padding: EdgeInsets.all(AppSpacing.md),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.md),
-                          ),
-                        ),
-                        child: Text('إلغاء', style: AppTypography.labelLarge),
-                      ),
-                    ),
-                    SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      flex: 2,
-                      child: ProButton(
-                        label: isEditing ? 'تحديث' : 'إضافة',
-                        onPressed: () => _saveWarehouse(
-                          isEditing: isEditing,
-                          warehouse: warehouse,
-                          name: nameController.text,
-                          code: codeController.text,
-                          address: addressController.text,
-                          phone: phoneController.text,
-                          notes: notesController.text,
-                          isDefault: isDefault,
-                        ),
-                        color: AppColors.secondary,
-                        fullWidth: true,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: AppSpacing.md),
               ],
             ),
-          ),
+          ],
         ),
       ),
     );

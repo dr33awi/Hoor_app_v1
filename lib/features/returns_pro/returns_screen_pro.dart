@@ -218,163 +218,110 @@ class _ReturnsScreenProState extends ConsumerState<ReturnsScreenPro> {
     final reasonController = TextEditingController();
     final invoicesAsync = ref.read(invoicesStreamProvider);
 
-    showModalBottomSheet(
+    showProBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => StatefulBuilder(
+      title: widget.type.newReturnTitle,
+      titleIcon: Icons.assignment_return_rounded,
+      titleIconColor: widget.type.accentColor,
+      child: StatefulBuilder(
         builder: (context, setSheetState) => Container(
           padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
+            bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg,
+            left: AppSpacing.lg,
+            right: AppSpacing.lg,
+            top: AppSpacing.lg,
           ),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius:
-                BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
-          ),
-          child: SingleChildScrollView(
-            padding: EdgeInsets.all(AppSpacing.lg),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Handle
-                Center(
-                  child: Container(
-                    width: 40.w,
-                    height: 4.h,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Select Invoice
+              Text(widget.type.selectInvoiceLabel,
+                  style: AppTypography.labelLarge),
+              SizedBox(height: AppSpacing.sm),
+              invoicesAsync.when(
+                loading: () => const LinearProgressIndicator(),
+                error: (_, __) => const Text('خطأ في تحميل الفواتير'),
+                data: (invoices) {
+                  final filteredInvoices = invoices
+                      .where((i) =>
+                          i.type == widget.type.originalInvoiceType &&
+                          i.status != 'returned')
+                      .toList();
+                  return Container(
+                    padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
                     decoration: BoxDecoration(
-                      color: AppColors.border,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                SizedBox(height: AppSpacing.lg),
-
-                // Title
-                Row(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(AppSpacing.sm),
-                      decoration: BoxDecoration(
-                        color: widget.type.accentColor.soft,
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                      ),
-                      child: Icon(
-                        Icons.assignment_return_rounded,
-                        color: widget.type.accentColor,
-                      ),
-                    ),
-                    SizedBox(width: AppSpacing.md),
-                    Text(
-                      widget.type.newReturnTitle,
-                      style: AppTypography.titleLarge
-                          .copyWith(fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-                SizedBox(height: AppSpacing.xl),
-
-                // Select Invoice
-                Text(widget.type.selectInvoiceLabel,
-                    style: AppTypography.labelLarge),
-                SizedBox(height: AppSpacing.sm),
-                invoicesAsync.when(
-                  loading: () => const LinearProgressIndicator(),
-                  error: (_, __) => const Text('خطأ في تحميل الفواتير'),
-                  data: (invoices) {
-                    final filteredInvoices = invoices
-                        .where((i) =>
-                            i.type == widget.type.originalInvoiceType &&
-                            i.status != 'returned')
-                        .toList();
-                    return Container(
-                      padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: AppColors.border),
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<Invoice>(
-                          isExpanded: true,
-                          value: selectedInvoice,
-                          hint: const Text('اختر الفاتورة'),
-                          items: filteredInvoices
-                              .map((i) => DropdownMenuItem(
-                                    value: i,
-                                    child: Text(
-                                      '${i.invoiceNumber} - ${NumberFormat('#,###').format(i.total)} ل.س',
-                                    ),
-                                  ))
-                              .toList(),
-                          onChanged: (value) =>
-                              setSheetState(() => selectedInvoice = value),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                SizedBox(height: AppSpacing.md),
-
-                // Reason
-                Text('سبب الإرجاع', style: AppTypography.labelLarge),
-                SizedBox(height: AppSpacing.sm),
-                TextField(
-                  controller: reasonController,
-                  maxLines: 3,
-                  decoration: InputDecoration(
-                    hintText: widget.type == ReturnType.sales
-                        ? 'أدخل سبب إرجاع المنتجات'
-                        : 'أدخل سبب إرجاع المنتجات للمورد',
-                    border: OutlineInputBorder(
+                      border: Border.all(color: AppColors.border),
                       borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
-                    prefixIcon: const Icon(Icons.notes),
-                  ),
-                ),
-                SizedBox(height: AppSpacing.xl),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<Invoice>(
+                        isExpanded: true,
+                        value: selectedInvoice,
+                        hint: const Text('اختر الفاتورة'),
+                        items: filteredInvoices
+                            .map((i) => DropdownMenuItem(
+                                  value: i,
+                                  child: Text(
+                                    '${i.invoiceNumber} - ${NumberFormat('#,###').format(i.total)} ل.س',
+                                  ),
+                                ))
+                            .toList(),
+                        onChanged: (value) =>
+                            setSheetState(() => selectedInvoice = value),
+                      ),
+                    ),
+                  );
+                },
+              ),
+              SizedBox(height: AppSpacing.md),
 
-                // Buttons
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: OutlinedButton.styleFrom(
-                          padding: EdgeInsets.all(AppSpacing.md),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.md),
-                          ),
-                        ),
-                        child: const Text('إلغاء'),
-                      ),
-                    ),
-                    SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      flex: 2,
-                      child: ElevatedButton(
-                        onPressed: selectedInvoice != null
-                            ? () => _createReturn(
-                                  invoice: selectedInvoice!,
-                                  reason: reasonController.text,
-                                )
-                            : null,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: widget.type.accentColor,
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.all(AppSpacing.md),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.md),
-                          ),
-                        ),
-                        child: const Text('إنشاء المرتجع'),
-                      ),
-                    ),
-                  ],
+              // Reason
+              Text('سبب الإرجاع', style: AppTypography.labelLarge),
+              SizedBox(height: AppSpacing.sm),
+              TextField(
+                controller: reasonController,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  hintText: widget.type == ReturnType.sales
+                      ? 'أدخل سبب إرجاع المنتجات'
+                      : 'أدخل سبب إرجاع المنتجات للمورد',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                  prefixIcon: const Icon(Icons.notes),
                 ),
-                SizedBox(height: AppSpacing.md),
-              ],
-            ),
+              ),
+              SizedBox(height: AppSpacing.xl),
+
+              // Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: ProButton(
+                      label: 'إلغاء',
+                      type: ProButtonType.outlined,
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ),
+                  SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    flex: 2,
+                    child: ProButton(
+                      label: 'إنشاء المرتجع',
+                      color: widget.type.accentColor,
+                      fullWidth: true,
+                      onPressed: selectedInvoice != null
+                          ? () => _createReturn(
+                                invoice: selectedInvoice!,
+                                reason: reasonController.text,
+                              )
+                          : null,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),
