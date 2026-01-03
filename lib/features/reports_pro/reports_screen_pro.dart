@@ -25,103 +25,114 @@ class ReportsScreenPro extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: ProAppBar.noBack(
-        title: 'التقارير',
-        actions: [
-          ProAppBarAction(
-            icon: Icons.date_range_rounded,
-            onPressed: () {},
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(AppSpacing.md),
+      body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Quick Stats
-            _buildQuickStats(salesAsync, purchasesAsync),
-            SizedBox(height: AppSpacing.lg),
-
-            // Sales Reports
-            _buildSectionTitle('تقارير المبيعات'),
-            SizedBox(height: AppSpacing.md),
-            _ReportCard(
-              title: 'تقرير المبيعات',
-              description: 'إجمالي المبيعات والإيرادات',
-              icon: Icons.trending_up_rounded,
-              color: AppColors.success,
-              onTap: () => context.push('/reports/sales'),
+            ProHeader(
+              title: 'التقارير',
+              subtitle: 'تحليل البيانات والأداء',
+              onBack: () => context.go('/'),
+              actions: [
+                IconButton(
+                  onPressed: () {},
+                  icon: const Icon(Icons.date_range_rounded),
+                  tooltip: 'تحديد الفترة',
+                ),
+              ],
             ),
-            _ReportCard(
-              title: 'تقرير المنتجات الأكثر مبيعاً',
-              description: 'المنتجات حسب حجم المبيعات',
-              icon: Icons.star_rounded,
-              color: AppColors.warning,
-              onTap: () {},
-            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(AppSpacing.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Quick Stats
+                    _buildQuickStats(salesAsync, purchasesAsync),
+                    SizedBox(height: AppSpacing.lg),
 
-            SizedBox(height: AppSpacing.lg),
+                    // Sales Reports
+                    _buildSectionTitle('تقارير المبيعات'),
+                    SizedBox(height: AppSpacing.md),
+                    _ReportCard(
+                      title: 'تقرير المبيعات',
+                      description: 'إجمالي المبيعات والإيرادات',
+                      icon: Icons.trending_up_rounded,
+                      color: AppColors.success,
+                      onTap: () => context.push('/reports/sales'),
+                    ),
+                    _ReportCard(
+                      title: 'تقرير المنتجات الأكثر مبيعاً',
+                      description: 'المنتجات حسب حجم المبيعات',
+                      icon: Icons.star_rounded,
+                      color: AppColors.warning,
+                      onTap: () {},
+                    ),
 
-            // Purchase Reports
-            _buildSectionTitle('تقارير المشتريات'),
-            SizedBox(height: AppSpacing.md),
-            _ReportCard(
-              title: 'تقرير المشتريات',
-              description: 'إجمالي المشتريات والتكاليف',
-              icon: Icons.shopping_cart_rounded,
-              color: AppColors.secondary,
-              onTap: () => context.push('/reports/purchases'),
-            ),
+                    SizedBox(height: AppSpacing.lg),
 
-            SizedBox(height: AppSpacing.lg),
+                    // Purchase Reports
+                    _buildSectionTitle('تقارير المشتريات'),
+                    SizedBox(height: AppSpacing.md),
+                    _ReportCard(
+                      title: 'تقرير المشتريات',
+                      description: 'إجمالي المشتريات والتكاليف',
+                      icon: Icons.shopping_cart_rounded,
+                      color: AppColors.secondary,
+                      onTap: () => context.push('/reports/purchases'),
+                    ),
 
-            // Financial Reports
-            _buildSectionTitle('التقارير المالية'),
-            SizedBox(height: AppSpacing.md),
-            _ReportCard(
-              title: 'تقرير الأرباح والخسائر',
-              description: 'صافي الربح والمصروفات',
-              icon: Icons.analytics_rounded,
-              color: AppColors.success,
-              onTap: () => context.push('/reports/profit'),
-            ),
-            _ReportCard(
-              title: 'تقرير الذمم المدينة',
-              description: 'المبالغ المستحقة من العملاء',
-              icon: Icons.account_balance_wallet_rounded,
-              color: AppColors.error,
-              onTap: () => context.push('/reports/receivables'),
-            ),
-            _ReportCard(
-              title: 'تقرير الذمم الدائنة',
-              description: 'المبالغ المستحقة للموردين',
-              icon: Icons.payments_rounded,
-              color: AppColors.warning,
-              onTap: () {},
-            ),
+                    SizedBox(height: AppSpacing.lg),
 
-            SizedBox(height: AppSpacing.lg),
+                    // Financial Reports
+                    _buildSectionTitle('التقارير المالية'),
+                    SizedBox(height: AppSpacing.md),
+                    _ReportCard(
+                      title: 'تقرير الأرباح والخسائر',
+                      description: 'صافي الربح والمصروفات',
+                      icon: Icons.analytics_rounded,
+                      color: AppColors.success,
+                      onTap: () => context.push('/reports/profit'),
+                    ),
+                    _ReportCard(
+                      title: 'تقرير الذمم المدينة',
+                      description: 'المبالغ المستحقة من العملاء',
+                      icon: Icons.account_balance_wallet_rounded,
+                      color: AppColors.error,
+                      onTap: () => context.push('/reports/receivables'),
+                    ),
+                    _ReportCard(
+                      title: 'تقرير الذمم الدائنة',
+                      description: 'المبالغ المستحقة للموردين',
+                      icon: Icons.payments_rounded,
+                      color: AppColors.warning,
+                      onTap: () {},
+                    ),
 
-            // Inventory Reports
-            _buildSectionTitle('تقارير المخزون'),
-            SizedBox(height: AppSpacing.md),
-            _ReportCard(
-              title: 'تقرير المخزون',
-              description: 'الكميات والقيم الحالية',
-              icon: Icons.inventory_2_rounded,
-              color: AppColors.secondary,
-              onTap: () {},
-            ),
-            _ReportCard(
-              title: 'تقرير المخزون المنخفض',
-              description: 'المنتجات التي تحتاج إعادة طلب',
-              icon: Icons.warning_amber_rounded,
-              color: AppColors.error,
-              onTap: () {},
-            ),
+                    SizedBox(height: AppSpacing.lg),
 
-            SizedBox(height: AppSpacing.xxl),
+                    // Inventory Reports
+                    _buildSectionTitle('تقارير المخزون'),
+                    SizedBox(height: AppSpacing.md),
+                    _ReportCard(
+                      title: 'تقرير المخزون',
+                      description: 'الكميات والقيم الحالية',
+                      icon: Icons.inventory_2_rounded,
+                      color: AppColors.secondary,
+                      onTap: () {},
+                    ),
+                    _ReportCard(
+                      title: 'تقرير المخزون المنخفض',
+                      description: 'المنتجات التي تحتاج إعادة طلب',
+                      icon: Icons.warning_amber_rounded,
+                      color: AppColors.error,
+                      onTap: () {},
+                    ),
+
+                    SizedBox(height: AppSpacing.xxl),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),

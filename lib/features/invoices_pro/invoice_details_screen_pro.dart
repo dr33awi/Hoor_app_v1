@@ -183,14 +183,7 @@ class _InvoiceDetailsScreenProState
     if (_isLoading) {
       return Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(
-          backgroundColor: AppColors.surface,
-          leading: IconButton(
-            onPressed: () => context.pop(),
-            icon: Icon(Icons.arrow_back_ios_rounded,
-                color: AppColors.textSecondary),
-          ),
-        ),
+        appBar: ProAppBar.simple(title: 'تفاصيل الفاتورة'),
         body: ProLoadingState.card(),
       );
     }
@@ -198,14 +191,7 @@ class _InvoiceDetailsScreenProState
     if (_invoice == null) {
       return Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(
-          backgroundColor: AppColors.surface,
-          leading: IconButton(
-            onPressed: () => context.pop(),
-            icon: Icon(Icons.arrow_back_ios_rounded,
-                color: AppColors.textSecondary),
-          ),
-        ),
+        appBar: ProAppBar.simple(title: 'تفاصيل الفاتورة'),
         body: Center(child: Text('الفاتورة غير موجودة')),
       );
     }
@@ -214,33 +200,9 @@ class _InvoiceDetailsScreenProState
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () => context.pop(),
-          icon: Icon(Icons.arrow_back_ios_rounded,
-              color: AppColors.textSecondary),
-        ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              _invoice!.invoiceNumber,
-              style: AppTypography.titleMedium
-                  .copyWith(
-                    color: AppColors.textPrimary,
-                  )
-                  .mono,
-            ),
-            Text(
-              isSales ? 'فاتورة بيع' : 'فاتورة شراء',
-              style: AppTypography.bodySmall.copyWith(
-                color: AppColors.textTertiary,
-              ),
-            ),
-          ],
-        ),
+      appBar: ProAppBar.withSubtitle(
+        title: _invoice!.invoiceNumber,
+        subtitle: isSales ? 'فاتورة بيع' : 'فاتورة شراء',
         actions: [
           // ═══════════════════════════════════════════════════════════════
           // زر الطباعة الموحد

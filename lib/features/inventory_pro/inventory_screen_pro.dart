@@ -11,7 +11,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/widgets/widgets.dart';
-import '../dashboard_pro/widgets/pro_navigation_drawer.dart';
+import '../home_pro/widgets/pro_navigation_drawer.dart';
 import '../../core/providers/app_providers.dart';
 import '../../data/database/app_database.dart';
 
@@ -48,7 +48,6 @@ class _InventoryScreenProState extends ConsumerState<InventoryScreenPro>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      drawer: const ProNavigationDrawer(currentRoute: '/inventory'),
       body: SafeArea(
         child: Column(
           children: [
@@ -80,80 +79,37 @@ class _InventoryScreenProState extends ConsumerState<InventoryScreenPro>
   }
 
   Widget _buildHeader() {
-    return Container(
-      padding: EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: AppShadows.sm,
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Builder(
-                builder: (context) => IconButton(
-                  onPressed: () => Scaffold.of(context).openDrawer(),
-                  icon: const Icon(Icons.menu),
-                ),
-              ),
-              SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('المخزون', style: AppTypography.titleLarge),
-                    Text(
-                      'إدارة حركات المخزون والجرد',
-                      style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              IconButton(
-                onPressed: () => context.push('/inventory/warehouses'),
-                icon: const Icon(Icons.warehouse_outlined),
-                tooltip: 'المستودعات',
-              ),
-              IconButton(
-                onPressed: () => context.push('/inventory/transfer'),
-                icon: const Icon(Icons.swap_horiz_rounded),
-                tooltip: 'نقل المخزون',
-              ),
-              IconButton(
-                onPressed: () => context.push('/inventory/count'),
-                icon: const Icon(Icons.inventory_2_outlined),
-                tooltip: 'جرد المخزون',
-              ),
-            ],
-          ),
-          SizedBox(height: AppSpacing.md),
-          // Search Bar
-          Container(
-            height: 48.h,
-            decoration: BoxDecoration(
-              color: AppColors.surfaceVariant,
-              borderRadius: BorderRadius.circular(AppRadius.md),
+    return Column(
+      children: [
+        ProHeader(
+          title: 'المخزون',
+          subtitle: 'إدارة حركات المخزون والجرد',
+          onBack: () => context.go('/'),
+          actions: [
+            IconButton(
+              onPressed: () => context.push('/inventory/warehouses'),
+              icon: const Icon(Icons.warehouse_outlined),
+              tooltip: 'المستودعات',
             ),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'البحث في المخزون...',
-                hintStyle: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textTertiary,
-                ),
-                prefixIcon: const Icon(Icons.search),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: AppSpacing.sm,
-                ),
-              ),
+            IconButton(
+              onPressed: () => context.push('/inventory/transfer'),
+              icon: const Icon(Icons.swap_horiz_rounded),
+              tooltip: 'نقل المخزون',
             ),
-          ),
-        ],
-      ),
+            IconButton(
+              onPressed: () => context.push('/inventory/count'),
+              icon: const Icon(Icons.inventory_2_outlined),
+              tooltip: 'جرد المخزون',
+            ),
+          ],
+        ),
+        ProSearchBar(
+          controller: _searchController,
+          hintText: 'البحث في المخزون...',
+          onChanged: (value) => setState(() => _searchQuery = value),
+          onClear: () => setState(() {}),
+        ),
+      ],
     );
   }
 

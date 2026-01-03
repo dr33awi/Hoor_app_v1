@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
@@ -44,18 +45,45 @@ class _CategoriesScreenProState extends ConsumerState<CategoriesScreenPro> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: ProAppBar.simple(title: 'الفئات'),
-      body: Column(
-        children: [
-          _buildHeader(categoriesAsync),
-          Expanded(
-            child: categoriesAsync.when(
-              loading: () => ProLoadingState.list(),
-              error: (error, _) => ProEmptyState.error(error: error.toString()),
-              data: (categories) => _buildCategoriesList(categories),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Header
+            categoriesAsync.when(
+              loading: () => ProHeader(
+                title: 'التصنيفات',
+                subtitle: '0 تصنيف',
+                onBack: () => context.go('/'),
+              ),
+              error: (_, __) => ProHeader(
+                title: 'التصنيفات',
+                subtitle: '0 تصنيف',
+                onBack: () => context.go('/'),
+              ),
+              data: (categories) => ProHeader(
+                title: 'التصنيفات',
+                subtitle: '${categories.length} تصنيف',
+                onBack: () => context.go('/'),
+              ),
             ),
-          ),
-        ],
+            // Search Bar
+            ProSearchBar(
+              controller: _searchController,
+              hintText: 'البحث في التصنيفات...',
+              onChanged: (value) => setState(() => _searchQuery = value),
+              onClear: () => setState(() {}),
+            ),
+            // Categories List
+            Expanded(
+              child: categoriesAsync.when(
+                loading: () => ProLoadingState.list(),
+                error: (error, _) =>
+                    ProEmptyState.error(error: error.toString()),
+                data: (categories) => _buildCategoriesList(categories),
+              ),
+            ),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showCategoryForm(),
@@ -65,97 +93,6 @@ class _CategoriesScreenProState extends ConsumerState<CategoriesScreenPro> {
           'فئة جديدة',
           style: AppTypography.labelLarge.copyWith(color: Colors.white),
         ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(AsyncValue<List<Category>> categoriesAsync) {
-    return Container(
-      padding: EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: AppShadows.sm,
-      ),
-      child: Column(
-        children: [
-          // Stats Card
-          categoriesAsync.when(
-            loading: () => const SizedBox.shrink(),
-            error: (_, __) => const SizedBox.shrink(),
-            data: (categories) => Container(
-              padding: EdgeInsets.all(AppSpacing.md),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppColors.primary, AppColors.primary.o87],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(AppRadius.lg),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(AppSpacing.md),
-                    decoration: BoxDecoration(
-                      color: Colors.white.light,
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                    child: Icon(
-                      Icons.category_rounded,
-                      color: Colors.white,
-                      size: 32.sp,
-                    ),
-                  ),
-                  SizedBox(width: AppSpacing.md),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'إجمالي الفئات',
-                        style: AppTypography.bodySmall.copyWith(
-                          color: Colors.white.o87,
-                        ),
-                      ),
-                      Text(
-                        '${categories.length}',
-                        style: AppTypography.headlineMedium
-                            .copyWith(
-                              color: Colors.white,
-                            )
-                            .monoBold,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          SizedBox(height: AppSpacing.md),
-
-          // Search Bar
-          Container(
-            height: 48.h,
-            decoration: BoxDecoration(
-              color: AppColors.surfaceVariant,
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'البحث في الفئات...',
-                hintStyle: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textTertiary,
-                ),
-                prefixIcon: const Icon(Icons.search),
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: AppSpacing.md,
-                  vertical: AppSpacing.sm,
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

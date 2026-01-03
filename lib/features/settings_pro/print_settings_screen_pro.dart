@@ -699,36 +699,13 @@ class _PrintSettingsScreenProState
     TextInputType? keyboardType,
     String? hint,
   }) {
-    return TextFormField(
+    return ProTextField(
       controller: controller,
+      label: label,
+      prefixIcon: icon,
       maxLines: maxLines,
       keyboardType: keyboardType,
-      style: AppTypography.bodyMedium,
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        labelStyle: AppTypography.bodySmall.copyWith(
-          color: AppColors.textSecondary,
-        ),
-        hintStyle: AppTypography.bodySmall.copyWith(
-          color: AppColors.textSecondary.borderStrong,
-        ),
-        prefixIcon: Icon(icon, color: AppColors.textSecondary, size: 20.sp),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: BorderSide(color: AppColors.border),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: BorderSide(color: AppColors.border),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: BorderSide(color: AppColors.primary),
-        ),
-        filled: true,
-        fillColor: AppColors.surfaceMuted,
-      ),
+      hint: hint,
     );
   }
 

@@ -38,14 +38,7 @@ class ProductDetailsScreenPro extends ConsumerWidget {
       ),
       error: (error, _) => Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(
-          backgroundColor: AppColors.surface,
-          leading: IconButton(
-            onPressed: () => context.pop(),
-            icon: Icon(Icons.arrow_back_ios_rounded,
-                color: AppColors.textSecondary),
-          ),
-        ),
+        appBar: ProAppBar.simple(title: 'تفاصيل المنتج'),
         body: ProEmptyState.error(error: error.toString()),
       ),
       data: (products) {
@@ -53,14 +46,7 @@ class ProductDetailsScreenPro extends ConsumerWidget {
         if (product == null) {
           return Scaffold(
             backgroundColor: AppColors.background,
-            appBar: AppBar(
-              backgroundColor: AppColors.surface,
-              leading: IconButton(
-                onPressed: () => context.pop(),
-                icon: Icon(Icons.arrow_back_ios_rounded,
-                    color: AppColors.textSecondary),
-              ),
-            ),
+            appBar: ProAppBar.simple(title: 'تفاصيل المنتج'),
             body: const Center(child: Text('المنتج غير موجود')),
           );
         }

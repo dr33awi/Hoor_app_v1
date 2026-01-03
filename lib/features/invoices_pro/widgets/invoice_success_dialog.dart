@@ -11,6 +11,7 @@ import 'package:hoor_manager/core/di/injection.dart';
 import 'package:hoor_manager/core/services/printing/print_settings_service.dart';
 import 'package:hoor_manager/core/services/printing/invoice_pdf_generator.dart';
 import 'package:hoor_manager/core/theme/design_tokens.dart';
+import 'package:hoor_manager/core/widgets/widgets.dart';
 import 'package:printing/printing.dart';
 
 import '../../../data/database/app_database.dart';
@@ -215,20 +216,9 @@ class _InvoiceSuccessDialogState extends State<InvoiceSuccessDialog> {
       context: context,
       builder: (ctx) => Dialog.fullscreen(
         child: Scaffold(
-          appBar: AppBar(
-            backgroundColor: AppColors.surface,
-            elevation: 0,
-            leading: IconButton(
-              onPressed: () => Navigator.pop(ctx),
-              icon: const Icon(Icons.close_rounded),
-            ),
-            title: Text(
-              'معاينة الفاتورة',
-              style: AppTypography.titleMedium.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            centerTitle: true,
+          appBar: ProAppBar.close(
+            title: 'معاينة الفاتورة',
+            onClose: () => Navigator.pop(ctx),
           ),
           body: PdfPreview(
             build: (_) async => pdfBytes,

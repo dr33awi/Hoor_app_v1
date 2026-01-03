@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hoor_manager/data/repositories/voucher_repository.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/theme/design_tokens.dart';
@@ -111,7 +112,7 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
         children: [
           FloatingActionButton(
             heroTag: 'receipt',
-            onPressed: () => context.push('/vouchers/receipt/new'),
+            onPressed: () => context.push('/vouchers/receipt/add'),
             backgroundColor: AppColors.success,
             foregroundColor: Colors.white,
             mini: true,
@@ -145,7 +146,7 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
       child: Row(
         children: [
           Expanded(
-            child: ProStatCard.mini(
+            child: _StatCard(
               label: 'قبض',
               amount: _totalReceipts(vouchers),
               icon: Icons.arrow_downward_rounded,
@@ -154,7 +155,7 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
           ),
           SizedBox(width: AppSpacing.xs),
           Expanded(
-            child: ProStatCard.mini(
+            child: _StatCard(
               label: 'صرف',
               amount: _totalPayments(vouchers),
               icon: Icons.arrow_upward_rounded,
@@ -163,7 +164,7 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
           ),
           SizedBox(width: AppSpacing.xs),
           Expanded(
-            child: ProStatCard.mini(
+            child: _StatCard(
               label: 'مصاريف',
               amount: _totalExpenses(vouchers),
               icon: Icons.receipt_outlined,
@@ -269,7 +270,49 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
   }
 }
 
-// تم نقل _StatCard إلى ProStatCard في core/widgets/pro_stats_card.dart
+class _StatCard extends StatelessWidget {
+  final String label;
+  final double amount;
+  final IconData icon;
+  final Color color;
+
+  const _StatCard({
+    required this.label,
+    required this.amount,
+    required this.icon,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: color.soft,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: color.border),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: AppIconSize.sm),
+          SizedBox(height: 4.h),
+          Text(
+            label,
+            style: AppTypography.labelSmall.copyWith(color: color),
+          ),
+          Text(
+            amount.toStringAsFixed(0),
+            style: AppTypography.titleSmall
+                .copyWith(
+                  color: color,
+                )
+                .monoBold,
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _VoucherCard extends StatelessWidget {
   final Voucher voucher;
@@ -366,32 +409,471 @@ class _VoucherCard extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Voucher Form Screen Pro - Placeholder
+// Voucher Form Screen Pro - Add/Edit Voucher
 // ═══════════════════════════════════════════════════════════════════════════
 
-class VoucherFormScreenPro extends StatelessWidget {
-  final String type; // 'receipt' or 'payment'
+class VoucherFormScreenPro extends ConsumerStatefulWidget {
+  final String type; // 'receipt' or 'payment' or 'expense'
+  final String? voucherId; // For editing
 
   const VoucherFormScreenPro({
     super.key,
     required this.type,
+    this.voucherId,
   });
+
+  bool get isEditing => voucherId != null;
+
+  @override
+  ConsumerState<VoucherFormScreenPro> createState() =>
+      _VoucherFormScreenProState();
+}
+
+class _VoucherFormScreenProState extends ConsumerState<VoucherFormScreenPro> {
+  final _formKey = GlobalKey<FormState>();
+  final _amountController = TextEditingController();
+  final _descriptionController = TextEditingController();
+
+  String? _selectedCustomerId;
+  String? _selectedSupplierId;
+  DateTime _voucherDate = DateTime.now();
+  bool _isSaving = false;
+
+  // بيانات العملاء والموردين
+  List<Customer> _customers = [];
+  List<Supplier> _suppliers = [];
+
+  String get _title {
+    switch (widget.type) {
+      case 'receipt':
+        return 'سند قبض';
+      case 'payment':
+        return 'سند صرف';
+      case 'expense':
+        return 'سند مصاريف';
+      default:
+        return 'سند';
+    }
+  }
+
+  Color get _accentColor {
+    switch (widget.type) {
+      case 'receipt':
+        return AppColors.success;
+      case 'payment':
+        return AppColors.error;
+      case 'expense':
+        return AppColors.warning;
+      default:
+        return AppColors.primary;
+    }
+  }
+
+  IconData get _typeIcon {
+    switch (widget.type) {
+      case 'receipt':
+        return Icons.arrow_downward_rounded;
+      case 'payment':
+        return Icons.arrow_upward_rounded;
+      case 'expense':
+        return Icons.receipt_outlined;
+      default:
+        return Icons.description;
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    // تحميل العملاء والموردين
+    final customersAsync = ref.read(customersStreamProvider);
+    final suppliersAsync = ref.read(suppliersStreamProvider);
+
+    customersAsync.whenData((customers) {
+      if (mounted) setState(() => _customers = customers);
+    });
+
+    suppliersAsync.whenData((suppliers) {
+      if (mounted) setState(() => _suppliers = suppliers);
+    });
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    // Listen to customers and suppliers updates
+    ref.listen(customersStreamProvider, (_, next) {
+      next.whenData((customers) {
+        if (mounted) setState(() => _customers = customers);
+      });
+    });
+
+    ref.listen(suppliersStreamProvider, (_, next) {
+      next.whenData((suppliers) {
+        if (mounted) setState(() => _suppliers = suppliers);
+      });
+    });
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: ProAppBar.close(
-        title: type == 'receipt' ? 'سند قبض' : 'سند صرف',
+        title: _title,
+        actions: [
+          TextButton(
+            onPressed: _isSaving ? null : _saveVoucher,
+            child: _isSaving
+                ? SizedBox(
+                    width: 20.w,
+                    height: 20.w,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: _accentColor,
+                    ),
+                  )
+                : Text(
+                    'حفظ',
+                    style: AppTypography.labelLarge.copyWith(
+                      color: _accentColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+          ),
+          SizedBox(width: AppSpacing.sm),
+        ],
       ),
-      body: Center(
-        child: Text(
-          'قريباً',
-          style: AppTypography.headlineMedium.copyWith(
-            color: AppColors.textSecondary,
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Type Icon Header
+              _buildTypeHeader(),
+              SizedBox(height: AppSpacing.xl),
+
+              // Amount Section
+              const ProSectionTitle('المبلغ'),
+              SizedBox(height: AppSpacing.md),
+              _buildAmountField(),
+              SizedBox(height: AppSpacing.lg),
+
+              // Party Selection (Customer/Supplier)
+              if (widget.type != 'expense') ...[
+                ProSectionTitle(
+                  widget.type == 'receipt' ? 'العميل' : 'المورد',
+                ),
+                SizedBox(height: AppSpacing.md),
+                _buildPartySelector(),
+                SizedBox(height: AppSpacing.lg),
+              ],
+
+              // Date Selection
+              const ProSectionTitle('التاريخ'),
+              SizedBox(height: AppSpacing.md),
+              _buildDateSelector(),
+              SizedBox(height: AppSpacing.lg),
+
+              // Description
+              const ProSectionTitle('الوصف'),
+              SizedBox(height: AppSpacing.md),
+              ProTextField(
+                controller: _descriptionController,
+                label: 'وصف السند',
+                hint: 'أدخل وصف أو ملاحظات...',
+                prefixIcon: Icons.notes_rounded,
+                maxLines: 3,
+              ),
+              SizedBox(height: AppSpacing.huge),
+            ],
           ),
         ),
       ),
     );
+  }
+
+  Widget _buildTypeHeader() {
+    return Center(
+      child: Container(
+        width: 80.w,
+        height: 80.w,
+        decoration: BoxDecoration(
+          color: _accentColor.withValues(alpha: 0.1),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: _accentColor.withValues(alpha: 0.3),
+            width: 2,
+          ),
+        ),
+        child: Icon(
+          _typeIcon,
+          color: _accentColor,
+          size: 40.sp,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAmountField() {
+    return Container(
+      padding: EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: [
+          TextFormField(
+            controller: _amountController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textAlign: TextAlign.center,
+            style: AppTypography.displayMedium.copyWith(
+              color: _accentColor,
+              fontWeight: FontWeight.bold,
+            ),
+            decoration: InputDecoration(
+              hintText: '0.00',
+              hintStyle: AppTypography.displayMedium.copyWith(
+                color: AppColors.textTertiary,
+              ),
+              border: InputBorder.none,
+              suffixText: 'ر.س',
+              suffixStyle: AppTypography.titleLarge.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'المبلغ مطلوب';
+              }
+              final amount = double.tryParse(value);
+              if (amount == null || amount <= 0) {
+                return 'أدخل مبلغ صحيح';
+              }
+              return null;
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPartySelector() {
+    final isReceipt = widget.type == 'receipt';
+    final items = isReceipt ? _customers : _suppliers;
+    final selectedId = isReceipt ? _selectedCustomerId : _selectedSupplierId;
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: selectedId,
+          isExpanded: true,
+          hint: Row(
+            children: [
+              Icon(
+                isReceipt
+                    ? Icons.person_outline
+                    : Icons.local_shipping_outlined,
+                color: AppColors.textTertiary,
+                size: AppIconSize.sm,
+              ),
+              SizedBox(width: AppSpacing.sm),
+              Text(
+                isReceipt ? 'اختر العميل' : 'اختر المورد',
+                style: AppTypography.bodyMedium.copyWith(
+                  color: AppColors.textTertiary,
+                ),
+              ),
+            ],
+          ),
+          items: items.map((item) {
+            final id =
+                isReceipt ? (item as Customer).id : (item as Supplier).id;
+            final name =
+                isReceipt ? (item as Customer).name : (item as Supplier).name;
+            final balance = isReceipt
+                ? (item as Customer).balance
+                : (item as Supplier).balance;
+
+            return DropdownMenuItem<String>(
+              value: id,
+              child: Row(
+                children: [
+                  Icon(
+                    isReceipt
+                        ? Icons.person_rounded
+                        : Icons.local_shipping_rounded,
+                    color: _accentColor,
+                    size: AppIconSize.sm,
+                  ),
+                  SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      name,
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '${balance.toStringAsFixed(0)} ر.س',
+                    style: AppTypography.labelSmall.copyWith(
+                      color: balance > 0 ? AppColors.error : AppColors.success,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+          onChanged: (value) {
+            setState(() {
+              if (isReceipt) {
+                _selectedCustomerId = value;
+              } else {
+                _selectedSupplierId = value;
+              }
+            });
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDateSelector() {
+    return InkWell(
+      onTap: _selectDate,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: Container(
+        padding: EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.calendar_today_rounded,
+              color: AppColors.textSecondary,
+              size: AppIconSize.sm,
+            ),
+            SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'تاريخ السند',
+                    style: AppTypography.labelSmall.copyWith(
+                      color: AppColors.textTertiary,
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    DateFormat('yyyy/MM/dd', 'ar').format(_voucherDate),
+                    style: AppTypography.bodyLarge.copyWith(
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: AppColors.textTertiary,
+              size: 16.sp,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _selectDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _voucherDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
+      locale: const Locale('ar'),
+    );
+
+    if (picked != null) {
+      setState(() => _voucherDate = picked);
+    }
+  }
+
+  Future<void> _saveVoucher() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    // التحقق من اختيار العميل/المورد
+    if (widget.type == 'receipt' && _selectedCustomerId == null) {
+      ProSnackbar.error(context, 'يرجى اختيار العميل');
+      return;
+    }
+    if (widget.type == 'payment' && _selectedSupplierId == null) {
+      ProSnackbar.error(context, 'يرجى اختيار المورد');
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    try {
+      final voucherRepo = ref.read(voucherRepositoryProvider);
+      final shiftAsync = ref.read(openShiftStreamProvider);
+
+      // الحصول على الشفت المفتوح
+      String? shiftId;
+      shiftAsync.whenData((shift) => shiftId = shift?.id);
+
+      final amount = double.parse(_amountController.text);
+
+      // تحديد نوع السند
+      final voucherType = switch (widget.type) {
+        'receipt' => VoucherType.receipt,
+        'payment' => VoucherType.payment,
+        _ => VoucherType.expense,
+      };
+
+      await voucherRepo.createVoucher(
+        type: voucherType,
+        amount: amount,
+        description: _descriptionController.text.isEmpty
+            ? null
+            : _descriptionController.text,
+        customerId: _selectedCustomerId,
+        supplierId: _selectedSupplierId,
+        shiftId: shiftId,
+        voucherDate: _voucherDate,
+      );
+
+      if (mounted) {
+        ProSnackbar.success(context, 'تم حفظ السند بنجاح');
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ProSnackbar.error(context, 'حدث خطأ: $e');
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 }

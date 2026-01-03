@@ -14,9 +14,12 @@ class ProHeader extends StatelessWidget {
   final String? subtitle;
   final VoidCallback? onBack;
   final bool showBackButton;
+  final bool showDrawerButton;
   final List<Widget>? actions;
   final Widget? leading;
   final Color? backgroundColor;
+  final IconData? icon;
+  final Color? iconColor;
 
   const ProHeader({
     super.key,
@@ -24,9 +27,12 @@ class ProHeader extends StatelessWidget {
     this.subtitle,
     this.onBack,
     this.showBackButton = true,
+    this.showDrawerButton = false,
     this.actions,
     this.leading,
     this.backgroundColor,
+    this.icon,
+    this.iconColor,
   });
 
   @override
@@ -42,9 +48,19 @@ class ProHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Back Button or Custom Leading
+          // Leading: Custom, Drawer Button, or Back Button
           if (leading != null)
             leading!
+          else if (showDrawerButton)
+            Builder(
+              builder: (context) => IconButton(
+                onPressed: () => Scaffold.of(context).openDrawer(),
+                icon: const Icon(Icons.menu_rounded),
+                style: IconButton.styleFrom(
+                  backgroundColor: AppColors.surfaceMuted,
+                ),
+              ),
+            )
           else if (showBackButton)
             IconButton(
               onPressed: onBack ?? () => context.pop(),
@@ -55,7 +71,25 @@ class ProHeader extends StatelessWidget {
               ),
             ),
 
-          if (showBackButton || leading != null) SizedBox(width: AppSpacing.sm),
+          if (showBackButton || showDrawerButton || leading != null)
+            SizedBox(width: AppSpacing.sm),
+
+          // Icon Box (optional)
+          if (icon != null) ...[
+            Container(
+              padding: EdgeInsets.all(AppSpacing.sm),
+              decoration: BoxDecoration(
+                color: (iconColor ?? AppColors.primary).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+              child: Icon(
+                icon,
+                color: iconColor ?? AppColors.primary,
+                size: AppIconSize.md,
+              ),
+            ),
+            SizedBox(width: AppSpacing.sm),
+          ],
 
           // Title & Subtitle
           Expanded(

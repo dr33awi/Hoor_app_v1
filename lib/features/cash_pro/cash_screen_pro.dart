@@ -28,25 +28,36 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: ProAppBar.simple(
-        title: 'الصندوق',
-        actions: [
-          ProAppBarAction(
-            icon: Icons.access_time_rounded,
-            onPressed: () => context.push('/shifts'),
-            tooltip: 'الورديات',
-          ),
-        ],
-      ),
-      body: shiftAsync.when(
-        loading: () => ProLoadingState.simple(),
-        error: (error, _) => ProEmptyState.error(error: error.toString()),
-        data: (shift) {
-          if (shift == null) {
-            return _buildNoShiftView();
-          }
-          return _buildCashView(shift);
-        },
+      body: SafeArea(
+        child: Column(
+          children: [
+            ProHeader(
+              title: 'الصندوق',
+              subtitle: 'إدارة النقدية والحركات',
+              onBack: () => context.go('/'),
+              actions: [
+                IconButton(
+                  onPressed: () => context.push('/shifts'),
+                  icon: const Icon(Icons.access_time_rounded),
+                  tooltip: 'الورديات',
+                ),
+              ],
+            ),
+            Expanded(
+              child: shiftAsync.when(
+                loading: () => ProLoadingState.simple(),
+                error: (error, _) =>
+                    ProEmptyState.error(error: error.toString()),
+                data: (shift) {
+                  if (shift == null) {
+                    return _buildNoShiftView();
+                  }
+                  return _buildCashView(shift);
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

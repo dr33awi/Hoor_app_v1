@@ -317,25 +317,9 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
   }
 
   PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      backgroundColor: AppColors.surface,
-      elevation: 0,
-      leading: IconButton(
-        onPressed: () => Navigator.of(context).pop(),
-        icon: Icon(
-          Icons.arrow_back_ios_rounded,
-          color: AppColors.textSecondary,
-          size: AppIconSize.sm,
-        ),
-      ),
-      title: Text(
-        isEditing ? 'تعديل المنتج' : 'إضافة منتج',
-        style: AppTypography.headlineSmall.copyWith(
-          color: AppColors.textPrimary,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-      centerTitle: true,
+    return ProAppBar.close(
+      title: isEditing ? 'تعديل المنتج' : 'إضافة منتج',
+      onClose: () => Navigator.of(context).pop(),
       actions: [
         TextButton(
           onPressed: _isLoading ? null : _saveProduct,

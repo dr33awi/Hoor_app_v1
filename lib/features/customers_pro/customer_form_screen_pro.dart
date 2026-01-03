@@ -96,18 +96,8 @@ class _CustomerFormScreenProState extends ConsumerState<CustomerFormScreenPro> {
     if (_isLoading) {
       return Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(
-          backgroundColor: AppColors.surface,
-          elevation: 0,
-          leading: IconButton(
-            onPressed: () => context.pop(),
-            icon: Icon(Icons.close_rounded, color: AppColors.textSecondary),
-          ),
-          title: Text(
-            widget.isEditing ? 'تعديل عميل' : 'عميل جديد',
-            style:
-                AppTypography.titleLarge.copyWith(color: AppColors.textPrimary),
-          ),
+        appBar: ProAppBar.close(
+          title: widget.isEditing ? 'تعديل عميل' : 'عميل جديد',
         ),
         body: ProLoadingState.withMessage(message: 'جاري تحميل البيانات...'),
       );
@@ -115,19 +105,8 @@ class _CustomerFormScreenProState extends ConsumerState<CustomerFormScreenPro> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () => context.pop(),
-          icon: Icon(Icons.close_rounded, color: AppColors.textSecondary),
-        ),
-        title: Text(
-          widget.isEditing ? 'تعديل عميل' : 'عميل جديد',
-          style: AppTypography.titleLarge.copyWith(
-            color: AppColors.textPrimary,
-          ),
-        ),
+      appBar: ProAppBar.close(
+        title: widget.isEditing ? 'تعديل عميل' : 'عميل جديد',
         actions: [
           TextButton(
             onPressed: _isSaving ? null : _saveCustomer,

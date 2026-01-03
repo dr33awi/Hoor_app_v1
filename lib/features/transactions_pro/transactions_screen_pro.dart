@@ -15,7 +15,7 @@ import '../../core/widgets/widgets.dart';
 import '../../core/mixins/invoice_filter_mixin.dart';
 import '../../core/services/party_name_resolver.dart';
 import '../../data/database/app_database.dart';
-import '../dashboard_pro/widgets/pro_navigation_drawer.dart';
+import '../home_pro/widgets/pro_navigation_drawer.dart';
 
 /// نوع المعاملة
 enum TransactionType {
@@ -27,9 +27,10 @@ enum TransactionType {
   String get singularLabel =>
       this == TransactionType.sales ? 'فاتورة بيع' : 'فاتورة شراء';
   String get partyLabel => this == TransactionType.sales ? 'العميل' : 'المورد';
-  String get route => this == TransactionType.sales ? '/sales' : '/purchases';
+  String get route =>
+      this == TransactionType.sales ? '/sales' : '/purchases/add';
   String get newRoute =>
-      this == TransactionType.sales ? '/sales' : '/invoices/add/purchase';
+      this == TransactionType.sales ? '/sales' : '/purchases/add';
   Color get color =>
       this == TransactionType.sales ? AppColors.income : AppColors.purchases;
   IconData get icon => this == TransactionType.sales
@@ -142,67 +143,26 @@ class _TransactionsScreenProState extends ConsumerState<TransactionsScreenPro>
   }
 
   Widget _buildHeader() {
-    return Container(
-      padding: EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: AppShadows.sm,
-      ),
-      child: Row(
-        children: [
-          Builder(
-            builder: (context) => IconButton(
-              onPressed: () => Scaffold.of(context).openDrawer(),
-              icon: const Icon(Icons.menu_rounded),
-              style: IconButton.styleFrom(
-                backgroundColor: AppColors.surfaceMuted,
-              ),
-            ),
+    return ProHeader(
+      title: widget.type.label,
+      subtitle: 'إدارة ${widget.type.singularLabel}ات',
+      showBackButton: true,
+      showDrawerButton: false,
+      onBack: () => context.go('/'),
+      icon: widget.type.icon,
+      iconColor: widget.type.color,
+      actions: [
+        IconButton(
+          onPressed: _showFilterSheet,
+          icon: Badge(
+            isLabelVisible: _dateRange != null,
+            child: const Icon(Icons.filter_list_rounded),
           ),
-          SizedBox(width: AppSpacing.md),
-          Container(
-            padding: EdgeInsets.all(AppSpacing.sm),
-            decoration: BoxDecoration(
-              color: widget.type.color.soft,
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: Icon(
-              widget.type.icon,
-              color: widget.type.color,
-            ),
+          style: IconButton.styleFrom(
+            backgroundColor: AppColors.surfaceMuted,
           ),
-          SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.type.label,
-                  style: AppTypography.titleLarge.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  'إدارة ${widget.type.singularLabel}ات',
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: _showFilterSheet,
-            icon: Badge(
-              isLabelVisible: _dateRange != null,
-              child: const Icon(Icons.filter_list_rounded),
-            ),
-            style: IconButton.styleFrom(
-              backgroundColor: AppColors.surfaceMuted,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

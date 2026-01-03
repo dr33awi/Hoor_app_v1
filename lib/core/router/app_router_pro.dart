@@ -7,9 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-// Pro Dashboard
-import '../../features/dashboard_pro/dashboard_pro.dart';
-
 // Pro Screens
 import '../../features/products_pro/products_screen_pro.dart';
 import '../../features/products_pro/product_form_screen_pro.dart';
@@ -44,29 +41,14 @@ import '../../features/home_pro/home_screen_pro.dart';
 /// Provider for the app router
 final appRouterProProvider = Provider<GoRouter>((ref) {
   return GoRouter(
-    initialLocation: '/home',
+    initialLocation: '/',
     debugLogDiagnostics: true,
     routes: [
       // ═══════════════════════════════════════════════════════════════════
-      // Dashboard (Home)
+      // Home Screen (Main)
       // ═══════════════════════════════════════════════════════════════════
       GoRoute(
         path: '/',
-        name: 'dashboard',
-        pageBuilder: (context, state) => CustomTransitionPage(
-          key: state.pageKey,
-          child: const DashboardPro(),
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return FadeTransition(opacity: animation, child: child);
-          },
-        ),
-      ),
-
-      // ═══════════════════════════════════════════════════════════════════
-      // Home Screen
-      // ═══════════════════════════════════════════════════════════════════
-      GoRoute(
-        path: '/home',
         name: 'home',
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
@@ -224,6 +206,14 @@ final appRouterProProvider = Provider<GoRouter>((ref) {
               CustomerFormScreenPro(customerId: state.pathParameters['id']),
             ),
           ),
+          GoRoute(
+            path: ':id',
+            name: 'customer-details',
+            pageBuilder: (context, state) => _buildSlideTransition(
+              state,
+              CustomerFormScreenPro(customerId: state.pathParameters['id']),
+            ),
+          ),
         ],
       ),
 
@@ -236,6 +226,29 @@ final appRouterProProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => _buildSlideTransition(
           state,
           const PartyListScreen(type: PartyType.supplier),
+        ),
+        routes: [
+          GoRoute(
+            path: ':id',
+            name: 'supplier-details',
+            pageBuilder: (context, state) => _buildSlideTransition(
+              state,
+              CustomerFormScreenPro(customerId: state.pathParameters['id']),
+            ),
+          ),
+        ],
+      ),
+
+      // ═══════════════════════════════════════════════════════════════════
+      // Parties (All parties - customers & suppliers)
+      // ═══════════════════════════════════════════════════════════════════
+      GoRoute(
+        path: '/parties',
+        name: 'parties',
+        pageBuilder: (context, state) => _buildSlideTransition(
+          state,
+          const PartyListScreen(
+              type: PartyType.customer), // Default to customers
         ),
       ),
 
@@ -289,6 +302,18 @@ final appRouterProProvider = Provider<GoRouter>((ref) {
             ),
           ),
         ],
+      ),
+
+      // ═══════════════════════════════════════════════════════════════════
+      // Returns - Main Screen (defaults to sales returns)
+      // ═══════════════════════════════════════════════════════════════════
+      GoRoute(
+        path: '/returns',
+        name: 'returns',
+        pageBuilder: (context, state) => _buildSlideTransition(
+          state,
+          const ReturnsScreenPro(type: ReturnType.sales),
+        ),
       ),
 
       // ═══════════════════════════════════════════════════════════════════

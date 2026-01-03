@@ -12,12 +12,9 @@ import 'package:go_router/go_router.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/widgets/widgets.dart';
-import 'widgets/pro_navigation_drawer.dart';
-import 'widgets/kpi_card.dart';
-import 'widgets/quick_action_button.dart';
-import 'widgets/recent_transactions_list.dart';
-import 'widgets/shift_status_banner.dart';
-import 'widgets/alerts_widget.dart';
+import '../home_pro/widgets/pro_navigation_drawer.dart';
+import '../home_pro/widgets/quick_action_button.dart';
+import '../home_pro/widgets/shift_status_banner.dart';
 
 class DashboardPro extends ConsumerStatefulWidget {
   const DashboardPro({super.key});
@@ -108,27 +105,8 @@ class _DashboardProState extends ConsumerState<DashboardPro>
                     SliverToBoxAdapter(
                         child: SizedBox(height: AppSpacing.lg.h)),
 
-                    // KPI Cards Section
-                    SliverToBoxAdapter(child: _buildKPISection()),
-
-                    SliverToBoxAdapter(
-                        child: SizedBox(height: AppSpacing.xl.h)),
-
                     // Quick Actions Section
                     SliverToBoxAdapter(child: _buildQuickActionsSection()),
-
-                    SliverToBoxAdapter(
-                        child: SizedBox(height: AppSpacing.xl.h)),
-
-                    // Recent Transactions Section
-                    SliverToBoxAdapter(
-                        child: _buildRecentTransactionsSection()),
-
-                    SliverToBoxAdapter(
-                        child: SizedBox(height: AppSpacing.xl.h)),
-
-                    // Alerts Section
-                    SliverToBoxAdapter(child: _buildAlertsSection()),
 
                     // Bottom padding
                     SliverToBoxAdapter(
@@ -151,11 +129,6 @@ class _DashboardProState extends ConsumerState<DashboardPro>
   // ═══════════════════════════════════════════════════════════════════════════
 
   Widget _buildHeader() {
-    // Get real alerts count
-    final alertsAsync = ref.watch(dashboardAlertsProvider);
-    final alertsCount =
-        alertsAsync.whenOrNull(data: (alerts) => alerts.length) ?? 0;
-
     return Padding(
       padding: EdgeInsets.all(AppSpacing.screenPadding.w),
       child: Row(
@@ -202,7 +175,6 @@ class _DashboardProState extends ConsumerState<DashboardPro>
             children: [
               _buildHeaderAction(
                 icon: Icons.notifications_outlined,
-                badge: alertsCount,
                 onTap: () => context.push('/alerts'),
               ),
               SizedBox(width: AppSpacing.xs.w),
@@ -277,191 +249,6 @@ class _DashboardProState extends ConsumerState<DashboardPro>
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // KPI SECTION
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  Widget _buildKPISection() {
-    final statsAsync = ref.watch(dashboardStatsProvider);
-
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding.w),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionHeader(
-            title: 'نظرة عامة',
-            icon: Icons.analytics_outlined,
-            action: TextButton(
-              onPressed: () => context.push('/reports'),
-              child: Text(
-                'التفاصيل',
-                style: AppTypography.labelMedium.copyWith(
-                  color: AppColors.secondary,
-                ),
-              ),
-            ),
-          ),
-          SizedBox(height: AppSpacing.md.h),
-          statsAsync.when(
-            loading: () => _buildKPILoading(),
-            error: (e, _) => _buildKPIError(),
-            data: (stats) => Column(
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: KPICard(
-                        title: 'مبيعات اليوم',
-                        value: _formatNumber(stats.todaySales),
-                        currency: 'ر.س',
-                        icon: Icons.trending_up_rounded,
-                        trend: 0, // TODO: Calculate trend
-                        trendLabel: '${stats.salesCount} فاتورة',
-                        gradient: AppColors.incomeGradient,
-                        onTap: () => context.push('/invoices'),
-                      ),
-                    ),
-                    SizedBox(width: AppSpacing.md.w),
-                    Expanded(
-                      child: KPICard(
-                        title: 'المشتريات',
-                        value: _formatNumber(stats.todayPurchases),
-                        currency: 'ر.س',
-                        icon: Icons.shopping_cart_outlined,
-                        trend: 0,
-                        trendLabel: 'اليوم',
-                        gradient: AppColors.expenseGradient,
-                        onTap: () => context.push('/purchases'),
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: AppSpacing.md.h),
-                Row(
-                  children: [
-                    Expanded(
-                      child: KPICard.mini(
-                        title: 'صافي الربح',
-                        value: _formatNumber(stats.todayProfit),
-                        currency: 'ر.س',
-                        icon: Icons.account_balance_wallet_outlined,
-                        color: stats.todayProfit >= 0
-                            ? AppColors.income
-                            : AppColors.expense,
-                        onTap: () => context.push('/reports'),
-                      ),
-                    ),
-                    SizedBox(width: AppSpacing.md.w),
-                    Expanded(
-                      child: KPICard.mini(
-                        title: 'المنتجات',
-                        value: stats.totalProducts.toString(),
-                        currency: '',
-                        icon: Icons.inventory_2_outlined,
-                        color: AppColors.inventory,
-                        onTap: () => context.push('/products'),
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: AppSpacing.md.h),
-                Row(
-                  children: [
-                    Expanded(
-                      child: KPICard.mini(
-                        title: 'نفاد المخزون',
-                        value: stats.lowStockCount.toString(),
-                        currency: 'منتج',
-                        icon: Icons.warning_amber_outlined,
-                        color: stats.lowStockCount > 0
-                            ? AppColors.warning
-                            : AppColors.success,
-                        onTap: () => context.push('/products?filter=low_stock'),
-                      ),
-                    ),
-                    SizedBox(width: AppSpacing.md.w),
-                    Expanded(
-                      child: KPICard.mini(
-                        title: 'العملاء',
-                        value: stats.totalCustomers.toString(),
-                        currency: '',
-                        icon: Icons.people_outlined,
-                        color: AppColors.customers,
-                        onTap: () => context.push('/customers'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildKPILoading() {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(child: _buildShimmerCard(height: 120.h)),
-            SizedBox(width: AppSpacing.md.w),
-            Expanded(child: _buildShimmerCard(height: 120.h)),
-          ],
-        ),
-        SizedBox(height: AppSpacing.md.h),
-        Row(
-          children: [
-            Expanded(child: _buildShimmerCard(height: 80.h)),
-            SizedBox(width: AppSpacing.md.w),
-            Expanded(child: _buildShimmerCard(height: 80.h)),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildShimmerCard({required double height}) {
-    return Container(
-      height: height,
-      decoration: BoxDecoration(
-        color: AppColors.surfaceMuted,
-        borderRadius: BorderRadius.circular(AppRadius.xl),
-      ),
-    );
-  }
-
-  Widget _buildKPIError() {
-    return Container(
-      padding: EdgeInsets.all(AppSpacing.lg.w),
-      decoration: BoxDecoration(
-        color: AppColors.expenseLight,
-        borderRadius: BorderRadius.circular(AppRadius.xl),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.error_outline, color: AppColors.expense),
-          SizedBox(width: AppSpacing.md.w),
-          Text(
-            'حدث خطأ في تحميل البيانات',
-            style: AppTypography.bodyMedium.copyWith(color: AppColors.expense),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatNumber(double number) {
-    if (number >= 1000000) {
-      return '${(number / 1000000).toStringAsFixed(1)}M';
-    } else if (number >= 1000) {
-      return '${(number / 1000).toStringAsFixed(1)}K';
-    }
-    return number.toStringAsFixed(2);
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
   // QUICK ACTIONS SECTION
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -529,66 +316,6 @@ class _DashboardProState extends ConsumerState<DashboardPro>
           ),
         ),
       ],
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // RECENT TRANSACTIONS SECTION
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  Widget _buildRecentTransactionsSection() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding.w),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionHeader(
-            title: 'آخر المعاملات',
-            icon: Icons.history_outlined,
-            action: TextButton(
-              onPressed: () => context.push('/sales'),
-              child: Text(
-                'عرض الكل',
-                style: AppTypography.labelMedium.copyWith(
-                  color: AppColors.secondary,
-                ),
-              ),
-            ),
-          ),
-          SizedBox(height: AppSpacing.md.h),
-          const RecentTransactionsList(),
-        ],
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // ALERTS SECTION
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  Widget _buildAlertsSection() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding.w),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionHeader(
-            title: 'تنبيهات',
-            icon: Icons.warning_amber_outlined,
-            action: TextButton(
-              onPressed: () => context.push('/alerts'),
-              child: Text(
-                'عرض الكل',
-                style: AppTypography.labelMedium.copyWith(
-                  color: AppColors.secondary,
-                ),
-              ),
-            ),
-          ),
-          SizedBox(height: AppSpacing.md.h),
-          const AlertsWidget(),
-        ],
-      ),
     );
   }
 
@@ -783,7 +510,13 @@ class _DashboardProState extends ConsumerState<DashboardPro>
     final statsAsync = ref.watch(dashboardStatsProvider);
 
     return shiftAsync.when(
-      loading: () => _buildShimmerCard(height: 80.h),
+      loading: () => Container(
+        height: 80.h,
+        decoration: BoxDecoration(
+          color: AppColors.surfaceMuted,
+          borderRadius: BorderRadius.circular(AppRadius.xl),
+        ),
+      ),
       error: (_, __) => const SizedBox.shrink(),
       data: (shift) {
         if (shift == null) {
@@ -822,8 +555,6 @@ class _DashboardProState extends ConsumerState<DashboardPro>
     // Refresh all dashboard data providers
     ref.invalidate(dashboardStatsProvider);
     ref.invalidate(openShiftStreamProvider);
-    ref.invalidate(recentTransactionsProvider);
-    ref.invalidate(dashboardAlertsProvider);
     await Future.delayed(const Duration(milliseconds: 500));
   }
 

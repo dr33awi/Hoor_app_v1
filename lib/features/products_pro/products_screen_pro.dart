@@ -14,7 +14,6 @@ import '../../core/services/export/export_button.dart';
 import '../../core/services/export/products_export_service.dart';
 import '../../data/database/app_database.dart';
 import 'widgets/product_card_pro.dart';
-import 'widgets/products_header.dart';
 import 'widgets/products_filter_bar.dart';
 import 'widgets/category_chips.dart';
 
@@ -181,24 +180,47 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
             // Header
             // ═══════════════════════════════════════════════════════════════
             productsAsync.when(
-              loading: () => ProductsHeader(
+              loading: () => ProHeader(
+                title: 'المنتجات',
+                subtitle: '0 منتج',
                 onBack: () => context.go('/'),
-                totalProducts: 0,
-                onAddProduct: () => context.push('/products/add'),
-                isExporting: _isExporting,
+                actions: [
+                  IconButton(
+                    onPressed: () {},
+                    icon: Icon(Icons.qr_code_scanner_rounded,
+                        color: AppColors.textSecondary),
+                    tooltip: 'مسح الباركود',
+                  ),
+                ],
               ),
-              error: (_, __) => ProductsHeader(
+              error: (_, __) => ProHeader(
+                title: 'المنتجات',
+                subtitle: '0 منتج',
                 onBack: () => context.go('/'),
-                totalProducts: 0,
-                onAddProduct: () => context.push('/products/add'),
-                isExporting: _isExporting,
               ),
-              data: (products) => ProductsHeader(
+              data: (products) => ProHeader(
+                title: 'المنتجات',
+                subtitle: '${products.length} منتج',
                 onBack: () => context.go('/'),
-                totalProducts: products.length,
-                onAddProduct: () => context.push('/products/add'),
-                onExport: (type) => _handleExport(type, products),
-                isExporting: _isExporting,
+                actions: [
+                  IconButton(
+                    onPressed: () {},
+                    icon: Icon(Icons.qr_code_scanner_rounded,
+                        color: AppColors.textSecondary),
+                    tooltip: 'مسح الباركود',
+                  ),
+                  ExportMenuButton(
+                    onExport: (type) => _handleExport(type, products),
+                    isLoading: _isExporting,
+                    tooltip: 'تصدير ومشاركة',
+                    enabledOptions: const {
+                      ExportType.excel,
+                      ExportType.pdf,
+                      ExportType.sharePdf,
+                      ExportType.shareExcel,
+                    },
+                  ),
+                ],
               ),
             ),
 

@@ -100,46 +100,30 @@ class _AlertsScreenProState extends ConsumerState<AlertsScreenPro> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () => context.go('/'),
-          icon: Icon(Icons.arrow_back_ios_rounded,
-              color: AppColors.textSecondary),
-        ),
-        title: Row(
-          children: [
-            Text(
-              'التنبيهات',
-              style: AppTypography.headlineSmall.copyWith(
-                color: AppColors.textPrimary,
+      appBar: ProAppBar.simple(
+        title: 'التنبيهات',
+        onBack: () => context.go('/'),
+        actions: [
+          if (unreadCount > 0)
+            Container(
+              margin: EdgeInsets.only(left: AppSpacing.sm),
+              padding: EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm,
+                vertical: 2.h,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.error,
+                borderRadius: BorderRadius.circular(AppRadius.full),
+              ),
+              child: Text(
+                '$unreadCount',
+                style: AppTypography.labelSmall
+                    .copyWith(
+                      color: Colors.white,
+                    )
+                    .mono,
               ),
             ),
-            if (unreadCount > 0) ...[
-              SizedBox(width: AppSpacing.sm),
-              Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: AppSpacing.sm,
-                  vertical: 2.h,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.error,
-                  borderRadius: BorderRadius.circular(AppRadius.full),
-                ),
-                child: Text(
-                  '$unreadCount',
-                  style: AppTypography.labelSmall
-                      .copyWith(
-                        color: Colors.white,
-                      )
-                      .mono,
-                ),
-              ),
-            ],
-          ],
-        ),
-        actions: [
           IconButton(
             onPressed: _loadAlerts,
             icon: Icon(Icons.refresh_rounded, color: AppColors.textSecondary),
