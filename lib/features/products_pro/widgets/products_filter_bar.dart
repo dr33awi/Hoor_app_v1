@@ -162,7 +162,7 @@ class ProductsFilterBar extends StatelessWidget {
         width: 40.w,
         height: 42.h,
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withOpacity(0.1) : null,
+          color: isSelected ? AppColors.primary.withValues(alpha: 0.1) : null,
         ),
         child: Icon(
           icon,

@@ -122,7 +122,7 @@ class ShiftsScreenPro extends ConsumerWidget {
       child: Row(
         children: [
           Expanded(
-            child: _StatCard(
+            child: ProStatCard.horizontal(
               label: 'إجمالي المبيعات',
               amount: totalSales,
               icon: Icons.trending_up_rounded,
@@ -131,7 +131,7 @@ class ShiftsScreenPro extends ConsumerWidget {
           ),
           SizedBox(width: AppSpacing.sm),
           Expanded(
-            child: _StatCard(
+            child: ProStatCard.horizontal(
               label: 'إجمالي المصاريف',
               amount: totalExpenses,
               icon: Icons.trending_down_rounded,
@@ -236,53 +236,6 @@ class ShiftsScreenPro extends ConsumerWidget {
         }
       }
     }
-  }
-}
-
-class _StatCard extends StatelessWidget {
-  final String label;
-  final double amount;
-  final IconData icon;
-  final Color color;
-
-  const _StatCard({
-    required this.label,
-    required this.amount,
-    required this.icon,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ProCard(
-      color: color.soft,
-      borderColor: color.border,
-      child: Row(
-        children: [
-          Icon(icon, color: color, size: AppIconSize.md),
-          SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: AppTypography.labelSmall.copyWith(color: color),
-                ),
-                Text(
-                  ' ${amount.toStringAsFixed(0)} ر.س',
-                  style: AppTypography.titleSmall
-                      .copyWith(
-                        color: color,
-                      )
-                      .monoBold,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 

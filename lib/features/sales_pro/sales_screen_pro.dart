@@ -1209,6 +1209,8 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
 
   Future<void> _saveInvoice(String paymentMethod, double paidAmount) async {
     try {
+      // استخدام AccountingService لضمان اتساق العمليات المحاسبية
+      final accountingService = ref.read(accountingServiceProvider);
       final invoiceRepo = ref.read(invoiceRepositoryProvider);
       final customerRepo = ref.read(customerRepositoryProvider);
       final openShift = ref.read(openShiftStreamProvider).asData?.value;
@@ -1224,7 +1226,8 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
               })
           .toList();
 
-      final invoiceId = await invoiceRepo.createInvoice(
+      // إنشاء الفاتورة عبر AccountingService (يشمل التحقق من المخزون)
+      final result = await accountingService.createInvoiceWithTransaction(
         type: 'sale',
         customerId: _selectedCustomerId,
         items: invoiceItems,
@@ -1234,6 +1237,13 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
         shiftId: openShift?.id,
         invoiceDate: DateTime.now(),
       );
+
+      // التحقق من نجاح العملية
+      if (result.isFailure) {
+        throw Exception(result.errorMessage ?? 'فشل في إنشاء الفاتورة');
+      }
+
+      final invoiceId = result.data!;
 
       // تحميل بيانات الفاتورة للحوار
       final invoice = await invoiceRepo.getInvoiceById(invoiceId);

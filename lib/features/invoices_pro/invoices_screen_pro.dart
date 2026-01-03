@@ -12,6 +12,8 @@ import 'package:intl/intl.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/widgets/widgets.dart';
+import '../../core/mixins/invoice_filter_mixin.dart';
+import '../../core/services/party_name_resolver.dart';
 import '../../data/database/app_database.dart';
 import 'widgets/invoice_card_pro.dart';
 import 'widgets/invoices_stats_header.dart';
@@ -29,7 +31,7 @@ class InvoicesScreenPro extends ConsumerStatefulWidget {
 }
 
 class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, InvoiceFilterMixin {
   late TabController _tabController;
   final _searchController = TextEditingController();
   String _filterStatus = 'all';
@@ -50,39 +52,15 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
     super.dispose();
   }
 
-  List<Invoice> _filterInvoices(List<Invoice> invoices) {
-    List<Invoice> filtered = List.from(invoices);
-
-    // Filter by type
-    if (widget.type != null) {
-      filtered = filtered.where((i) => i.type == widget.type).toList();
-    }
-
-    // Filter by search
-    if (_searchController.text.isNotEmpty) {
-      final query = _searchController.text.toLowerCase();
-      filtered = filtered.where((i) {
-        return i.invoiceNumber.toLowerCase().contains(query) ||
-            (i.customerId?.toLowerCase().contains(query) ?? false);
-      }).toList();
-    }
-
-    // Filter by status
-    if (_filterStatus != 'all') {
-      filtered = filtered.where((i) => i.status == _filterStatus).toList();
-    }
-
-    // Filter by date range
-    if (_dateRange != null) {
-      filtered = filtered.where((i) {
-        return i.invoiceDate
-                .isAfter(_dateRange!.start.subtract(const Duration(days: 1))) &&
-            i.invoiceDate
-                .isBefore(_dateRange!.end.add(const Duration(days: 1)));
-      }).toList();
-    }
-
-    return filtered;
+  // استخدام InvoiceFilterMixin للفلترة الموحدة
+  List<Invoice> _filterInvoicesLocal(List<Invoice> invoices) {
+    return filterInvoices(
+      invoices,
+      type: widget.type,
+      status: _filterStatus,
+      searchQuery: _searchController.text,
+      dateRange: _dateRange,
+    );
   }
 
   @override
@@ -146,7 +124,7 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
                   onRetry: () => ref.invalidate(invoicesStreamProvider),
                 ),
                 data: (invoices) {
-                  final filtered = _filterInvoices(invoices);
+                  final filtered = _filterInvoicesLocal(invoices);
 
                   if (filtered.isEmpty) {
                     return ProEmptyState.list(
@@ -167,10 +145,20 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
                           SizedBox(height: AppSpacing.md.h),
                       itemBuilder: (context, index) {
                         final invoice = filtered[index];
-                        return InvoiceCardPro(
-                          invoice: _invoiceToMap(invoice),
-                          onTap: () => context.push('/invoices/${invoice.id}'),
-                          isSales: invoice.type == 'sale',
+                        // استخدام PartyNameResolver لجلب اسم العميل/المورد
+                        return FutureBuilder<String>(
+                          future: _getPartyName(invoice),
+                          builder: (context, snapshot) {
+                            return InvoiceCardPro(
+                              invoice: _invoiceToMap(
+                                invoice,
+                                partyName: snapshot.data,
+                              ),
+                              onTap: () =>
+                                  context.push('/invoices/${invoice.id}'),
+                              isSales: invoice.type == 'sale',
+                            );
+                          },
                         );
                       },
                     ),
@@ -324,7 +312,13 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
     );
   }
 
-  Map<String, dynamic> _invoiceToMap(Invoice invoice) {
+  // استخدام PartyNameResolver للحصول على اسم العميل/المورد مع التخزين المؤقت
+  Future<String> _getPartyName(Invoice invoice) async {
+    final resolver = ref.read(partyNameResolverProvider);
+    return resolver.getPartyName(invoice);
+  }
+
+  Map<String, dynamic> _invoiceToMap(Invoice invoice, {String? partyName}) {
     String statusText = 'مكتملة';
     if (invoice.status == 'pending') statusText = 'معلقة';
     if (invoice.status == 'cancelled') statusText = 'ملغية';
@@ -332,10 +326,14 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
       statusText = 'جزئي';
     }
 
+    // استخدام الاسم المُحمّل أو القيمة الافتراضية
+    final defaultParty = invoice.type == 'sale' ? 'عميل نقدي' : 'مورد';
+    final resolvedName = partyName ?? defaultParty;
+
     return {
       'id': invoice.invoiceNumber,
-      'customer': invoice.customerId ?? 'عميل نقدي',
-      'supplier': invoice.supplierId ?? 'مورد',
+      'customer': resolvedName,
+      'supplier': resolvedName,
       'date': DateFormat('yyyy-MM-dd').format(invoice.invoiceDate),
       'total': invoice.total,
       'paid': invoice.paidAmount,
@@ -379,7 +377,7 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
                   lastDate: DateTime.now(),
                   locale: const Locale('ar'),
                 );
-                if (range != null) {
+                if (range != null && mounted) {
                   setState(() => _dateRange = range);
                   if (mounted) Navigator.pop(context);
                 }

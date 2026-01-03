@@ -87,7 +87,13 @@ class _SettingsScreenProState extends ConsumerState<SettingsScreenPro> {
               trailing: Switch.adaptive(
                 value: _notifications,
                 onChanged: (value) => setState(() => _notifications = value),
-                activeColor: AppColors.secondary,
+                activeTrackColor: AppColors.secondary.withValues(alpha: 0.5),
+                thumbColor: WidgetStateProperty.resolveWith((states) {
+                  if (states.contains(WidgetState.selected)) {
+                    return AppColors.secondary;
+                  }
+                  return null;
+                }),
               ),
             ),
             _buildSettingsTile(

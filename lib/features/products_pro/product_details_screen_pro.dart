@@ -582,7 +582,7 @@ class _ProductDetailsView extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: _StatCard(
+          child: ProStatCardText(
             icon: Icons.attach_money_rounded,
             label: 'سعر البيع',
             value: product.salePrice.toStringAsFixed(0),
@@ -591,7 +591,7 @@ class _ProductDetailsView extends StatelessWidget {
         ),
         SizedBox(width: AppSpacing.xs),
         Expanded(
-          child: _StatCard(
+          child: ProStatCardText(
             icon: Icons.inventory_2_outlined,
             label: 'المخزون',
             value: '${product.quantity}',
@@ -602,7 +602,7 @@ class _ProductDetailsView extends StatelessWidget {
         ),
         SizedBox(width: AppSpacing.xs),
         Expanded(
-          child: _StatCard(
+          child: ProStatCardText(
             icon: Icons.trending_up_rounded,
             label: 'هامش الربح',
             value: '${margin.toStringAsFixed(0)}%',
@@ -843,49 +843,4 @@ class _ProductDetailsView extends StatelessWidget {
   }
 }
 
-class _StatCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color color;
-
-  const _StatCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(AppSpacing.xs),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, size: AppIconSize.xs, color: color),
-          SizedBox(height: 2.h),
-          Text(
-            value,
-            style: AppTypography.labelLarge
-                .copyWith(
-                  color: AppColors.textPrimary,
-                )
-                .monoBold,
-          ),
-          Text(
-            label,
-            style: AppTypography.labelSmall.copyWith(
-              color: AppColors.textTertiary,
-              fontSize: 9.sp,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+// تم نقل _StatCard إلى ProStatCardText في core/widgets/pro_stats_card.dart

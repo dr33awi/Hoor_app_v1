@@ -38,10 +38,13 @@ import '../../features/returns_pro/returns_screen_pro.dart';
 import '../../features/parties_pro/party_list_screen.dart';
 import '../../features/transactions_pro/transactions_screen_pro.dart';
 
+// Home Screen
+import '../../features/home_pro/home_screen_pro.dart';
+
 /// Provider for the app router
 final appRouterProProvider = Provider<GoRouter>((ref) {
   return GoRouter(
-    initialLocation: '/',
+    initialLocation: '/home',
     debugLogDiagnostics: true,
     routes: [
       // ═══════════════════════════════════════════════════════════════════
@@ -49,10 +52,25 @@ final appRouterProProvider = Provider<GoRouter>((ref) {
       // ═══════════════════════════════════════════════════════════════════
       GoRoute(
         path: '/',
-        name: 'home',
+        name: 'dashboard',
         pageBuilder: (context, state) => CustomTransitionPage(
           key: state.pageKey,
           child: const DashboardPro(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(opacity: animation, child: child);
+          },
+        ),
+      ),
+
+      // ═══════════════════════════════════════════════════════════════════
+      // Home Screen
+      // ═══════════════════════════════════════════════════════════════════
+      GoRoute(
+        path: '/home',
+        name: 'home',
+        pageBuilder: (context, state) => CustomTransitionPage(
+          key: state.pageKey,
+          child: const HomeScreenPro(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
             return FadeTransition(opacity: animation, child: child);
           },

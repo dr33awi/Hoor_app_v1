@@ -145,7 +145,7 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
       child: Row(
         children: [
           Expanded(
-            child: _StatCard(
+            child: ProStatCard.mini(
               label: 'قبض',
               amount: _totalReceipts(vouchers),
               icon: Icons.arrow_downward_rounded,
@@ -154,7 +154,7 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
           ),
           SizedBox(width: AppSpacing.xs),
           Expanded(
-            child: _StatCard(
+            child: ProStatCard.mini(
               label: 'صرف',
               amount: _totalPayments(vouchers),
               icon: Icons.arrow_upward_rounded,
@@ -163,7 +163,7 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
           ),
           SizedBox(width: AppSpacing.xs),
           Expanded(
-            child: _StatCard(
+            child: ProStatCard.mini(
               label: 'مصاريف',
               amount: _totalExpenses(vouchers),
               icon: Icons.receipt_outlined,
@@ -269,49 +269,7 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
   }
 }
 
-class _StatCard extends StatelessWidget {
-  final String label;
-  final double amount;
-  final IconData icon;
-  final Color color;
-
-  const _StatCard({
-    required this.label,
-    required this.amount,
-    required this.icon,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(AppSpacing.sm),
-      decoration: BoxDecoration(
-        color: color.soft,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: color.border),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: AppIconSize.sm),
-          SizedBox(height: 4.h),
-          Text(
-            label,
-            style: AppTypography.labelSmall.copyWith(color: color),
-          ),
-          Text(
-            amount.toStringAsFixed(0),
-            style: AppTypography.titleSmall
-                .copyWith(
-                  color: color,
-                )
-                .monoBold,
-          ),
-        ],
-      ),
-    );
-  }
-}
+// تم نقل _StatCard إلى ProStatCard في core/widgets/pro_stats_card.dart
 
 class _VoucherCard extends StatelessWidget {
   final Voucher voucher;

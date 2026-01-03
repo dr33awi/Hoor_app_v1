@@ -1277,7 +1277,6 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
 
     setState(() => _isSaving = true);
     try {
-      final invoiceRepo = ref.read(invoiceRepositoryProvider);
       final customerRepo = ref.read(customerRepositoryProvider);
       final supplierRepo = ref.read(supplierRepositoryProvider);
       final openShift = ref.read(openShiftStreamProvider).asData?.value;
@@ -1305,7 +1304,9 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
         paidAmount = _paidAmount;
       }
 
-      final invoiceId = await invoiceRepo.createInvoice(
+      // استخدام AccountingService لضمان اتساق العمليات المحاسبية
+      final accountingService = ref.read(accountingServiceProvider);
+      final result = await accountingService.createInvoiceWithTransaction(
         type: widget.type,
         customerId: widget.isSales ? _selectedCustomerId : null,
         supplierId: !widget.isSales ? _selectedSupplierId : null,
@@ -1320,9 +1321,17 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
         invoiceDate: _invoiceDate,
       );
 
+      // التحقق من نجاح العملية
+      if (result.isFailure) {
+        throw Exception(result.errorMessage ?? 'فشل في إنشاء الفاتورة');
+      }
+
+      final invoiceId = result.data!;
+
       // ═══════════════════════════════════════════════════════════════════════
       // تحميل بيانات الفاتورة وعرض حوار النجاح الموحد
       // ═══════════════════════════════════════════════════════════════════════
+      final invoiceRepo = ref.read(invoiceRepositoryProvider);
       final invoice = await invoiceRepo.getInvoiceById(invoiceId);
       final items = await invoiceRepo.getInvoiceItems(invoiceId);
 
@@ -1401,7 +1410,7 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
       isDanger: true,
       confirmText: 'تجاهل',
     );
-    if (confirm == true) {
+    if (confirm == true && mounted) {
       context.pop();
     }
   }

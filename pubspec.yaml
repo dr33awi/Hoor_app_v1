@@ -81,6 +81,7 @@ dependencies:
   sqlite3_flutter_libs: ^0.5.24
   package_info_plus: ^9.0.0
 
+  uuid: any
 flutter_launcher_icons:
   android: true
   ios: true

@@ -12,6 +12,7 @@ import 'package:intl/intl.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/widgets/widgets.dart';
+import '../../core/mixins/invoice_filter_mixin.dart';
 import '../../data/database/app_database.dart';
 
 class ReportsScreenPro extends ConsumerWidget {
@@ -387,7 +388,8 @@ class ReportDetailScreenPro extends ConsumerStatefulWidget {
       _ReportDetailScreenProState();
 }
 
-class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro> {
+class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro>
+    with InvoiceFilterMixin {
   DateTimeRange? _dateRange;
   bool _isExporting = false;
 
@@ -779,14 +781,9 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro> {
     );
   }
 
+  // استخدام InvoiceFilterMixin للفلترة الموحدة
   List<Invoice> _filterByDate(List<Invoice> invoices) {
-    if (_dateRange == null) return invoices;
-    return invoices.where((inv) {
-      return inv.invoiceDate
-              .isAfter(_dateRange!.start.subtract(const Duration(days: 1))) &&
-          inv.invoiceDate
-              .isBefore(_dateRange!.end.add(const Duration(days: 1)));
-    }).toList();
+    return filterInvoices(invoices, dateRange: _dateRange);
   }
 
   Future<void> _selectDateRange() async {

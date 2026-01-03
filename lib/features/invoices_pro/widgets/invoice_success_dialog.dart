@@ -300,7 +300,7 @@ class _InvoiceSuccessDialogState extends State<InvoiceSuccessDialog> {
             width: 48.w,
             height: 48.w,
             decoration: BoxDecoration(
-              color: widget.data.typeColor.withOpacity(0.1),
+              color: widget.data.typeColor.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -361,10 +361,10 @@ class _InvoiceSuccessDialogState extends State<InvoiceSuccessDialog> {
             width: double.infinity,
             padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 16.w),
             decoration: BoxDecoration(
-              color: widget.data.typeColor.withOpacity(0.08),
+              color: widget.data.typeColor.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(AppRadius.md),
               border: Border.all(
-                color: widget.data.typeColor.withOpacity(0.2),
+                color: widget.data.typeColor.withValues(alpha: 0.2),
               ),
             ),
             child: Column(
@@ -404,7 +404,8 @@ class _InvoiceSuccessDialogState extends State<InvoiceSuccessDialog> {
                 if (widget.data.isPartiallyPaid) ...[
                   SizedBox(height: 12.h),
                   Divider(
-                      height: 1, color: widget.data.typeColor.withOpacity(0.2)),
+                      height: 1,
+                      color: widget.data.typeColor.withValues(alpha: 0.2)),
                   SizedBox(height: 12.h),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -586,7 +587,7 @@ class _PaymentStatusBadge extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppRadius.sm),
       ),
       child: Text(

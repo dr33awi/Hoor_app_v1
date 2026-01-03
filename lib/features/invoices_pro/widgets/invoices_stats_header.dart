@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/theme/design_tokens.dart';
+import '../../../core/widgets/widgets.dart';
 
 class InvoicesStatsHeader extends StatelessWidget {
   final bool isSales;
@@ -35,7 +36,7 @@ class InvoicesStatsHeader extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: _StatCard(
+            child: ProStatCard.centered(
               label: 'الإجمالي',
               amount: totalAmount,
               icon: Icons.receipt_long_rounded,
@@ -44,7 +45,7 @@ class InvoicesStatsHeader extends StatelessWidget {
           ),
           SizedBox(width: AppSpacing.sm),
           Expanded(
-            child: _StatCard(
+            child: ProStatCard.centered(
               label: 'المحصل',
               amount: paidAmount,
               icon: Icons.check_circle_outline_rounded,
@@ -53,7 +54,7 @@ class InvoicesStatsHeader extends StatelessWidget {
           ),
           SizedBox(width: AppSpacing.sm),
           Expanded(
-            child: _StatCard(
+            child: ProStatCard.centered(
               label: 'معلق',
               amount: pendingAmount,
               icon: Icons.schedule_rounded,
@@ -63,7 +64,7 @@ class InvoicesStatsHeader extends StatelessWidget {
           if (overdueAmount > 0) ...[
             SizedBox(width: AppSpacing.sm),
             Expanded(
-              child: _StatCard(
+              child: ProStatCard.centered(
                 label: 'متأخر',
                 amount: overdueAmount,
                 icon: Icons.warning_amber_rounded,
@@ -77,61 +78,4 @@ class InvoicesStatsHeader extends StatelessWidget {
   }
 }
 
-class _StatCard extends StatelessWidget {
-  final String label;
-  final double amount;
-  final IconData icon;
-  final Color color;
-
-  const _StatCard({
-    required this.label,
-    required this.amount,
-    required this.icon,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.all(AppSpacing.sm),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: AppIconSize.sm, color: color),
-          SizedBox(height: AppSpacing.xs),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              _formatAmount(amount),
-              style: AppTypography.titleMedium.copyWith(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w700,
-                fontFamily: 'JetBrains Mono',
-              ),
-            ),
-          ),
-          Text(
-            label,
-            style: AppTypography.labelSmall.copyWith(
-              color: AppColors.textTertiary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatAmount(double amount) {
-    if (amount >= 1000000) {
-      return '${(amount / 1000000).toStringAsFixed(1)}M';
-    } else if (amount >= 1000) {
-      return '${(amount / 1000).toStringAsFixed(1)}K';
-    }
-    return amount.toStringAsFixed(0);
-  }
-}
+// تم نقل _StatCard إلى ProStatCard في core/widgets/pro_stats_card.dart

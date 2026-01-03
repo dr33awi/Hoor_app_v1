@@ -90,7 +90,14 @@ class ProSwitchTile extends StatelessWidget {
           Switch.adaptive(
             value: value,
             onChanged: enabled ? onChanged : null,
-            activeColor: activeColor ?? AppColors.secondary,
+            activeTrackColor:
+                (activeColor ?? AppColors.secondary).withValues(alpha: 0.5),
+            thumbColor: WidgetStateProperty.resolveWith((states) {
+              if (states.contains(WidgetState.selected)) {
+                return activeColor ?? AppColors.secondary;
+              }
+              return null;
+            }),
           ),
         ],
       ),
@@ -127,7 +134,13 @@ class ProSwitch extends StatelessWidget {
         Switch.adaptive(
           value: value,
           onChanged: enabled ? onChanged : null,
-          activeColor: AppColors.secondary,
+          activeTrackColor: AppColors.secondary.withValues(alpha: 0.5),
+          thumbColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) {
+              return AppColors.secondary;
+            }
+            return null;
+          }),
         ),
       ],
     );

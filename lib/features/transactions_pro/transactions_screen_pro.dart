@@ -12,6 +12,8 @@ import 'package:intl/intl.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/widgets/widgets.dart';
+import '../../core/mixins/invoice_filter_mixin.dart';
+import '../../core/services/party_name_resolver.dart';
 import '../../data/database/app_database.dart';
 import '../dashboard_pro/widgets/pro_navigation_drawer.dart';
 
@@ -49,7 +51,7 @@ class TransactionsScreenPro extends ConsumerStatefulWidget {
 }
 
 class _TransactionsScreenProState extends ConsumerState<TransactionsScreenPro>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, InvoiceFilterMixin {
   late TabController _tabController;
   final _searchController = TextEditingController();
   String _filterStatus = 'all';
@@ -71,51 +73,18 @@ class _TransactionsScreenProState extends ConsumerState<TransactionsScreenPro>
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Filter Logic
+  // Filter Logic - Using InvoiceFilterMixin
   // ═══════════════════════════════════════════════════════════════════════════
 
-  List<Invoice> _filterInvoices(List<Invoice> invoices) {
-    List<Invoice> filtered =
-        invoices.where((i) => i.type == widget.type.invoiceType).toList();
-
-    // Filter by search
-    if (_searchController.text.isNotEmpty) {
-      final query = _searchController.text.toLowerCase();
-      filtered = filtered.where((i) {
-        return i.invoiceNumber.toLowerCase().contains(query) ||
-            (isSales
-                ? i.customerId?.toLowerCase().contains(query) ?? false
-                : i.supplierId?.toLowerCase().contains(query) ?? false);
-      }).toList();
-    }
-
-    // Filter by status
-    if (_filterStatus != 'all') {
-      filtered = filtered.where((i) {
-        if (_filterStatus == 'completed') {
-          return i.status == 'completed' || i.status == 'paid';
-        }
-        if (_filterStatus == 'pending') {
-          return i.status == 'pending' || i.status == 'partial';
-        }
-        return i.status == _filterStatus;
-      }).toList();
-    }
-
-    // Filter by date range
-    if (_dateRange != null) {
-      filtered = filtered.where((i) {
-        return i.invoiceDate
-                .isAfter(_dateRange!.start.subtract(const Duration(days: 1))) &&
-            i.invoiceDate
-                .isBefore(_dateRange!.end.add(const Duration(days: 1)));
-      }).toList();
-    }
-
-    // Sort by date descending
-    filtered.sort((a, b) => b.invoiceDate.compareTo(a.invoiceDate));
-
-    return filtered;
+  List<Invoice> _filterInvoicesLocal(List<Invoice> invoices) {
+    // استخدام الـ mixin للفلترة الموحدة
+    return filterInvoices(
+      invoices,
+      type: widget.type.invoiceType,
+      status: _filterStatus,
+      searchQuery: _searchController.text,
+      dateRange: _dateRange,
+    );
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -266,29 +235,32 @@ class _TransactionsScreenProState extends ConsumerState<TransactionsScreenPro>
       child: Row(
         children: [
           Expanded(
-            child: _StatCard(
-              title: 'الإجمالي',
-              value: total,
+            child: ProStatCard(
+              label: 'الإجمالي',
+              amount: total,
               icon: Icons.account_balance_wallet_rounded,
               color: widget.type.color,
+              compact: true,
             ),
           ),
           SizedBox(width: AppSpacing.sm),
           Expanded(
-            child: _StatCard(
-              title: 'هذا الشهر',
-              value: thisMonth,
+            child: ProStatCard(
+              label: 'هذا الشهر',
+              amount: thisMonth,
               icon: Icons.calendar_month_rounded,
               color: AppColors.info,
+              compact: true,
             ),
           ),
           SizedBox(width: AppSpacing.sm),
           Expanded(
-            child: _StatCard(
-              title: isSales ? 'المستحق' : 'المتبقي',
-              value: pending,
+            child: ProStatCard(
+              label: isSales ? 'المستحق' : 'المتبقي',
+              amount: pending,
               icon: Icons.pending_actions_rounded,
               color: pending > 0 ? AppColors.warning : AppColors.success,
+              compact: true,
             ),
           ),
         ],
@@ -353,7 +325,7 @@ class _TransactionsScreenProState extends ConsumerState<TransactionsScreenPro>
   }
 
   Widget _buildInvoicesList(List<Invoice> invoices) {
-    final filtered = _filterInvoices(invoices);
+    final filtered = _filterInvoicesLocal(invoices);
 
     if (filtered.isEmpty) {
       return ProEmptyState(
@@ -384,24 +356,10 @@ class _TransactionsScreenProState extends ConsumerState<TransactionsScreenPro>
     );
   }
 
+  // استخدام PartyNameResolver للحصول على اسم العميل/المورد مع التخزين المؤقت
   Future<String> _getPartyName(Invoice invoice) async {
-    try {
-      if (isSales) {
-        if (invoice.customerId == null) return 'عميل نقدي';
-        final customerRepo = ref.read(customerRepositoryProvider);
-        final customer =
-            await customerRepo.getCustomerById(invoice.customerId!);
-        return customer?.name ?? 'غير محدد';
-      } else {
-        if (invoice.supplierId == null) return 'غير محدد';
-        final supplierRepo = ref.read(supplierRepositoryProvider);
-        final supplier =
-            await supplierRepo.getSupplierById(invoice.supplierId!);
-        return supplier?.name ?? 'غير محدد';
-      }
-    } catch (_) {
-      return 'غير محدد';
-    }
+    final resolver = ref.read(partyNameResolverProvider);
+    return resolver.getPartyName(invoice);
   }
 
   void _showFilterSheet() {
@@ -460,47 +418,7 @@ class _TransactionsScreenProState extends ConsumerState<TransactionsScreenPro>
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// Stat Card Widget
-// ═══════════════════════════════════════════════════════════════════════════
-
-class _StatCard extends StatelessWidget {
-  final String title;
-  final double value;
-  final IconData icon;
-  final Color color;
-
-  const _StatCard({
-    required this.title,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ProCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: color, size: 18.sp),
-          SizedBox(height: AppSpacing.xs),
-          Text(
-            title,
-            style: AppTypography.bodySmall.copyWith(
-              color: AppColors.textSecondary,
-              fontSize: 10.sp,
-            ),
-          ),
-          Text(
-            value.toStringAsFixed(0),
-            style: AppTypography.titleSmall.monoBold,
-          ),
-        ],
-      ),
-    );
-  }
-}
+// تم نقل _StatCard إلى ProStatCard في core/widgets/pro_stats_card.dart
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Invoice Card Widget

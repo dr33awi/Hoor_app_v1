@@ -822,7 +822,7 @@ class _PrintSettingsScreenProState
       iconColor: AppColors.primary,
       confirmText: 'طباعة',
     );
-    if (confirm == true) {
+    if (confirm == true && mounted) {
       ProSnackbar.info(context, 'جاري الطباعة...');
     }
   }

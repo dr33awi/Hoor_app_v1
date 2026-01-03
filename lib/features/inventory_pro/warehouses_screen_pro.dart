@@ -197,7 +197,7 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
                   ),
                 ),
                 value: isDefault,
-                activeColor: AppColors.secondary,
+                activeThumbColor: AppColors.secondary,
                 onChanged: (value) => setSheetState(() => isDefault = value),
               ),
             ),

@@ -361,7 +361,9 @@ class _ReturnsScreenProState extends ConsumerState<ReturnsScreenPro> {
         invoiceData['supplierId'] = invoice.supplierId;
       }
 
-      await invoiceRepo.createInvoice(
+      // استخدام AccountingService لضمان اتساق العمليات المحاسبية
+      final accountingService = ref.read(accountingServiceProvider);
+      final result = await accountingService.createInvoiceWithTransaction(
         type: invoiceData['type'],
         customerId: invoiceData['customerId'],
         supplierId: invoiceData['supplierId'],
@@ -369,6 +371,10 @@ class _ReturnsScreenProState extends ConsumerState<ReturnsScreenPro> {
         paymentMethod: invoiceData['paymentMethod'],
         notes: invoiceData['notes'],
       );
+
+      if (result.isFailure) {
+        throw Exception(result.errorMessage ?? 'فشل في إنشاء المرتجع');
+      }
 
       if (mounted) {
         Navigator.pop(context);

@@ -347,7 +347,7 @@ class _PartyCard extends StatelessWidget {
                 width: 48.w,
                 height: 48.w,
                 decoration: BoxDecoration(
-                  color: type.accentColor.withOpacity(0.1),
+                  color: type.accentColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
                 child: Center(

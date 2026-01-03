@@ -266,10 +266,12 @@ class _CategoriesScreenProState extends ConsumerState<CategoriesScreenPro> {
 
                 if (context.mounted) {
                   Navigator.pop(context);
-                  ProSnackbar.success(
-                    context,
-                    isEditing ? 'تم تحديث الفئة' : 'تم إضافة الفئة',
-                  );
+                  if (context.mounted) {
+                    ProSnackbar.success(
+                      context,
+                      isEditing ? 'تم تحديث الفئة' : 'تم إضافة الفئة',
+                    );
+                  }
                 }
               } catch (e) {
                 if (context.mounted) {
