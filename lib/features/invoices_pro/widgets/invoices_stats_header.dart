@@ -1,13 +1,12 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Invoices Stats Header Widget
-// Summary cards showing invoice statistics
+// Invoices Stats Header Widget - Modern Pro Design
+// Summary cards showing invoice statistics with modern glass morphism style
 // ═══════════════════════════════════════════════════════════════════════════
 
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/theme/design_tokens.dart';
-import '../../../core/widgets/widgets.dart';
 
 class InvoicesStatsHeader extends StatelessWidget {
   final bool isSales;
@@ -25,57 +24,160 @@ class InvoicesStatsHeader extends StatelessWidget {
     required this.overdueAmount,
   });
 
+  String _formatAmount(double amount) {
+    if (amount >= 1000000) {
+      return '${(amount / 1000000).toStringAsFixed(1)}م';
+    } else if (amount >= 1000) {
+      return '${(amount / 1000).toStringAsFixed(1)}ك';
+    }
+    return amount.toStringAsFixed(0);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final primaryColor = isSales ? AppColors.income : AppColors.purchases;
+
     return Container(
-      height: 100.h,
       margin: EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
+        horizontal: AppSpacing.md.w,
+        vertical: AppSpacing.sm.h,
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: ProStatCard.centered(
-              label: 'الإجمالي',
-              amount: totalAmount,
-              icon: Icons.receipt_long_rounded,
-              color: isSales ? AppColors.success : AppColors.secondary,
-            ),
-          ),
-          SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: ProStatCard.centered(
-              label: 'المحصل',
-              amount: paidAmount,
-              icon: Icons.check_circle_outline_rounded,
-              color: AppColors.success,
-            ),
-          ),
-          SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: ProStatCard.centered(
-              label: 'معلق',
-              amount: pendingAmount,
-              icon: Icons.schedule_rounded,
-              color: AppColors.warning,
-            ),
-          ),
-          if (overdueAmount > 0) ...[
-            SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: ProStatCard.centered(
-                label: 'متأخر',
-                amount: overdueAmount,
-                icon: Icons.warning_amber_rounded,
-                color: AppColors.error,
-              ),
-            ),
+      padding: EdgeInsets.all(AppSpacing.md.w),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            primaryColor,
+            primaryColor.withValues(alpha: 0.85),
           ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        boxShadow: AppShadows.colored(primaryColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Row
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(AppSpacing.xs.w),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: Icon(
+                  isSales
+                      ? Icons.trending_up_rounded
+                      : Icons.shopping_bag_rounded,
+                  color: Colors.white,
+                  size: 18.sp,
+                ),
+              ),
+              SizedBox(width: AppSpacing.sm.w),
+              Text(
+                isSales ? 'إجمالي المبيعات' : 'إجمالي المشتريات',
+                style: AppTypography.labelMedium.copyWith(
+                  color: Colors.white.withValues(alpha: 0.9),
+                ),
+              ),
+            ],
+          ),
+
+          SizedBox(height: AppSpacing.sm.h),
+
+          // Total Amount
+          Text(
+            '${_formatAmount(totalAmount)} ر.س',
+            style: AppTypography.displaySmall.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: 28.sp,
+            ),
+          ),
+
+          SizedBox(height: AppSpacing.md.h),
+
+          // Stats Row
+          Row(
+            children: [
+              _buildStatPill(
+                label: 'محصّل',
+                amount: paidAmount,
+                color: AppColors.income,
+              ),
+              SizedBox(width: AppSpacing.sm.w),
+              _buildStatPill(
+                label: 'معلق',
+                amount: pendingAmount,
+                color: AppColors.warning,
+              ),
+              if (overdueAmount > 0) ...[
+                SizedBox(width: AppSpacing.sm.w),
+                _buildStatPill(
+                  label: 'متأخر',
+                  amount: overdueAmount,
+                  color: AppColors.expense,
+                ),
+              ],
+            ],
+          ),
         ],
       ),
     );
   }
-}
 
-// تم نقل _StatCard إلى ProStatCard في core/widgets/pro_stats_card.dart
+  Widget _buildStatPill({
+    required String label,
+    required double amount,
+    required Color color,
+  }) {
+    return Expanded(
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: AppSpacing.sm.w,
+          vertical: AppSpacing.xs.h,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 6.w,
+                  height: 6.w,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                SizedBox(width: 4.w),
+                Text(
+                  label,
+                  style: AppTypography.labelSmall.copyWith(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    fontSize: 10.sp,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 2.h),
+            Text(
+              '${_formatAmount(amount)} ر.س',
+              style: AppTypography.bodyMedium.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 13.sp,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

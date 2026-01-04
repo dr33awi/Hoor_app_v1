@@ -2,7 +2,9 @@
 // Core Widgets - Barrel Export
 // Export all shared widgets from a single file
 // ═══════════════════════════════════════════════════════════════════════════
-
+// ═══════════════════════════════════════════════════════════════════════════
+// Core Widgets
+// ═══════════════════════════════════════════════════════════════════════════
 export 'pro_header.dart';
 export 'pro_search_bar.dart';
 export 'pro_stats_card.dart';

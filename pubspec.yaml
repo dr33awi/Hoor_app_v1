@@ -82,6 +82,7 @@ dependencies:
   package_info_plus: ^9.0.0
 
   uuid: any
+  shimmer: ^3.0.0
 flutter_launcher_icons:
   android: true
   ios: true

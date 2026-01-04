@@ -1,14 +1,15 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Pro Header - Shared Header Widget
-// Unified header component for all screens
+// Pro Header - Modern Shared Header Widget
+// Unified header component for all screens - Modern Pro Design 2026
 // ═══════════════════════════════════════════════════════════════════════════
 
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../theme/design_tokens.dart';
 
-/// Header موحد لجميع الشاشات
+/// Header موحد لجميع الشاشات - التصميم الحديث
 class ProHeader extends StatelessWidget {
   final String title;
   final String? subtitle;
@@ -20,6 +21,7 @@ class ProHeader extends StatelessWidget {
   final Color? backgroundColor;
   final IconData? icon;
   final Color? iconColor;
+  final bool centerTitle;
 
   const ProHeader({
     super.key,
@@ -33,18 +35,18 @@ class ProHeader extends StatelessWidget {
     this.backgroundColor,
     this.icon,
     this.iconColor,
+    this.centerTitle = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
+        horizontal: AppSpacing.md.w,
+        vertical: AppSpacing.sm.h,
       ),
       decoration: BoxDecoration(
         color: backgroundColor ?? AppColors.surface,
-        border: Border(bottom: BorderSide(color: AppColors.border)),
       ),
       child: Row(
         children: [
@@ -53,71 +55,99 @@ class ProHeader extends StatelessWidget {
             leading!
           else if (showDrawerButton)
             Builder(
-              builder: (context) => IconButton(
-                onPressed: () => Scaffold.of(context).openDrawer(),
-                icon: const Icon(Icons.menu_rounded),
-                style: IconButton.styleFrom(
-                  backgroundColor: AppColors.surfaceMuted,
-                ),
+              builder: (context) => _buildIconButton(
+                icon: Icons.menu_rounded,
+                onTap: () => Scaffold.of(context).openDrawer(),
               ),
             )
           else if (showBackButton)
-            IconButton(
-              onPressed: onBack ?? () => context.pop(),
-              icon: Icon(
-                Icons.arrow_back_ios_rounded,
-                size: AppIconSize.sm,
-                color: AppColors.textSecondary,
-              ),
+            _buildIconButton(
+              icon: Icons.arrow_back_rounded,
+              onTap: onBack ?? () => context.pop(),
             ),
 
           if (showBackButton || showDrawerButton || leading != null)
-            SizedBox(width: AppSpacing.sm),
+            SizedBox(width: AppSpacing.sm.w),
 
           // Icon Box (optional)
           if (icon != null) ...[
             Container(
-              padding: EdgeInsets.all(AppSpacing.sm),
+              padding: EdgeInsets.all(AppSpacing.sm.w),
               decoration: BoxDecoration(
-                color: (iconColor ?? AppColors.primary).withOpacity(0.1),
+                color:
+                    (iconColor ?? AppColors.secondary).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(AppRadius.md),
               ),
               child: Icon(
                 icon,
-                color: iconColor ?? AppColors.primary,
-                size: AppIconSize.md,
+                color: iconColor ?? AppColors.secondary,
+                size: 20.sp,
               ),
             ),
-            SizedBox(width: AppSpacing.sm),
+            SizedBox(width: AppSpacing.sm.w),
           ],
 
           // Title & Subtitle
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  title,
-                  style: AppTypography.headlineSmall.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                if (subtitle != null)
-                  Text(
-                    subtitle!,
-                    style: AppTypography.bodySmall.copyWith(
-                      color: AppColors.textTertiary,
-                    ),
-                  ),
-              ],
-            ),
+            child: centerTitle
+                ? Center(
+                    child: _buildTitleContent(),
+                  )
+                : _buildTitleContent(),
           ),
 
           // Actions
-          if (actions != null) ...actions!,
+          if (actions != null) ...[
+            SizedBox(width: AppSpacing.sm.w),
+            ...actions!,
+          ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildTitleContent() {
+    return Column(
+      crossAxisAlignment:
+          centerTitle ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          title,
+          style: AppTypography.titleMedium.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        if (subtitle != null)
+          Text(
+            subtitle!,
+            style: AppTypography.labelSmall.copyWith(
+              color: AppColors.textTertiary,
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildIconButton({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 40.w,
+        height: 40.w,
+        decoration: BoxDecoration(
+          color: AppColors.background,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+        ),
+        child: Icon(
+          icon,
+          size: 20.sp,
+          color: AppColors.textSecondary,
+        ),
       ),
     );
   }
@@ -184,18 +214,29 @@ class ProHeaderWithSort extends StatelessWidget {
       subtitle: subtitle,
       onBack: onBack,
       actions: [
-        PopupMenuButton<String>(
-          icon: Icon(Icons.sort_rounded, color: AppColors.textSecondary),
-          onSelected: onSortChanged,
-          itemBuilder: (context) => sortOptions
-              .map((option) => PopupMenuItem(
-                    value: option.value,
-                    child: _SortOptionItem(
-                      label: option.label,
-                      isSelected: currentSort == option.value,
-                    ),
-                  ))
-              .toList(),
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.background,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+          ),
+          child: PopupMenuButton<String>(
+            icon: Icon(Icons.sort_rounded,
+                color: AppColors.textSecondary, size: 20.sp),
+            onSelected: onSortChanged,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+            ),
+            itemBuilder: (context) => sortOptions
+                .map((option) => PopupMenuItem(
+                      value: option.value,
+                      child: _SortOptionItem(
+                        label: option.label,
+                        isSelected: currentSort == option.value,
+                      ),
+                    ))
+                .toList(),
+          ),
         ),
         if (actions != null) ...actions!,
       ],
@@ -217,11 +258,16 @@ class _SortOptionItem extends StatelessWidget {
     return Row(
       children: [
         if (isSelected)
-          Icon(Icons.check_rounded,
-              size: AppIconSize.sm, color: AppColors.secondary),
-        if (!isSelected) SizedBox(width: AppIconSize.sm),
-        SizedBox(width: AppSpacing.sm),
-        Text(label),
+          Icon(Icons.check_rounded, size: 18.sp, color: AppColors.secondary),
+        if (!isSelected) SizedBox(width: 18.sp),
+        SizedBox(width: AppSpacing.sm.w),
+        Text(
+          label,
+          style: AppTypography.bodyMedium.copyWith(
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+            color: isSelected ? AppColors.secondary : AppColors.textPrimary,
+          ),
+        ),
       ],
     );
   }

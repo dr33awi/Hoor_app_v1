@@ -1,6 +1,22 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Hoor Manager Pro - Design System 2026
-// A professional, minimal design system for enterprise accounting software
+// Hoor Manager Enterprise - Design System 2026
+// Professional Accounting & ERP Interface
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Design Language: Enterprise Accounting
+// - High-density layouts optimized for data-heavy screens
+// - Neutral, calming color palette for extended use
+// - Sharp, professional corners (6-12px radius)
+// - Subtle neutral shadows for depth without distraction
+// - Maximum readability for numbers and financial data
+// - Formal, trustworthy personality
+//
+// Target Experience:
+// - Serious, reliable software you can trust with your finances
+// - Reduced eye strain for 8+ hour workdays
+// - Professional appearance suitable for business environments
+// - Clear data hierarchy with focus on numbers
+//
 // ═══════════════════════════════════════════════════════════════════════════
 
 import 'package:flutter/material.dart';
@@ -8,53 +24,54 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
-// COLOR PALETTE - Professional & Trust-inspiring
+// COLOR PALETTE - Enterprise Accounting (Neutral & Professional)
 // ═══════════════════════════════════════════════════════════════════════════
 
 class AppColors {
   AppColors._();
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Primary Colors - Deep Navy (Trust & Professionalism)
+  // Primary Colors - Deep Slate (Professional & Trustworthy)
   // ─────────────────────────────────────────────────────────────────────────
 
-  static const Color primary = Color(0xFF0F172A);
-  static const Color primaryLight = Color(0xFF1E293B);
-  static const Color primarySoft = Color(0xFF334155);
-  static const Color primaryMuted = Color(0xFF475569);
+  static const Color primary = Color(0xFF1E293B); // Slate 800 - Main brand
+  static const Color primaryLight = Color(0xFF334155); // Slate 700
+  static const Color primarySoft = Color(0xFF475569); // Slate 600
+  static const Color primaryMuted = Color(0xFF64748B); // Slate 500
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Secondary Colors - Ocean Blue (Action & Clarity)
+  // Secondary Colors - Steel Blue (Action & Focus)
   // ─────────────────────────────────────────────────────────────────────────
 
-  static const Color secondary = Color(0xFF0EA5E9);
-  static const Color secondaryLight = Color(0xFF38BDF8);
-  static const Color secondaryDark = Color(0xFF0284C7);
-  static const Color secondaryMuted = Color(0xFFE0F2FE);
+  static const Color secondary = Color(0xFF2563EB); // Blue 600 - Clear action
+  static const Color secondaryLight = Color(0xFF3B82F6); // Blue 500
+  static const Color secondaryDark = Color(0xFF1D4ED8); // Blue 700
+  static const Color secondaryMuted = Color(0xFFDBEAFE); // Blue 100
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Accent Colors - Warm Gold (Premium feel)
+  // Accent Colors - Subtle Teal (Highlights without distraction)
   // ─────────────────────────────────────────────────────────────────────────
 
-  static const Color accent = Color(0xFFF59E0B);
-  static const Color accentLight = Color(0xFFFBBF24);
-  static const Color accentMuted = Color(0xFFFEF3C7);
+  static const Color accent = Color(0xFF0D9488); // Teal 600 - Subtle accent
+  static const Color accentLight = Color(0xFF14B8A6); // Teal 500
+  static const Color accentMuted = Color(0xFFCCFBF1); // Teal 100
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Semantic Colors - Financial Context
+  // Semantic Colors - Financial Context (Clear & Functional)
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Income / Profit / Success - Green
-  static const Color income = Color(0xFF10B981);
-  static const Color incomeLight = Color(0xFFD1FAE5);
-  static const Color incomeDark = Color(0xFF059669);
-  static const Color incomeSurface = Color(0xFFECFDF5);
+  /// Income / Profit / Success - Forest Green (Professional)
+  static const Color income =
+      Color(0xFF15803D); // Green 700 - Darker for formality
+  static const Color incomeLight = Color(0xFFDCFCE7); // Green 100
+  static const Color incomeDark = Color(0xFF166534); // Green 800
+  static const Color incomeSurface = Color(0xFFF0FDF4); // Green 50
 
-  /// Expense / Loss / Error - Red
-  static const Color expense = Color(0xFFEF4444);
-  static const Color expenseLight = Color(0xFFFEE2E2);
-  static const Color expenseDark = Color(0xFFDC2626);
-  static const Color expenseSurface = Color(0xFFFEF2F2);
+  /// Expense / Loss / Error - Crimson Red (Clear warning)
+  static const Color expense = Color(0xFFDC2626); // Red 600
+  static const Color expenseLight = Color(0xFFFEE2E2); // Red 100
+  static const Color expenseDark = Color(0xFFB91C1C); // Red 700
+  static const Color expenseSurface = Color(0xFFFEF2F2); // Red 50
 
   // Aliases for common naming conventions
   static const Color success = income;
@@ -62,132 +79,142 @@ class AppColors {
   static const Color error = expense;
   static const Color errorLight = expenseLight;
 
-  /// Warning - Orange
-  static const Color warning = Color(0xFFF59E0B);
-  static const Color warningLight = Color(0xFFFEF3C7);
-  static const Color warningSurface = Color(0xFFFFFBEB);
+  /// Warning - Amber (Attention without alarm)
+  static const Color warning = Color(0xFFD97706); // Amber 600
+  static const Color warningLight = Color(0xFFFEF3C7); // Amber 100
+  static const Color warningSurface = Color(0xFFFFFBEB); // Amber 50
 
-  /// Info - Blue
-  static const Color info = Color(0xFF3B82F6);
-  static const Color infoLight = Color(0xFFDBEAFE);
-  static const Color infoSurface = Color(0xFFEFF6FF);
+  /// Info - Slate Blue (Informational)
+  static const Color info = Color(0xFF2563EB); // Blue 600
+  static const Color infoLight = Color(0xFFDBEAFE); // Blue 100
+  static const Color infoSurface = Color(0xFFEFF6FF); // Blue 50
 
-  /// Neutral - Gray
-  static const Color neutral = Color(0xFF64748B);
-  static const Color neutralLight = Color(0xFFE2E8F0);
-  static const Color neutralSurface = Color(0xFFF8FAFC);
+  /// Neutral - Cool Gray (Data & secondary)
+  static const Color neutral = Color(0xFF6B7280); // Gray 500
+  static const Color neutralLight = Color(0xFFE5E7EB); // Gray 200
+  static const Color neutralSurface = Color(0xFFF9FAFB); // Gray 50
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Business-Specific Colors
+  // Business-Specific Colors (Muted Professional Palette)
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Sales - Blue
-  static const Color sales = Color(0xFF3B82F6);
-  static const Color salesLight = Color(0xFFDBEAFE);
+  /// Sales - Professional Blue
+  static const Color sales = Color(0xFF2563EB); // Blue 600
+  static const Color salesLight = Color(0xFFDBEAFE); // Blue 100
 
-  /// Purchases - Purple
-  static const Color purchases = Color(0xFF8B5CF6);
-  static const Color purchasesLight = Color(0xFFEDE9FE);
+  /// Purchases - Deep Purple (Muted)
+  static const Color purchases = Color(0xFF7C3AED); // Violet 600
+  static const Color purchasesLight = Color(0xFFEDE9FE); // Violet 100
 
   /// Inventory - Teal
-  static const Color inventory = Color(0xFF14B8A6);
-  static const Color inventoryLight = Color(0xFFCCFBF1);
+  static const Color inventory = Color(0xFF0D9488); // Teal 600
+  static const Color inventoryLight = Color(0xFFCCFBF1); // Teal 100
 
-  /// Customers - Cyan
-  static const Color customers = Color(0xFF06B6D4);
-  static const Color customersLight = Color(0xFFCFFAFE);
+  /// Customers - Slate Blue
+  static const Color customers = Color(0xFF3B82F6); // Blue 500
+  static const Color customersLight = Color(0xFFDBEAFE); // Blue 100
 
-  /// Suppliers - Amber
-  static const Color suppliers = Color(0xFFF59E0B);
-  static const Color suppliersLight = Color(0xFFFEF3C7);
+  /// Suppliers - Warm Gray
+  static const Color suppliers = Color(0xFF78716C); // Stone 500
+  static const Color suppliersLight = Color(0xFFF5F5F4); // Stone 100
 
-  /// Cash - Emerald
-  static const Color cash = Color(0xFF10B981);
-  static const Color cashLight = Color(0xFFD1FAE5);
+  /// Cash - Forest Green
+  static const Color cash = Color(0xFF15803D); // Green 700
+  static const Color cashLight = Color(0xFFDCFCE7); // Green 100
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Surface & Background Colors
+  // Surface & Background Colors (Paper-like, Easy on Eyes)
   // ─────────────────────────────────────────────────────────────────────────
 
-  static const Color background = Color(0xFFF8FAFC);
-  static const Color backgroundSecondary = Color(0xFFF1F5F9);
-  static const Color surface = Color(0xFFFFFFFF);
+  static const Color background = Color(0xFFF8FAFC); // Slate 50 - Paper white
+  static const Color backgroundSecondary = Color(0xFFF1F5F9); // Slate 100
+  static const Color surface = Color(0xFFFFFFFF); // Pure White
   static const Color surfaceElevated = Color(0xFFFFFFFF);
-  static const Color surfaceMuted = Color(0xFFF1F5F9);
-  static const Color surfaceHover = Color(0xFFF8FAFC);
+  static const Color surfaceMuted = Color(0xFFF1F5F9); // Slate 100
+  static const Color surfaceHover = Color(0xFFF8FAFC); // Slate 50
   static const Color surfaceVariant =
-      Color(0xFFF1F5F9); // For subtle backgrounds
+      Color(0xFFF1F5F9); // Neutral tint (no brand color)
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Text Colors
+  // Text Colors (Optimized for extended reading)
   // ─────────────────────────────────────────────────────────────────────────
 
-  static const Color textPrimary = Color(0xFF0F172A);
-  static const Color textSecondary = Color(0xFF475569);
-  static const Color textTertiary = Color(0xFF94A3B8);
-  static const Color textDisabled = Color(0xFFCBD5E1);
+  static const Color textPrimary =
+      Color(0xFF1E293B); // Slate 800 - Not pure black
+  static const Color textSecondary = Color(0xFF475569); // Slate 600
+  static const Color textTertiary = Color(0xFF94A3B8); // Slate 400
+  static const Color textDisabled = Color(0xFFCBD5E1); // Slate 300
   static const Color textOnPrimary = Color(0xFFFFFFFF);
   static const Color textOnSecondary = Color(0xFFFFFFFF);
   static const Color textOnDark = Color(0xFFFFFFFF);
-  static const Color textLink = Color(0xFF0EA5E9);
+  static const Color textLink = Color(0xFF2563EB); // Blue 600 - Standard link
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Border & Divider Colors
+  // Border & Divider Colors (Subtle definition)
   // ─────────────────────────────────────────────────────────────────────────
 
-  static const Color border = Color(0xFFE2E8F0);
-  static const Color borderLight = Color(0xFFF1F5F9);
-  static const Color borderFocused = Color(0xFF0EA5E9);
-  static const Color divider = Color(0xFFE2E8F0);
+  static const Color border = Color(0xFFE2E8F0); // Slate 200
+  static const Color borderLight = Color(0xFFF1F5F9); // Slate 100
+  static const Color borderFocused =
+      Color(0xFF2563EB); // Blue 600 - Clear focus
+  static const Color divider = Color(0xFFE2E8F0); // Slate 200
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Gradient Presets
+  // Gradient Presets (Professional & Subtle)
   // ─────────────────────────────────────────────────────────────────────────
 
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
+    colors: [Color(0xFF1E293B), Color(0xFF334155)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient secondaryGradient = LinearGradient(
-    colors: [Color(0xFF0EA5E9), Color(0xFF38BDF8)],
+    colors: [Color(0xFF2563EB), Color(0xFF3B82F6)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient incomeGradient = LinearGradient(
-    colors: [Color(0xFF10B981), Color(0xFF34D399)],
+    colors: [Color(0xFF15803D), Color(0xFF22C55E)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient expenseGradient = LinearGradient(
-    colors: [Color(0xFFEF4444), Color(0xFFF87171)],
+    colors: [Color(0xFFDC2626), Color(0xFFF87171)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
+  /// Professional header gradient
   static const LinearGradient premiumGradient = LinearGradient(
-    colors: [Color(0xFF0F172A), Color(0xFF0EA5E9)],
+    colors: [Color(0xFF1E293B), Color(0xFF334155)],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+  );
+
+  /// Subtle overlay gradient
+  static const LinearGradient glassGradient = LinearGradient(
+    colors: [Color(0x08FFFFFF), Color(0x04FFFFFF)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Dark Theme Colors
+  // Dark Theme Colors (Deep Slate - Professional Dark Mode)
   // ─────────────────────────────────────────────────────────────────────────
 
-  static const Color darkBackground = Color(0xFF0F172A);
-  static const Color darkSurface = Color(0xFF1E293B);
-  static const Color darkSurfaceElevated = Color(0xFF334155);
-  static const Color darkBorder = Color(0xFF334155);
-  static const Color darkTextPrimary = Color(0xFFF8FAFC);
-  static const Color darkTextSecondary = Color(0xFF94A3B8);
+  static const Color darkBackground = Color(0xFF0F172A); // Slate 900
+  static const Color darkSurface = Color(0xFF1E293B); // Slate 800
+  static const Color darkSurfaceElevated = Color(0xFF334155); // Slate 700
+  static const Color darkBorder = Color(0xFF475569); // Slate 600
+  static const Color darkTextPrimary = Color(0xFFF8FAFC); // Slate 50
+  static const Color darkTextSecondary = Color(0xFF94A3B8); // Slate 400
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SPACING SYSTEM - 8-point grid
+// SPACING SYSTEM - Compact 4/8-point grid for data-dense interfaces
 // ═══════════════════════════════════════════════════════════════════════════
 
 class AppSpacing {
@@ -195,57 +222,61 @@ class AppSpacing {
 
   static const double xxxs = 2.0;
   static const double xxs = 4.0;
-  static const double xs = 8.0;
-  static const double sm = 12.0;
-  static const double md = 16.0;
-  static const double lg = 20.0;
-  static const double xl = 24.0;
-  static const double xxl = 32.0;
-  static const double xxxl = 40.0;
-  static const double huge = 48.0;
-  static const double massive = 64.0;
+  static const double xs = 6.0; // Reduced from 8
+  static const double sm = 10.0; // Reduced from 12
+  static const double md = 14.0; // Reduced from 16
+  static const double lg = 18.0; // Reduced from 20
+  static const double xl = 22.0; // Reduced from 24
+  static const double xxl = 28.0; // Reduced from 32
+  static const double xxxl = 36.0; // Reduced from 40
+  static const double huge = 44.0; // Reduced from 48
+  static const double massive = 56.0; // Reduced from 64
 
-  // Semantic spacing
-  static const double cardPadding = 16.0;
-  static const double screenPadding = 20.0;
-  static const double sectionGap = 24.0;
-  static const double listItemGap = 12.0;
-  static const double buttonPadding = 16.0;
-  static const double inputPadding = 16.0;
+  // Semantic spacing (tighter for enterprise feel)
+  static const double cardPadding = 14.0; // Reduced from 18
+  static const double screenPadding = 16.0; // Reduced from 20
+  static const double sectionGap = 20.0; // Reduced from 28
+  static const double listItemGap = 10.0; // Reduced from 14
+  static const double buttonPadding = 14.0; // Reduced from 18
+  static const double inputPadding = 12.0; // Reduced from 16
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// RADIUS SYSTEM
+// RADIUS SYSTEM (Sharper, more professional)
 // ═══════════════════════════════════════════════════════════════════════════
 
 class AppRadius {
   AppRadius._();
 
   static const double none = 0.0;
-  static const double xs = 4.0;
-  static const double sm = 6.0;
-  static const double md = 8.0;
-  static const double lg = 12.0;
-  static const double xl = 16.0;
-  static const double xxl = 20.0;
-  static const double xxxl = 24.0;
+  static const double xs = 2.0; // Reduced from 4
+  static const double sm = 4.0; // Reduced from 8
+  static const double md = 6.0; // Reduced from 12
+  static const double lg = 8.0; // Reduced from 16
+  static const double xl = 10.0; // Reduced from 20
+  static const double xxl = 12.0; // Reduced from 24
+  static const double xxxl = 16.0; // Reduced from 28
   static const double full = 999.0;
 
-  // Component-specific
+  // Component-specific (Professional sharp corners)
   static BorderRadius get card => BorderRadius.circular(lg);
   static BorderRadius get cardLarge => BorderRadius.circular(xl);
   static BorderRadius get button => BorderRadius.circular(md);
   static BorderRadius get buttonPill => BorderRadius.circular(full);
   static BorderRadius get input => BorderRadius.circular(md);
-  static BorderRadius get chip => BorderRadius.circular(full);
+  static BorderRadius get chip => BorderRadius.circular(sm); // Sharper chips
   static BorderRadius get sheet =>
-      const BorderRadius.vertical(top: Radius.circular(24));
+      const BorderRadius.vertical(top: Radius.circular(16)); // Less rounded
   static BorderRadius get dialog => BorderRadius.circular(xl);
   static BorderRadius get avatar => BorderRadius.circular(full);
+
+  // Professional card variants
+  static BorderRadius get cardSmooth => BorderRadius.circular(lg);
+  static BorderRadius get badge => BorderRadius.circular(xs);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SHADOW SYSTEM
+// SHADOW SYSTEM (Neutral professional shadows - no colored tints)
 // ═══════════════════════════════════════════════════════════════════════════
 
 class AppShadows {
@@ -255,7 +286,7 @@ class AppShadows {
 
   static List<BoxShadow> get xs => [
         BoxShadow(
-          color: AppColors.primary.withValues(alpha: 0.04),
+          color: const Color(0xFF000000).withValues(alpha: 0.04),
           blurRadius: 2,
           offset: const Offset(0, 1),
         ),
@@ -263,146 +294,153 @@ class AppShadows {
 
   static List<BoxShadow> get sm => [
         BoxShadow(
-          color: AppColors.primary.withValues(alpha: 0.05),
+          color: const Color(0xFF000000).withValues(alpha: 0.05),
           blurRadius: 4,
-          offset: const Offset(0, 2),
+          offset: const Offset(0, 1),
+          spreadRadius: 0,
         ),
       ];
 
   static List<BoxShadow> get md => [
         BoxShadow(
-          color: AppColors.primary.withValues(alpha: 0.06),
+          color: const Color(0xFF000000).withValues(alpha: 0.06),
           blurRadius: 8,
-          offset: const Offset(0, 4),
-        ),
-        BoxShadow(
-          color: AppColors.primary.withValues(alpha: 0.03),
-          blurRadius: 16,
-          offset: const Offset(0, 8),
+          offset: const Offset(0, 2),
+          spreadRadius: -1,
         ),
       ];
 
   static List<BoxShadow> get lg => [
         BoxShadow(
-          color: AppColors.primary.withValues(alpha: 0.08),
+          color: const Color(0xFF000000).withValues(alpha: 0.08),
           blurRadius: 16,
-          offset: const Offset(0, 8),
-        ),
-        BoxShadow(
-          color: AppColors.primary.withValues(alpha: 0.04),
-          blurRadius: 32,
-          offset: const Offset(0, 16),
+          offset: const Offset(0, 4),
+          spreadRadius: -2,
         ),
       ];
 
   static List<BoxShadow> get xl => [
         BoxShadow(
-          color: AppColors.primary.withValues(alpha: 0.10),
+          color: const Color(0xFF000000).withValues(alpha: 0.10),
           blurRadius: 24,
-          offset: const Offset(0, 12),
-        ),
-      ];
-
-  /// Colored shadow for accent elements
-  static List<BoxShadow> colored(Color color, {double opacity = 0.25}) => [
-        BoxShadow(
-          color: color.withValues(alpha: opacity),
-          blurRadius: 16,
-          offset: const Offset(0, 6),
-          spreadRadius: -2,
-        ),
-      ];
-
-  /// Glow effect for highlighted elements
-  static List<BoxShadow> glow(Color color) => [
-        BoxShadow(
-          color: color.withValues(alpha: 0.3),
-          blurRadius: 20,
+          offset: const Offset(0, 8),
           spreadRadius: -4,
         ),
       ];
 
-  /// Card shadow - subtle elevation
-  static List<BoxShadow> get card => [
+  /// Colored shadow for accent elements (subdued)
+  static List<BoxShadow> colored(Color color, {double opacity = 0.15}) => [
         BoxShadow(
-          color: Colors.black.withValues(alpha: 0.04),
-          blurRadius: 8,
-          offset: const Offset(0, 2),
+          color: color.withValues(alpha: opacity),
+          blurRadius: 12,
+          offset: const Offset(0, 4),
+          spreadRadius: -2,
         ),
       ];
 
-  /// Floating action button shadow
+  /// Glow effect for highlighted elements (subtle)
+  static List<BoxShadow> glow(Color color) => [
+        BoxShadow(
+          color: color.withValues(alpha: 0.20),
+          blurRadius: 16,
+          spreadRadius: -4,
+        ),
+      ];
+
+  /// Card shadow - Clean neutral elevation
+  static List<BoxShadow> get card => [
+        BoxShadow(
+          color: const Color(0xFF000000).withValues(alpha: 0.05),
+          blurRadius: 6,
+          offset: const Offset(0, 2),
+          spreadRadius: 0,
+        ),
+      ];
+
+  /// Floating action button shadow (Subtle)
   static List<BoxShadow> get fab => [
         BoxShadow(
-          color: AppColors.secondary.withValues(alpha: 0.35),
-          blurRadius: 16,
-          offset: const Offset(0, 6),
+          color: const Color(0xFF000000).withValues(alpha: 0.15),
+          blurRadius: 12,
+          offset: const Offset(0, 4),
           spreadRadius: -2,
+        ),
+      ];
+
+  /// Clean elevation shadow for elevated cards
+  static List<BoxShadow> get glass => [
+        BoxShadow(
+          color: const Color(0xFF000000).withValues(alpha: 0.06),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
+          spreadRadius: -1,
         ),
       ];
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// TYPOGRAPHY SYSTEM
+// TYPOGRAPHY SYSTEM - Professional & Readable
 // ═══════════════════════════════════════════════════════════════════════════
 
 class AppTypography {
   AppTypography._();
 
-  // Base font family
-  static TextStyle get _baseStyle => GoogleFonts.cairo(
+  // Base font family - IBM Plex Sans Arabic for professional look
+  // Falls back to Cairo for better Arabic support
+  static TextStyle get _baseStyle => GoogleFonts.ibmPlexSansArabic(
         color: AppColors.textPrimary,
         letterSpacing: 0,
       );
 
-  // Monospace for numbers
-  static TextStyle get _monoStyle => GoogleFonts.jetBrainsMono(
+  // Monospace for numbers - Tabular figures for accounting
+  static TextStyle get _monoStyle => GoogleFonts.ibmPlexMono(
         color: AppColors.textPrimary,
+        fontFeatures: const [FontFeature.tabularFigures()],
       );
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Display Styles - Hero sections
+  // Display Styles - Hero sections (slightly smaller for enterprise)
   // ─────────────────────────────────────────────────────────────────────────
 
   static TextStyle get displayLarge => _baseStyle.copyWith(
-        fontSize: 48.sp,
-        fontWeight: FontWeight.w700,
-        height: 1.2,
-        letterSpacing: -0.5,
-      );
-
-  static TextStyle get displayMedium => _baseStyle.copyWith(
-        fontSize: 40.sp,
-        fontWeight: FontWeight.w700,
+        fontSize: 42.sp, // Reduced from 48
+        fontWeight: FontWeight.w600, // Less bold
         height: 1.2,
         letterSpacing: -0.3,
       );
 
+  static TextStyle get displayMedium => _baseStyle.copyWith(
+        fontSize: 36.sp, // Reduced from 40
+        fontWeight: FontWeight.w600,
+        height: 1.2,
+        letterSpacing: -0.2,
+      );
+
   static TextStyle get displaySmall => _baseStyle.copyWith(
-        fontSize: 32.sp,
+        fontSize: 28.sp, // Reduced from 32
         fontWeight: FontWeight.w600,
         height: 1.25,
         letterSpacing: -0.2,
       );
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Headline Styles - Page titles
+  // Headline Styles - Page titles (Tighter)
   // ─────────────────────────────────────────────────────────────────────────
 
   static TextStyle get headlineLarge => _baseStyle.copyWith(
-        fontSize: 28.sp,
-        fontWeight: FontWeight.w700,
+        fontSize: 24.sp, // Reduced from 28
+        fontWeight: FontWeight.w600, // Less bold
         height: 1.3,
       );
 
   static TextStyle get headlineMedium => _baseStyle.copyWith(
-        fontSize: 24.sp,
+        fontSize: 20.sp, // Reduced from 24
         fontWeight: FontWeight.w600,
         height: 1.3,
       );
 
   static TextStyle get headlineSmall => _baseStyle.copyWith(
-        fontSize: 20.sp,
+        fontSize: 18.sp, // Reduced from 20
         fontWeight: FontWeight.w600,
         height: 1.35,
       );
@@ -412,35 +450,35 @@ class AppTypography {
   // ─────────────────────────────────────────────────────────────────────────
 
   static TextStyle get titleLarge => _baseStyle.copyWith(
-        fontSize: 18.sp,
+        fontSize: 16.sp, // Reduced from 18
         fontWeight: FontWeight.w600,
         height: 1.4,
       );
 
   static TextStyle get titleMedium => _baseStyle.copyWith(
-        fontSize: 16.sp,
+        fontSize: 14.sp, // Reduced from 16
         fontWeight: FontWeight.w600,
         height: 1.4,
       );
 
   static TextStyle get titleSmall => _baseStyle.copyWith(
-        fontSize: 14.sp,
+        fontSize: 13.sp, // Reduced from 14
         fontWeight: FontWeight.w600,
         height: 1.4,
       );
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Body Styles - General content
+  // Body Styles - General content (Optimized for data)
   // ─────────────────────────────────────────────────────────────────────────
 
   static TextStyle get bodyLarge => _baseStyle.copyWith(
-        fontSize: 16.sp,
+        fontSize: 14.sp, // Reduced from 16
         fontWeight: FontWeight.w400,
         height: 1.5,
       );
 
   static TextStyle get bodyMedium => _baseStyle.copyWith(
-        fontSize: 14.sp,
+        fontSize: 13.sp, // Reduced from 14
         fontWeight: FontWeight.w400,
         height: 1.5,
       );
@@ -456,39 +494,39 @@ class AppTypography {
   // ─────────────────────────────────────────────────────────────────────────
 
   static TextStyle get labelLarge => _baseStyle.copyWith(
-        fontSize: 16.sp,
+        fontSize: 14.sp, // Reduced from 16
         fontWeight: FontWeight.w600,
         height: 1.4,
-        letterSpacing: 0.1,
+        letterSpacing: 0,
       );
 
   static TextStyle get labelMedium => _baseStyle.copyWith(
-        fontSize: 14.sp,
+        fontSize: 13.sp, // Reduced from 14
         fontWeight: FontWeight.w500,
         height: 1.4,
-        letterSpacing: 0.1,
+        letterSpacing: 0,
       );
 
   static TextStyle get labelSmall => _baseStyle.copyWith(
-        fontSize: 12.sp,
+        fontSize: 11.sp, // Reduced from 12
         fontWeight: FontWeight.w500,
         height: 1.3,
-        letterSpacing: 0.1,
+        letterSpacing: 0,
       );
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Money Styles - Financial amounts (Monospace)
+  // Money Styles - Financial amounts (Tabular Monospace)
   // ─────────────────────────────────────────────────────────────────────────
 
   static TextStyle get moneyLarge => _monoStyle.copyWith(
-        fontSize: 28.sp,
-        fontWeight: FontWeight.w700,
+        fontSize: 24.sp, // Reduced from 28
+        fontWeight: FontWeight.w600,
         height: 1.2,
-        letterSpacing: -0.5,
+        letterSpacing: 0,
       );
 
   static TextStyle get moneyMedium => _monoStyle.copyWith(
-        fontSize: 20.sp,
+        fontSize: 18.sp, // Reduced from 20
         fontWeight: FontWeight.w600,
         height: 1.3,
       );

@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Pro Card - Shared Card Widget
-// Unified card component for all screens
+// Pro Card - Modern Shared Card Widget
+// Unified card component for all screens - Modern Pro Design 2026
 // ═══════════════════════════════════════════════════════════════════════════
 
 import 'package:flutter/material.dart';
@@ -8,7 +8,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../theme/design_tokens.dart';
 
-/// بطاقة موحدة مع تصميم متناسق
+/// بطاقة موحدة مع تصميم متناسق - التصميم الحديث
 class ProCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding;
@@ -37,14 +37,14 @@ class ProCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final card = Container(
       margin: margin,
-      padding: padding ?? EdgeInsets.all(AppSpacing.md),
+      padding: padding ?? EdgeInsets.all(AppSpacing.md.w),
       decoration: BoxDecoration(
         color: color ?? AppColors.surface,
         borderRadius: BorderRadius.circular(borderRadius ?? AppRadius.lg),
-        border: borderColor != null
-            ? Border.all(color: borderColor!)
-            : Border.all(color: AppColors.border),
-        boxShadow: boxShadow ?? AppShadows.sm,
+        border: Border.all(
+          color: borderColor ?? AppColors.border.withValues(alpha: 0.5),
+        ),
+        boxShadow: boxShadow ?? AppShadows.xs,
       ),
       child: child,
     );
@@ -77,7 +77,7 @@ class ProCard extends StatelessWidget {
       margin: margin,
       color: color ?? AppColors.surface,
       borderColor: Colors.transparent,
-      boxShadow: [],
+      boxShadow: const [],
       onTap: onTap,
       child: child,
     );
@@ -93,6 +93,7 @@ class ProCard extends StatelessWidget {
     return ProCard(
       padding: padding,
       margin: margin,
+      borderColor: Colors.transparent,
       boxShadow: AppShadows.md,
       onTap: onTap,
       child: child,
@@ -110,9 +111,9 @@ class ProCard extends StatelessWidget {
     return ProCard(
       padding: padding,
       margin: margin,
-      color: color.withValues(alpha: 0.1),
-      borderColor: color.withValues(alpha: 0.3),
-      boxShadow: [],
+      color: color.withValues(alpha: 0.08),
+      borderColor: color.withValues(alpha: 0.2),
+      boxShadow: const [],
       onTap: onTap,
       child: child,
     );
@@ -130,19 +131,44 @@ class ProCard extends StatelessWidget {
         children: [
           for (int i = 0; i < children.length; i++) ...[
             Padding(
-              padding: EdgeInsets.all(AppSpacing.md),
+              padding: EdgeInsets.all(AppSpacing.md.w),
               child: children[i],
             ),
             if (i < children.length - 1)
-              Divider(height: 1, color: AppColors.divider),
+              Divider(
+                  height: 1, color: AppColors.border.withValues(alpha: 0.5)),
           ],
         ],
       ),
     );
   }
+
+  /// بطاقة Glass Morphism
+  factory ProCard.glass({
+    required Widget child,
+    EdgeInsetsGeometry? padding,
+    EdgeInsetsGeometry? margin,
+    VoidCallback? onTap,
+  }) {
+    return ProCard(
+      padding: padding,
+      margin: margin,
+      color: AppColors.surface.withValues(alpha: 0.8),
+      borderColor: Colors.white.withValues(alpha: 0.2),
+      boxShadow: [
+        BoxShadow(
+          color: AppColors.primary.withValues(alpha: 0.05),
+          blurRadius: 20,
+          offset: const Offset(0, 4),
+        ),
+      ],
+      onTap: onTap,
+      child: child,
+    );
+  }
 }
 
-/// بطاقة عنصر قائمة
+/// بطاقة عنصر قائمة - التصميم الحديث
 class ProListTile extends StatelessWidget {
   final IconData? leadingIcon;
   final Color? leadingIconColor;
@@ -175,29 +201,29 @@ class ProListTile extends StatelessWidget {
             onTap: onTap,
             child: Padding(
               padding: EdgeInsets.symmetric(
-                horizontal: AppSpacing.md,
-                vertical: AppSpacing.sm,
+                horizontal: AppSpacing.md.w,
+                vertical: AppSpacing.sm.h,
               ),
               child: Row(
                 children: [
                   if (leading != null) ...[
                     leading!,
-                    SizedBox(width: AppSpacing.md),
+                    SizedBox(width: AppSpacing.md.w),
                   ] else if (leadingIcon != null) ...[
                     Container(
-                      padding: EdgeInsets.all(AppSpacing.sm),
+                      padding: EdgeInsets.all(AppSpacing.sm.w),
                       decoration: BoxDecoration(
-                        color: (leadingIconColor ?? AppColors.primary)
+                        color: (leadingIconColor ?? AppColors.secondary)
                             .withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(AppRadius.md),
                       ),
                       child: Icon(
                         leadingIcon,
-                        size: AppIconSize.md,
-                        color: leadingIconColor ?? AppColors.primary,
+                        size: 20.sp,
+                        color: leadingIconColor ?? AppColors.secondary,
                       ),
                     ),
-                    SizedBox(width: AppSpacing.md),
+                    SizedBox(width: AppSpacing.md.w),
                   ],
                   Expanded(
                     child: Column(
@@ -205,15 +231,15 @@ class ProListTile extends StatelessWidget {
                       children: [
                         Text(
                           title,
-                          style: AppTypography.titleSmall.copyWith(
-                            color: AppColors.textPrimary,
+                          style: AppTypography.bodyMedium.copyWith(
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         if (subtitle != null) ...[
                           SizedBox(height: 2.h),
                           Text(
                             subtitle!,
-                            style: AppTypography.bodySmall.copyWith(
+                            style: AppTypography.labelSmall.copyWith(
                               color: AppColors.textSecondary,
                             ),
                           ),
@@ -227,13 +253,14 @@ class ProListTile extends StatelessWidget {
             ),
           ),
         ),
-        if (showDivider) Divider(height: 1, color: AppColors.divider),
+        if (showDivider)
+          Divider(height: 1, color: AppColors.border.withValues(alpha: 0.5)),
       ],
     );
   }
 }
 
-/// بطاقة معلومات سريعة
+/// بطاقة معلومات سريعة - التصميم الحديث
 class ProInfoCard extends StatelessWidget {
   final IconData icon;
   final Color color;
@@ -265,24 +292,24 @@ class ProInfoCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: EdgeInsets.all(AppSpacing.sm),
+                padding: EdgeInsets.all(AppSpacing.sm.w),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
-                child: Icon(icon, color: color, size: AppIconSize.md),
+                child: Icon(icon, color: color, size: 20.sp),
               ),
               if (trend != null)
                 Container(
                   padding: EdgeInsets.symmetric(
-                    horizontal: AppSpacing.sm,
-                    vertical: AppSpacing.xxs,
+                    horizontal: AppSpacing.sm.w,
+                    vertical: 2.h,
                   ),
                   decoration: BoxDecoration(
                     color: isPositiveTrend
-                        ? AppColors.success.withValues(alpha: 0.1)
-                        : AppColors.error.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                        ? AppColors.income.withValues(alpha: 0.1)
+                        : AppColors.expense.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppRadius.full),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -293,16 +320,17 @@ class ProInfoCard extends StatelessWidget {
                             : Icons.trending_down_rounded,
                         size: 12.sp,
                         color: isPositiveTrend
-                            ? AppColors.success
-                            : AppColors.error,
+                            ? AppColors.income
+                            : AppColors.expense,
                       ),
                       SizedBox(width: 2.w),
                       Text(
                         trend!,
                         style: AppTypography.labelSmall.copyWith(
                           color: isPositiveTrend
-                              ? AppColors.success
-                              : AppColors.error,
+                              ? AppColors.income
+                              : AppColors.expense,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -310,19 +338,18 @@ class ProInfoCard extends StatelessWidget {
                 ),
             ],
           ),
-          SizedBox(height: AppSpacing.md),
+          SizedBox(height: AppSpacing.md.h),
           Text(
             label,
-            style: AppTypography.bodySmall.copyWith(
+            style: AppTypography.labelSmall.copyWith(
               color: AppColors.textSecondary,
             ),
           ),
-          SizedBox(height: AppSpacing.xxs),
+          SizedBox(height: 2.h),
           Text(
             value,
-            style: AppTypography.headlineSmall.copyWith(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.bold,
+            style: AppTypography.titleLarge.copyWith(
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],

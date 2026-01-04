@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Invoice Card Pro Widget
-// Modern invoice list card with status and payment info
+// Invoice Card Pro Widget - Modern Pro Design
+// Clean, minimal invoice list card with status and payment info
 // ═══════════════════════════════════════════════════════════════════════════
 
 import 'package:flutter/material.dart';
@@ -26,7 +26,8 @@ class InvoiceCardPro extends StatelessWidget {
     final total = invoice['total'] as double;
     final paid = invoice['paid'] as double;
     final remaining = total - paid;
-    final paymentProgress = paid / total;
+    final paymentProgress = total > 0 ? paid / total : 0.0;
+    final isPartial = status == 'جزئي' || (paid > 0 && paid < total);
 
     return Material(
       color: Colors.transparent,
@@ -34,14 +35,12 @@ class InvoiceCardPro extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppRadius.lg),
         child: Container(
-          padding: EdgeInsets.all(AppSpacing.md),
+          padding: EdgeInsets.all(AppSpacing.md.w),
           decoration: BoxDecoration(
             color: AppColors.surface,
             borderRadius: BorderRadius.circular(AppRadius.lg),
             border: Border.all(
-              color: status == 'overdue'
-                  ? AppColors.error.border
-                  : AppColors.border,
+              color: AppColors.border.withValues(alpha: 0.5),
             ),
             boxShadow: AppShadows.xs,
           ),
@@ -53,22 +52,16 @@ class InvoiceCardPro extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Invoice Icon
+                  // Type Indicator
                   Container(
-                    padding: EdgeInsets.all(AppSpacing.sm),
+                    width: 4.w,
+                    height: 44.h,
                     decoration: BoxDecoration(
-                      color: _getStatusColor(status).soft,
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                    child: Icon(
-                      isSales
-                          ? Icons.arrow_upward_rounded
-                          : Icons.arrow_downward_rounded,
-                      color: _getStatusColor(status),
-                      size: AppIconSize.md,
+                      color: isSales ? AppColors.income : AppColors.purchases,
+                      borderRadius: BorderRadius.circular(AppRadius.full),
                     ),
                   ),
-                  SizedBox(width: AppSpacing.md),
+                  SizedBox(width: AppSpacing.sm.w),
 
                   // Invoice Info
                   Expanded(
@@ -79,9 +72,9 @@ class InvoiceCardPro extends StatelessWidget {
                           children: [
                             Expanded(
                               child: Text(
-                                invoice['customer'],
-                                style: AppTypography.titleSmall.copyWith(
-                                  color: AppColors.textPrimary,
+                                invoice['customer'] ??
+                                    (isSales ? 'عميل نقدي' : 'مورد'),
+                                style: AppTypography.bodyLarge.copyWith(
                                   fontWeight: FontWeight.w600,
                                 ),
                                 maxLines: 1,
@@ -94,24 +87,39 @@ class InvoiceCardPro extends StatelessWidget {
                         SizedBox(height: 4.h),
                         Row(
                           children: [
-                            Text(
-                              invoice['id'],
-                              style: AppTypography.bodySmall
-                                  .copyWith(
-                                    color: AppColors.secondary,
-                                    fontWeight: FontWeight.w500,
-                                  )
-                                  .mono,
+                            Icon(
+                              Icons.receipt_outlined,
+                              size: 14.sp,
+                              color: AppColors.textTertiary,
                             ),
-                            SizedBox(width: AppSpacing.sm),
+                            SizedBox(width: 4.w),
                             Text(
-                              '•',
-                              style: TextStyle(color: AppColors.textTertiary),
+                              invoice['id'] ?? '',
+                              style: AppTypography.labelSmall.copyWith(
+                                color: AppColors.secondary,
+                                fontWeight: FontWeight.w500,
+                                fontFamily: 'JetBrains Mono',
+                              ),
                             ),
-                            SizedBox(width: AppSpacing.sm),
+                            Container(
+                              margin: EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.xs.w),
+                              width: 3.w,
+                              height: 3.w,
+                              decoration: BoxDecoration(
+                                color: AppColors.textTertiary,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            Icon(
+                              Icons.calendar_today_outlined,
+                              size: 12.sp,
+                              color: AppColors.textTertiary,
+                            ),
+                            SizedBox(width: 4.w),
                             Text(
-                              invoice['date'],
-                              style: AppTypography.bodySmall.copyWith(
+                              invoice['date'] ?? '',
+                              style: AppTypography.labelSmall.copyWith(
                                 color: AppColors.textTertiary,
                               ),
                             ),
@@ -123,116 +131,130 @@ class InvoiceCardPro extends StatelessWidget {
                 ],
               ),
 
-              SizedBox(height: AppSpacing.md),
-
               // ═══════════════════════════════════════════════════════════════
               // Payment Progress (for partial payments)
               // ═══════════════════════════════════════════════════════════════
-              if (status == 'partial') ...[
-                Column(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(AppRadius.full),
-                      child: LinearProgressIndicator(
-                        value: paymentProgress,
-                        backgroundColor: AppColors.border,
-                        valueColor: AlwaysStoppedAnimation(AppColors.success),
-                        minHeight: 6.h,
+              if (isPartial && paid > 0) ...[
+                SizedBox(height: AppSpacing.md.h),
+                Container(
+                  padding: EdgeInsets.all(AppSpacing.sm.w),
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                  child: Column(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(AppRadius.full),
+                        child: LinearProgressIndicator(
+                          value: paymentProgress,
+                          backgroundColor: AppColors.border,
+                          valueColor: AlwaysStoppedAnimation(AppColors.income),
+                          minHeight: 4.h,
+                        ),
                       ),
-                    ),
-                    SizedBox(height: AppSpacing.xs),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'تم دفع ${(paymentProgress * 100).toInt()}%',
-                          style: AppTypography.labelSmall.copyWith(
-                            color: AppColors.success,
+                      SizedBox(height: AppSpacing.xs.h),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.check_circle_outline,
+                                  size: 12.sp, color: AppColors.income),
+                              SizedBox(width: 4.w),
+                              Text(
+                                'مدفوع ${paid.toStringAsFixed(0)} ر.س',
+                                style: AppTypography.labelSmall.copyWith(
+                                  color: AppColors.income,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                        Text(
-                          'متبقي: ${remaining.toStringAsFixed(0)} ر.س',
-                          style: AppTypography.labelSmall
-                              .copyWith(
-                                color: AppColors.warning,
-                              )
-                              .mono,
-                        ),
-                      ],
-                    ),
-                  ],
+                          Row(
+                            children: [
+                              Icon(Icons.schedule,
+                                  size: 12.sp, color: AppColors.warning),
+                              SizedBox(width: 4.w),
+                              Text(
+                                'متبقي ${remaining.toStringAsFixed(0)} ر.س',
+                                style: AppTypography.labelSmall.copyWith(
+                                  color: AppColors.warning,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-                SizedBox(height: AppSpacing.sm),
               ],
+
+              SizedBox(height: AppSpacing.md.h),
 
               // ═══════════════════════════════════════════════════════════════
               // Footer Row
               // ═══════════════════════════════════════════════════════════════
-              Container(
-                padding: EdgeInsets.all(AppSpacing.sm),
-                decoration: BoxDecoration(
-                  color: AppColors.background,
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Items Count
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.inventory_2_outlined,
-                          size: AppIconSize.xs,
-                          color: AppColors.textTertiary,
-                        ),
-                        SizedBox(width: AppSpacing.xs),
-                        Text(
-                          '${invoice['items']} صنف',
-                          style: AppTypography.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    // Due Date (if pending)
-                    if (invoice['dueDate'] != null && status != 'paid')
-                      Row(
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Payment Method
+                  if (invoice['paymentMethod'] != null)
+                    Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: AppSpacing.sm.w,
+                        vertical: AppSpacing.xs.h,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            status == 'overdue'
-                                ? Icons.warning_amber_rounded
-                                : Icons.event_outlined,
-                            size: AppIconSize.xs,
-                            color: status == 'overdue'
-                                ? AppColors.error
-                                : AppColors.textTertiary,
+                            invoice['paymentMethod'] == 'cash'
+                                ? Icons.money
+                                : Icons.credit_card_outlined,
+                            size: 14.sp,
+                            color: AppColors.textSecondary,
                           ),
-                          SizedBox(width: AppSpacing.xs),
+                          SizedBox(width: 4.w),
                           Text(
-                            'استحقاق: ${invoice['dueDate']}',
-                            style: AppTypography.bodySmall.copyWith(
-                              color: status == 'overdue'
-                                  ? AppColors.error
-                                  : AppColors.textTertiary,
+                            invoice['paymentMethod'] == 'cash' ? 'نقدي' : 'آجل',
+                            style: AppTypography.labelSmall.copyWith(
+                              color: AppColors.textSecondary,
                             ),
                           ),
                         ],
                       ),
+                    )
+                  else
+                    const SizedBox.shrink(),
 
-                    // Total Amount
-                    Text(
-                      '${total.toStringAsFixed(0)} ر.س',
-                      style: AppTypography.titleMedium
-                          .copyWith(
-                            color: isSales
-                                ? AppColors.success
-                                : AppColors.secondary,
-                          )
-                          .monoBold,
+                  // Total Amount
+                  Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md.w,
+                      vertical: AppSpacing.xs.h,
                     ),
-                  ],
-                ),
+                    decoration: BoxDecoration(
+                      color: (isSales ? AppColors.income : AppColors.purchases)
+                          .withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                    child: Text(
+                      '${total.toStringAsFixed(0)} ر.س',
+                      style: AppTypography.titleSmall.copyWith(
+                        color: isSales ? AppColors.income : AppColors.purchases,
+                        fontWeight: FontWeight.w700,
+                        fontFamily: 'JetBrains Mono',
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -242,56 +264,50 @@ class InvoiceCardPro extends StatelessWidget {
   }
 
   Widget _buildStatusBadge(String status) {
-    String label;
     Color color;
+    IconData icon;
 
     switch (status) {
-      case 'paid':
-        label = 'مدفوعة';
-        color = AppColors.success;
+      case 'مكتملة':
+        color = AppColors.income;
+        icon = Icons.check_circle_rounded;
         break;
-      case 'partial':
-        label = 'جزئية';
+      case 'جزئي':
         color = AppColors.warning;
+        icon = Icons.pie_chart_rounded;
         break;
-      case 'overdue':
-        label = 'متأخرة';
-        color = AppColors.error;
+      case 'ملغية':
+        color = AppColors.expense;
+        icon = Icons.cancel_rounded;
         break;
       default:
-        label = 'معلقة';
         color = AppColors.textTertiary;
+        icon = Icons.schedule_rounded;
     }
 
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: AppSpacing.xs,
+        horizontal: AppSpacing.sm.w,
+        vertical: 2.h,
       ),
       decoration: BoxDecoration(
-        color: color.soft,
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppRadius.full),
       ),
-      child: Text(
-        label,
-        style: AppTypography.labelSmall.copyWith(
-          color: color,
-          fontWeight: FontWeight.w600,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12.sp, color: color),
+          SizedBox(width: 4.w),
+          Text(
+            status,
+            style: AppTypography.labelSmall.copyWith(
+              color: color,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'paid':
-        return AppColors.success;
-      case 'partial':
-        return AppColors.warning;
-      case 'overdue':
-        return AppColors.error;
-      default:
-        return AppColors.textSecondary;
-    }
   }
 }
