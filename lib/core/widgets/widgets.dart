@@ -1,0 +1,23 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// Core Widgets - Barrel Export
+// Export all shared widgets from a single file
+// ═══════════════════════════════════════════════════════════════════════════
+
+export 'pro_header.dart';
+export 'pro_search_bar.dart';
+export 'pro_stats_card.dart';
+export 'pro_empty_state.dart';
+export 'pro_loading_state.dart';
+export 'pro_tab_scaffold.dart';
+export 'pro_text_field.dart';
+export 'pro_section_title.dart';
+export 'pro_switch_tile.dart';
+export 'pro_card.dart';
+export 'pro_status_badge.dart';
+export 'pro_icon_box.dart';
+export 'pro_button.dart';
+export 'pro_bottom_sheet.dart';
+export 'pro_dialog.dart';
+export 'pro_snackbar.dart';
+export 'pro_app_bar.dart';
+export 'offline_sync_widget.dart';

@@ -1,113 +1,415 @@
-import 'package:connectivity_plus/connectivity_plus.dart';
-import '../database/database.dart';
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 
-/// خدمة المزامنة مع السحابة
-class SyncService {
-  final AppDatabase _database;
-  final Connectivity _connectivity = Connectivity();
+import '../constants/app_constants.dart';
+import 'connectivity_service.dart';
+import 'network_utils.dart';
+import 'printing/print_settings_service.dart';
+import '../../data/repositories/product_repository.dart';
+import '../../data/repositories/category_repository.dart';
+import '../../data/repositories/invoice_repository.dart';
+import '../../data/repositories/inventory_repository.dart';
+import '../../data/repositories/shift_repository.dart';
+import '../../data/repositories/cash_repository.dart';
+import '../../data/repositories/customer_repository.dart';
+import '../../data/repositories/supplier_repository.dart';
+import '../../data/repositories/voucher_repository.dart';
 
-  SyncService(this._database);
+/// ═══════════════════════════════════════════════════════════════════════════
+/// Sync Status - حالات المزامنة
+/// ═══════════════════════════════════════════════════════════════════════════
+enum SyncStatus {
+  idle,
+  syncing,
+  success,
+  error,
+  offline,
+}
 
-  /// التحقق من الاتصال بالإنترنت
-  Future<bool> isOnline() async {
-    final result = await _connectivity.checkConnectivity();
-    return !result.contains(ConnectivityResult.none);
+/// ═══════════════════════════════════════════════════════════════════════════
+/// Sync Service - خدمة المزامنة المحسّنة
+/// ═══════════════════════════════════════════════════════════════════════════
+class SyncService extends ChangeNotifier {
+  final ConnectivityService _connectivity;
+  final ProductRepository _productRepo;
+  final CategoryRepository _categoryRepo;
+  final InvoiceRepository _invoiceRepo;
+  final InventoryRepository _inventoryRepo;
+  final ShiftRepository _shiftRepo;
+  final CashRepository _cashRepo;
+
+  // Repositories إضافية
+  CustomerRepository? _customerRepo;
+  SupplierRepository? _supplierRepo;
+  VoucherRepository? _voucherRepo;
+  PrintSettingsService? _printSettingsService;
+
+  Timer? _syncTimer;
+  bool _isSyncing = false;
+  DateTime? _lastSyncTime;
+  String? _lastError;
+  bool _realtimeSyncStarted = false;
+  SyncStatus _status = SyncStatus.idle;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Getters
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  bool get isSyncing => _isSyncing;
+  DateTime? get lastSyncTime => _lastSyncTime;
+  String? get lastError => _lastError;
+  bool get isOnline => _connectivity.isOnline;
+  bool get isRealtimeSyncActive => _realtimeSyncStarted;
+  SyncStatus get status => _status;
+
+  SyncService({
+    required ConnectivityService connectivity,
+    required ProductRepository productRepo,
+    required CategoryRepository categoryRepo,
+    required InvoiceRepository invoiceRepo,
+    required InventoryRepository inventoryRepo,
+    required ShiftRepository shiftRepo,
+    required CashRepository cashRepo,
+    CustomerRepository? customerRepo,
+    SupplierRepository? supplierRepo,
+    VoucherRepository? voucherRepo,
+    PrintSettingsService? printSettingsService,
+  })  : _connectivity = connectivity,
+        _productRepo = productRepo,
+        _categoryRepo = categoryRepo,
+        _invoiceRepo = invoiceRepo,
+        _inventoryRepo = inventoryRepo,
+        _shiftRepo = shiftRepo,
+        _cashRepo = cashRepo,
+        _customerRepo = customerRepo,
+        _supplierRepo = supplierRepo,
+        _voucherRepo = voucherRepo,
+        _printSettingsService = printSettingsService;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // التهيئة
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Initialize sync service and start periodic sync
+  Future<void> initialize() async {
+    await _connectivity.initialize();
+
+    // Listen for connectivity changes
+    _connectivity.addListener(_onConnectivityChanged);
+
+    // Start periodic sync for pending changes
+    _startPeriodicSync();
+
+    // Initial sync if online
+    if (_connectivity.isOnline) {
+      _status = SyncStatus.syncing;
+      notifyListeners();
+      await syncAll();
+      // Start real-time sync after initial sync
+      _startRealtimeSync();
+    } else {
+      _status = SyncStatus.offline;
+      notifyListeners();
+    }
   }
 
-  /// مراقبة حالة الاتصال
-  Stream<bool> watchConnectivity() {
-    return _connectivity.onConnectivityChanged.map((results) {
-      return !results.contains(ConnectivityResult.none);
+  /// تعيين الـ Repositories الإضافية
+  void setAdditionalRepositories({
+    CustomerRepository? customerRepo,
+    SupplierRepository? supplierRepo,
+    VoucherRepository? voucherRepo,
+    PrintSettingsService? printSettingsService,
+  }) {
+    _customerRepo = customerRepo;
+    _supplierRepo = supplierRepo;
+    _voucherRepo = voucherRepo;
+    _printSettingsService = printSettingsService;
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // إدارة الاتصال
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  void _onConnectivityChanged() {
+    if (_connectivity.isOnline) {
+      _status = SyncStatus.idle;
+      // Sync pending changes when coming online
+      syncAll();
+      // Start real-time sync
+      _startRealtimeSync();
+    } else {
+      _status = SyncStatus.offline;
+      // Stop real-time sync when offline
+      _stopRealtimeSync();
+    }
+    notifyListeners();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // المزامنة في الوقت الفعلي
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Start listening to Firestore changes in real-time
+  void _startRealtimeSync() {
+    if (_realtimeSyncStarted) return;
+
+    _realtimeSyncStarted = true;
+    debugPrint('Starting real-time sync...');
+
+    // Start real-time listeners for main data
+    _productRepo.startRealtimeSync();
+    _categoryRepo.startRealtimeSync();
+    _invoiceRepo.startRealtimeSync();
+
+    // Start real-time sync for shifts and cash
+    _shiftRepo.startRealtimeSync();
+    _cashRepo.startRealtimeSync();
+
+    // Start real-time sync for customers, suppliers, and vouchers if available
+    _customerRepo?.startRealtimeSync();
+    _supplierRepo?.startRealtimeSync();
+    _voucherRepo?.startRealtimeSync();
+
+    // Start real-time sync for print settings
+    _printSettingsService?.startRealtimeSync();
+
+    debugPrint('Real-time sync started');
+  }
+
+  /// Stop listening to Firestore changes
+  void _stopRealtimeSync() {
+    if (!_realtimeSyncStarted) return;
+
+    _realtimeSyncStarted = false;
+    debugPrint('Stopping real-time sync...');
+
+    _productRepo.stopRealtimeSync();
+    _categoryRepo.stopRealtimeSync();
+    _invoiceRepo.stopRealtimeSync();
+
+    // Stop real-time sync for shifts and cash
+    _shiftRepo.stopRealtimeSync();
+    _cashRepo.stopRealtimeSync();
+
+    // Stop real-time sync for customers, suppliers, and vouchers if available
+    _customerRepo?.stopRealtimeSync();
+    _supplierRepo?.stopRealtimeSync();
+    _voucherRepo?.stopRealtimeSync();
+
+    // Stop real-time sync for print settings
+    _printSettingsService?.stopRealtimeSync();
+
+    debugPrint('Real-time sync stopped');
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // المزامنة الدورية
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  void _startPeriodicSync() {
+    _syncTimer?.cancel();
+    _syncTimer = Timer.periodic(AppConstants.syncInterval, (_) {
+      if (_connectivity.isOnline && !_isSyncing) {
+        // Only sync pending changes periodically
+        _syncPendingOnly();
+      }
     });
   }
 
-  /// مزامنة البيانات
-  Future<SyncResult> syncData() async {
-    if (!await isOnline()) {
-      return SyncResult(
-        success: false,
-        message: 'لا يوجد اتصال بالإنترنت',
-      );
-    }
+  /// Sync only pending changes (for periodic sync)
+  Future<void> _syncPendingOnly() async {
+    if (_isSyncing || !_connectivity.isOnline) return;
+
+    _isSyncing = true;
+    _status = SyncStatus.syncing;
+    notifyListeners();
 
     try {
-      // TODO: تنفيذ منطق المزامنة مع Firebase
-      // 1. جلب البيانات غير المزامنة من قاعدة البيانات المحلية
-      // 2. رفع البيانات إلى Firebase
-      // 3. جلب التحديثات من Firebase
-      // 4. تحديث قاعدة البيانات المحلية
-      // 5. تحديث علامات المزامنة
+      await _categoryRepo.syncPendingChanges();
+      await _productRepo.syncPendingChanges();
+      await _invoiceRepo.syncPendingChanges();
+      await _inventoryRepo.syncPendingChanges();
+      await _shiftRepo.syncPendingChanges();
+      await _cashRepo.syncPendingChanges();
 
-      return SyncResult(
-        success: true,
-        message: 'تمت المزامنة بنجاح',
-        syncedItems: 0,
-      );
+      // Sync customers, suppliers, and vouchers if available
+      await _customerRepo?.syncPendingChanges();
+      await _supplierRepo?.syncPendingChanges();
+      await _voucherRepo?.syncPendingChanges();
+
+      _lastSyncTime = DateTime.now();
+      _status = SyncStatus.success;
+      _lastError = null;
     } catch (e) {
-      return SyncResult(
-        success: false,
-        message: 'حدث خطأ أثناء المزامنة: $e',
-      );
+      _lastError = e.toString();
+      _status = SyncStatus.error;
+      debugPrint('Sync pending error: $e');
+    } finally {
+      _isSyncing = false;
+      notifyListeners();
     }
   }
 
-  /// مزامنة الفواتير
-  Future<int> syncInvoices() async {
-    // TODO: تنفيذ مزامنة الفواتير
-    return 0;
+  // ═══════════════════════════════════════════════════════════════════════════
+  // المزامنة الكاملة
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Sync all data (full sync)
+  Future<void> syncAll() async {
+    if (_isSyncing || !_connectivity.isOnline) return;
+
+    _isSyncing = true;
+    _lastError = null;
+    _status = SyncStatus.syncing;
+    notifyListeners();
+
+    try {
+      // Sync pending changes first
+      await _categoryRepo.syncPendingChanges();
+      await _productRepo.syncPendingChanges();
+      await _invoiceRepo.syncPendingChanges();
+      await _inventoryRepo.syncPendingChanges();
+      await _shiftRepo.syncPendingChanges();
+      await _cashRepo.syncPendingChanges();
+
+      // Sync customers, suppliers, and vouchers if available
+      await _customerRepo?.syncPendingChanges();
+      await _supplierRepo?.syncPendingChanges();
+      await _voucherRepo?.syncPendingChanges();
+
+      // Pull latest from cloud (initial load)
+      await _categoryRepo.pullFromCloud();
+      await _productRepo.pullFromCloud();
+      await _invoiceRepo.pullFromCloud();
+      await _inventoryRepo.pullFromCloud();
+      await _shiftRepo.pullFromCloud();
+      await _cashRepo.pullFromCloud();
+
+      // Pull customers, suppliers, and vouchers if available
+      await _customerRepo?.pullFromCloud();
+      await _supplierRepo?.pullFromCloud();
+      await _voucherRepo?.pullFromCloud();
+
+      _lastSyncTime = DateTime.now();
+      _status = SyncStatus.success;
+    } catch (e) {
+      _lastError = e.toString();
+      _status = SyncStatus.error;
+      debugPrint('Sync error: $e');
+    } finally {
+      _isSyncing = false;
+      notifyListeners();
+    }
   }
 
-  /// مزامنة المنتجات
-  Future<int> syncProducts() async {
-    // TODO: تنفيذ مزامنة المنتجات
-    return 0;
+  /// مزامنة مع إعادة المحاولة عند الفشل
+  Future<void> syncWithRetry({int maxRetries = 3}) async {
+    if (!_connectivity.isOnline) {
+      throw NoConnectionException();
+    }
+
+    for (int attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        await syncAll();
+        return;
+      } catch (e) {
+        if (attempt == maxRetries) rethrow;
+        await Future.delayed(Duration(seconds: attempt * 2));
+      }
+    }
   }
 
-  /// مزامنة العملاء
-  Future<int> syncCustomers() async {
-    // TODO: تنفيذ مزامنة العملاء
-    return 0;
+  // ═══════════════════════════════════════════════════════════════════════════
+  // مزامنة repository معين
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Force sync specific repository
+  Future<void> syncRepository(String repoName) async {
+    if (!_connectivity.isOnline) return;
+
+    try {
+      switch (repoName) {
+        case 'products':
+          await _productRepo.syncPendingChanges();
+          await _productRepo.pullFromCloud();
+          break;
+        case 'categories':
+          await _categoryRepo.syncPendingChanges();
+          await _categoryRepo.pullFromCloud();
+          break;
+        case 'invoices':
+          await _invoiceRepo.syncPendingChanges();
+          await _invoiceRepo.pullFromCloud();
+          break;
+        case 'inventory':
+          await _inventoryRepo.syncPendingChanges();
+          await _inventoryRepo.pullFromCloud();
+          break;
+        case 'shifts':
+          await _shiftRepo.syncPendingChanges();
+          await _shiftRepo.pullFromCloud();
+          break;
+        case 'cash':
+          await _cashRepo.syncPendingChanges();
+          await _cashRepo.pullFromCloud();
+          break;
+        case 'customers':
+          await _customerRepo?.syncPendingChanges();
+          await _customerRepo?.pullFromCloud();
+          break;
+        case 'suppliers':
+          await _supplierRepo?.syncPendingChanges();
+          await _supplierRepo?.pullFromCloud();
+          break;
+        case 'vouchers':
+          await _voucherRepo?.syncPendingChanges();
+          await _voucherRepo?.pullFromCloud();
+          break;
+      }
+      _lastSyncTime = DateTime.now();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Sync error for $repoName: $e');
+      rethrow;
+    }
   }
 
-  /// الحصول على حالة المزامنة
-  Future<SyncStatus> getSyncStatus() async {
-    // TODO: حساب عدد العناصر غير المزامنة
-    return SyncStatus(
-      pendingInvoices: 0,
-      pendingProducts: 0,
-      pendingCustomers: 0,
-      lastSyncTime: null,
-    );
+  // ═══════════════════════════════════════════════════════════════════════════
+  // التنظيف
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  @override
+  void dispose() {
+    _syncTimer?.cancel();
+    _stopRealtimeSync();
+    _connectivity.removeListener(_onConnectivityChanged);
+    super.dispose();
   }
 }
 
-/// نتيجة المزامنة
-class SyncResult {
-  final bool success;
-  final String message;
-  final int syncedItems;
+/// ═══════════════════════════════════════════════════════════════════════════
+/// Sync Status Extensions - إضافات حالة المزامنة
+/// ═══════════════════════════════════════════════════════════════════════════
+extension SyncStatusExtension on SyncService {
+  /// الحصول على رسالة الحالة
+  String get statusMessage {
+    switch (status) {
+      case SyncStatus.idle:
+        return 'جاهز';
+      case SyncStatus.syncing:
+        return 'جاري المزامنة...';
+      case SyncStatus.success:
+        return 'تمت المزامنة بنجاح';
+      case SyncStatus.error:
+        return lastError ?? 'حدث خطأ';
+      case SyncStatus.offline:
+        return 'غير متصل';
+    }
+  }
 
-  SyncResult({
-    required this.success,
-    required this.message,
-    this.syncedItems = 0,
-  });
-}
+  /// هل المزامنة ناجحة؟
+  bool get isSuccess => status == SyncStatus.success;
 
-/// حالة المزامنة
-class SyncStatus {
-  final int pendingInvoices;
-  final int pendingProducts;
-  final int pendingCustomers;
-  final DateTime? lastSyncTime;
-
-  SyncStatus({
-    required this.pendingInvoices,
-    required this.pendingProducts,
-    required this.pendingCustomers,
-    this.lastSyncTime,
-  });
-
-  int get totalPending => pendingInvoices + pendingProducts + pendingCustomers;
-  bool get hasPending => totalPending > 0;
+  /// هل هناك خطأ؟
+  bool get hasError => status == SyncStatus.error;
 }
