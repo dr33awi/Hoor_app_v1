@@ -13,7 +13,6 @@ import 'package:hoor_manager/features/home_pro/widgets/alerts_widget.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
 import 'widgets/pro_navigation_drawer.dart';
-import 'widgets/shift_status_banner.dart';
 
 class HomeScreenPro extends ConsumerStatefulWidget {
   const HomeScreenPro({super.key});
@@ -69,781 +68,706 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
       ),
       child: Scaffold(
         key: _scaffoldKey,
-        backgroundColor: AppColors.background,
+        backgroundColor: const Color(0xFFF8FAFC), // Slate 50
         drawer: const ProNavigationDrawer(currentRoute: '/'),
         body: SafeArea(
           child: FadeTransition(
             opacity: _fadeAnimation,
             child: RefreshIndicator(
               onRefresh: _handleRefresh,
-              color: AppColors.secondary,
-              backgroundColor: AppColors.surface,
-              child: SingleChildScrollView(
+              color: AppColors.primary,
+              backgroundColor: Colors.white,
+              child: CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.all(AppSpacing.screenPadding.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header
-                    _buildHeader(),
-                    SizedBox(height: AppSpacing.lg.h),
+                slivers: [
+                  // 1. Modern Header
+                  SliverPadding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: AppSpacing.screenPadding.w,
+                      vertical: AppSpacing.md.h,
+                    ),
+                    sliver: SliverToBoxAdapter(
+                      child: _buildModernHeader(),
+                    ),
+                  ),
 
-                    // Shift Status
-                    _buildShiftStatusBanner(),
-                    SizedBox(height: AppSpacing.xl.h),
+                  // 2. Hero Section (Shift Status)
+                  SliverPadding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: AppSpacing.screenPadding.w,
+                    ),
+                    sliver: SliverToBoxAdapter(
+                      child: _buildHeroSection(),
+                    ),
+                  ),
 
-                    // Quick Actions
-                    _buildQuickActions(),
-                    SizedBox(height: AppSpacing.xl.h),
+                  // 3. Quick Actions
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.only(top: AppSpacing.xl.h),
+                      child: _buildQuickActionsSection(),
+                    ),
+                  ),
 
-                    // Main Menu Grid
-                    _buildMainMenuSection(),
-                    SizedBox(height: AppSpacing.xl.h),
+                  // 4. Main Operations Grid
+                  SliverPadding(
+                    padding: EdgeInsets.all(AppSpacing.screenPadding.w),
+                    sliver: SliverToBoxAdapter(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildSectionTitle('العمليات الرئيسية'),
+                          SizedBox(height: AppSpacing.md.h),
+                          _buildOperationsGrid(),
+                        ],
+                      ),
+                    ),
+                  ),
 
-                    // Secondary Menu
-                    _buildSecondaryMenuSection(),
-                    SizedBox(height: AppSpacing.huge.h),
-                  ],
-                ),
+                  // 5. Management & Reports
+                  SliverPadding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: AppSpacing.screenPadding.w,
+                    ),
+                    sliver: SliverToBoxAdapter(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildSectionTitle('الإدارة والتقارير'),
+                          SizedBox(height: AppSpacing.md.h),
+                          _buildManagementGrid(),
+                          SizedBox(height: AppSpacing.huge.h),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         ),
-        floatingActionButton: _buildFAB(),
       ),
     );
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // HEADER - Clean & Simple
+  // MODERN HEADER
   // ═══════════════════════════════════════════════════════════════════════════
 
-  Widget _buildHeader() {
+  Widget _buildModernHeader() {
     final alertsAsync = ref.watch(dashboardAlertsProvider);
     final alertsCount =
         alertsAsync.whenOrNull(data: (alerts) => alerts.length) ?? 0;
 
     return Row(
       children: [
-        // Menu Button
-        _HeaderIconButton(
-          icon: Icons.menu_rounded,
+        // Profile / Menu
+        GestureDetector(
           onTap: () => _scaffoldKey.currentState?.openDrawer(),
-        ),
-        SizedBox(width: AppSpacing.md.w),
-
-        // Logo & Title
-        Container(
-          width: 42.w,
-          height: 42.w,
-          decoration: BoxDecoration(
-            gradient: AppColors.premiumGradient,
-            borderRadius: BorderRadius.circular(12.r),
-          ),
-          child: Icon(
-            Icons.store_rounded,
-            color: Colors.white,
-            size: 22.sp,
-          ),
-        ),
-        SizedBox(width: AppSpacing.sm.w),
-        Expanded(
-          child: Text(
-            'Hoor Manager',
-            style: AppTypography.titleLarge.copyWith(
+          child: Container(
+            width: 48.w,
+            height: 48.w,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14.r),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Icon(
+              Icons.menu_rounded,
               color: AppColors.primary,
-              fontWeight: FontWeight.w700,
+              size: 24.sp,
             ),
           ),
         ),
+        SizedBox(width: AppSpacing.md.w),
 
-        // Notifications
-        _HeaderIconButton(
-          icon: Icons.notifications_outlined,
-          badge: alertsCount,
-          onTap: () => context.push('/alerts'),
+        // Welcome Text
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'مرحباً بك 👋',
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                'Hoor Manager',
+                style: AppTypography.titleMedium.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w800,
+                  height: 1.2,
+                ),
+              ),
+            ],
+          ),
         ),
-        SizedBox(width: AppSpacing.xs.w),
-        // Settings
-        _HeaderIconButton(
-          icon: Icons.settings_outlined,
+
+        // Actions
+        Row(
+          children: [
+            _HeaderActionButton(
+              icon: Icons.notifications_outlined,
+              badgeCount: alertsCount,
+              onTap: () => context.push('/alerts'),
+            ),
+            SizedBox(width: AppSpacing.sm.w),
+            _HeaderActionButton(
+              icon: Icons.settings_outlined,
+              onTap: () => context.push('/settings'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // HERO SECTION (SHIFT STATUS)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  Widget _buildHeroSection() {
+    final shiftAsync = ref.watch(openShiftStreamProvider);
+
+    return shiftAsync.when(
+      loading: () => _buildHeroLoading(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (shift) {
+        final isOpen = shift != null;
+        return Container(
+          width: double.infinity,
+          padding: EdgeInsets.all(20.w),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: isOpen
+                  ? [const Color(0xFF0F172A), const Color(0xFF334155)]
+                  : [const Color(0xFFF59E0B), const Color(0xFFD97706)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(24.r),
+            boxShadow: [
+              BoxShadow(
+                color: (isOpen ? AppColors.primary : AppColors.warning)
+                    .withOpacity(0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20.r),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          isOpen
+                              ? Icons.check_circle_rounded
+                              : Icons.access_time_filled_rounded,
+                          color: Colors.white,
+                          size: 16.sp,
+                        ),
+                        SizedBox(width: 6.w),
+                        Text(
+                          isOpen ? 'الوردية مفتوحة' : 'الوردية مغلقة',
+                          style: AppTypography.labelMedium.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(
+                    Icons.storefront_rounded,
+                    color: Colors.white.withOpacity(0.5),
+                    size: 28.sp,
+                  ),
+                ],
+              ),
+              SizedBox(height: 20.h),
+              if (isOpen) ...[
+                Text(
+                  'مبيعات الوردية الحالية',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: Colors.white.withOpacity(0.8),
+                  ),
+                ),
+                SizedBox(height: 4.h),
+                Text(
+                  '${shift.totalSales.toStringAsFixed(2)} ر.س',
+                  style: AppTypography.displaySmall.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 32.sp,
+                  ),
+                ),
+                SizedBox(height: 16.h),
+                Row(
+                  children: [
+                    Icon(Icons.schedule_rounded,
+                        color: Colors.white70, size: 16.sp),
+                    SizedBox(width: 6.w),
+                    Text(
+                      'بدأت منذ: ${shift.openedAt.hour}:${shift.openedAt.minute.toString().padLeft(2, '0')}',
+                      style: AppTypography.bodySmall.copyWith(
+                        color: Colors.white.withOpacity(0.9),
+                      ),
+                    ),
+                  ],
+                ),
+              ] else ...[
+                Text(
+                  'لا توجد وردية نشطة حالياً',
+                  style: AppTypography.titleMedium.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 8.h),
+                Text(
+                  'ابدأ وردية جديدة لتتمكن من إجراء عمليات البيع وتسجيل الحركات المالية',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: Colors.white.withOpacity(0.9),
+                    height: 1.5,
+                  ),
+                ),
+                SizedBox(height: 16.h),
+                ElevatedButton.icon(
+                  onPressed: () => context.push('/shifts'),
+                  icon: const Icon(Icons.play_arrow_rounded, size: 18),
+                  label: const Text('فتح وردية جديدة'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppColors.warning,
+                    elevation: 0,
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildHeroLoading() {
+    return Container(
+      height: 180.h,
+      decoration: BoxDecoration(
+        color: Colors.grey[200],
+        borderRadius: BorderRadius.circular(24.r),
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // QUICK ACTIONS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  Widget _buildQuickActionsSection() {
+    return SizedBox(
+      height: 110.h,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding.w),
+        children: [
+          _QuickActionItem(
+            icon: Icons.add_shopping_cart_rounded,
+            label: 'بيع جديد',
+            color: AppColors.sales,
+            onTap: () => context.push('/sales/add'),
+          ),
+          _QuickActionItem(
+            icon: Icons.inventory_2_rounded,
+            label: 'شراء جديد',
+            color: AppColors.purchases,
+            onTap: () => context.push('/purchases/add'),
+          ),
+          _QuickActionItem(
+            icon: Icons.add_box_rounded,
+            label: 'إضافة منتج',
+            color: AppColors.inventory,
+            onTap: () => context.push('/products/add'),
+          ),
+          _QuickActionItem(
+            icon: Icons.person_add_rounded,
+            label: 'عميل جديد',
+            color: AppColors.customers,
+            onTap: () => context.push('/customers/add'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // OPERATIONS GRID
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  Widget _buildOperationsGrid() {
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 2,
+      mainAxisSpacing: 16.h,
+      crossAxisSpacing: 16.w,
+      childAspectRatio: 1.5,
+      children: [
+        _ModernMenuCard(
+          title: 'فواتير البيع',
+          subtitle: 'إدارة المبيعات',
+          icon: Icons.receipt_long_rounded,
+          color: AppColors.sales,
+          onTap: () => context.push('/invoices'),
+        ),
+        _ModernMenuCard(
+          title: 'المشتريات',
+          subtitle: 'فواتير الشراء',
+          icon: Icons.shopping_bag_outlined,
+          color: AppColors.purchases,
+          onTap: () => context.push('/purchases'),
+        ),
+        _ModernMenuCard(
+          title: 'المنتجات',
+          subtitle: 'المخزون والأسعار',
+          icon: Icons.qr_code_rounded,
+          color: AppColors.inventory,
+          onTap: () => context.push('/products'),
+        ),
+        _ModernMenuCard(
+          title: 'المرتجعات',
+          subtitle: 'مبيعات ومشتريات',
+          icon: Icons.assignment_return_outlined,
+          color: AppColors.error,
+          onTap: () => context.push('/returns/sales'),
+        ),
+      ],
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // MANAGEMENT GRID
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  Widget _buildManagementGrid() {
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 4,
+      mainAxisSpacing: 12.h,
+      crossAxisSpacing: 12.w,
+      childAspectRatio: 0.8,
+      children: [
+        _SmallMenuCard(
+          icon: Icons.people_alt_rounded,
+          label: 'العملاء',
+          color: AppColors.customers,
+          onTap: () => context.push('/customers'),
+        ),
+        _SmallMenuCard(
+          icon: Icons.local_shipping_rounded,
+          label: 'الموردين',
+          color: AppColors.suppliers,
+          onTap: () => context.push('/suppliers'),
+        ),
+        _SmallMenuCard(
+          icon: Icons.warehouse_rounded,
+          label: 'المخازن',
+          color: AppColors.inventory,
+          onTap: () => context.push('/warehouses'),
+        ),
+        _SmallMenuCard(
+          icon: Icons.category_rounded,
+          label: 'الأقسام',
+          color: AppColors.inventory,
+          onTap: () => context.push('/categories'),
+        ),
+        _SmallMenuCard(
+          icon: Icons.bar_chart_rounded,
+          label: 'التقارير',
+          color: AppColors.primary,
+          onTap: () => context.push('/reports'),
+        ),
+        _SmallMenuCard(
+          icon: Icons.account_balance_wallet_rounded,
+          label: 'الصندوق',
+          color: AppColors.success,
+          onTap: () => context.push('/cash'),
+        ),
+        _SmallMenuCard(
+          icon: Icons.receipt_rounded,
+          label: 'السندات',
+          color: AppColors.secondary,
+          onTap: () => context.push('/vouchers'),
+        ),
+        _SmallMenuCard(
+          icon: Icons.settings_rounded,
+          label: 'الإعدادات',
+          color: AppColors.neutral,
           onTap: () => context.push('/settings'),
         ),
       ],
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // SHIFT STATUS BANNER
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  Widget _buildShiftStatusBanner() {
-    final shiftAsync = ref.watch(openShiftStreamProvider);
-
-    return shiftAsync.when(
-      loading: () => Container(
-        height: 70.h,
-        decoration: BoxDecoration(
-          color: AppColors.surfaceMuted,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-        ),
-      ),
-      error: (_, __) => const SizedBox.shrink(),
-      data: (shift) => ShiftStatusBanner(
-        isOpen: shift != null,
-        startTime: shift != null
-            ? '${shift.openedAt.hour}:${shift.openedAt.minute.toString().padLeft(2, '0')}'
-            : null,
-        totalSales: shift?.totalSales,
-        onTap: () => context.push('/shifts'),
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // QUICK ACTIONS - Horizontal Row
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  Widget _buildQuickActions() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'إجراءات سريعة',
-          style: AppTypography.titleSmall.copyWith(
-            color: AppColors.textSecondary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        SizedBox(height: AppSpacing.md.h),
-        Row(
-          children: [
-            Expanded(
-              child: _QuickActionCard(
-                icon: Icons.receipt_long_rounded,
-                label: 'فاتورة بيع',
-                color: AppColors.sales,
-                onTap: () => context.push('/sales/add'),
-              ),
-            ),
-            SizedBox(width: AppSpacing.sm.w),
-            Expanded(
-              child: _QuickActionCard(
-                icon: Icons.shopping_cart_rounded,
-                label: 'مشتريات',
-                color: AppColors.purchases,
-                onTap: () => context.push('/purchases/add'),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // MAIN MENU SECTION - All Pages Organized by Tasks
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  Widget _buildMainMenuSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ─────────────────────────────────────────────────────────────────────
-        // المبيعات والمشتريات
-        // ─────────────────────────────────────────────────────────────────────
-        _buildSectionTitle(
-            'المبيعات والمشتريات', Icons.shopping_bag_rounded, AppColors.sales),
-        SizedBox(height: AppSpacing.md.h),
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 4,
-          mainAxisSpacing: AppSpacing.sm.h,
-          crossAxisSpacing: AppSpacing.sm.w,
-          childAspectRatio: 0.85,
-          children: [
-            _MenuCard(
-              icon: Icons.add_circle_rounded,
-              label: 'فاتورة بيع',
-              color: AppColors.sales,
-              onTap: () => context.push('/sales/add'),
-            ),
-            _MenuCard(
-              icon: Icons.receipt_long_rounded,
-              label: 'فواتير البيع',
-              color: AppColors.sales,
-              onTap: () => context.push('/invoices'),
-            ),
-            _MenuCard(
-              icon: Icons.shopping_cart_rounded,
-              label: 'المشتريات',
-              color: AppColors.purchases,
-              onTap: () => context.push('/purchases'),
-            ),
-            _MenuCard(
-              icon: Icons.assignment_return_rounded,
-              label: 'مرتجع مبيعات',
-              color: AppColors.error,
-              onTap: () => context.push('/returns/sales'),
-            ),
-            _MenuCard(
-              icon: Icons.assignment_return_rounded,
-              label: 'مرتجع مشتريات',
-              color: AppColors.warning,
-              onTap: () => context.push('/returns/purchases'),
-            ),
-          ],
-        ),
-        SizedBox(height: AppSpacing.xl.h),
-
-        // ─────────────────────────────────────────────────────────────────────
-        // المخزون والمنتجات
-        // ─────────────────────────────────────────────────────────────────────
-        _buildSectionTitle('المخزون والمنتجات', Icons.inventory_2_rounded,
-            AppColors.inventory),
-        SizedBox(height: AppSpacing.md.h),
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 4,
-          mainAxisSpacing: AppSpacing.sm.h,
-          crossAxisSpacing: AppSpacing.sm.w,
-          childAspectRatio: 0.85,
-          children: [
-            _MenuCard(
-              icon: Icons.inventory_rounded,
-              label: 'المنتجات',
-              color: AppColors.inventory,
-              onTap: () => context.push('/products'),
-            ),
-            _MenuCard(
-              icon: Icons.category_rounded,
-              label: 'التصنيفات',
-              color: AppColors.purchases,
-              onTap: () => context.push('/categories'),
-            ),
-            _MenuCard(
-              icon: Icons.warehouse_rounded,
-              label: 'المخازن',
-              color: AppColors.info,
-              onTap: () => context.push('/inventory'),
-            ),
-          ],
-        ),
-        SizedBox(height: AppSpacing.xl.h),
-
-        // ─────────────────────────────────────────────────────────────────────
-        // المالية والحسابات
-        // ─────────────────────────────────────────────────────────────────────
-        _buildSectionTitle('المالية والحسابات',
-            Icons.account_balance_wallet_rounded, AppColors.cash),
-        SizedBox(height: AppSpacing.md.h),
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 4,
-          mainAxisSpacing: AppSpacing.sm.h,
-          crossAxisSpacing: AppSpacing.sm.w,
-          childAspectRatio: 0.85,
-          children: [
-            _MenuCard(
-              icon: Icons.payments_rounded,
-              label: 'الصندوق',
-              color: AppColors.cash,
-              onTap: () => context.push('/cash'),
-            ),
-            _MenuCard(
-              icon: Icons.description_rounded,
-              label: 'السندات',
-              color: AppColors.secondary,
-              onTap: () => context.push('/vouchers'),
-            ),
-            _MenuCard(
-              icon: Icons.people_alt_rounded,
-              label: 'العملاء',
-              color: AppColors.customers,
-              onTap: () => context.push('/customers'),
-            ),
-            _MenuCard(
-              icon: Icons.local_shipping_rounded,
-              label: 'الموردين',
-              color: AppColors.purchases,
-              onTap: () => context.push('/suppliers'),
-            ),
-          ],
-        ),
-        SizedBox(height: AppSpacing.xl.h),
-
-        // ─────────────────────────────────────────────────────────────────────
-        // التقارير والإدارة
-        // ─────────────────────────────────────────────────────────────────────
-        _buildSectionTitle(
-            'التقارير والإدارة', Icons.insights_rounded, AppColors.accent),
-        SizedBox(height: AppSpacing.md.h),
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: 4,
-          mainAxisSpacing: AppSpacing.sm.h,
-          crossAxisSpacing: AppSpacing.sm.w,
-          childAspectRatio: 0.85,
-          children: [
-            _MenuCard(
-              icon: Icons.bar_chart_rounded,
-              label: 'التقارير',
-              color: AppColors.accent,
-              onTap: () => context.push('/reports'),
-            ),
-            _MenuCard(
-              icon: Icons.access_time_rounded,
-              label: 'الورديات',
-              color: AppColors.info,
-              onTap: () => context.push('/shifts'),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSectionTitle(String title, IconData icon, Color color) {
+  Widget _buildSectionTitle(String title) {
     return Row(
       children: [
         Container(
-          padding: EdgeInsets.all(6.w),
+          width: 4.w,
+          height: 18.h,
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8.r),
+            color: AppColors.primary,
+            borderRadius: BorderRadius.circular(2.r),
           ),
-          child: Icon(icon, color: color, size: 16.sp),
         ),
-        SizedBox(width: AppSpacing.sm.w),
+        SizedBox(width: 8.w),
         Text(
           title,
-          style: AppTypography.titleSmall.copyWith(
+          style: AppTypography.titleMedium.copyWith(
+            fontWeight: FontWeight.bold,
             color: AppColors.textPrimary,
-            fontWeight: FontWeight.w600,
           ),
         ),
       ],
     );
   }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // SECONDARY MENU SECTION - Removed (all pages now in main menu)
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  Widget _buildSecondaryMenuSection() {
-    return const SizedBox.shrink();
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // FLOATING ACTION BUTTON
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  Widget _buildFAB() {
-    return FloatingActionButton(
-      onPressed: _showQuickAddMenu,
-      backgroundColor: AppColors.secondary,
-      foregroundColor: Colors.white,
-      elevation: 4,
-      child: Icon(Icons.add_rounded, size: AppIconSize.lg),
-    );
-  }
-
-  void _showQuickAddMenu() {
-    HapticFeedback.mediumImpact();
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => const _QuickAddBottomSheet(),
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-    );
-  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// WIDGET COMPONENTS
+// HELPER WIDGETS
 // ═══════════════════════════════════════════════════════════════════════════
 
-class _HeaderIconButton extends StatelessWidget {
-  const _HeaderIconButton({
-    required this.icon,
-    required this.onTap,
-    this.badge = 0,
-  });
-
+class _HeaderActionButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
-  final int badge;
+  final int badgeCount;
+
+  const _HeaderActionButton({
+    required this.icon,
+    required this.onTap,
+    this.badgeCount = 0,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.surfaceMuted,
-      borderRadius: BorderRadius.circular(12.r),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12.r),
-        child: Container(
-          width: 42.w,
-          height: 42.w,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12.r),
-            border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
-          ),
-          child: badge > 0
-              ? Badge(
-                  label: Text(badge.toString()),
-                  backgroundColor: AppColors.error,
-                  child:
-                      Icon(icon, color: AppColors.textSecondary, size: 20.sp),
-                )
-              : Icon(icon, color: AppColors.textSecondary, size: 20.sp),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 42.w,
+        height: 42.w,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Icon(icon, color: AppColors.textPrimary, size: 22.sp),
+            if (badgeCount > 0)
+              Positioned(
+                top: 8.h,
+                right: 8.w,
+                child: Container(
+                  width: 8.w,
+                  height: 8.w,
+                  decoration: const BoxDecoration(
+                    color: AppColors.error,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _QuickActionCard extends StatelessWidget {
-  const _QuickActionCard({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
-
+class _QuickActionItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color color;
   final VoidCallback onTap;
 
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: color.withValues(alpha: 0.1),
-      borderRadius: BorderRadius.circular(16.r),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16.r),
-        child: Container(
-          padding: EdgeInsets.symmetric(vertical: 16.h, horizontal: 8.w),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16.r),
-            border: Border.all(color: color.withValues(alpha: 0.2)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: color, size: 28.sp),
-              SizedBox(height: 8.h),
-              Text(
-                label,
-                style: AppTypography.labelSmall.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _MenuCard extends StatelessWidget {
-  const _MenuCard({
+  const _QuickActionItem({
     required this.icon,
     required this.label,
     required this.color,
     required this.onTap,
   });
 
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.surface,
-      borderRadius: BorderRadius.circular(16.r),
-      elevation: 0,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16.r),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16.r),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 48.w,
-                height: 48.w,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(14.r),
-                ),
-                child: Icon(icon, color: color, size: 24.sp),
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      child: Container(
+        margin: EdgeInsets.only(left: 16.w),
+        child: Column(
+          children: [
+            Container(
+              width: 64.w,
+              height: 64.w,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20.r),
+                border: Border.all(color: color.withOpacity(0.2)),
               ),
-              SizedBox(height: 10.h),
-              Text(
-                label,
-                style: AppTypography.labelMedium.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w500,
-                ),
-                textAlign: TextAlign.center,
+              child: Icon(icon, color: color, size: 28.sp),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              label,
+              style: AppTypography.labelMedium.copyWith(
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w600,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class _SecondaryMenuItem extends StatelessWidget {
-  const _SecondaryMenuItem({
-    required this.icon,
-    required this.label,
-    required this.subtitle,
-    required this.color,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
+class _ModernMenuCard extends StatelessWidget {
+  final String title;
   final String subtitle;
+  final IconData icon;
   final Color color;
   final VoidCallback onTap;
 
+  const _ModernMenuCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.surface,
-      borderRadius: BorderRadius.circular(14.r),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14.r),
-        child: Container(
-          padding: EdgeInsets.all(14.w),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14.r),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 44.w,
-                height: 44.w,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                child: Icon(icon, color: color, size: 22.sp),
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      child: Container(
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: EdgeInsets.all(10.w),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12.r),
               ),
-              SizedBox(width: 14.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      style: AppTypography.labelLarge.copyWith(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(height: 2.h),
-                    Text(
-                      subtitle,
-                      style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.textTertiary,
-                      ),
-                    ),
-                  ],
-                ),
+              child: Icon(icon, color: color, size: 24.sp),
+            ),
+            const Spacer(),
+            Text(
+              title,
+              style: AppTypography.titleSmall.copyWith(
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
               ),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                color: AppColors.textTertiary,
-                size: 16.sp,
+            ),
+            SizedBox(height: 4.h),
+            Text(
+              subtitle,
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+                fontSize: 11.sp,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// QUICK ADD BOTTOM SHEET
-// ═══════════════════════════════════════════════════════════════════════════
+class _SmallMenuCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
 
-class _QuickAddBottomSheet extends StatelessWidget {
-  const _QuickAddBottomSheet();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.all(AppSpacing.screenPadding.w),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Handle
-              Container(
-                width: 40.w,
-                height: 4.h,
-                decoration: BoxDecoration(
-                  color: AppColors.border,
-                  borderRadius: BorderRadius.circular(2.r),
-                ),
-              ),
-              SizedBox(height: 20.h),
-
-              // Title
-              Text(
-                'إنشاء جديد',
-                style: AppTypography.titleMedium.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              SizedBox(height: 24.h),
-
-              // Options
-              GridView.count(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 3,
-                mainAxisSpacing: 12.h,
-                crossAxisSpacing: 12.w,
-                childAspectRatio: 1.0,
-                children: [
-                  _QuickAddItem(
-                    icon: Icons.receipt_long_outlined,
-                    label: 'فاتورة بيع',
-                    color: AppColors.sales,
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push('/sales/add');
-                    },
-                  ),
-                  _QuickAddItem(
-                    icon: Icons.shopping_cart_outlined,
-                    label: 'فاتورة شراء',
-                    color: AppColors.purchases,
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push('/purchases/add');
-                    },
-                  ),
-                  _QuickAddItem(
-                    icon: Icons.payments_outlined,
-                    label: 'سند قبض',
-                    color: AppColors.income,
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push('/vouchers/receipt/add');
-                    },
-                  ),
-                  _QuickAddItem(
-                    icon: Icons.money_off_outlined,
-                    label: 'سند صرف',
-                    color: AppColors.expense,
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push('/vouchers/payment/add');
-                    },
-                  ),
-                  _QuickAddItem(
-                    icon: Icons.inventory_2_outlined,
-                    label: 'منتج جديد',
-                    color: AppColors.inventory,
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push('/products/add');
-                    },
-                  ),
-                  _QuickAddItem(
-                    icon: Icons.person_add_outlined,
-                    label: 'عميل جديد',
-                    color: AppColors.customers,
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push('/customers/add');
-                    },
-                  ),
-                ],
-              ),
-              SizedBox(height: 16.h),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _QuickAddItem extends StatelessWidget {
-  const _QuickAddItem({
+  const _SmallMenuCard({
     required this.icon,
     required this.label,
     required this.color,
     required this.onTap,
   });
 
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: color.withValues(alpha: 0.08),
-      borderRadius: BorderRadius.circular(16.r),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16.r),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16.r),
-            border: Border.all(color: color.withValues(alpha: 0.15)),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: color, size: 28.sp),
-              SizedBox(height: 8.h),
-              Text(
-                label,
-                style: AppTypography.labelSmall.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w500,
-                ),
-                textAlign: TextAlign.center,
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: color, size: 24.sp),
+            SizedBox(height: 8.h),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: AppTypography.labelSmall.copyWith(
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w600,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
