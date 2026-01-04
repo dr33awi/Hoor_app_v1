@@ -216,6 +216,14 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
             ExportType.shareExcel,
           },
         ),
+        IconButton(
+          onPressed: _selectDateRange,
+          icon: Badge(
+            isLabelVisible: _dateRange != null,
+            child: const Icon(Icons.date_range_rounded),
+          ),
+          tooltip: 'تصفية حسب التاريخ',
+        ),
       ],
     );
   }
@@ -265,39 +273,27 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
   }
 
   Widget _buildFiltersRow() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
+    if (_dateRange == null) return const SizedBox.shrink();
+
+    return Padding(
       padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: Row(
         children: [
-          // فلتر التاريخ
-          ActionChip(
-            avatar: Icon(
-              _dateRange != null ? Icons.clear : Icons.date_range_rounded,
-              size: 18,
-              color: _dateRange != null ? AppColors.error : AppColors.primary,
-            ),
+          Chip(
             label: Text(
-              _dateRange != null
-                  ? '${DateFormat('dd/MM').format(_dateRange!.start)} - ${DateFormat('dd/MM').format(_dateRange!.end)}'
-                  : 'التاريخ',
+              '${DateFormat('dd/MM').format(_dateRange!.start)} - ${DateFormat('dd/MM').format(_dateRange!.end)}',
               style: AppTypography.bodySmall.copyWith(
-                color: _dateRange != null
-                    ? AppColors.primary
-                    : AppColors.textSecondary,
+                color: AppColors.primary,
               ),
             ),
-            backgroundColor: _dateRange != null
-                ? AppColors.primary.withValues(alpha: 0.1)
-                : AppColors.surface,
-            side: BorderSide(
-              color: _dateRange != null ? AppColors.primary : AppColors.border,
+            deleteIcon: Icon(Icons.close, size: 18, color: AppColors.primary),
+            onDeleted: () => setState(() => _dateRange = null),
+            backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+            side: BorderSide(color: AppColors.primary),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.full),
             ),
-            onPressed: _dateRange != null
-                ? () => setState(() => _dateRange = null)
-                : _selectDateRange,
           ),
-          SizedBox(width: AppSpacing.sm),
         ],
       ),
     );

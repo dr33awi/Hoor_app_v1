@@ -13,6 +13,7 @@ import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/widgets/widgets.dart';
 import '../../core/services/printing/voucher_pdf_generator.dart';
+import '../../core/services/printing/invoice_pdf_generator.dart';
 import '../../core/services/printing/print_settings_service.dart';
 import '../../core/services/printing/print_menu_button.dart';
 import '../../core/di/injection.dart';
@@ -174,7 +175,6 @@ class _VoucherDetailsScreenProState
                 ),
               ),
             ),
-            _buildBottomActions(),
           ],
         ),
       ),
@@ -187,10 +187,31 @@ class _VoucherDetailsScreenProState
       subtitle: '#${_voucher!.voucherNumber}',
       onBack: () => context.pop(),
       actions: [
-        IconButton(
-          onPressed: _showMoreOptions,
-          icon: const Icon(Icons.more_vert_rounded),
+        // زر الطباعة الموحد
+        PrintMenuButton(
+          onPrint: _handlePrint,
+          showSizeSelector: true,
+          enabledOptions: const {
+            PrintType.print,
+            PrintType.share,
+            PrintType.save,
+            PrintType.preview,
+          },
+          tooltip: 'خيارات الطباعة',
           color: AppColors.textSecondary,
+        ),
+        IconButton(
+          onPressed: () => context.push(
+            '/vouchers/${_voucher!.type}/edit/${_voucher!.id}',
+          ),
+          icon: const Icon(Icons.edit_rounded),
+          color: AppColors.textSecondary,
+          tooltip: 'تعديل',
+        ),
+        IconButton(
+          onPressed: _deleteVoucher,
+          icon: Icon(Icons.delete_outline_rounded, color: AppColors.error),
+          tooltip: 'حذف',
         ),
       ],
     );
@@ -501,105 +522,6 @@ class _VoucherDetailsScreenProState
     );
   }
 
-  Widget _buildBottomActions() {
-    return Container(
-      padding: EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border(top: BorderSide(color: AppColors.border)),
-        boxShadow: AppShadows.sm,
-      ),
-      child: SafeArea(
-        child: Row(
-          children: [
-            // زر الطباعة الموحد
-            PrintMenuButton(
-              onPrint: _handlePrint,
-              enabledOptions: const {
-                PrintType.print,
-                PrintType.share,
-                PrintType.save,
-              },
-              tooltip: 'خيارات الطباعة',
-            ),
-            SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: FilledButton.icon(
-                onPressed: () => context.push(
-                  '/vouchers/${_voucher!.type}/edit/${_voucher!.id}',
-                ),
-                icon: const Icon(Icons.edit_rounded),
-                label: const Text('تعديل'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: _typeColor,
-                  padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
-                ),
-              ),
-            ),
-            SizedBox(width: AppSpacing.md),
-            IconButton(
-              onPressed: _deleteVoucher,
-              icon: Icon(Icons.delete_outline_rounded, color: AppColors.error),
-              tooltip: 'حذف',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showMoreOptions() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: EdgeInsets.all(AppSpacing.lg),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius:
-              BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 40.w,
-              height: 4.h,
-              decoration: BoxDecoration(
-                color: AppColors.border,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            SizedBox(height: AppSpacing.lg),
-            ListTile(
-              leading: Icon(Icons.edit_rounded, color: AppColors.secondary),
-              title: const Text('تعديل السند'),
-              onTap: () {
-                Navigator.pop(context);
-                context.push(
-                  '/vouchers/${_voucher!.type}/edit/${_voucher!.id}',
-                );
-              },
-            ),
-            const Divider(),
-            ListTile(
-              leading: Icon(Icons.delete_rounded, color: AppColors.error),
-              title: Text(
-                'حذف السند',
-                style: TextStyle(color: AppColors.error),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                _deleteVoucher();
-              },
-            ),
-            SizedBox(height: AppSpacing.lg),
-          ],
-        ),
-      ),
-    );
-  }
-
   VoucherPrintData _buildVoucherPrintData() {
     return VoucherPrintData(
       voucherNumber: _voucher!.voucherNumber,
@@ -613,10 +535,27 @@ class _VoucherDetailsScreenProState
     );
   }
 
-  Future<void> _handlePrint(PrintType type) async {
+  VoucherPrintSize _mapPrintSize(InvoicePrintSize size) {
+    switch (size) {
+      case InvoicePrintSize.a4:
+        return VoucherPrintSize.a4;
+      case InvoicePrintSize.thermal80mm:
+        return VoucherPrintSize.thermal80mm;
+      case InvoicePrintSize.thermal58mm:
+        return VoucherPrintSize.thermal58mm;
+    }
+  }
+
+  Future<void> _handlePrint(PrintType type, [InvoicePrintSize? size]) async {
     try {
       final printSettingsService = getIt<PrintSettingsService>();
-      final options = await printSettingsService.getVoucherPrintOptions();
+      final baseOptions = await printSettingsService.getVoucherPrintOptions();
+
+      // تحديث المقاس إذا تم اختياره
+      final options = size != null
+          ? baseOptions.copyWith(size: _mapPrintSize(size))
+          : baseOptions;
+
       final voucherData = _buildVoucherPrintData();
 
       switch (type) {

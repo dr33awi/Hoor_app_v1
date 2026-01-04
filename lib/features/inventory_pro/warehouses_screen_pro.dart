@@ -12,6 +12,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:collection/collection.dart'; // ✅ إضافة للـ firstWhereOrNull
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
@@ -20,6 +21,77 @@ import '../../core/services/export/export_button.dart';
 import '../../core/services/export/excel_export_service.dart';
 import '../../core/services/export/pdf_export_service.dart';
 import '../../data/database/app_database.dart';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ✅ Provider لجلب مخزون كل مستودع
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Provider لجلب مخزون مستودع معين
+/// يجب تنفيذه في WarehouseRepository
+final warehouseStockProvider =
+    StreamProvider.family<List<WarehouseStockData>, String>((ref, warehouseId) {
+  final warehouseRepo = ref.watch(warehouseRepositoryProvider);
+  return warehouseRepo.watchWarehouseStock(warehouseId);
+});
+
+/// Provider لجلب ملخص مخزون جميع المستودعات
+final warehouseStockSummaryProvider =
+    FutureProvider.family<WarehouseStockSummary, String>(
+        (ref, warehouseId) async {
+  final warehouseRepo = ref.read(warehouseRepositoryProvider);
+  final summaryList = await warehouseRepo.getWarehouseStockSummary();
+
+  // البحث عن ملخص المستودع المطلوب
+  final warehouseSummary = summaryList.firstWhereOrNull(
+    (summary) => summary['warehouse_id'] == warehouseId,
+  );
+
+  if (warehouseSummary != null) {
+    return WarehouseStockSummary(
+      productCount: (warehouseSummary['product_count'] as num?)?.toInt() ?? 0,
+      totalQuantity: (warehouseSummary['total_quantity'] as num?)?.toInt() ?? 0,
+      totalValue: (warehouseSummary['total_value'] as num?)?.toDouble() ?? 0.0,
+    );
+  }
+
+  return WarehouseStockSummary.empty();
+});
+
+/// كلاس لملخص مخزون المستودع
+class WarehouseStockSummary {
+  final int productCount;
+  final int totalQuantity;
+  final double totalValue;
+
+  const WarehouseStockSummary({
+    required this.productCount,
+    required this.totalQuantity,
+    required this.totalValue,
+  });
+
+  factory WarehouseStockSummary.empty() => const WarehouseStockSummary(
+        productCount: 0,
+        totalQuantity: 0,
+        totalValue: 0,
+      );
+}
+
+/// كلاس لبيانات مخزون المستودع (يجب أن يكون موجوداً في app_database.dart)
+class WarehouseStock {
+  final String id;
+  final String warehouseId;
+  final String productId;
+  final int quantity;
+  final DateTime updatedAt;
+
+  const WarehouseStock({
+    required this.id,
+    required this.warehouseId,
+    required this.productId,
+    required this.quantity,
+    required this.updatedAt,
+  });
+}
 
 class WarehousesScreenPro extends ConsumerStatefulWidget {
   const WarehousesScreenPro({super.key});
@@ -70,15 +142,9 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
                   if (filtered.isEmpty) {
                     return ProEmptyState.list(
                       itemName: 'مستودع',
-                      onAdd: () => _showWarehouseDialog(),
                     );
                   }
-                  final products = productsAsync.when(
-                    data: (p) => p,
-                    loading: () => <Product>[],
-                    error: (_, __) => <Product>[],
-                  );
-                  return _buildWarehousesList(filtered, products);
+                  return _buildWarehousesList(filtered);
                 },
               ),
             ),
@@ -100,22 +166,35 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
   Widget _buildTotalStockSummary(List<Product> products) {
     final totalItems = products.fold<int>(0, (sum, p) => sum + p.quantity);
     final totalValue = products.fold<double>(
-      0, 
+      0,
       (sum, p) => sum + (p.quantity * p.purchasePrice),
     );
-    final lowStock = products.where((p) => p.quantity <= p.minQuantity && p.quantity > 0).length;
+    final lowStock = products
+        .where((p) => p.quantity <= p.minQuantity && p.quantity > 0)
+        .length;
     final outOfStock = products.where((p) => p.quantity <= 0).length;
 
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+      margin: EdgeInsets.symmetric(
+          horizontal: AppSpacing.md, vertical: AppSpacing.sm),
       padding: EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.secondary, AppColors.secondary.overlayHeavy],
+          colors: [
+            AppColors.secondary,
+            AppColors.secondary.withOpacity(0.8),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(AppRadius.lg),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.secondary.withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -167,9 +246,9 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
     return Column(
       children: [
         Icon(
-          icon, 
-          size: 20.sp, 
-          color: isWarning ? Colors.amber : Colors.white.o70,
+          icon,
+          size: 20.sp,
+          color: isWarning ? Colors.amber : Colors.white.withOpacity(0.7),
         ),
         SizedBox(height: 4.h),
         Text(
@@ -182,7 +261,7 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
         Text(
           label,
           style: AppTypography.labelSmall.copyWith(
-            color: Colors.white.o70,
+            color: Colors.white.withOpacity(0.7),
           ),
         ),
       ],
@@ -194,7 +273,7 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
       width: 1,
       height: 40.h,
       margin: EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-      color: Colors.white.light,
+      color: Colors.white.withOpacity(0.3),
     );
   }
 
@@ -239,7 +318,7 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
       loading: () => <Product>[],
       error: (_, __) => <Product>[],
     );
-    
+
     if (products.isEmpty) {
       ProSnackbar.warning(context, 'لا توجد منتجات للتصدير');
       return;
@@ -251,24 +330,29 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
       switch (type) {
         case ExportType.excel:
           await ExcelExportService.exportProducts(products: products);
-          if (mounted) ProSnackbar.success(context, 'تم تصدير المخزون إلى Excel');
+          if (mounted)
+            ProSnackbar.success(context, 'تم تصدير المخزون إلى Excel');
           break;
         case ExportType.pdf:
-          final bytes = await PdfExportService.generateProductsList(products: products);
+          final bytes =
+              await PdfExportService.generateProductsList(products: products);
           await _savePdfLocally(bytes, 'inventory_report');
           if (mounted) ProSnackbar.success(context, 'تم تصدير المخزون إلى PDF');
           break;
         case ExportType.sharePdf:
-          final bytes = await PdfExportService.generateProductsList(products: products);
+          final bytes =
+              await PdfExportService.generateProductsList(products: products);
           await PdfExportService.sharePdfBytes(
-            bytes, 
+            bytes,
             fileName: 'inventory_report',
             subject: 'تقرير المخزون',
           );
           break;
         case ExportType.shareExcel:
-          final filePath = await ExcelExportService.exportProducts(products: products);
-          await ExcelExportService.shareFile(filePath, subject: 'تقرير المخزون');
+          final filePath =
+              await ExcelExportService.exportProducts(products: products);
+          await ExcelExportService.shareFile(filePath,
+              subject: 'تقرير المخزون');
           break;
       }
     } catch (e) {
@@ -288,25 +372,15 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
     );
   }
 
-  Widget _buildWarehousesList(List<Warehouse> warehouses, List<Product> products) {
-    // نعرض فقط إجمالي المنتجات لأن المنتجات ليست مرتبطة مباشرة بالمستودعات
-    // المخزون يتم تخزينه في جدول منفصل warehouse_stock
-    final totalProducts = products.length;
-    final totalQuantity = products.fold<int>(0, (sum, p) => sum + p.quantity);
-    
+  // ✅ بناء قائمة المستودعات مع جلب مخزون كل مستودع بشكل منفصل
+  Widget _buildWarehousesList(List<Warehouse> warehouses) {
     return ListView.builder(
       padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
       itemCount: warehouses.length,
       itemBuilder: (context, index) {
         final warehouse = warehouses[index];
-        // نقسم المنتجات بالتساوي مؤقتاً حتى يتم ربطها بالمستودعات
-        final productCount = warehouses.length > 0 ? (totalProducts / warehouses.length).round() : 0;
-        final quantity = warehouses.length > 0 ? (totalQuantity / warehouses.length).round() : 0;
-        
-        return _WarehouseCard(
+        return _WarehouseCardWithStock(
           warehouse: warehouse,
-          productCount: productCount,
-          totalQuantity: quantity,
           onTap: () => _showWarehouseDialog(warehouse: warehouse),
           onDelete: () => _deleteWarehouse(warehouse),
           onSetDefault: () => _setAsDefault(warehouse),
@@ -318,7 +392,7 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
 
   Future<void> _savePdfLocally(Uint8List bytes, String fileName) async {
     if (kIsWeb) return;
-    
+
     final dir = await getApplicationDocumentsDirectory();
     final file = File('${dir.path}/$fileName.pdf');
     await file.writeAsBytes(bytes);
@@ -331,7 +405,7 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
       loading: () => <Product>[],
       error: (_, __) => <Product>[],
     );
-    
+
     showProBottomSheet(
       context: context,
       title: 'مخزون ${warehouse.name}',
@@ -342,11 +416,13 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.inventory_2_outlined, size: 64.sp, color: AppColors.textTertiary),
+                    Icon(Icons.inventory_2_outlined,
+                        size: 64.sp, color: AppColors.textTertiary),
                     SizedBox(height: AppSpacing.md),
                     Text(
                       'لا توجد منتجات',
-                      style: AppTypography.bodyLarge.copyWith(color: AppColors.textSecondary),
+                      style: AppTypography.bodyLarge
+                          .copyWith(color: AppColors.textSecondary),
                     ),
                   ],
                 ),
@@ -356,20 +432,29 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
                 itemBuilder: (context, index) {
                   final product = products[index];
                   final isLowStock = product.quantity <= product.minQuantity;
-                  
+                  final isOutOfStock = product.quantity <= 0;
+
                   return ListTile(
                     leading: Container(
                       width: 40.w,
                       height: 40.w,
                       decoration: BoxDecoration(
-                        color: isLowStock ? AppColors.error.soft : AppColors.secondary.soft,
+                        color: isOutOfStock
+                            ? AppColors.error.withOpacity(0.1)
+                            : isLowStock
+                                ? AppColors.warning.withOpacity(0.1)
+                                : AppColors.secondary.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(AppRadius.sm),
                       ),
                       child: Center(
                         child: Text(
                           '${product.quantity}',
                           style: AppTypography.titleSmall.copyWith(
-                            color: isLowStock ? AppColors.error : AppColors.secondary,
+                            color: isOutOfStock
+                                ? AppColors.error
+                                : isLowStock
+                                    ? AppColors.warning
+                                    : AppColors.secondary,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -378,11 +463,31 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
                     title: Text(product.name),
                     subtitle: Text(
                       'الحد الأدنى: ${product.minQuantity}',
-                      style: AppTypography.bodySmall.copyWith(color: AppColors.textTertiary),
+                      style: AppTypography.bodySmall
+                          .copyWith(color: AppColors.textTertiary),
                     ),
-                    trailing: isLowStock
-                        ? Icon(Icons.warning_rounded, color: AppColors.error, size: 20.sp)
-                        : null,
+                    trailing: isOutOfStock
+                        ? Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: AppSpacing.sm,
+                              vertical: AppSpacing.xs,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.error.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(AppRadius.sm),
+                            ),
+                            child: Text(
+                              'نفذ',
+                              style: AppTypography.labelSmall.copyWith(
+                                color: AppColors.error,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          )
+                        : isLowStock
+                            ? Icon(Icons.warning_rounded,
+                                color: AppColors.warning, size: 20.sp)
+                            : null,
                   );
                 },
               ),
@@ -463,7 +568,7 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
                   ),
                 ),
                 value: isDefault,
-                activeThumbColor: AppColors.secondary,
+                activeColor: AppColors.secondary,
                 onChanged: (value) => setSheetState(() => isDefault = value),
               ),
             ),
@@ -547,7 +652,7 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
     required String notes,
     required bool isDefault,
   }) async {
-    if (name.isEmpty) {
+    if (name.trim().isEmpty) {
       ProSnackbar.warning(context, 'أدخل اسم المستودع');
       return;
     }
@@ -558,20 +663,20 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
       if (isEditing && warehouse != null) {
         await warehouseRepo.updateWarehouse(
           id: warehouse.id,
-          name: name,
-          code: code.isEmpty ? null : code,
-          address: address.isEmpty ? null : address,
-          phone: phone.isEmpty ? null : phone,
-          notes: notes.isEmpty ? null : notes,
+          name: name.trim(),
+          code: code.trim().isEmpty ? null : code.trim(),
+          address: address.trim().isEmpty ? null : address.trim(),
+          phone: phone.trim().isEmpty ? null : phone.trim(),
+          notes: notes.trim().isEmpty ? null : notes.trim(),
           isDefault: isDefault,
         );
       } else {
         await warehouseRepo.createWarehouse(
-          name: name,
-          code: code.isEmpty ? null : code,
-          address: address.isEmpty ? null : address,
-          phone: phone.isEmpty ? null : phone,
-          notes: notes.isEmpty ? null : notes,
+          name: name.trim(),
+          code: code.trim().isEmpty ? null : code.trim(),
+          address: address.trim().isEmpty ? null : address.trim(),
+          phone: phone.trim().isEmpty ? null : phone.trim(),
+          notes: notes.trim().isEmpty ? null : notes.trim(),
           isDefault: isDefault,
         );
       }
@@ -591,6 +696,15 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
   }
 
   Future<void> _deleteWarehouse(Warehouse warehouse) async {
+    // ✅ التحقق من أن المستودع ليس افتراضياً
+    if (warehouse.isDefault) {
+      ProSnackbar.warning(
+        context,
+        'لا يمكن حذف المستودع الافتراضي. عيّن مستودعاً آخر كافتراضي أولاً.',
+      );
+      return;
+    }
+
     final confirm = await showProDeleteDialog(
       context: context,
       itemName: 'المستودع "${warehouse.name}"',
@@ -612,6 +726,11 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
   }
 
   Future<void> _setAsDefault(Warehouse warehouse) async {
+    if (warehouse.isDefault) {
+      ProSnackbar.info(context, 'هذا المستودع هو الافتراضي بالفعل');
+      return;
+    }
+
     try {
       final warehouseRepo = ref.read(warehouseRepositoryProvider);
       await warehouseRepo.updateWarehouse(
@@ -631,22 +750,18 @@ class _WarehousesScreenProState extends ConsumerState<WarehousesScreenPro> {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Warehouse Card Widget
+// ✅ Warehouse Card With Stock - يجلب مخزون المستودع بشكل منفصل
 // ═══════════════════════════════════════════════════════════════════════════
 
-class _WarehouseCard extends StatelessWidget {
+class _WarehouseCardWithStock extends ConsumerWidget {
   final Warehouse warehouse;
-  final int productCount;
-  final int totalQuantity;
   final VoidCallback onTap;
   final VoidCallback onDelete;
   final VoidCallback onSetDefault;
   final VoidCallback onViewStock;
 
-  const _WarehouseCard({
+  const _WarehouseCardWithStock({
     required this.warehouse,
-    required this.productCount,
-    required this.totalQuantity,
     required this.onTap,
     required this.onDelete,
     required this.onSetDefault,
@@ -654,11 +769,43 @@ class _WarehouseCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // ✅ جلب ملخص مخزون المستودع
+    final stockSummaryAsync =
+        ref.watch(warehouseStockSummaryProvider(warehouse.id));
+
+    return stockSummaryAsync.when(
+      loading: () => _buildCard(
+        context,
+        productCount: null,
+        totalQuantity: null,
+        isLoading: true,
+      ),
+      error: (_, __) => _buildCard(
+        context,
+        productCount: 0,
+        totalQuantity: 0,
+        isLoading: false,
+      ),
+      data: (summary) => _buildCard(
+        context,
+        productCount: summary.productCount,
+        totalQuantity: summary.totalQuantity,
+        isLoading: false,
+      ),
+    );
+  }
+
+  Widget _buildCard(
+    BuildContext context, {
+    required int? productCount,
+    required int? totalQuantity,
+    required bool isLoading,
+  }) {
     return ProCard(
       margin: EdgeInsets.only(bottom: AppSpacing.md.h),
       borderColor:
-          warehouse.isDefault ? AppColors.secondary.borderStrong : null,
+          warehouse.isDefault ? AppColors.secondary.withOpacity(0.5) : null,
       onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -669,7 +816,7 @@ class _WarehouseCard extends StatelessWidget {
               Container(
                 padding: EdgeInsets.all(AppSpacing.sm),
                 decoration: BoxDecoration(
-                  color: AppColors.secondary.soft,
+                  color: AppColors.secondary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
                 child: Icon(
@@ -702,7 +849,7 @@ class _WarehouseCard extends StatelessWidget {
                               vertical: 2.h,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.secondary.soft,
+                              color: AppColors.secondary.withOpacity(0.1),
                               borderRadius:
                                   BorderRadius.circular(AppRadius.full),
                             ),
@@ -730,11 +877,10 @@ class _WarehouseCard extends StatelessWidget {
                     if (warehouse.code != null)
                       Text(
                         warehouse.code!,
-                        style: AppTypography.bodySmall
-                            .copyWith(
-                              color: AppColors.textTertiary,
-                            )
-                            .mono,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: AppColors.textTertiary,
+                          fontFamily: 'monospace',
+                        ),
                       ),
                   ],
                 ),
@@ -748,14 +894,19 @@ class _WarehouseCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
                 onSelected: (value) {
-                  if (value == 'edit') {
-                    onTap();
-                  } else if (value == 'delete') {
-                    onDelete();
-                  } else if (value == 'default') {
-                    onSetDefault();
-                  } else if (value == 'stock') {
-                    onViewStock();
+                  switch (value) {
+                    case 'edit':
+                      onTap();
+                      break;
+                    case 'delete':
+                      onDelete();
+                      break;
+                    case 'default':
+                      onSetDefault();
+                      break;
+                    case 'stock':
+                      onViewStock();
+                      break;
                   }
                 },
                 itemBuilder: (context) => [
@@ -793,17 +944,18 @@ class _WarehouseCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete_rounded,
-                            color: AppColors.error, size: 20),
-                        SizedBox(width: AppSpacing.sm),
-                        Text('حذف', style: TextStyle(color: AppColors.error)),
-                      ],
+                  if (!warehouse.isDefault)
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete_rounded,
+                              color: AppColors.error, size: 20),
+                          SizedBox(width: AppSpacing.sm),
+                          Text('حذف', style: TextStyle(color: AppColors.error)),
+                        ],
+                      ),
                     ),
-                  ),
                 ],
               ),
             ],
@@ -812,16 +964,37 @@ class _WarehouseCard extends StatelessWidget {
           // Stock Statistics
           SizedBox(height: AppSpacing.sm),
           Container(
-            padding: EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+            padding: EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
             decoration: BoxDecoration(
               color: AppColors.surfaceMuted,
               borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
             child: Row(
               children: [
-                _buildStockStat(Icons.category_rounded, '$productCount منتج'),
-                SizedBox(width: AppSpacing.md),
-                _buildStockStat(Icons.inventory_rounded, '$totalQuantity قطعة'),
+                if (isLoading) ...[
+                  SizedBox(
+                    width: 12.sp,
+                    height: 12.sp,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.secondary,
+                    ),
+                  ),
+                  SizedBox(width: AppSpacing.sm),
+                  Text(
+                    'جاري التحميل...',
+                    style: AppTypography.labelSmall.copyWith(
+                      color: AppColors.textTertiary,
+                    ),
+                  ),
+                ] else ...[
+                  _buildStockStat(
+                      Icons.category_rounded, '${productCount ?? 0} منتج'),
+                  SizedBox(width: AppSpacing.md),
+                  _buildStockStat(
+                      Icons.inventory_rounded, '${totalQuantity ?? 0} قطعة'),
+                ],
                 const Spacer(),
                 GestureDetector(
                   onTap: onViewStock,
@@ -833,7 +1006,8 @@ class _WarehouseCard extends StatelessWidget {
                           color: AppColors.secondary,
                         ),
                       ),
-                      Icon(Icons.chevron_left_rounded, size: 16.sp, color: AppColors.secondary),
+                      Icon(Icons.chevron_left_rounded,
+                          size: 16.sp, color: AppColors.secondary),
                     ],
                   ),
                 ),
@@ -886,10 +1060,13 @@ class _WarehouseCard extends StatelessWidget {
       children: [
         Icon(icon, size: 14.sp, color: AppColors.textTertiary),
         SizedBox(width: 4.w),
-        Text(
-          text,
-          style: AppTypography.bodySmall.copyWith(
-            color: AppColors.textTertiary,
+        Flexible(
+          child: Text(
+            text,
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textTertiary,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ],

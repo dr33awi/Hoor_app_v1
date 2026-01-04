@@ -73,15 +73,19 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
 
     // فلتر العميل/المورد
     if (_filterCustomerId != null) {
-      filtered = filtered.where((i) => i.customerId == _filterCustomerId).toList();
+      filtered =
+          filtered.where((i) => i.customerId == _filterCustomerId).toList();
     }
     if (_filterSupplierId != null) {
-      filtered = filtered.where((i) => i.supplierId == _filterSupplierId).toList();
+      filtered =
+          filtered.where((i) => i.supplierId == _filterSupplierId).toList();
     }
 
     // فلتر طريقة الدفع
     if (_filterPaymentMethod != null) {
-      filtered = filtered.where((i) => i.paymentMethod == _filterPaymentMethod).toList();
+      filtered = filtered
+          .where((i) => i.paymentMethod == _filterPaymentMethod)
+          .toList();
     }
 
     return filtered;
@@ -153,8 +157,6 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
                   if (filtered.isEmpty) {
                     return ProEmptyState.list(
                       itemName: 'فاتورة',
-                      onAdd: () => context
-                          .push(isSales ? '/sales/add' : '/purchases/add'),
                     );
                   }
 
@@ -169,8 +171,9 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
                           SizedBox(height: AppSpacing.md.h),
                       itemBuilder: (context, index) {
                         final invoice = filtered[index];
-                        final isSelected = _selectedInvoices.contains(invoice.id);
-                        
+                        final isSelected =
+                            _selectedInvoices.contains(invoice.id);
+
                         // استخدام PartyNameResolver لجلب اسم العميل/المورد
                         return FutureBuilder<String>(
                           future: _getPartyName(invoice),
@@ -191,9 +194,10 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
                                       invoice,
                                       partyName: snapshot.data,
                                     ),
-                                    onTap: _isSelectionMode 
+                                    onTap: _isSelectionMode
                                         ? () => _toggleSelection(invoice.id)
-                                        : () => context.push('/invoices/${invoice.id}'),
+                                        : () => context
+                                            .push('/invoices/${invoice.id}'),
                                     isSales: invoice.type == 'sale',
                                   ),
                                   if (_isSelectionMode)
@@ -204,19 +208,22 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
                                         width: 24.w,
                                         height: 24.w,
                                         decoration: BoxDecoration(
-                                          color: isSelected 
-                                              ? AppColors.primary 
+                                          color: isSelected
+                                              ? AppColors.primary
                                               : AppColors.surface,
                                           border: Border.all(
-                                            color: isSelected 
-                                                ? AppColors.primary 
+                                            color: isSelected
+                                                ? AppColors.primary
                                                 : AppColors.border,
                                             width: 2,
                                           ),
-                                          borderRadius: BorderRadius.circular(6),
+                                          borderRadius:
+                                              BorderRadius.circular(6),
                                         ),
-                                        child: isSelected 
-                                            ? Icon(Icons.check, size: 16.sp, color: Colors.white)
+                                        child: isSelected
+                                            ? Icon(Icons.check,
+                                                size: 16.sp,
+                                                color: Colors.white)
                                             : null,
                                       ),
                                     ),
@@ -234,38 +241,41 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
           ],
         ),
       ),
-      floatingActionButton: _isSelectionMode ? null : FloatingActionButton.extended(
-        onPressed: () =>
-            context.push(isSales ? '/sales/add' : '/purchases/add'),
-        backgroundColor: isSales ? AppColors.income : AppColors.purchases,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: Text(
-          isSales ? 'فاتورة بيع' : 'فاتورة شراء',
-          style: AppTypography.labelLarge.copyWith(color: Colors.white),
-        ),
-      ),
+      floatingActionButton: _isSelectionMode
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () =>
+                  context.push(isSales ? '/sales/add' : '/purchases/add'),
+              backgroundColor: isSales ? AppColors.income : AppColors.purchases,
+              icon: const Icon(Icons.add, color: Colors.white),
+              label: Text(
+                isSales ? 'فاتورة بيع' : 'فاتورة شراء',
+                style: AppTypography.labelLarge.copyWith(color: Colors.white),
+              ),
+            ),
     );
   }
 
   Widget _buildHeader() {
     final invoicesAsync = ref.watch(invoicesStreamProvider);
-    
+
     return ProHeader(
-      title: _isSelectionMode 
+      title: _isSelectionMode
           ? '${_selectedInvoices.length} محدد'
           : (isSales ? 'فواتير المبيعات' : 'فواتير المشتريات'),
       subtitle: _isSelectionMode ? 'اضغط للتحديد' : 'إدارة الفواتير والمدفوعات',
-      onBack: _isSelectionMode 
+      onBack: _isSelectionMode
           ? () => setState(() {
-              _isSelectionMode = false;
-              _selectedInvoices.clear();
-            })
+                _isSelectionMode = false;
+                _selectedInvoices.clear();
+              })
           : () => context.go('/'),
       actions: [
         if (_isSelectionMode) ...[
           // حذف المحدد
           IconButton(
-            onPressed: _selectedInvoices.isEmpty ? null : _deleteSelectedInvoices,
+            onPressed:
+                _selectedInvoices.isEmpty ? null : _deleteSelectedInvoices,
             icon: Icon(Icons.delete_outline_rounded, color: AppColors.error),
             tooltip: 'حذف المحدد',
           ),
@@ -284,7 +294,8 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
             loading: () => const SizedBox.shrink(),
             error: (_, __) => const SizedBox.shrink(),
             data: (invoices) => ExportMenuButton(
-              onExport: (type) => _handleExport(type, _filterInvoicesLocal(invoices)),
+              onExport: (type) =>
+                  _handleExport(type, _filterInvoicesLocal(invoices)),
               isLoading: _isExporting,
               enabledOptions: const {
                 ExportType.excel,
@@ -501,13 +512,14 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
                 ),
               ),
               SizedBox(height: AppSpacing.lg.h),
-              
+
               Text('تصفية النتائج', style: AppTypography.titleLarge),
               SizedBox(height: AppSpacing.lg.h),
 
               // Date Range Picker
               ListTile(
-                leading: Icon(Icons.date_range, color: _dateRange != null ? AppColors.primary : null),
+                leading: Icon(Icons.date_range,
+                    color: _dateRange != null ? AppColors.primary : null),
                 title: const Text('فترة زمنية'),
                 subtitle: _dateRange != null
                     ? Text(
@@ -515,7 +527,7 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
                         style: TextStyle(color: AppColors.primary),
                       )
                     : const Text('اختر فترة'),
-                trailing: _dateRange != null 
+                trailing: _dateRange != null
                     ? IconButton(
                         icon: const Icon(Icons.clear),
                         onPressed: () => setState(() => _dateRange = null),
@@ -538,18 +550,26 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
 
               // فلتر طريقة الدفع
               ListTile(
-                leading: Icon(Icons.payment, color: _filterPaymentMethod != null ? AppColors.primary : null),
+                leading: Icon(Icons.payment,
+                    color: _filterPaymentMethod != null
+                        ? AppColors.primary
+                        : null),
                 title: const Text('طريقة الدفع'),
                 subtitle: Text(
-                  _filterPaymentMethod == 'cash' ? 'نقدي' 
-                      : _filterPaymentMethod == 'credit' ? 'آجل' 
-                      : 'الكل',
-                  style: _filterPaymentMethod != null ? TextStyle(color: AppColors.primary) : null,
+                  _filterPaymentMethod == 'cash'
+                      ? 'نقدي'
+                      : _filterPaymentMethod == 'credit'
+                          ? 'آجل'
+                          : 'الكل',
+                  style: _filterPaymentMethod != null
+                      ? TextStyle(color: AppColors.primary)
+                      : null,
                 ),
-                trailing: _filterPaymentMethod != null 
+                trailing: _filterPaymentMethod != null
                     ? IconButton(
                         icon: const Icon(Icons.clear),
-                        onPressed: () => setState(() => _filterPaymentMethod = null),
+                        onPressed: () =>
+                            setState(() => _filterPaymentMethod = null),
                       )
                     : null,
                 onTap: () => _showPaymentMethodPicker(),
@@ -565,18 +585,27 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
                   ),
                   error: (_, __) => const SizedBox.shrink(),
                   data: (customers) => ListTile(
-                    leading: Icon(Icons.person, color: _filterCustomerId != null ? AppColors.primary : null),
+                    leading: Icon(Icons.person,
+                        color: _filterCustomerId != null
+                            ? AppColors.primary
+                            : null),
                     title: const Text('العميل'),
                     subtitle: Text(
                       _filterCustomerId != null
-                          ? customers.firstWhere((c) => c.id == _filterCustomerId, orElse: () => customers.first).name
+                          ? customers
+                              .firstWhere((c) => c.id == _filterCustomerId,
+                                  orElse: () => customers.first)
+                              .name
                           : 'جميع العملاء',
-                      style: _filterCustomerId != null ? TextStyle(color: AppColors.primary) : null,
+                      style: _filterCustomerId != null
+                          ? TextStyle(color: AppColors.primary)
+                          : null,
                     ),
-                    trailing: _filterCustomerId != null 
+                    trailing: _filterCustomerId != null
                         ? IconButton(
                             icon: const Icon(Icons.clear),
-                            onPressed: () => setState(() => _filterCustomerId = null),
+                            onPressed: () =>
+                                setState(() => _filterCustomerId = null),
                           )
                         : null,
                     onTap: () => _showCustomerPicker(customers),
@@ -594,18 +623,27 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
                   ),
                   error: (_, __) => const SizedBox.shrink(),
                   data: (suppliers) => ListTile(
-                    leading: Icon(Icons.business, color: _filterSupplierId != null ? AppColors.primary : null),
+                    leading: Icon(Icons.business,
+                        color: _filterSupplierId != null
+                            ? AppColors.primary
+                            : null),
                     title: const Text('المورد'),
                     subtitle: Text(
                       _filterSupplierId != null
-                          ? suppliers.firstWhere((s) => s.id == _filterSupplierId, orElse: () => suppliers.first).name
+                          ? suppliers
+                              .firstWhere((s) => s.id == _filterSupplierId,
+                                  orElse: () => suppliers.first)
+                              .name
                           : 'جميع الموردين',
-                      style: _filterSupplierId != null ? TextStyle(color: AppColors.primary) : null,
+                      style: _filterSupplierId != null
+                          ? TextStyle(color: AppColors.primary)
+                          : null,
                     ),
-                    trailing: _filterSupplierId != null 
+                    trailing: _filterSupplierId != null
                         ? IconButton(
                             icon: const Icon(Icons.clear),
-                            onPressed: () => setState(() => _filterSupplierId = null),
+                            onPressed: () =>
+                                setState(() => _filterSupplierId = null),
                           )
                         : null,
                     onTap: () => _showSupplierPicker(suppliers),
@@ -636,7 +674,7 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
                 ),
               ),
               SizedBox(height: AppSpacing.md.h),
-              
+
               // Apply
               SizedBox(
                 width: double.infinity,
@@ -814,7 +852,8 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
     final confirm = await showProDeleteDialog(
       context: context,
       itemName: '${_selectedInvoices.length} فاتورة',
-      message: 'سيتم حذف الفواتير المحددة نهائياً وعكس تأثيراتها على المخزون والأرصدة. هل أنت متأكد؟',
+      message:
+          'سيتم حذف الفواتير المحددة نهائياً وعكس تأثيراتها على المخزون والأرصدة. هل أنت متأكد؟',
     );
 
     if (confirm != true) return;
@@ -824,9 +863,10 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
       for (final id in _selectedInvoices) {
         await invoiceRepo.deleteInvoiceWithReverse(id);
       }
-      
+
       if (mounted) {
-        ProSnackbar.success(context, 'تم حذف ${_selectedInvoices.length} فاتورة');
+        ProSnackbar.success(
+            context, 'تم حذف ${_selectedInvoices.length} فاتورة');
         setState(() {
           _isSelectionMode = false;
           _selectedInvoices.clear();
@@ -848,7 +888,8 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
     setState(() => _isExporting = true);
     final typeName = isSales ? 'المبيعات' : 'المشتريات';
     final typeCode = isSales ? 'sale' : 'purchase';
-    final fileName = 'فواتير_${typeName}_${DateFormat('yyyyMMdd').format(DateTime.now())}';
+    final fileName =
+        'فواتير_${typeName}_${DateFormat('yyyyMMdd').format(DateTime.now())}';
 
     try {
       switch (type) {
@@ -872,14 +913,16 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
             invoices: invoices,
             type: typeCode,
           );
-          await PdfExportService.sharePdfBytes(pdfBytes, fileName: fileName, subject: 'فواتير $typeName');
+          await PdfExportService.sharePdfBytes(pdfBytes,
+              fileName: fileName, subject: 'فواتير $typeName');
           break;
         case ExportType.shareExcel:
           final filePath = await ExcelExportService.exportInvoices(
             invoices: invoices,
             fileName: fileName,
           );
-          await ExcelExportService.shareFile(filePath, subject: 'فواتير $typeName');
+          await ExcelExportService.shareFile(filePath,
+              subject: 'فواتير $typeName');
           break;
       }
     } catch (e) {

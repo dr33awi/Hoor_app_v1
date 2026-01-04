@@ -1082,8 +1082,8 @@ class ExcelExportService {
     sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
       ..value = TextCellValue((totalIncome - totalExpense).toStringAsFixed(2))
       ..cellStyle = _summaryValueStyle(
-        fontColor: totalIncome >= totalExpense 
-            ? ExcelStyles.successColor 
+        fontColor: totalIncome >= totalExpense
+            ? ExcelStyles.successColor
             : ExcelStyles.errorColor,
       );
     row += 2;
@@ -1108,7 +1108,7 @@ class ExcelExportService {
           movement.type == 'sale' ||
           movement.type == 'deposit' ||
           movement.type == 'opening';
-      
+
       final rowData = [
         (i + 1).toString(),
         ExportFormatters.formatDateTime(movement.createdAt),
@@ -1204,7 +1204,15 @@ class ExcelExportService {
     // ═══════════════════════════════════════════════════════════════════════
     // عناوين الأعمدة
     // ═══════════════════════════════════════════════════════════════════════
-    final headers = ['#', 'رقم الوردية', 'تاريخ الافتتاح', 'الرصيد الافتتاحي', 'المبيعات', 'المصروفات', 'الحالة'];
+    final headers = [
+      '#',
+      'رقم الوردية',
+      'تاريخ الافتتاح',
+      'الرصيد الافتتاحي',
+      'المبيعات',
+      'المصروفات',
+      'الحالة'
+    ];
     for (var i = 0; i < headers.length; i++) {
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: row))
         ..value = TextCellValue(headers[i])
@@ -1217,7 +1225,7 @@ class ExcelExportService {
     // ═══════════════════════════════════════════════════════════════════════
     for (var i = 0; i < shifts.length; i++) {
       final shift = shifts[i];
-      
+
       final rowData = [
         (i + 1).toString(),
         '#${shift.shiftNumber}',

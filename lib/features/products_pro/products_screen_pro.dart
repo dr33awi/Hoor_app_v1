@@ -80,8 +80,8 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
           product.categoryId == _selectedCategoryId;
 
       // فلتر المخزون المنخفض
-      final matchesLowStock = !_showLowStockOnly ||
-          product.quantity <= product.minQuantity;
+      final matchesLowStock =
+          !_showLowStockOnly || product.quantity <= product.minQuantity;
 
       return matchesSearch && matchesCategory && matchesLowStock;
     }).toList();
@@ -206,42 +206,45 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
                 onBack: () => context.go('/'),
               ),
               data: (products) {
-                final lowStockCount = products.where((p) => p.quantity <= p.minQuantity).length;
-                
+                final lowStockCount =
+                    products.where((p) => p.quantity <= p.minQuantity).length;
+
                 return ProHeader(
-                  title: _isSelectionMode 
+                  title: _isSelectionMode
                       ? 'تم تحديد ${_selectedProducts.length}'
                       : 'المنتجات',
-                  subtitle: _isSelectionMode 
-                      ? null 
+                  subtitle: _isSelectionMode
+                      ? null
                       : '${products.length} منتج${lowStockCount > 0 ? ' • $lowStockCount منخفض' : ''}',
-                  onBack: _isSelectionMode 
+                  onBack: _isSelectionMode
                       ? () => setState(() {
-                          _isSelectionMode = false;
-                          _selectedProducts.clear();
-                        })
+                            _isSelectionMode = false;
+                            _selectedProducts.clear();
+                          })
                       : () => context.go('/'),
-                  actions: _isSelectionMode 
+                  actions: _isSelectionMode
                       ? [
                           // تحديث المخزون
                           IconButton(
-                            onPressed: _selectedProducts.isEmpty 
-                                ? null 
+                            onPressed: _selectedProducts.isEmpty
+                                ? null
                                 : () => _showBulkStockUpdateDialog(products),
                             icon: Icon(Icons.inventory_2_outlined,
-                                color: _selectedProducts.isEmpty 
-                                    ? AppColors.textSecondary.withValues(alpha: 0.5)
+                                color: _selectedProducts.isEmpty
+                                    ? AppColors.textSecondary
+                                        .withValues(alpha: 0.5)
                                     : AppColors.primary),
                             tooltip: 'تحديث المخزون',
                           ),
                           // تعديل الأسعار
                           IconButton(
-                            onPressed: _selectedProducts.isEmpty 
-                                ? null 
+                            onPressed: _selectedProducts.isEmpty
+                                ? null
                                 : () => _showBulkPriceEditDialog(products),
                             icon: Icon(Icons.price_change_outlined,
-                                color: _selectedProducts.isEmpty 
-                                    ? AppColors.textSecondary.withValues(alpha: 0.5)
+                                color: _selectedProducts.isEmpty
+                                    ? AppColors.textSecondary
+                                        .withValues(alpha: 0.5)
                                     : AppColors.warning),
                             tooltip: 'تعديل الأسعار',
                           ),
@@ -249,20 +252,22 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
                           IconButton(
                             onPressed: () {
                               setState(() {
-                                if (_selectedProducts.length == products.length) {
+                                if (_selectedProducts.length ==
+                                    products.length) {
                                   _selectedProducts.clear();
                                 } else {
-                                  _selectedProducts.addAll(products.map((p) => p.id));
+                                  _selectedProducts
+                                      .addAll(products.map((p) => p.id));
                                 }
                               });
                             },
                             icon: Icon(
-                              _selectedProducts.length == products.length
-                                  ? Icons.deselect
-                                  : Icons.select_all,
-                              color: AppColors.textSecondary),
-                            tooltip: _selectedProducts.length == products.length 
-                                ? 'إلغاء تحديد الكل' 
+                                _selectedProducts.length == products.length
+                                    ? Icons.deselect
+                                    : Icons.select_all,
+                                color: AppColors.textSecondary),
+                            tooltip: _selectedProducts.length == products.length
+                                ? 'إلغاء تحديد الكل'
                                 : 'تحديد الكل',
                           ),
                         ]
@@ -273,16 +278,17 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
                               label: Text('$lowStockCount'),
                               backgroundColor: AppColors.error,
                               child: IconButton(
-                                onPressed: () => setState(() => _showLowStockOnly = !_showLowStockOnly),
+                                onPressed: () => setState(() =>
+                                    _showLowStockOnly = !_showLowStockOnly),
                                 icon: Icon(
-                                  _showLowStockOnly 
-                                      ? Icons.warning_amber_rounded 
-                                      : Icons.warning_amber_outlined,
-                                  color: _showLowStockOnly 
-                                      ? AppColors.error 
-                                      : AppColors.warning),
-                                tooltip: _showLowStockOnly 
-                                    ? 'إظهار الكل' 
+                                    _showLowStockOnly
+                                        ? Icons.warning_amber_rounded
+                                        : Icons.warning_amber_outlined,
+                                    color: _showLowStockOnly
+                                        ? AppColors.error
+                                        : AppColors.warning),
+                                tooltip: _showLowStockOnly
+                                    ? 'إظهار الكل'
                                     : 'المنتجات المنخفضة فقط',
                               ),
                             ),
@@ -295,7 +301,8 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
                           ),
                           // وضع التحديد
                           IconButton(
-                            onPressed: () => setState(() => _isSelectionMode = true),
+                            onPressed: () =>
+                                setState(() => _isSelectionMode = true),
                             icon: Icon(Icons.checklist_rounded,
                                 color: AppColors.textSecondary),
                             tooltip: 'تحديد متعدد',
@@ -394,7 +401,6 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
                           )
                         : ProEmptyState.list(
                             itemName: 'منتج',
-                            onAdd: () => context.push('/products/add'),
                           );
                   }
 
@@ -442,7 +448,7 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
         final category =
             categories.where((c) => c.id == product.categoryId).firstOrNull;
         final isSelected = _selectedProducts.contains(product.id);
-        
+
         return GestureDetector(
           onLongPress: () {
             if (!_isSelectionMode) {
@@ -473,7 +479,8 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
                       color: isSelected ? AppColors.primary : AppColors.surface,
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: isSelected ? AppColors.primary : AppColors.border,
+                        color:
+                            isSelected ? AppColors.primary : AppColors.border,
                         width: 2,
                       ),
                     ),
@@ -504,7 +511,7 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
         final category =
             categories.where((c) => c.id == product.categoryId).firstOrNull;
         final isSelected = _selectedProducts.contains(product.id);
-        
+
         return GestureDetector(
           onLongPress: () {
             if (!_isSelectionMode) {
@@ -558,11 +565,12 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
   }
 
   Future<void> _showBulkPriceEditDialog(List<Product> allProducts) async {
-    final selectedProductsList = allProducts.where((p) => _selectedProducts.contains(p.id)).toList();
+    final selectedProductsList =
+        allProducts.where((p) => _selectedProducts.contains(p.id)).toList();
     final percentageController = TextEditingController();
     String adjustmentType = 'increase'; // increase or decrease
     String priceType = 'sale'; // sale or purchase
-    
+
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -575,10 +583,11 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
               children: [
                 Text(
                   'المنتجات المحددة: ${selectedProductsList.length}',
-                  style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
+                  style: AppTypography.bodyMedium
+                      .copyWith(color: AppColors.textSecondary),
                 ),
                 SizedBox(height: AppSpacing.md),
-                
+
                 // نوع السعر
                 Text('نوع السعر', style: AppTypography.labelMedium),
                 SizedBox(height: AppSpacing.xs),
@@ -593,7 +602,7 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
                   },
                 ),
                 SizedBox(height: AppSpacing.md),
-                
+
                 // نوع التعديل
                 Text('نوع التعديل', style: AppTypography.labelMedium),
                 SizedBox(height: AppSpacing.xs),
@@ -608,11 +617,12 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
                   },
                 ),
                 SizedBox(height: AppSpacing.md),
-                
+
                 // النسبة المئوية
                 TextField(
                   controller: percentageController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                   decoration: InputDecoration(
                     labelText: 'النسبة المئوية %',
                     suffixText: '%',
@@ -637,14 +647,14 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
         ),
       ),
     );
-    
+
     if (result == true && percentageController.text.isNotEmpty) {
       final percentage = double.tryParse(percentageController.text) ?? 0;
       if (percentage > 0) {
         await _applyBulkPriceChange(
-          selectedProductsList, 
-          percentage, 
-          adjustmentType, 
+          selectedProductsList,
+          percentage,
+          adjustmentType,
           priceType,
         );
       }
@@ -659,28 +669,28 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
   ) async {
     try {
       final productRepo = ref.read(productRepositoryProvider);
-      final multiplier = adjustmentType == 'increase' 
-          ? (1 + percentage / 100) 
+      final multiplier = adjustmentType == 'increase'
+          ? (1 + percentage / 100)
           : (1 - percentage / 100);
-      
+
       for (final product in products) {
-        final currentPrice = priceType == 'sale' 
-            ? product.salePrice 
-            : product.purchasePrice;
+        final currentPrice =
+            priceType == 'sale' ? product.salePrice : product.purchasePrice;
         final newPrice = currentPrice * multiplier;
-        
+
         if (priceType == 'sale') {
           await productRepo.updateProduct(id: product.id, salePrice: newPrice);
         } else {
-          await productRepo.updateProduct(id: product.id, purchasePrice: newPrice);
+          await productRepo.updateProduct(
+              id: product.id, purchasePrice: newPrice);
         }
       }
-      
+
       if (mounted) {
         final actionText = adjustmentType == 'increase' ? 'زيادة' : 'تخفيض';
         final priceText = priceType == 'sale' ? 'البيع' : 'الشراء';
         ProSnackbar.success(
-          context, 
+          context,
           'تم $actionText أسعار $priceText بنسبة $percentage% لـ ${products.length} منتج',
         );
         setState(() {
@@ -696,10 +706,11 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
   }
 
   Future<void> _showBulkStockUpdateDialog(List<Product> allProducts) async {
-    final selectedProductsList = allProducts.where((p) => _selectedProducts.contains(p.id)).toList();
+    final selectedProductsList =
+        allProducts.where((p) => _selectedProducts.contains(p.id)).toList();
     final quantityController = TextEditingController();
     String updateType = 'set'; // set, add, subtract
-    
+
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -712,10 +723,11 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
               children: [
                 Text(
                   'المنتجات المحددة: ${selectedProductsList.length}',
-                  style: AppTypography.bodyMedium.copyWith(color: AppColors.textSecondary),
+                  style: AppTypography.bodyMedium
+                      .copyWith(color: AppColors.textSecondary),
                 ),
                 SizedBox(height: AppSpacing.md),
-                
+
                 // نوع التحديث
                 Text('نوع التحديث', style: AppTypography.labelMedium),
                 SizedBox(height: AppSpacing.xs),
@@ -731,29 +743,31 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
                   },
                 ),
                 SizedBox(height: AppSpacing.md),
-                
+
                 // الكمية
                 TextField(
                   controller: quantityController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
                   decoration: InputDecoration(
-                    labelText: updateType == 'set' 
-                        ? 'الكمية الجديدة' 
-                        : updateType == 'add' 
-                            ? 'كمية الإضافة' 
+                    labelText: updateType == 'set'
+                        ? 'الكمية الجديدة'
+                        : updateType == 'add'
+                            ? 'كمية الإضافة'
                             : 'كمية الخصم',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppSpacing.sm),
                     ),
                   ),
                 ),
-                
+
                 if (updateType == 'set')
                   Padding(
                     padding: EdgeInsets.only(top: AppSpacing.sm),
                     child: Text(
                       '⚠️ سيتم تعيين نفس الكمية لجميع المنتجات المحددة',
-                      style: AppTypography.bodySmall.copyWith(color: AppColors.warning),
+                      style: AppTypography.bodySmall
+                          .copyWith(color: AppColors.warning),
                     ),
                   ),
               ],
@@ -772,7 +786,7 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
         ),
       ),
     );
-    
+
     if (result == true && quantityController.text.isNotEmpty) {
       final quantity = double.tryParse(quantityController.text) ?? 0;
       await _applyBulkStockUpdate(selectedProductsList, quantity, updateType);
@@ -786,7 +800,7 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
   ) async {
     try {
       final productRepo = ref.read(productRepositoryProvider);
-      
+
       for (final product in products) {
         int newQuantity;
         switch (updateType) {
@@ -797,23 +811,24 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
             newQuantity = product.quantity + quantity.toInt();
             break;
           case 'subtract':
-            newQuantity = (product.quantity - quantity.toInt()).clamp(0, 999999);
+            newQuantity =
+                (product.quantity - quantity.toInt()).clamp(0, 999999);
             break;
           default:
             continue;
         }
-        
+
         await productRepo.updateProductQuantity(product.id, newQuantity);
       }
-      
+
       if (mounted) {
-        final actionText = updateType == 'set' 
-            ? 'تعيين' 
-            : updateType == 'add' 
-                ? 'إضافة' 
+        final actionText = updateType == 'set'
+            ? 'تعيين'
+            : updateType == 'add'
+                ? 'إضافة'
                 : 'خصم';
         ProSnackbar.success(
-          context, 
+          context,
           'تم $actionText المخزون لـ ${products.length} منتج',
         );
         setState(() {

@@ -159,36 +159,16 @@ class _CustomerDetailsScreenProState
           },
           tooltip: 'تصدير كشف الحساب',
         ),
-        PopupMenuButton<String>(
-          icon: const Icon(Icons.more_vert_rounded),
-          onSelected: (value) {
-            switch (value) {
-              case 'edit':
-                context.push('/customers/edit/${_customer!.id}');
-                break;
-              case 'delete':
-                _deleteCustomer();
-                break;
-            }
-          },
-          itemBuilder: (context) => [
-            const PopupMenuItem(
-              value: 'edit',
-              child: ListTile(
-                leading: Icon(Icons.edit_rounded),
-                title: Text('تعديل'),
-                contentPadding: EdgeInsets.zero,
-              ),
-            ),
-            const PopupMenuItem(
-              value: 'delete',
-              child: ListTile(
-                leading: Icon(Icons.delete_rounded, color: Colors.red),
-                title: Text('حذف', style: TextStyle(color: Colors.red)),
-                contentPadding: EdgeInsets.zero,
-              ),
-            ),
-          ],
+        IconButton(
+          onPressed: () => context.push('/customers/edit/${_customer!.id}'),
+          icon: const Icon(Icons.edit_rounded),
+          color: AppColors.textSecondary,
+          tooltip: 'تعديل',
+        ),
+        IconButton(
+          onPressed: _deleteCustomer,
+          icon: Icon(Icons.delete_outline_rounded, color: AppColors.error),
+          tooltip: 'حذف',
         ),
       ],
     );
@@ -451,7 +431,6 @@ class _CustomerDetailsScreenProState
     if (entries.isEmpty) {
       return ProEmptyState.list(
         itemName: 'معاملات',
-        onAdd: () => _showQuickActions(),
       );
     }
 
@@ -588,7 +567,6 @@ class _CustomerDetailsScreenProState
     if (_invoices.isEmpty) {
       return ProEmptyState.list(
         itemName: 'فواتير',
-        onAdd: () => context.push('/sales/add'),
       );
     }
 
@@ -609,7 +587,6 @@ class _CustomerDetailsScreenProState
     if (_vouchers.isEmpty) {
       return ProEmptyState.list(
         itemName: 'سندات',
-        onAdd: () => context.push('/vouchers/receipt/add'),
       );
     }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../theme/design_tokens.dart';
 import 'invoice_pdf_generator.dart';
 
 /// أنواع الطباعة المتاحة
@@ -87,18 +88,20 @@ class PrintMenuButton extends StatelessWidget {
   });
 
   /// Callback عند اختيار نوع الطباعة
-  final void Function(PrintType type) onPrint;
+  /// [size] يتم تمريره فقط إذا كان [showSizeSelector] مفعلاً وتم اختيار حجم
+  final void Function(PrintType type, [InvoicePrintSize? size]) onPrint;
 
   /// الخيارات المفعلة
   final Set<PrintType> enabledOptions;
 
   /// إظهار خيارات حجم الطباعة
+  /// إذا كانت true، سيتم عرض نافذة اختيار الحجم عند الضغط على أي خيار طباعة
   final bool showSizeSelector;
 
-  /// الحجم الحالي
+  /// الحجم الحالي (للتوافق مع الإصدارات القديمة)
   final PrintSize currentSize;
 
-  /// Callback عند تغيير الحجم
+  /// Callback عند تغيير الحجم (للتوافق مع الإصدارات القديمة)
   final void Function(PrintSize size)? onSizeChanged;
 
   /// حالة التحميل
@@ -136,9 +139,17 @@ class PrintMenuButton extends StatelessWidget {
         color: color,
       ),
       tooltip: tooltip ?? 'خيارات الطباعة',
-      onSelected: (value) {
+      onSelected: (value) async {
         if (value is PrintType) {
-          onPrint(value);
+          if (showSizeSelector) {
+            // عرض نافذة اختيار الحجم
+            final selectedSize = await _showSizeSelector(context);
+            if (selectedSize != null) {
+              onPrint(value, selectedSize);
+            }
+          } else {
+            onPrint(value);
+          }
         } else if (value is PrintSize && onSizeChanged != null) {
           onSizeChanged!(value);
         }
@@ -190,12 +201,14 @@ class PrintMenuButton extends StatelessWidget {
             ),
           ),
 
-        // فاصل إذا كان هناك خيارات حجم
-        if (showSizeSelector && enabledOptions.isNotEmpty)
+        // فاصل إذا كان هناك خيارات حجم (للتوافق القديم)
+        if (!showSizeSelector &&
+            onSizeChanged != null &&
+            enabledOptions.isNotEmpty)
           const PopupMenuDivider(),
 
-        // خيارات الحجم
-        if (showSizeSelector) ...[
+        // خيارات الحجم (للتوافق القديم)
+        if (!showSizeSelector && onSizeChanged != null) ...[
           PopupMenuItem<PrintSize>(
             enabled: false,
             child: Text(
@@ -231,6 +244,124 @@ class PrintMenuButton extends StatelessWidget {
             ),
         ],
       ],
+    );
+  }
+
+  /// عرض حوار اختيار مقاس الطباعة
+  Future<InvoicePrintSize?> _showSizeSelector(BuildContext context) async {
+    return showModalBottomSheet<InvoicePrintSize>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.all(16.w),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.straighten_rounded,
+                    color: AppColors.primary, size: 24.sp),
+                SizedBox(width: 8.w),
+                Text(
+                  'اختر مقاس الطباعة',
+                  style: AppTypography.titleMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 16.h),
+            _buildSizeOption(
+              ctx: ctx,
+              icon: Icons.receipt_long_rounded,
+              title: '58mm',
+              subtitle: 'طابعة حرارية صغيرة',
+              size: InvoicePrintSize.thermal58mm,
+            ),
+            SizedBox(height: 8.h),
+            _buildSizeOption(
+              ctx: ctx,
+              icon: Icons.receipt_rounded,
+              title: '80mm',
+              subtitle: 'طابعة حرارية قياسية',
+              size: InvoicePrintSize.thermal80mm,
+            ),
+            SizedBox(height: 8.h),
+            _buildSizeOption(
+              ctx: ctx,
+              icon: Icons.description_rounded,
+              title: 'A4',
+              subtitle: 'فاتورة كاملة',
+              size: InvoicePrintSize.a4,
+            ),
+            SizedBox(height: 16.h),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSizeOption({
+    required BuildContext ctx,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required InvoicePrintSize size,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => Navigator.pop(ctx, size),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: Container(
+          padding: EdgeInsets.all(12.w),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceVariant,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(10.w),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: Icon(icon, color: AppColors.primary, size: 24.sp),
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: AppTypography.titleSmall.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      subtitle,
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.textTertiary,
+                size: 24.sp,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

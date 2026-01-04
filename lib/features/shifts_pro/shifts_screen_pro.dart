@@ -8,8 +8,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:printing/printing.dart';
 
 import '../../core/theme/design_tokens.dart';
+import '../../core/services/printing/invoice_pdf_generator.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/widgets/widgets.dart';
 import '../../core/services/export/export_button.dart';
@@ -31,9 +33,10 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
 
   List<Shift> _filterShifts(List<Shift> shifts) {
     if (_dateRange == null) return shifts;
-    
+
     return shifts.where((s) {
-      return s.openedAt.isAfter(_dateRange!.start.subtract(const Duration(days: 1))) &&
+      return s.openedAt
+              .isAfter(_dateRange!.start.subtract(const Duration(days: 1))) &&
           s.openedAt.isBefore(_dateRange!.end.add(const Duration(days: 1)));
     }).toList();
   }
@@ -52,7 +55,7 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
           data: (shifts) {
             final openShift = openShiftAsync.asData?.value;
             final filteredShifts = _filterShifts(shifts);
-            
+
             return Column(
               children: [
                 _buildHeader(context, filteredShifts),
@@ -95,11 +98,23 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
             tooltip: 'تصفية حسب التاريخ',
           ),
         ),
-        // تصدير
+        // زر الطباعة الموحد
+        PrintMenuButton(
+          onPrint: (type, [size]) => _handlePrint(type, size, shifts),
+          showSizeSelector: true,
+          enabledOptions: const {
+            PrintType.print,
+            PrintType.share,
+            PrintType.save,
+            PrintType.preview,
+          },
+          tooltip: 'طباعة',
+        ),
+        // زر التصدير الموحد
         ExportMenuButton(
           onExport: (type) => _handleExport(type, shifts),
           isLoading: _isExporting,
-          icon: Icons.file_download_outlined,
+          icon: Icons.ios_share_rounded,
           tooltip: 'تصدير',
           enabledOptions: const {
             ExportType.excel,
@@ -172,13 +187,6 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
             color: AppColors.error,
             size: ProButtonSize.small,
           ),
-          SizedBox(width: AppSpacing.xs),
-          // زر طباعة تقرير Z
-          IconButton(
-            onPressed: () => _printZReport(shift),
-            icon: Icon(Icons.print_rounded, color: AppColors.primary),
-            tooltip: 'طباعة تقرير Z',
-          ),
         ],
       ),
     );
@@ -197,6 +205,49 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
     }
   }
 
+  Future<void> _handlePrint(
+      PrintType type, InvoicePrintSize? size, List<Shift> shifts) async {
+    if (shifts.isEmpty) {
+      ProSnackbar.warning(context, 'لا توجد ورديات للطباعة');
+      return;
+    }
+
+    setState(() => _isPrinting = true);
+    final fileName =
+        'الورديات_${DateFormat('yyyyMMdd').format(DateTime.now())}';
+
+    try {
+      final pdfBytes =
+          await PdfExportService.generateShiftsList(shifts: shifts);
+
+      switch (type) {
+        case PrintType.print:
+          await Printing.layoutPdf(
+            onLayout: (format) async => pdfBytes,
+            name: fileName,
+          );
+          break;
+        case PrintType.share:
+          await PdfExportService.sharePdfBytes(
+            pdfBytes,
+            fileName: fileName,
+            subject: 'قائمة الورديات',
+          );
+          break;
+        case PrintType.save:
+          await PdfExportService.savePdfFile(pdfBytes, fileName);
+          if (mounted) ProSnackbar.success(context, 'تم حفظ الملف بنجاح');
+          break;
+        case PrintType.preview:
+          break;
+      }
+    } catch (e) {
+      if (mounted) ProSnackbar.error(context, 'حدث خطأ: $e');
+    } finally {
+      if (mounted) setState(() => _isPrinting = false);
+    }
+  }
+
   Future<void> _handleExport(ExportType type, List<Shift> shifts) async {
     if (shifts.isEmpty) {
       ProSnackbar.warning(context, 'لا توجد ورديات للتصدير');
@@ -204,7 +255,8 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
     }
 
     setState(() => _isExporting = true);
-    final fileName = 'الورديات_${DateFormat('yyyyMMdd').format(DateTime.now())}';
+    final fileName =
+        'الورديات_${DateFormat('yyyyMMdd').format(DateTime.now())}';
 
     try {
       switch (type) {
@@ -227,8 +279,8 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
             shifts: shifts,
           );
           await PdfExportService.sharePdfBytes(
-            pdfBytes, 
-            fileName: fileName, 
+            pdfBytes,
+            fileName: fileName,
             subject: 'قائمة الورديات',
           );
           break;
@@ -237,7 +289,8 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
             shifts: shifts,
             fileName: fileName,
           );
-          await ExcelExportService.shareFile(filePath, subject: 'قائمة الورديات');
+          await ExcelExportService.shareFile(filePath,
+              subject: 'قائمة الورديات');
           break;
       }
     } catch (e) {
@@ -402,6 +455,7 @@ class _ShiftCard extends StatelessWidget {
     final statusColor = isOpen ? AppColors.success : AppColors.textSecondary;
 
     return ProCard(
+      onTap: () => context.push('/shifts/${shift.id}'),
       margin: EdgeInsets.only(bottom: AppSpacing.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

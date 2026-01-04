@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:collection/collection.dart'; // ✅ إضافة للـ firstWhereOrNull
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
@@ -92,7 +93,7 @@ class _InventoryCountScreenProState
           icon: Container(
             padding: EdgeInsets.all(AppSpacing.xs),
             decoration: BoxDecoration(
-              color: AppColors.secondary.soft,
+              color: AppColors.secondary.withOpacity(0.1),
               borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
             child: Icon(Icons.qr_code_scanner_rounded,
@@ -260,12 +261,30 @@ class _InventoryCountScreenProState
     try {
       final inventoryRepo = ref.read(inventoryRepositoryProvider);
       final productsAsync = ref.read(activeProductsStreamProvider);
-
       final products = productsAsync.value ?? [];
 
+      // ✅ التحقق من وجود منتجات
+      if (products.isEmpty) {
+        if (mounted) {
+          ProSnackbar.error(context, 'لا توجد منتجات للتحديث');
+        }
+        return;
+      }
+
+      int updatedCount = 0;
+      int skippedCount = 0;
+
       for (final entry in _countedQuantities.entries) {
-        final product = products.firstWhere((p) => p.id == entry.key,
-            orElse: () => products.first);
+        // ✅ استخدام firstWhereOrNull بدلاً من firstWhere
+        final product = products.firstWhereOrNull((p) => p.id == entry.key);
+
+        // ✅ تخطي المنتجات غير الموجودة
+        if (product == null) {
+          debugPrint('Product not found: ${entry.key}');
+          skippedCount++;
+          continue;
+        }
+
         final difference = entry.value - product.quantity;
         if (difference != 0) {
           await inventoryRepo.adjustStock(
@@ -273,11 +292,19 @@ class _InventoryCountScreenProState
             actualQuantity: entry.value,
             reason: 'جرد المخزون',
           );
+          updatedCount++;
         }
       }
 
       if (mounted) {
-        ProSnackbar.saved(context);
+        if (skippedCount > 0) {
+          ProSnackbar.warning(
+            context,
+            'تم تحديث $updatedCount منتج، تم تخطي $skippedCount منتج غير موجود',
+          );
+        } else {
+          ProSnackbar.saved(context);
+        }
         context.pop();
       }
     } catch (e) {
@@ -305,31 +332,18 @@ class _ProductCountCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final difference =
+    final int? difference =
         countedQuantity != null ? countedQuantity! - product.quantity : null;
 
-    Color? bgColor;
-    Color borderColor = AppColors.border;
-
-    if (countedQuantity != null) {
-      if (difference! > 0) {
-        bgColor = AppColors.success.subtle;
-        borderColor = AppColors.success.border;
-      } else if (difference < 0) {
-        bgColor = AppColors.error.subtle;
-        borderColor = AppColors.error.border;
-      } else {
-        bgColor = AppColors.primary.subtle;
-        borderColor = AppColors.primary.border;
-      }
-    }
+    // ✅ تحسين منطق تحديد الألوان
+    final CardColors colors = _getCardColors(difference);
 
     return Container(
       margin: EdgeInsets.only(bottom: AppSpacing.sm),
       decoration: BoxDecoration(
-        color: bgColor ?? AppColors.surface,
+        color: colors.background,
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: borderColor),
+        border: Border.all(color: colors.border),
         boxShadow: AppShadows.xs,
       ),
       child: Padding(
@@ -428,7 +442,7 @@ class _ProductCountCard extends StatelessWidget {
                         ),
                         hintText: '${product.quantity}',
                         hintStyle: AppTypography.titleMedium.copyWith(
-                          color: AppColors.textSecondary.o54,
+                          color: AppColors.textSecondary.withOpacity(0.54),
                         ),
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.symmetric(
@@ -453,27 +467,14 @@ class _ProductCountCard extends StatelessWidget {
                       vertical: AppSpacing.xs,
                     ),
                     decoration: BoxDecoration(
-                      color: (difference > 0
-                              ? AppColors.success
-                              : difference < 0
-                                  ? AppColors.error
-                                  : AppColors.primary)
-                          .soft,
+                      color: _getDifferenceColor(difference).withOpacity(0.1),
                       borderRadius: BorderRadius.circular(AppRadius.sm),
                     ),
                     child: Text(
-                      difference > 0
-                          ? '+$difference'
-                          : difference < 0
-                              ? '$difference'
-                              : '0',
+                      _formatDifference(difference),
                       style: AppTypography.titleSmall.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: difference > 0
-                            ? AppColors.success
-                            : difference < 0
-                                ? AppColors.error
-                                : AppColors.primary,
+                        color: _getDifferenceColor(difference),
                       ),
                     ),
                   ),
@@ -485,6 +486,58 @@ class _ProductCountCard extends StatelessWidget {
       ),
     );
   }
+
+  // ✅ دالة مساعدة لتحديد ألوان البطاقة
+  CardColors _getCardColors(int? difference) {
+    if (difference == null) {
+      return CardColors(
+        background: AppColors.surface,
+        border: AppColors.border,
+      );
+    }
+
+    if (difference > 0) {
+      return CardColors(
+        background: AppColors.success.withOpacity(0.05),
+        border: AppColors.success.withOpacity(0.3),
+      );
+    } else if (difference < 0) {
+      return CardColors(
+        background: AppColors.error.withOpacity(0.05),
+        border: AppColors.error.withOpacity(0.3),
+      );
+    } else {
+      return CardColors(
+        background: AppColors.primary.withOpacity(0.05),
+        border: AppColors.primary.withOpacity(0.3),
+      );
+    }
+  }
+
+  // ✅ دالة مساعدة لتحديد لون الفرق
+  Color _getDifferenceColor(int difference) {
+    if (difference > 0) return AppColors.success;
+    if (difference < 0) return AppColors.error;
+    return AppColors.primary;
+  }
+
+  // ✅ دالة مساعدة لتنسيق الفرق
+  String _formatDifference(int difference) {
+    if (difference > 0) return '+$difference';
+    if (difference < 0) return '$difference';
+    return '0';
+  }
+}
+
+// ✅ كلاس مساعد لألوان البطاقة
+class CardColors {
+  final Color background;
+  final Color border;
+
+  const CardColors({
+    required this.background,
+    required this.border,
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -503,15 +556,21 @@ class _BarcodeScannerSheet extends StatefulWidget {
 class _BarcodeScannerSheetState extends State<_BarcodeScannerSheet> {
   MobileScannerController? _scannerController;
   bool _isProcessing = false;
+  String? _lastScannedBarcode; // ✅ لمنع المسح المتكرر
 
   @override
   void initState() {
     super.initState();
-    _scannerController = MobileScannerController();
+    _scannerController = MobileScannerController(
+      detectionSpeed: DetectionSpeed.normal,
+      facing: CameraFacing.back,
+    );
   }
 
   @override
   void dispose() {
+    // ✅ إيقاف الماسح قبل التخلص منه
+    _scannerController?.stop();
     _scannerController?.dispose();
     super.dispose();
   }
@@ -547,7 +606,7 @@ class _BarcodeScannerSheetState extends State<_BarcodeScannerSheet> {
                 Container(
                   padding: EdgeInsets.all(AppSpacing.sm),
                   decoration: BoxDecoration(
-                    color: AppColors.secondary.soft,
+                    color: AppColors.secondary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(AppRadius.md),
                   ),
                   child: Icon(Icons.qr_code_scanner_rounded,
@@ -576,14 +635,7 @@ class _BarcodeScannerSheetState extends State<_BarcodeScannerSheet> {
                 borderRadius: BorderRadius.circular(AppRadius.lg - 2),
                 child: MobileScanner(
                   controller: _scannerController,
-                  onDetect: (capture) {
-                    if (_isProcessing) return;
-                    final barcode = capture.barcodes.firstOrNull?.rawValue;
-                    if (barcode != null) {
-                      setState(() => _isProcessing = true);
-                      widget.onBarcodeScanned(barcode);
-                    }
-                  },
+                  onDetect: _onBarcodeDetected,
                 ),
               ),
             ),
@@ -615,5 +667,29 @@ class _BarcodeScannerSheetState extends State<_BarcodeScannerSheet> {
         ],
       ),
     );
+  }
+
+  // ✅ دالة منفصلة لمعالجة الباركود
+  void _onBarcodeDetected(BarcodeCapture capture) {
+    if (_isProcessing) return;
+
+    final barcode = capture.barcodes.firstOrNull?.rawValue;
+
+    // ✅ التحقق من صحة الباركود ومنع التكرار
+    if (barcode == null || barcode.isEmpty) {
+      return;
+    }
+
+    if (barcode == _lastScannedBarcode) {
+      return;
+    }
+
+    setState(() {
+      _isProcessing = true;
+      _lastScannedBarcode = barcode;
+    });
+
+    // ✅ إعطاء تغذية راجعة للمستخدم
+    widget.onBarcodeScanned(barcode);
   }
 }

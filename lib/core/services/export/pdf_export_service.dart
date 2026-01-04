@@ -33,7 +33,7 @@ class PdfExportService {
     String? type,
   }) async {
     await _ensureFontsInitialized();
-    
+
     final doc = pw.Document();
     final now = DateTime.now();
     final typeName = type != null
@@ -143,7 +143,7 @@ class PdfExportService {
     required DateTime endDate,
   }) async {
     await _ensureFontsInitialized();
-    
+
     final doc = pw.Document();
     final now = DateTime.now();
 
@@ -246,7 +246,7 @@ class PdfExportService {
     Map<String, int>? soldQuantities,
   }) async {
     await _ensureFontsInitialized();
-    
+
     final doc = pw.Document();
     final now = DateTime.now();
 
@@ -610,7 +610,7 @@ class PdfExportService {
     required List<DbCategory> categories,
   }) async {
     await _ensureFontsInitialized();
-    
+
     final doc = pw.Document();
     final now = DateTime.now();
 
@@ -760,7 +760,7 @@ class PdfExportService {
     required List<CashMovement> movements,
   }) async {
     await _ensureFontsInitialized();
-    
+
     final doc = pw.Document();
     final now = DateTime.now();
 
@@ -835,8 +835,8 @@ class PdfExportService {
                             style: pw.TextStyle(
                               fontWeight: pw.FontWeight.bold,
                               fontSize: 11,
-                              color: totalIncome >= totalExpense 
-                                  ? PdfColors.green 
+                              color: totalIncome >= totalExpense
+                                  ? PdfColors.green
                                   : PdfColors.red,
                             ),
                           ),
@@ -925,8 +925,9 @@ class PdfExportService {
     required List<Shift> shifts,
   }) async {
     await _ensureFontsInitialized();
-    
+
     final doc = pw.Document();
+    final now = DateTime.now();
 
     // حساب الإحصائيات
     double totalSales = 0;
@@ -936,133 +937,85 @@ class PdfExportService {
       totalExpenses += s.totalExpenses;
     }
 
+    final template = PdfReportTemplate(
+      title: 'قائمة الورديات',
+      reportDate: now,
+      headerColor: ExportColors.primary,
+    );
+
     doc.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         textDirection: pw.TextDirection.rtl,
-        margin: const pw.EdgeInsets.all(24),
-        header: (context) => pw.Container(
-          margin: const pw.EdgeInsets.only(bottom: 16),
+        theme: PdfTheme.create(),
+        header: (context) => pw.Directionality(
+          textDirection: pw.TextDirection.rtl,
           child: pw.Column(
             children: [
-              pw.Text(
-                'قائمة الورديات',
-                style: pw.TextStyle(
-                  fontSize: 24,
-                  fontWeight: pw.FontWeight.bold,
-                  color: PdfColor.fromHex('#1976D2'),
-                ),
-              ),
-              pw.SizedBox(height: 4),
-              pw.Text(
-                'تاريخ التصدير: ${ExportFormatters.formatDateTime(DateTime.now())}',
-                style: const pw.TextStyle(
-                  fontSize: 10,
-                  color: PdfColors.grey600,
-                ),
-              ),
+              template.buildHeader(),
+              pw.SizedBox(height: 16),
             ],
           ),
         ),
+        footer: (context) => pw.Directionality(
+          textDirection: pw.TextDirection.rtl,
+          child: template.buildFooter(
+            pageNumber: context.pageNumber,
+            totalPages: context.pagesCount,
+          ),
+        ),
         build: (context) => [
-          pw.Container(
-            padding: const pw.EdgeInsets.all(16),
-            decoration: pw.BoxDecoration(
-              color: PdfColor.fromHex('#E3F2FD'),
-              borderRadius: const pw.BorderRadius.all(pw.Radius.circular(12)),
-            ),
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.start,
-                      children: [
-                        pw.Text(
-                          'عدد الورديات: ${shifts.length}',
-                          style: pw.TextStyle(
-                            fontWeight: pw.FontWeight.bold,
-                            fontSize: 11,
-                          ),
-                        ),
-                        pw.SizedBox(height: 4),
-                        pw.Text(
-                          'الصافي: ${(totalSales - totalExpenses).toStringAsFixed(2)} ر.س',
-                          style: pw.TextStyle(
-                            fontWeight: pw.FontWeight.bold,
-                            fontSize: 11,
-                            color: totalSales >= totalExpenses 
-                                ? PdfColors.green 
-                                : PdfColors.red,
-                          ),
-                        ),
-                      ],
-                    ),
-                    pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.end,
-                      children: [
-                        pw.Text(
-                          'المبيعات: ${totalSales.toStringAsFixed(2)}',
-                          style: pw.TextStyle(
-                            color: PdfColors.green,
-                            fontSize: 10,
-                          ),
-                        ),
-                        pw.SizedBox(height: 2),
-                        pw.Text(
-                          'المصروفات: ${totalExpenses.toStringAsFixed(2)}',
-                          style: pw.TextStyle(
-                            color: PdfColors.red,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                pw.SizedBox(height: 16),
+          // ملخص الإحصائيات
+          pw.Directionality(
+            textDirection: pw.TextDirection.rtl,
+            child: template.buildStatsBox([
+              StatItem(label: 'عدد الورديات', value: '${shifts.length}'),
+              StatItem(
+                label: 'إجمالي المبيعات',
+                value: ExportFormatters.formatPrice(totalSales),
+                color: ExportColors.success,
+              ),
+              StatItem(
+                label: 'إجمالي المصاريف',
+                value: ExportFormatters.formatPrice(totalExpenses),
+                color: ExportColors.error,
+              ),
+              StatItem(
+                label: 'الصافي',
+                value: ExportFormatters.formatPrice(totalSales - totalExpenses),
+                color: totalSales >= totalExpenses
+                    ? ExportColors.success
+                    : ExportColors.error,
+              ),
+            ]),
+          ),
+          pw.SizedBox(height: 16),
 
-                // الجدول
-                pw.TableHelper.fromTextArray(
-                  headerStyle: pw.TextStyle(
-                    fontWeight: pw.FontWeight.bold,
-                    color: PdfColors.white,
-                    fontSize: 10,
-                  ),
-                  headerDecoration: pw.BoxDecoration(
-                    color: PdfColor.fromHex('#1976D2'),
-                    borderRadius: const pw.BorderRadius.only(
-                      topLeft: pw.Radius.circular(8),
-                      topRight: pw.Radius.circular(8),
-                    ),
-                  ),
-                  cellStyle: const pw.TextStyle(fontSize: 9),
-                  cellPadding: const pw.EdgeInsets.all(8),
-                  cellAlignments: {
-                    0: pw.Alignment.center,
-                    1: pw.Alignment.center,
-                    2: pw.Alignment.center,
-                    3: pw.Alignment.center,
-                    4: pw.Alignment.center,
-                    5: pw.Alignment.center,
-                  },
-                  headers: ['#', 'رقم الوردية', 'التاريخ', 'المبيعات', 'المصروفات', 'الحالة'],
-                  data: shifts.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final shift = entry.value;
-                    return [
-                      (index + 1).toString(),
-                      '#${shift.shiftNumber}',
-                      ExportFormatters.formatDateTime(shift.openedAt),
-                      shift.totalSales.toStringAsFixed(0),
-                      shift.totalExpenses.toStringAsFixed(0),
-                      shift.status == 'open' ? 'مفتوحة' : 'مغلقة',
-                    ];
-                  }).toList(),
-                ),
+          // جدول الورديات
+          pw.Directionality(
+            textDirection: pw.TextDirection.rtl,
+            child: template.buildTable(
+              headers: [
+                '#',
+                'رقم الوردية',
+                'التاريخ',
+                'المبيعات',
+                'المصاريف',
+                'الحالة',
               ],
+              data: List.generate(shifts.length, (index) {
+                final shift = shifts[index];
+                return [
+                  '${index + 1}',
+                  '#${shift.shiftNumber}',
+                  ExportFormatters.formatDateTime(shift.openedAt),
+                  ExportFormatters.formatPrice(shift.totalSales,
+                      showCurrency: false),
+                  ExportFormatters.formatPrice(shift.totalExpenses,
+                      showCurrency: false),
+                  shift.status == 'open' ? 'مفتوحة' : 'مغلقة',
+                ];
+              }),
             ),
           ),
         ],
@@ -1082,11 +1035,13 @@ class PdfExportService {
     List<CashMovement>? cashMovements,
   }) async {
     await _ensureFontsInitialized();
-    
+
     final doc = pw.Document();
+    final now = DateTime.now();
 
     // حساب صافي النقدية
-    final netCash = shift.openingBalance + shift.totalSales - shift.totalExpenses;
+    final netCash =
+        shift.openingBalance + shift.totalSales - shift.totalExpenses;
 
     // تصنيف الفواتير حسب النوع
     int salesCount = 0;
@@ -1112,201 +1067,215 @@ class PdfExportService {
       }
     }
 
+    final template = PdfReportTemplate(
+      title: 'تقرير Z - إغلاق الوردية',
+      subtitle: '#${shift.shiftNumber}',
+      reportDate: now,
+      headerColor: ExportColors.primary,
+    );
+
     doc.addPage(
-      pw.Page(
+      pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         textDirection: pw.TextDirection.rtl,
-        margin: const pw.EdgeInsets.all(24),
-        build: (context) => pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-          children: [
-            // الترويسة
-            pw.Container(
-              padding: const pw.EdgeInsets.all(20),
-              decoration: pw.BoxDecoration(
-                color: PdfColor.fromHex('#1565C0'),
-                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(12)),
-              ),
-              child: pw.Column(
-                children: [
-                  pw.Text(
-                    'تقرير Z',
-                    style: pw.TextStyle(
-                      fontSize: 28,
-                      fontWeight: pw.FontWeight.bold,
-                      color: PdfColors.white,
-                    ),
-                  ),
-                  pw.SizedBox(height: 8),
-                  pw.Text(
-                    'تقرير إغلاق الوردية',
-                    style: pw.TextStyle(
-                      fontSize: 14,
-                      color: PdfColor.fromHex('#FFFFFFB3'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            pw.SizedBox(height: 20),
-
-            // معلومات الوردية
-            pw.Container(
-              padding: const pw.EdgeInsets.all(16),
-              decoration: pw.BoxDecoration(
-                border: pw.Border.all(color: PdfColors.grey300),
-                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
-              ),
-              child: pw.Column(
-                children: [
-                  _buildZReportRow('رقم الوردية', '#${shift.shiftNumber}'),
-                  pw.Divider(color: PdfColors.grey200),
-                  _buildZReportRow('تاريخ الافتتاح', ExportFormatters.formatDateTime(shift.openedAt)),
-                  pw.Divider(color: PdfColors.grey200),
-                  _buildZReportRow('تاريخ الإغلاق', shift.closedAt != null 
-                      ? ExportFormatters.formatDateTime(shift.closedAt!) 
-                      : 'لم تغلق بعد'),
-                  pw.Divider(color: PdfColors.grey200),
-                  _buildZReportRow('الحالة', shift.status == 'open' ? 'مفتوحة' : 'مغلقة'),
-                ],
-              ),
-            ),
-            pw.SizedBox(height: 20),
-
-            // ملخص المبيعات
-            pw.Container(
-              padding: const pw.EdgeInsets.all(16),
-              decoration: pw.BoxDecoration(
-                color: PdfColor.fromHex('#E8F5E9'),
-                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
-              ),
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text(
-                    'ملخص المبيعات',
-                    style: pw.TextStyle(
-                      fontSize: 14,
-                      fontWeight: pw.FontWeight.bold,
-                      color: PdfColor.fromHex('#2E7D32'),
-                    ),
-                  ),
-                  pw.SizedBox(height: 12),
-                  _buildZReportRow('عدد فواتير البيع', '$salesCount فاتورة'),
-                  _buildZReportRow('مبيعات نقدية', '${cashSales.toStringAsFixed(2)} ر.س'),
-                  _buildZReportRow('مبيعات آجلة', '${creditSales.toStringAsFixed(2)} ر.س'),
-                  pw.Divider(color: PdfColors.green200),
-                  _buildZReportRow('إجمالي المبيعات', '${shift.totalSales.toStringAsFixed(2)} ر.س', isBold: true),
-                ],
-              ),
-            ),
-            pw.SizedBox(height: 16),
-
-            // المصروفات
-            pw.Container(
-              padding: const pw.EdgeInsets.all(16),
-              decoration: pw.BoxDecoration(
-                color: PdfColor.fromHex('#FFEBEE'),
-                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
-              ),
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text(
-                    'المصروفات',
-                    style: pw.TextStyle(
-                      fontSize: 14,
-                      fontWeight: pw.FontWeight.bold,
-                      color: PdfColor.fromHex('#C62828'),
-                    ),
-                  ),
-                  pw.SizedBox(height: 12),
-                  _buildZReportRow('عدد فواتير الشراء', '$purchasesCount فاتورة'),
-                  _buildZReportRow('عدد المرتجعات', '$returnsCount فاتورة'),
-                  pw.Divider(color: PdfColors.red200),
-                  _buildZReportRow('إجمالي المصروفات', '${shift.totalExpenses.toStringAsFixed(2)} ر.س', isBold: true),
-                ],
-              ),
-            ),
-            pw.SizedBox(height: 20),
-
-            // ملخص النقدية
-            pw.Container(
-              padding: const pw.EdgeInsets.all(16),
-              decoration: pw.BoxDecoration(
-                color: PdfColor.fromHex('#E3F2FD'),
-                borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
-              ),
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text(
-                    'ملخص النقدية',
-                    style: pw.TextStyle(
-                      fontSize: 14,
-                      fontWeight: pw.FontWeight.bold,
-                      color: PdfColor.fromHex('#1565C0'),
-                    ),
-                  ),
-                  pw.SizedBox(height: 12),
-                  _buildZReportRow('الرصيد الافتتاحي', '${shift.openingBalance.toStringAsFixed(2)} ر.س'),
-                  _buildZReportRow('+ المبيعات النقدية', '${shift.totalSales.toStringAsFixed(2)} ر.س', color: PdfColors.green),
-                  _buildZReportRow('- المصروفات', '${shift.totalExpenses.toStringAsFixed(2)} ر.س', color: PdfColors.red),
-                  pw.Divider(color: PdfColors.blue200, thickness: 2),
-                  _buildZReportRow('= صافي النقدية المتوقع', '${netCash.toStringAsFixed(2)} ر.س', isBold: true, fontSize: 14),
-                ],
-              ),
-            ),
-            pw.SizedBox(height: 20),
-
-            // التوقيع
-            pw.Container(
-              padding: const pw.EdgeInsets.all(16),
-              child: pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Column(
-                    children: [
-                      pw.Text('توقيع الكاشير', style: const pw.TextStyle(fontSize: 10)),
-                      pw.SizedBox(height: 24),
-                      pw.Container(
-                        width: 120,
-                        decoration: const pw.BoxDecoration(
-                          border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey400)),
-                        ),
-                      ),
-                    ],
-                  ),
-                  pw.Column(
-                    children: [
-                      pw.Text('توقيع المدير', style: const pw.TextStyle(fontSize: 10)),
-                      pw.SizedBox(height: 24),
-                      pw.Container(
-                        width: 120,
-                        decoration: const pw.BoxDecoration(
-                          border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey400)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            pw.Spacer(),
-
-            // التذييل
-            pw.Center(
-              child: pw.Text(
-                'تم إنشاء هذا التقرير بواسطة نظام حور',
-                style: const pw.TextStyle(
-                  fontSize: 10,
-                  color: PdfColors.grey500,
-                ),
-              ),
-            ),
-          ],
+        theme: PdfTheme.create(),
+        header: (context) => pw.Directionality(
+          textDirection: pw.TextDirection.rtl,
+          child: pw.Column(
+            children: [
+              template.buildHeader(),
+              pw.SizedBox(height: 16),
+            ],
+          ),
         ),
+        footer: (context) => pw.Directionality(
+          textDirection: pw.TextDirection.rtl,
+          child: template.buildFooter(
+            pageNumber: context.pageNumber,
+            totalPages: context.pagesCount,
+          ),
+        ),
+        build: (context) => [
+          pw.Directionality(
+            textDirection: pw.TextDirection.rtl,
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+              children: [
+                // معلومات الوردية
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(16),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(color: PdfColors.grey300),
+                    borderRadius:
+                        const pw.BorderRadius.all(pw.Radius.circular(8)),
+                  ),
+                  child: pw.Column(
+                    children: [
+                      _buildZReportRow('رقم الوردية', '#${shift.shiftNumber}'),
+                      pw.Divider(color: PdfColors.grey200),
+                      _buildZReportRow('تاريخ الافتتاح',
+                          ExportFormatters.formatDateTime(shift.openedAt)),
+                      pw.Divider(color: PdfColors.grey200),
+                      _buildZReportRow(
+                          'تاريخ الإغلاق',
+                          shift.closedAt != null
+                              ? ExportFormatters.formatDateTime(shift.closedAt!)
+                              : 'لم تغلق بعد'),
+                      pw.Divider(color: PdfColors.grey200),
+                      _buildZReportRow('الحالة',
+                          shift.status == 'open' ? 'مفتوحة' : 'مغلقة'),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(height: 20),
+
+                // ملخص المبيعات
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(16),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColor.fromHex('#E8F5E9'),
+                    borderRadius:
+                        const pw.BorderRadius.all(pw.Radius.circular(8)),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'ملخص المبيعات',
+                        style: pw.TextStyle(
+                          fontSize: 14,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColor.fromHex('#2E7D32'),
+                        ),
+                      ),
+                      pw.SizedBox(height: 12),
+                      _buildZReportRow(
+                          'عدد فواتير البيع', '$salesCount فاتورة'),
+                      _buildZReportRow('مبيعات نقدية',
+                          '${cashSales.toStringAsFixed(2)} ر.س'),
+                      _buildZReportRow('مبيعات آجلة',
+                          '${creditSales.toStringAsFixed(2)} ر.س'),
+                      pw.Divider(color: PdfColors.green200),
+                      _buildZReportRow('إجمالي المبيعات',
+                          '${shift.totalSales.toStringAsFixed(2)} ر.س',
+                          isBold: true),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(height: 16),
+
+                // المصروفات
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(16),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColor.fromHex('#FFEBEE'),
+                    borderRadius:
+                        const pw.BorderRadius.all(pw.Radius.circular(8)),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'المصروفات',
+                        style: pw.TextStyle(
+                          fontSize: 14,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColor.fromHex('#C62828'),
+                        ),
+                      ),
+                      pw.SizedBox(height: 12),
+                      _buildZReportRow(
+                          'عدد فواتير الشراء', '$purchasesCount فاتورة'),
+                      _buildZReportRow('عدد المرتجعات', '$returnsCount فاتورة'),
+                      pw.Divider(color: PdfColors.red200),
+                      _buildZReportRow('إجمالي المصروفات',
+                          '${shift.totalExpenses.toStringAsFixed(2)} ر.س',
+                          isBold: true),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(height: 20),
+
+                // ملخص النقدية
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(16),
+                  decoration: pw.BoxDecoration(
+                    color: PdfColor.fromHex('#E3F2FD'),
+                    borderRadius:
+                        const pw.BorderRadius.all(pw.Radius.circular(8)),
+                  ),
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(
+                        'ملخص النقدية',
+                        style: pw.TextStyle(
+                          fontSize: 14,
+                          fontWeight: pw.FontWeight.bold,
+                          color: PdfColor.fromHex('#1565C0'),
+                        ),
+                      ),
+                      pw.SizedBox(height: 12),
+                      _buildZReportRow('الرصيد الافتتاحي',
+                          '${shift.openingBalance.toStringAsFixed(2)} ر.س'),
+                      _buildZReportRow('+ المبيعات النقدية',
+                          '${shift.totalSales.toStringAsFixed(2)} ر.س',
+                          color: PdfColors.green),
+                      _buildZReportRow('- المصروفات',
+                          '${shift.totalExpenses.toStringAsFixed(2)} ر.س',
+                          color: PdfColors.red),
+                      pw.Divider(color: PdfColors.blue200, thickness: 2),
+                      _buildZReportRow('= صافي النقدية المتوقع',
+                          '${netCash.toStringAsFixed(2)} ر.س',
+                          isBold: true, fontSize: 14),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(height: 20),
+
+                // التوقيع
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(16),
+                  child: pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Column(
+                        children: [
+                          pw.Text('توقيع الكاشير',
+                              style: const pw.TextStyle(fontSize: 10)),
+                          pw.SizedBox(height: 24),
+                          pw.Container(
+                            width: 120,
+                            decoration: const pw.BoxDecoration(
+                              border: pw.Border(
+                                  bottom:
+                                      pw.BorderSide(color: PdfColors.grey400)),
+                            ),
+                          ),
+                        ],
+                      ),
+                      pw.Column(
+                        children: [
+                          pw.Text('توقيع المدير',
+                              style: const pw.TextStyle(fontSize: 10)),
+                          pw.SizedBox(height: 24),
+                          pw.Container(
+                            width: 120,
+                            decoration: const pw.BoxDecoration(
+                              border: pw.Border(
+                                  bottom:
+                                      pw.BorderSide(color: PdfColors.grey400)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
 

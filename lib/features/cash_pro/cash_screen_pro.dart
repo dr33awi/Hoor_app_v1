@@ -54,8 +54,10 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
 
       // فلتر التاريخ
       final matchesDate = _dateRange == null ||
-          (m.createdAt.isAfter(_dateRange!.start.subtract(const Duration(days: 1))) &&
-              m.createdAt.isBefore(_dateRange!.end.add(const Duration(days: 1))));
+          (m.createdAt.isAfter(
+                  _dateRange!.start.subtract(const Duration(days: 1))) &&
+              m.createdAt
+                  .isBefore(_dateRange!.end.add(const Duration(days: 1))));
 
       return matchesSearch && matchesType && matchesDate;
     }).toList();
@@ -179,7 +181,7 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
       error: (error, _) => ProEmptyState.error(error: error.toString()),
       data: (movements) {
         final filteredMovements = _filterMovements(movements);
-        
+
         return SingleChildScrollView(
           padding: EdgeInsets.all(AppSpacing.md),
           child: Column(
@@ -213,7 +215,8 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
                     children: [
                       Text(
                         'حركات اليوم',
-                        style: AppTypography.titleMedium.copyWith(fontWeight: FontWeight.bold),
+                        style: AppTypography.titleMedium
+                            .copyWith(fontWeight: FontWeight.bold),
                       ),
                       if (filteredMovements.isNotEmpty)
                         Padding(
@@ -231,18 +234,25 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
                     children: [
                       // زر الرسم البياني
                       IconButton(
-                        onPressed: () => setState(() => _showChart = !_showChart),
+                        onPressed: () =>
+                            setState(() => _showChart = !_showChart),
                         icon: Icon(
-                          _showChart ? Icons.list_rounded : Icons.pie_chart_rounded,
-                          color: _showChart ? AppColors.primary : AppColors.textSecondary,
+                          _showChart
+                              ? Icons.list_rounded
+                              : Icons.pie_chart_rounded,
+                          color: _showChart
+                              ? AppColors.primary
+                              : AppColors.textSecondary,
                         ),
-                        tooltip: _showChart ? 'عرض القائمة' : 'عرض الرسم البياني',
+                        tooltip:
+                            _showChart ? 'عرض القائمة' : 'عرض الرسم البياني',
                       ),
                       // تصدير
                       ExportMenuButton(
-                        onExport: (type) => _handleExport(type, filteredMovements),
+                        onExport: (type) =>
+                            _handleExport(type, filteredMovements),
                         isLoading: _isExporting,
-                        icon: Icons.file_download_outlined,
+                        icon: Icons.ios_share_rounded,
                         tooltip: 'تصدير',
                         enabledOptions: const {
                           ExportType.excel,
@@ -319,7 +329,7 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
     // حساب الإجماليات حسب النوع
     double totalIncome = 0;
     double totalExpense = 0;
-    
+
     for (final m in movements) {
       final isIncome = m.type == 'income' ||
           m.type == 'sale' ||
@@ -331,7 +341,7 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
         totalExpense += m.amount;
       }
     }
-    
+
     final total = totalIncome + totalExpense;
     final incomePercent = total > 0 ? (totalIncome / total * 100) : 0;
     final expensePercent = total > 0 ? (totalExpense / total * 100) : 0;
@@ -391,7 +401,9 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
                 child: _buildChartLegend(
                   label: 'الصافي',
                   value: totalIncome - totalExpense,
-                  color: totalIncome >= totalExpense ? AppColors.success : AppColors.error,
+                  color: totalIncome >= totalExpense
+                      ? AppColors.success
+                      : AppColors.error,
                 ),
               ),
             ],
@@ -508,7 +520,7 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
 
               // فلتر التاريخ
               ListTile(
-                leading: Icon(Icons.date_range, 
+                leading: Icon(Icons.date_range,
                     color: _dateRange != null ? AppColors.primary : null),
                 title: const Text('فترة زمنية'),
                 subtitle: _dateRange != null
@@ -564,14 +576,16 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
     );
   }
 
-  Future<void> _handleExport(ExportType type, List<CashMovement> movements) async {
+  Future<void> _handleExport(
+      ExportType type, List<CashMovement> movements) async {
     if (movements.isEmpty) {
       ProSnackbar.warning(context, 'لا توجد حركات للتصدير');
       return;
     }
 
     setState(() => _isExporting = true);
-    final fileName = 'حركات_الصندوق_${DateFormat('yyyyMMdd').format(DateTime.now())}';
+    final fileName =
+        'حركات_الصندوق_${DateFormat('yyyyMMdd').format(DateTime.now())}';
 
     try {
       switch (type) {
@@ -594,8 +608,8 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
             movements: movements,
           );
           await PdfExportService.sharePdfBytes(
-            pdfBytes, 
-            fileName: fileName, 
+            pdfBytes,
+            fileName: fileName,
             subject: 'حركات الصندوق',
           );
           break;
@@ -604,7 +618,8 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
             movements: movements,
             fileName: fileName,
           );
-          await ExcelExportService.shareFile(filePath, subject: 'حركات الصندوق');
+          await ExcelExportService.shareFile(filePath,
+              subject: 'حركات الصندوق');
           break;
       }
     } catch (e) {

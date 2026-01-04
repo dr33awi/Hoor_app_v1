@@ -452,7 +452,6 @@ class _SupplierDetailsScreenProState
     if (entries.isEmpty) {
       return ProEmptyState.list(
         itemName: 'معاملات',
-        onAdd: () => _showQuickActions(),
       );
     }
 
@@ -589,7 +588,6 @@ class _SupplierDetailsScreenProState
     if (_invoices.isEmpty) {
       return ProEmptyState.list(
         itemName: 'مشتريات',
-        onAdd: () => context.push('/purchases/add'),
       );
     }
 
@@ -610,7 +608,6 @@ class _SupplierDetailsScreenProState
     if (_vouchers.isEmpty) {
       return ProEmptyState.list(
         itemName: 'سندات',
-        onAdd: () => context.push('/vouchers/payment/add'),
       );
     }
 

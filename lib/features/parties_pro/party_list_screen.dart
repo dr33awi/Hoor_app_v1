@@ -208,17 +208,47 @@ class _PartyListScreenState extends ConsumerState<PartyListScreen>
   }
 
   Widget _buildHeader(int totalParties) {
-    return ProHeaderWithSort(
+    return ProHeader(
       title: widget.type.title,
       subtitle: '$totalParties ${widget.type.singular}',
-      currentSort: _sortBy,
-      sortOptions: const [
-        SortOption(value: 'name', label: 'الاسم'),
-        SortOption(value: 'balance', label: 'الرصيد'),
-        SortOption(value: 'recent', label: 'آخر تعامل'),
-      ],
-      onSortChanged: (value) => setState(() => _sortBy = value),
       onBack: () => context.go('/'),
+      actions: [
+        PopupMenuButton<String>(
+          icon: Container(
+            padding: EdgeInsets.all(8.w),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceMuted,
+              borderRadius: BorderRadius.circular(AppRadius.full),
+            ),
+            child: Icon(
+              Icons.filter_list_rounded,
+              color: AppColors.textPrimary,
+              size: 20.sp,
+            ),
+          ),
+          tooltip: 'ترتيب',
+          onSelected: (value) => setState(() => _sortBy = value),
+          itemBuilder: (context) => [
+            const SortOption(value: 'name', label: 'الاسم'),
+            const SortOption(value: 'balance', label: 'الرصيد'),
+            const SortOption(value: 'recent', label: 'آخر تعامل'),
+          ]
+              .map((option) => PopupMenuItem(
+                    value: option.value,
+                    child: Row(
+                      children: [
+                        if (_sortBy == option.value)
+                          Icon(Icons.check_rounded,
+                              size: 16.sp, color: AppColors.secondary),
+                        if (_sortBy != option.value) SizedBox(width: 16.sp),
+                        SizedBox(width: 8.w),
+                        Text(option.label),
+                      ],
+                    ),
+                  ))
+              .toList(),
+        ),
+      ],
     );
   }
 
@@ -270,7 +300,6 @@ class _PartyListScreenState extends ConsumerState<PartyListScreen>
     if (parties.isEmpty) {
       return ProEmptyState.list(
         itemName: widget.type.singular,
-        onAdd: () => context.push(widget.type.addRoute),
       );
     }
 

@@ -94,130 +94,12 @@ class _InvoiceDetailsScreenProState
   // Print Functions
   // ═══════════════════════════════════════════════════════════════════════════
 
-  /// عرض حوار اختيار مقاس الطباعة
-  Future<InvoicePrintSize?> _showSizeSelector() async {
-    return showModalBottomSheet<InvoicePrintSize>(
-      context: context,
-      backgroundColor: AppColors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
-      ),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.all(16.w),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.straighten_rounded,
-                    color: AppColors.primary, size: 24.sp),
-                SizedBox(width: 8.w),
-                Text(
-                  'اختر مقاس الطباعة',
-                  style: AppTypography.titleMedium.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(height: 16.h),
-            _buildSizeOption(
-              ctx: ctx,
-              icon: Icons.receipt_long_rounded,
-              title: '58mm',
-              subtitle: 'طابعة حرارية صغيرة',
-              size: InvoicePrintSize.thermal58mm,
-            ),
-            SizedBox(height: 8.h),
-            _buildSizeOption(
-              ctx: ctx,
-              icon: Icons.receipt_rounded,
-              title: '80mm',
-              subtitle: 'طابعة حرارية قياسية',
-              size: InvoicePrintSize.thermal80mm,
-            ),
-            SizedBox(height: 8.h),
-            _buildSizeOption(
-              ctx: ctx,
-              icon: Icons.description_rounded,
-              title: 'A4',
-              subtitle: 'فاتورة كاملة',
-              size: InvoicePrintSize.a4,
-            ),
-            SizedBox(height: 16.h),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSizeOption({
-    required BuildContext ctx,
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required InvoicePrintSize size,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => Navigator.pop(ctx, size),
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        child: Container(
-          padding: EdgeInsets.all(12.w),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceVariant,
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(10.w),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                ),
-                child: Icon(icon, color: AppColors.primary, size: 24.sp),
-              ),
-              SizedBox(width: 12.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: AppTypography.titleSmall.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(
-                      subtitle,
-                      style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.chevron_right_rounded,
-                color: AppColors.textTertiary,
-                size: 24.sp,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _handlePrint(PrintType type) async {
+  Future<void> _handlePrint(PrintType type, [InvoicePrintSize? size]) async {
     if (_invoice == null || _isPrinting) return;
 
-    // عرض حوار اختيار المقاس أولاً
-    final selectedSize = await _showSizeSelector();
-    if (selectedSize == null) return;
+    // إذا لم يتم تمرير الحجم، نستخدم الحجم الافتراضي أو نطلب من المستخدم (إذا لم يكن الزر قد فعل ذلك)
+    // ولكن بما أننا نستخدم PrintMenuButton مع showSizeSelector=true، فمن المفترض أن يصل الحجم هنا
+    final selectedSize = size ?? InvoicePrintSize.a4;
 
     setState(() => _isPrinting = true);
 
@@ -297,6 +179,9 @@ class _InvoiceDetailsScreenProState
       cancelText: 'إغلاق',
     );
     if (shouldPrint == true) {
+      // هنا نحتاج لتمرير الحجم، ولكن في المعاينة قد لا يكون لدينا الحجم المختار سابقاً بسهولة
+      // يمكننا افتراض A4 أو طلب الاختيار مرة أخرى.
+      // للتبسيط سنطلب الاختيار مرة أخرى عبر الزر، أو نمرر null ليتم استخدام الافتراضي
       _handlePrint(PrintType.print);
     }
   }
@@ -333,6 +218,7 @@ class _InvoiceDetailsScreenProState
           PrintMenuButton(
             onPrint: _handlePrint,
             isLoading: _isPrinting,
+            showSizeSelector: true,
             enabledOptions: const {
               PrintType.print,
               PrintType.share,

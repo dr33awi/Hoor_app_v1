@@ -93,14 +93,11 @@ class ProEmptyState extends StatelessWidget {
   /// حالة فارغة للقوائم
   factory ProEmptyState.list({
     required String itemName,
-    VoidCallback? onAdd,
   }) {
     return ProEmptyState(
       icon: Icons.inbox_rounded,
       title: 'لا يوجد $itemName',
       message: 'ابدأ بإضافة $itemName جديد',
-      actionLabel: onAdd != null ? 'إضافة $itemName' : null,
-      onAction: onAdd,
     );
   }
 

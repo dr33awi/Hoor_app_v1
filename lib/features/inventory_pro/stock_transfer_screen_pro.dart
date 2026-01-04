@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:collection/collection.dart'; // ✅ إضافة للـ firstWhereOrNull
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
@@ -327,11 +328,33 @@ class _StockTransferScreenProState extends ConsumerState<StockTransferScreenPro>
     required int quantity,
     required String notes,
   }) async {
-    if (fromWarehouse == null ||
-        toWarehouse == null ||
-        product == null ||
-        quantity <= 0) {
-      ProSnackbar.warning(context, 'يرجى ملء جميع الحقول المطلوبة');
+    // ✅ التحقق من الحقول المطلوبة
+    if (fromWarehouse == null) {
+      ProSnackbar.warning(context, 'اختر المستودع المصدر');
+      return;
+    }
+
+    if (toWarehouse == null) {
+      ProSnackbar.warning(context, 'اختر المستودع الهدف');
+      return;
+    }
+
+    if (product == null) {
+      ProSnackbar.warning(context, 'اختر المنتج');
+      return;
+    }
+
+    if (quantity <= 0) {
+      ProSnackbar.warning(context, 'أدخل كمية صحيحة');
+      return;
+    }
+
+    // ✅ التحقق من الكمية المتاحة
+    if (quantity > product.quantity) {
+      ProSnackbar.warning(
+        context,
+        'الكمية المطلوبة ($quantity) أكبر من المتوفرة (${product.quantity})',
+      );
       return;
     }
 
@@ -362,7 +385,6 @@ class _StockTransferScreenProState extends ConsumerState<StockTransferScreenPro>
   }
 
   void _showTransferDetails(StockTransfer transfer) {
-    // Navigate to transfer details or show bottom sheet
     showProBottomSheet(
       context: context,
       title: 'تفاصيل النقل',
@@ -376,7 +398,7 @@ class _StockTransferScreenProState extends ConsumerState<StockTransferScreenPro>
             'التاريخ',
             DateFormat('yyyy/MM/dd HH:mm', 'ar').format(transfer.createdAt),
           ),
-          if (transfer.notes != null)
+          if (transfer.notes != null && transfer.notes!.isNotEmpty)
             _buildDetailRow('ملاحظات', transfer.notes!),
           SizedBox(height: AppSpacing.lg),
         ],
@@ -394,10 +416,13 @@ class _StockTransferScreenProState extends ConsumerState<StockTransferScreenPro>
               style: AppTypography.bodyMedium.copyWith(
                 color: AppColors.textSecondary,
               )),
-          Text(value,
-              style: AppTypography.bodyMedium.copyWith(
-                fontWeight: FontWeight.w600,
-              )),
+          Flexible(
+            child: Text(value,
+                style: AppTypography.bodyMedium.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.end),
+          ),
         ],
       ),
     );
@@ -417,6 +442,17 @@ class _StockTransferScreenProState extends ConsumerState<StockTransferScreenPro>
   }
 
   Future<void> _completeTransfer(StockTransfer transfer) async {
+    // ✅ تأكيد قبل الإكمال
+    final confirm = await showProConfirmDialog(
+      context: context,
+      title: 'تأكيد إكمال النقل',
+      message: 'هل تريد إكمال عملية النقل رقم ${transfer.transferNumber}؟',
+      icon: Icons.check_circle_outline,
+      confirmText: 'إكمال',
+    );
+
+    if (confirm != true) return;
+
     try {
       final warehouseRepo = ref.read(warehouseRepositoryProvider);
       await warehouseRepo.completeTransfer(transfer.id);
@@ -487,6 +523,19 @@ class _TransferCard extends ConsumerWidget {
     }
   }
 
+  IconData _getStatusIcon() {
+    switch (transfer.status) {
+      case 'pending':
+        return Icons.hourglass_empty_rounded;
+      case 'completed':
+        return Icons.check_circle_rounded;
+      case 'cancelled':
+        return Icons.cancel_rounded;
+      default:
+        return Icons.swap_horiz_rounded;
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final warehousesAsync = ref.watch(warehousesStreamProvider);
@@ -504,11 +553,11 @@ class _TransferCard extends ConsumerWidget {
               Container(
                 padding: EdgeInsets.all(AppSpacing.sm),
                 decoration: BoxDecoration(
-                  color: _getStatusColor().soft,
+                  color: _getStatusColor().withOpacity(0.1),
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
                 child: Icon(
-                  Icons.swap_horiz_rounded,
+                  _getStatusIcon(),
                   color: _getStatusColor(),
                   size: 20.sp,
                 ),
@@ -543,29 +592,12 @@ class _TransferCard extends ConsumerWidget {
             loading: () => const LinearProgressIndicator(),
             error: (_, __) => const SizedBox.shrink(),
             data: (warehouses) {
-              final fromWarehouse = warehouses.firstWhere(
+              // ✅ استخدام firstWhereOrNull بدلاً من firstWhere
+              final fromWarehouse = warehouses.firstWhereOrNull(
                 (w) => w.id == transfer.fromWarehouseId,
-                orElse: () => Warehouse(
-                  id: '',
-                  name: '---',
-                  isDefault: false,
-                  isActive: true,
-                  syncStatus: 'synced',
-                  createdAt: DateTime.now(),
-                  updatedAt: DateTime.now(),
-                ),
               );
-              final toWarehouse = warehouses.firstWhere(
+              final toWarehouse = warehouses.firstWhereOrNull(
                 (w) => w.id == transfer.toWarehouseId,
-                orElse: () => Warehouse(
-                  id: '',
-                  name: '---',
-                  isDefault: false,
-                  isActive: true,
-                  syncStatus: 'synced',
-                  createdAt: DateTime.now(),
-                  updatedAt: DateTime.now(),
-                ),
               );
 
               return Container(
@@ -577,29 +609,15 @@ class _TransferCard extends ConsumerWidget {
                 child: Row(
                   children: [
                     Expanded(
-                      child: Column(
-                        children: [
-                          Text(
-                            'من',
-                            style: AppTypography.labelSmall.copyWith(
-                              color: AppColors.textTertiary,
-                            ),
-                          ),
-                          SizedBox(height: 2.h),
-                          Text(
-                            fromWarehouse.name,
-                            style: AppTypography.bodyMedium.copyWith(
-                              fontWeight: FontWeight.w500,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
+                      child: _WarehouseInfoWidget(
+                        label: 'من',
+                        warehouse: fromWarehouse,
                       ),
                     ),
                     Container(
                       padding: EdgeInsets.all(AppSpacing.xs),
                       decoration: BoxDecoration(
-                        color: AppColors.secondary.soft,
+                        color: AppColors.secondary.withOpacity(0.1),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -609,23 +627,9 @@ class _TransferCard extends ConsumerWidget {
                       ),
                     ),
                     Expanded(
-                      child: Column(
-                        children: [
-                          Text(
-                            'إلى',
-                            style: AppTypography.labelSmall.copyWith(
-                              color: AppColors.textTertiary,
-                            ),
-                          ),
-                          SizedBox(height: 2.h),
-                          Text(
-                            toWarehouse.name,
-                            style: AppTypography.bodyMedium.copyWith(
-                              fontWeight: FontWeight.w500,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
+                      child: _WarehouseInfoWidget(
+                        label: 'إلى',
+                        warehouse: toWarehouse,
                       ),
                     ),
                   ],
@@ -685,6 +689,70 @@ class _TransferCard extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ✅ Warehouse Info Widget - للتعامل مع المستودعات المحذوفة
+// ═══════════════════════════════════════════════════════════════════════════
+
+class _WarehouseInfoWidget extends StatelessWidget {
+  final String label;
+  final Warehouse? warehouse;
+
+  const _WarehouseInfoWidget({
+    required this.label,
+    this.warehouse,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isDeleted = warehouse == null;
+
+    return Column(
+      children: [
+        Text(
+          label,
+          style: AppTypography.labelSmall.copyWith(
+            color: AppColors.textTertiary,
+          ),
+        ),
+        SizedBox(height: 2.h),
+        if (isDeleted)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                size: 14.sp,
+                color: AppColors.error,
+              ),
+              SizedBox(width: 4.w),
+              Flexible(
+                child: Text(
+                  'مستودع محذوف',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.error,
+                    fontStyle: FontStyle.italic,
+                  ),
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          )
+        else
+          Text(
+            warehouse!.name,
+            style: AppTypography.bodyMedium.copyWith(
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+          ),
+      ],
     );
   }
 }

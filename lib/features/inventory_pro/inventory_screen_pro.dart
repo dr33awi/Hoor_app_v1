@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:collection/collection.dart'; // ✅ إضافة للـ firstWhereOrNull
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/widgets/widgets.dart';
@@ -361,6 +362,16 @@ class _InventoryScreenProState extends ConsumerState<InventoryScreenPro>
                       return;
                     }
 
+                    // ✅ التحقق من الكمية المتاحة عند السحب
+                    if (selectedType == 'withdraw' &&
+                        quantity > selectedProduct!.quantity) {
+                      ProSnackbar.warning(
+                        context,
+                        'الكمية المطلوبة أكبر من المتوفرة (${selectedProduct!.quantity})',
+                      );
+                      return;
+                    }
+
                     try {
                       final inventoryRepo =
                           ref.read(inventoryRepositoryProvider);
@@ -382,12 +393,12 @@ class _InventoryScreenProState extends ConsumerState<InventoryScreenPro>
                         );
                       }
 
-                      if (context.mounted) {
+                      if (mounted) {
                         Navigator.pop(context);
                         ProSnackbar.success(context, 'تم تسجيل الحركة بنجاح');
                       }
                     } catch (e) {
-                      if (context.mounted) {
+                      if (mounted) {
                         ProSnackbar.error(context, e.toString());
                       }
                     }
@@ -443,13 +454,24 @@ class _MovementCard extends StatelessWidget {
               ],
             ),
           ),
-          Text(
-            '${isAdd ? '+' : '-'}${movement.quantity}',
-            style: AppTypography.titleMedium
-                .copyWith(
-                  color: isAdd ? AppColors.success : AppColors.error,
-                )
-                .monoBold,
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: AppSpacing.sm,
+              vertical: AppSpacing.xs,
+            ),
+            decoration: BoxDecoration(
+              color: (isAdd ? AppColors.success : AppColors.error)
+                  .withOpacity(0.1),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+            ),
+            child: Text(
+              '${isAdd ? '+' : '-'}${movement.quantity}',
+              style: AppTypography.titleMedium.copyWith(
+                color: isAdd ? AppColors.success : AppColors.error,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'monospace',
+              ),
+            ),
           ),
         ],
       ),
@@ -468,12 +490,23 @@ class _LowStockCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ✅ حساب مستوى الخطورة
+    final severity = _calculateSeverity();
+
     return ProCard(
       margin: EdgeInsets.only(bottom: AppSpacing.sm),
-      borderColor: AppColors.warning.border,
+      borderColor: severity.color.withOpacity(0.5),
       child: Row(
         children: [
-          ProIconBox.warning(),
+          // ✅ أيقونة حسب مستوى الخطورة
+          Container(
+            padding: EdgeInsets.all(AppSpacing.sm),
+            decoration: BoxDecoration(
+              color: severity.color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: Icon(severity.icon, color: severity.color, size: 20.sp),
+          ),
           SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
@@ -492,18 +525,29 @@ class _LowStockCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                '${product.quantity}',
-                style: AppTypography.titleMedium
-                    .copyWith(
-                      color: AppColors.warning,
-                    )
-                    .monoBold,
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: AppSpacing.sm,
+                  vertical: AppSpacing.xs,
+                ),
+                decoration: BoxDecoration(
+                  color: severity.color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: Text(
+                  '${product.quantity}',
+                  style: AppTypography.titleMedium.copyWith(
+                    color: severity.color,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'monospace',
+                  ),
+                ),
               ),
+              SizedBox(height: 2.h),
               Text(
-                'متبقي',
+                severity.label,
                 style: AppTypography.labelSmall.copyWith(
-                  color: AppColors.textTertiary,
+                  color: severity.color,
                 ),
               ),
             ],
@@ -512,6 +556,42 @@ class _LowStockCard extends StatelessWidget {
       ),
     );
   }
+
+  // ✅ دالة لحساب مستوى الخطورة
+  _StockSeverity _calculateSeverity() {
+    if (product.quantity <= 0) {
+      return _StockSeverity(
+        color: AppColors.error,
+        icon: Icons.error_rounded,
+        label: 'نفذ',
+      );
+    } else if (product.quantity <= product.minQuantity * 0.5) {
+      return _StockSeverity(
+        color: AppColors.error,
+        icon: Icons.warning_rounded,
+        label: 'حرج',
+      );
+    } else {
+      return _StockSeverity(
+        color: AppColors.warning,
+        icon: Icons.info_rounded,
+        label: 'منخفض',
+      );
+    }
+  }
+}
+
+// ✅ كلاس مساعد لمستوى الخطورة
+class _StockSeverity {
+  final Color color;
+  final IconData icon;
+  final String label;
+
+  const _StockSeverity({
+    required this.color,
+    required this.icon,
+    required this.label,
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -526,6 +606,14 @@ class _StockCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isLow = product.quantity <= product.minQuantity;
+    final isOut = product.quantity <= 0;
+
+    // ✅ تحديد اللون حسب الحالة
+    final Color statusColor = isOut
+        ? AppColors.error
+        : isLow
+            ? AppColors.warning
+            : AppColors.success;
 
     return ProCard(
       margin: EdgeInsets.only(bottom: AppSpacing.sm),
@@ -538,11 +626,28 @@ class _StockCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(product.name, style: AppTypography.titleSmall),
-                Text(
-                  'SKU: ${product.sku ?? 'N/A'}',
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AppColors.textTertiary,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      'SKU: ${product.sku ?? 'N/A'}',
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.textTertiary,
+                      ),
+                    ),
+                    if (product.barcode != null) ...[
+                      SizedBox(width: AppSpacing.sm),
+                      Icon(Icons.qr_code,
+                          size: 12.sp, color: AppColors.textTertiary),
+                      SizedBox(width: 2.w),
+                      Text(
+                        product.barcode!,
+                        style: AppTypography.bodySmall.copyWith(
+                          color: AppColors.textTertiary,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),
@@ -553,16 +658,25 @@ class _StockCard extends StatelessWidget {
               vertical: AppSpacing.xs,
             ),
             decoration: BoxDecoration(
-              color: (isLow ? AppColors.warning : AppColors.success).soft,
+              color: statusColor.withOpacity(0.1),
               borderRadius: BorderRadius.circular(AppRadius.full),
+              border: Border.all(color: statusColor.withOpacity(0.3)),
             ),
-            child: Text(
-              '${product.quantity}',
-              style: AppTypography.labelLarge
-                  .copyWith(
-                    color: isLow ? AppColors.warning : AppColors.success,
-                  )
-                  .monoBold,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isOut)
+                  Icon(Icons.error_outline, size: 14.sp, color: statusColor),
+                if (isOut) SizedBox(width: 4.w),
+                Text(
+                  isOut ? 'نفذ' : '${product.quantity}',
+                  style: AppTypography.labelLarge.copyWith(
+                    color: statusColor,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: isOut ? null : 'monospace',
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -598,7 +712,7 @@ class _TypeButton extends StatelessWidget {
       child: Container(
         padding: EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
-          color: isSelected ? color.soft : AppColors.surfaceVariant,
+          color: isSelected ? color.withOpacity(0.1) : AppColors.surfaceVariant,
           borderRadius: BorderRadius.circular(AppRadius.md),
           border: Border.all(
             color: isSelected ? color : AppColors.border,

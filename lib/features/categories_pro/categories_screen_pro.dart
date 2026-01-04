@@ -108,17 +108,18 @@ class _CategoriesScreenProState extends ConsumerState<CategoriesScreenPro> {
               ),
               data: (categories) => ProHeader(
                 title: _isReorderMode ? 'إعادة الترتيب' : 'التصنيفات',
-                subtitle: _isReorderMode 
-                    ? 'اسحب لإعادة ترتيب التصنيفات' 
+                subtitle: _isReorderMode
+                    ? 'اسحب لإعادة ترتيب التصنيفات'
                     : '${categories.length} تصنيف',
-                onBack: _isReorderMode 
+                onBack: _isReorderMode
                     ? () => setState(() => _isReorderMode = false)
                     : () => context.go('/'),
                 actions: [
                   if (!_isReorderMode) ...[
                     IconButton(
                       onPressed: () => setState(() => _isReorderMode = true),
-                      icon: Icon(Icons.swap_vert_rounded, color: AppColors.textSecondary),
+                      icon: Icon(Icons.swap_vert_rounded,
+                          color: AppColors.textSecondary),
                       tooltip: 'إعادة الترتيب',
                     ),
                     ExportMenuButton(
@@ -165,19 +166,22 @@ class _CategoriesScreenProState extends ConsumerState<CategoriesScreenPro> {
           ],
         ),
       ),
-      floatingActionButton: _isReorderMode ? null : FloatingActionButton.extended(
-        onPressed: () => _showCategoryForm(),
-        backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: Text(
-          'فئة جديدة',
-          style: AppTypography.labelLarge.copyWith(color: Colors.white),
-        ),
-      ),
+      floatingActionButton: _isReorderMode
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: () => _showCategoryForm(),
+              backgroundColor: AppColors.primary,
+              icon: const Icon(Icons.add, color: Colors.white),
+              label: Text(
+                'فئة جديدة',
+                style: AppTypography.labelLarge.copyWith(color: Colors.white),
+              ),
+            ),
     );
   }
 
-  Widget _buildCategoriesList(List<Category> categories, List<Product> products) {
+  Widget _buildCategoriesList(
+      List<Category> categories, List<Product> products) {
     var filtered = categories.where((c) {
       if (_searchQuery.isEmpty) return true;
       return c.name.toLowerCase().contains(_searchQuery.toLowerCase());
@@ -217,14 +221,16 @@ class _CategoriesScreenProState extends ConsumerState<CategoriesScreenPro> {
     // حساب عدد المنتجات لكل تصنيف
     Map<String, int> productCounts = {};
     for (final category in filtered) {
-      productCounts[category.id] = products.where((p) => p.categoryId == category.id).length;
+      productCounts[category.id] =
+          products.where((p) => p.categoryId == category.id).length;
     }
 
     if (_isReorderMode) {
       return ReorderableListView.builder(
         padding: EdgeInsets.all(AppSpacing.md),
         itemCount: filtered.length,
-        onReorder: (oldIndex, newIndex) => _handleReorder(filtered, oldIndex, newIndex),
+        onReorder: (oldIndex, newIndex) =>
+            _handleReorder(filtered, oldIndex, newIndex),
         itemBuilder: (context, index) {
           final category = filtered[index];
           final count = productCounts[category.id] ?? 0;
@@ -257,16 +263,17 @@ class _CategoriesScreenProState extends ConsumerState<CategoriesScreenPro> {
     );
   }
 
-  Future<void> _handleReorder(List<Category> categories, int oldIndex, int newIndex) async {
+  Future<void> _handleReorder(
+      List<Category> categories, int oldIndex, int newIndex) async {
     if (oldIndex < newIndex) {
       newIndex -= 1;
     }
-    
+
     setState(() {
       final item = categories.removeAt(oldIndex);
       categories.insert(newIndex, item);
     });
-    
+
     // ملاحظة: إعادة الترتيب مرئية فقط أثناء الجلسة الحالية
     // يمكن إضافة حقل sortOrder للجدول لحفظ الترتيب بشكل دائم
     if (mounted) {
@@ -281,7 +288,8 @@ class _CategoriesScreenProState extends ConsumerState<CategoriesScreenPro> {
     }
 
     setState(() => _isExporting = true);
-    final fileName = 'التصنيفات_${DateFormat('yyyyMMdd').format(DateTime.now())}';
+    final fileName =
+        'التصنيفات_${DateFormat('yyyyMMdd').format(DateTime.now())}';
 
     try {
       switch (type) {
@@ -307,24 +315,31 @@ class _CategoriesScreenProState extends ConsumerState<CategoriesScreenPro> {
     }
   }
 
-  Future<void> _exportCategoriesToExcel(List<Category> categories, String fileName) async {
+  Future<void> _exportCategoriesToExcel(
+      List<Category> categories, String fileName) async {
     await ExcelExportService.exportCategories(
       categories: categories,
       fileName: fileName,
     );
   }
 
-  Future<void> _exportCategoriesToPdf(List<Category> categories, String fileName) async {
-    final pdfBytes = await PdfExportService.generateCategoriesList(categories: categories);
+  Future<void> _exportCategoriesToPdf(
+      List<Category> categories, String fileName) async {
+    final pdfBytes =
+        await PdfExportService.generateCategoriesList(categories: categories);
     await PdfExportService.savePdfFile(pdfBytes, fileName);
   }
 
-  Future<void> _shareCategoriesPdf(List<Category> categories, String fileName) async {
-    final pdfBytes = await PdfExportService.generateCategoriesList(categories: categories);
-    await PdfExportService.sharePdfBytes(pdfBytes, fileName: fileName, subject: 'قائمة التصنيفات');
+  Future<void> _shareCategoriesPdf(
+      List<Category> categories, String fileName) async {
+    final pdfBytes =
+        await PdfExportService.generateCategoriesList(categories: categories);
+    await PdfExportService.sharePdfBytes(pdfBytes,
+        fileName: fileName, subject: 'قائمة التصنيفات');
   }
 
-  Future<void> _shareCategoriesExcel(List<Category> categories, String fileName) async {
+  Future<void> _shareCategoriesExcel(
+      List<Category> categories, String fileName) async {
     final filePath = await ExcelExportService.exportCategories(
       categories: categories,
       fileName: fileName,
@@ -494,7 +509,7 @@ class _CategoryCard extends StatelessWidget {
                         vertical: AppSpacing.xxs,
                       ),
                       decoration: BoxDecoration(
-                        color: productCount > 0 
+                        color: productCount > 0
                             ? AppColors.primary.withValues(alpha: 0.1)
                             : AppColors.textTertiary.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(AppSpacing.xs),
@@ -502,8 +517,8 @@ class _CategoryCard extends StatelessWidget {
                       child: Text(
                         '$productCount منتج',
                         style: AppTypography.labelSmall.copyWith(
-                          color: productCount > 0 
-                              ? AppColors.primary 
+                          color: productCount > 0
+                              ? AppColors.primary
                               : AppColors.textTertiary,
                         ),
                       ),
