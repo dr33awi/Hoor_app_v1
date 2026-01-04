@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Pro Text Field - Shared Text Input Widget
+// Pro Text Field - Enterprise Accounting Design
 // Unified text field component for all forms
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 

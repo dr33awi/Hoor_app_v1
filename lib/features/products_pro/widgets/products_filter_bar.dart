@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Products Filter Bar Widget
+// Products Filter Bar Widget - Enterprise Accounting Design
 // Search field with view toggle and sort options
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 

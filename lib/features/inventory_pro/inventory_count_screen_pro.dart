@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Inventory Count Screen Pro - Professional Design System
-// Modern Inventory Count Interface with Barcode Scanner
+// Inventory Count Screen Pro - Enterprise Accounting Design
+// Inventory Count with Barcode Scanner and Ledger Precision
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';

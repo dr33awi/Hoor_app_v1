@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Invoice Success Dialog - حوار نجاح الفاتورة الموحد
-// تصميم بسيط ونظيف
+// Invoice Success Dialog - Enterprise Accounting Design
+// حوار نجاح الفاتورة الموحد بتصميم احترافي
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';

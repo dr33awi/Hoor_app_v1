@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Customer Details Screen Pro
+// Customer Details Screen Pro - Enterprise Accounting Design
 // عرض تفاصيل العميل مع كشف الحساب والفواتير والسندات
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -176,27 +177,29 @@ class _CustomerDetailsScreenProState
 
   Widget _buildCustomerCard() {
     return Container(
-      margin: EdgeInsets.all(AppSpacing.md),
-      padding: EdgeInsets.all(AppSpacing.lg),
+      margin: EdgeInsets.all(AppSpacing.sm),
+      padding: EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(color: AppColors.border),
-        boxShadow: AppShadows.sm,
       ),
       child: Row(
         children: [
+          // Enterprise: Square avatar with border
           Container(
-            width: 60.w,
-            height: 60.w,
+            width: 48.w,
+            height: 48.w,
             decoration: BoxDecoration(
-              color: AppColors.secondary.soft,
-              borderRadius: BorderRadius.circular(AppRadius.lg),
+              color: AppColors.secondary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+              border:
+                  Border.all(color: AppColors.secondary.withValues(alpha: 0.2)),
             ),
             child: Center(
               child: Text(
                 _customer!.name[0].toUpperCase(),
-                style: AppTypography.displaySmall.copyWith(
+                style: AppTypography.titleLarge.copyWith(
                   color: AppColors.secondary,
                   fontWeight: FontWeight.bold,
                 ),

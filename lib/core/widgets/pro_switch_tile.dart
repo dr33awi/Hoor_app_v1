@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Pro Switch Tile - Shared Switch Widget
+// Pro Switch Tile - Enterprise Accounting Design
 // Unified switch tile component for all forms
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import '../theme/design_tokens.dart';

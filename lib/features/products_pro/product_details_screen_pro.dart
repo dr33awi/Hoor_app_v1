@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Product Details Screen Pro
-// View detailed product information
+// Product Details Screen Pro - Enterprise Accounting Design
+// View detailed product information with Ledger Precision
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

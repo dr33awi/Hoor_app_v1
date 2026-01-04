@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Pro Button - Unified Button Widget
+// Pro Button - Enterprise Accounting Design
 // Consistent buttons across all screens
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -73,17 +74,18 @@ class ProButton extends StatelessWidget {
     final iconSize = _getIconSize();
     final loaderSize = _getLoaderSize();
 
+    // تحديد لون النص والأيقونة حسب نوع الزر
+    final bool isFilledType =
+        type == ProButtonType.filled || type == ProButtonType.elevated;
+    final Color contentColor = isFilledType ? Colors.white : buttonColor;
+
     Widget content = isLoading
         ? SizedBox(
             width: loaderSize,
             height: loaderSize,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color>(
-                type == ProButtonType.filled || type == ProButtonType.elevated
-                    ? Colors.white
-                    : buttonColor,
-              ),
+              valueColor: AlwaysStoppedAnimation<Color>(contentColor),
             ),
           )
         : Row(
@@ -91,13 +93,13 @@ class ProButton extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (icon != null && !iconAtEnd) ...[
-                Icon(icon, size: iconSize),
+                Icon(icon, size: iconSize, color: contentColor),
                 SizedBox(width: AppSpacing.sm),
               ],
-              Text(label, style: textStyle),
+              Text(label, style: textStyle.copyWith(color: contentColor)),
               if (icon != null && iconAtEnd) ...[
                 SizedBox(width: AppSpacing.sm),
-                Icon(icon, size: iconSize),
+                Icon(icon, size: iconSize, color: contentColor),
               ],
             ],
           );

@@ -1,7 +1,10 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Reports Screen Pro - Professional Design System
-// Reports Hub with Modern UI
+// Reports Screen Pro - Enterprise Design System
+// Reports Hub with Professional Business Analytics
+// Hoor Enterprise Design System 2026
 // ═══════════════════════════════════════════════════════════════════════════
+
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -44,17 +47,17 @@ class ReportsScreenPro extends ConsumerWidget {
             ),
             Expanded(
               child: SingleChildScrollView(
-                padding: EdgeInsets.all(AppSpacing.md),
+                padding: EdgeInsets.all(AppSpacing.screenPadding),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Quick Stats
                     _buildQuickStats(salesAsync, purchasesAsync),
-                    SizedBox(height: AppSpacing.lg),
+                    SizedBox(height: AppSpacing.md),
 
                     // Sales Reports
                     _buildSectionTitle('تقارير المبيعات'),
-                    SizedBox(height: AppSpacing.md),
+                    SizedBox(height: AppSpacing.sm),
                     _ReportCard(
                       title: 'تقرير المبيعات',
                       description: 'إجمالي المبيعات والإيرادات',
@@ -63,11 +66,11 @@ class ReportsScreenPro extends ConsumerWidget {
                       onTap: () => context.push('/reports/sales'),
                     ),
 
-                    SizedBox(height: AppSpacing.lg),
+                    SizedBox(height: AppSpacing.md),
 
                     // Purchase Reports
                     _buildSectionTitle('تقارير المشتريات'),
-                    SizedBox(height: AppSpacing.md),
+                    SizedBox(height: AppSpacing.sm),
                     _ReportCard(
                       title: 'تقرير المشتريات',
                       description: 'إجمالي المشتريات والتكاليف',
@@ -76,11 +79,11 @@ class ReportsScreenPro extends ConsumerWidget {
                       onTap: () => context.push('/reports/purchases'),
                     ),
 
-                    SizedBox(height: AppSpacing.lg),
+                    SizedBox(height: AppSpacing.md),
 
                     // Financial Reports
                     _buildSectionTitle('التقارير المالية'),
-                    SizedBox(height: AppSpacing.md),
+                    SizedBox(height: AppSpacing.sm),
                     _ReportCard(
                       title: 'تقرير الأرباح والخسائر',
                       description: 'صافي الربح والمصروفات',
@@ -103,11 +106,11 @@ class ReportsScreenPro extends ConsumerWidget {
                       onTap: () => context.push('/reports/payables'),
                     ),
 
-                    SizedBox(height: AppSpacing.lg),
+                    SizedBox(height: AppSpacing.md),
 
                     // Inventory Reports
                     _buildSectionTitle('تقارير المخزون'),
-                    SizedBox(height: AppSpacing.md),
+                    SizedBox(height: AppSpacing.sm),
                     _ReportCard(
                       title: 'تقرير المخزون',
                       description: 'الكميات والقيم الحالية',
@@ -116,7 +119,7 @@ class ReportsScreenPro extends ConsumerWidget {
                       onTap: () => context.push('/reports/inventory'),
                     ),
 
-                    SizedBox(height: AppSpacing.xxl),
+                    SizedBox(height: AppSpacing.xl),
                   ],
                 ),
               ),
@@ -162,26 +165,19 @@ class ReportsScreenPro extends ConsumerWidget {
     return Container(
       padding: EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.primary,
-            AppColors.primary.overlayHeavy,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(AppRadius.lg),
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(AppRadius.md),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'ملخص الشهر الحالي',
-            style: AppTypography.titleMedium.copyWith(
-              color: Colors.white.o87,
+            style: AppTypography.labelMedium.copyWith(
+              color: Colors.white.withValues(alpha: 0.9),
             ),
           ),
-          SizedBox(height: AppSpacing.md),
+          SizedBox(height: AppSpacing.sm),
           Row(
             children: [
               Expanded(
@@ -195,8 +191,8 @@ class ReportsScreenPro extends ConsumerWidget {
               ),
               Container(
                 width: 1,
-                height: 60.h,
-                color: Colors.white.light,
+                height: 50.h,
+                color: Colors.white.withValues(alpha: 0.2),
               ),
               Expanded(
                 child: _buildQuickStatItem(
@@ -209,8 +205,8 @@ class ReportsScreenPro extends ConsumerWidget {
               ),
               Container(
                 width: 1,
-                height: 60.h,
-                color: Colors.white.light,
+                height: 50.h,
+                color: Colors.white.withValues(alpha: 0.2),
               ),
               Expanded(
                 child: _buildQuickStatItem(
@@ -242,25 +238,25 @@ class ReportsScreenPro extends ConsumerWidget {
         Text(
           label,
           style: AppTypography.labelSmall.copyWith(
-            color: Colors.white.o70,
+            color: Colors.white.withValues(alpha: 0.7),
           ),
         ),
         SizedBox(height: AppSpacing.xs),
         Text(
           value,
-          style: AppTypography.titleLarge
-              .copyWith(
-                color: Colors.white,
-              )
-              .monoBold,
+          style: AppTypography.titleMedium.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
         ),
         SizedBox(height: AppSpacing.xs),
         Container(
           padding:
               EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: 2.h),
           decoration: BoxDecoration(
-            color: Colors.white.light,
-            borderRadius: BorderRadius.circular(AppRadius.full),
+            color: Colors.white.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(AppRadius.xs),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,

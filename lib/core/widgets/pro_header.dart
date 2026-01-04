@@ -1,6 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Pro Header - Modern Shared Header Widget
-// Unified header component for all screens - Modern Pro Design 2026
+// Pro Header - Enterprise Header Widget
+// Professional header for accounting interfaces
+// Hoor Enterprise Design System 2026
 // ═══════════════════════════════════════════════════════════════════════════
 
 import 'package:flutter/material.dart';
@@ -9,7 +10,7 @@ import 'package:go_router/go_router.dart';
 
 import '../theme/design_tokens.dart';
 
-/// Header موحد لجميع الشاشات - التصميم الحديث
+/// Header موحد - تصميم Enterprise المحاسبي
 class ProHeader extends StatelessWidget {
   final String title;
   final String? subtitle;
@@ -42,11 +43,14 @@ class ProHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: AppSpacing.md.w,
+        horizontal: AppSpacing.screenPadding.w,
         vertical: AppSpacing.sm.h,
       ),
       decoration: BoxDecoration(
         color: backgroundColor ?? AppColors.surface,
+        border: Border(
+          bottom: BorderSide(color: AppColors.border, width: 1),
+        ),
       ),
       child: Row(
         children: [
@@ -69,19 +73,19 @@ class ProHeader extends StatelessWidget {
           if (showBackButton || showDrawerButton || leading != null)
             SizedBox(width: AppSpacing.sm.w),
 
-          // Icon Box (optional)
+          // Icon Box (optional) - Enterprise style
           if (icon != null) ...[
             Container(
-              padding: EdgeInsets.all(AppSpacing.sm.w),
+              width: 32.w,
+              height: 32.w,
               decoration: BoxDecoration(
-                color:
-                    (iconColor ?? AppColors.secondary).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(AppRadius.md),
+                color: (iconColor ?? AppColors.primary).withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
               child: Icon(
                 icon,
-                color: iconColor ?? AppColors.secondary,
-                size: 20.sp,
+                color: iconColor ?? AppColors.primary,
+                size: 16.sp,
               ),
             ),
             SizedBox(width: AppSpacing.sm.w),
@@ -90,15 +94,13 @@ class ProHeader extends StatelessWidget {
           // Title & Subtitle
           Expanded(
             child: centerTitle
-                ? Center(
-                    child: _buildTitleContent(),
-                  )
+                ? Center(child: _buildTitleContent())
                 : _buildTitleContent(),
           ),
 
           // Actions
           if (actions != null) ...[
-            SizedBox(width: AppSpacing.sm.w),
+            SizedBox(width: AppSpacing.xs.w),
             ...actions!,
           ],
         ],
@@ -115,7 +117,7 @@ class ProHeader extends StatelessWidget {
         Text(
           title,
           style: AppTypography.titleMedium.copyWith(
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w600,
           ),
         ),
         if (subtitle != null)
@@ -136,18 +138,213 @@ class ProHeader extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 40.w,
-        height: 40.w,
+        width: 36.w,
+        height: 36.w,
         decoration: BoxDecoration(
-          color: AppColors.background,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+          color: AppColors.surfaceMuted,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          border: Border.all(color: AppColors.border),
         ),
         child: Icon(
           icon,
-          size: 20.sp,
+          size: 18.sp,
           color: AppColors.textSecondary,
         ),
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ENTERPRISE FACTORY CONSTRUCTORS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Header للصفحة الرئيسية (بدون border سفلي)
+  factory ProHeader.home({
+    required String title,
+    String? subtitle,
+    required VoidCallback onMenuTap,
+    List<Widget>? actions,
+  }) {
+    return _ProHeaderHome(
+      title: title,
+      subtitle: subtitle,
+      onMenuTap: onMenuTap,
+      actions: actions,
+    );
+  }
+
+  /// Header للتفاصيل مع إجراءات
+  factory ProHeader.detail({
+    required String title,
+    String? subtitle,
+    VoidCallback? onBack,
+    List<Widget>? actions,
+  }) {
+    return ProHeader(
+      title: title,
+      subtitle: subtitle,
+      onBack: onBack,
+      showBackButton: true,
+      actions: actions,
+    );
+  }
+
+  /// Header للنماذج
+  factory ProHeader.form({
+    required String title,
+    VoidCallback? onClose,
+    VoidCallback? onSave,
+    bool canSave = true,
+  }) {
+    return _ProHeaderForm(
+      title: title,
+      onClose: onClose,
+      onSave: onSave,
+      canSave: canSave,
+    );
+  }
+}
+
+/// Header خاص بالصفحة الرئيسية
+class _ProHeaderHome extends ProHeader {
+  final VoidCallback onMenuTap;
+
+  const _ProHeaderHome({
+    required super.title,
+    super.subtitle,
+    required this.onMenuTap,
+    super.actions,
+  }) : super(showBackButton: false, showDrawerButton: false);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: AppSpacing.screenPadding.w,
+        vertical: AppSpacing.sm.h,
+      ),
+      color: AppColors.surface,
+      child: Row(
+        children: [
+          // Menu Button
+          GestureDetector(
+            onTap: onMenuTap,
+            child: Container(
+              width: 40.w,
+              height: 40.w,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: Icon(
+                Icons.menu_rounded,
+                size: 20.sp,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          SizedBox(width: AppSpacing.sm.w),
+
+          // Title
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (subtitle != null)
+                  Text(
+                    subtitle!,
+                    style: AppTypography.labelSmall.copyWith(
+                      color: AppColors.textTertiary,
+                    ),
+                  ),
+                Text(
+                  title,
+                  style: AppTypography.titleMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Actions
+          if (actions != null) ...actions!,
+        ],
+      ),
+    );
+  }
+}
+
+/// Header خاص بالنماذج
+class _ProHeaderForm extends ProHeader {
+  final VoidCallback? onClose;
+  final VoidCallback? onSave;
+  final bool canSave;
+
+  const _ProHeaderForm({
+    required super.title,
+    this.onClose,
+    this.onSave,
+    this.canSave = true,
+  }) : super(showBackButton: false);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: AppSpacing.screenPadding.w,
+        vertical: AppSpacing.sm.h,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border(bottom: BorderSide(color: AppColors.border)),
+      ),
+      child: Row(
+        children: [
+          // Close Button
+          GestureDetector(
+            onTap: onClose ?? () => context.pop(),
+            child: Container(
+              width: 36.w,
+              height: 36.w,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceMuted,
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Icon(
+                Icons.close_rounded,
+                size: 18.sp,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+          SizedBox(width: AppSpacing.sm.w),
+
+          // Title
+          Expanded(
+            child: Text(
+              title,
+              style: AppTypography.titleMedium.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+
+          // Save Button
+          if (onSave != null)
+            TextButton.icon(
+              onPressed: canSave ? onSave : null,
+              icon: Icon(Icons.check_rounded, size: 18.sp),
+              label: const Text('حفظ'),
+              style: TextButton.styleFrom(
+                foregroundColor:
+                    canSave ? AppColors.secondary : AppColors.textDisabled,
+              ),
+            ),
+        ],
       ),
     );
   }

@@ -1,6 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Products Screen Pro - Professional Design System
-// Modern Products Management Interface with Real Data
+// Products Screen Pro - Enterprise Design System
+// Professional Products Management Interface
+// Hoor Enterprise Design System 2026
 // ═══════════════════════════════════════════════════════════════════════════
 
 import 'package:flutter/material.dart';
@@ -435,12 +436,12 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
 
   Widget _buildGridView(List<Product> products, List<Category> categories) {
     return GridView.builder(
-      padding: EdgeInsets.all(AppSpacing.md),
+      padding: EdgeInsets.all(AppSpacing.screenPadding),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.78,
-        crossAxisSpacing: AppSpacing.sm,
-        mainAxisSpacing: AppSpacing.sm,
+        childAspectRatio: 0.82,
+        crossAxisSpacing: AppSpacing.xs,
+        mainAxisSpacing: AppSpacing.xs,
       ),
       itemCount: products.length,
       itemBuilder: (context, index) {
@@ -472,25 +473,24 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
               ),
               if (_isSelectionMode)
                 Positioned(
-                  top: 8,
-                  right: 8,
+                  top: AppSpacing.xs,
+                  right: AppSpacing.xs,
                   child: Container(
+                    width: 22,
+                    height: 22,
                     decoration: BoxDecoration(
                       color: isSelected ? AppColors.primary : AppColors.surface,
-                      shape: BoxShape.circle,
+                      borderRadius: BorderRadius.circular(AppRadius.xs),
                       border: Border.all(
                         color:
                             isSelected ? AppColors.primary : AppColors.border,
-                        width: 2,
+                        width: 1.5,
                       ),
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(2),
-                      child: Icon(
-                        Icons.check,
-                        size: 16,
-                        color: isSelected ? Colors.white : Colors.transparent,
-                      ),
+                    child: Icon(
+                      Icons.check,
+                      size: 14,
+                      color: isSelected ? Colors.white : Colors.transparent,
                     ),
                   ),
                 ),
@@ -503,9 +503,9 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
 
   Widget _buildListView(List<Product> products, List<Category> categories) {
     return ListView.separated(
-      padding: EdgeInsets.all(AppSpacing.md),
+      padding: EdgeInsets.all(AppSpacing.screenPadding),
       itemCount: products.length,
-      separatorBuilder: (_, __) => SizedBox(height: AppSpacing.sm),
+      separatorBuilder: (_, __) => SizedBox(height: AppSpacing.xs),
       itemBuilder: (context, index) {
         final product = products[index];
         final category =
@@ -525,7 +525,7 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
             children: [
               if (_isSelectionMode)
                 Padding(
-                  padding: EdgeInsets.only(left: AppSpacing.sm),
+                  padding: EdgeInsets.only(left: AppSpacing.xs),
                   child: Checkbox(
                     value: isSelected,
                     onChanged: (_) => _toggleSelection(product.id),

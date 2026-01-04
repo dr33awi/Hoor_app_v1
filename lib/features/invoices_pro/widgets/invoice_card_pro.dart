@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Invoice Card Pro Widget - Modern Pro Design
+// Invoice Card Pro Widget - Enterprise Accounting Design
 // Clean, minimal invoice list card with status and payment info
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -33,16 +34,13 @@ class InvoiceCardPro extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         child: Container(
-          padding: EdgeInsets.all(AppSpacing.md.w),
+          padding: EdgeInsets.all(AppSpacing.sm.w),
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: BorderRadius.circular(AppRadius.lg),
-            border: Border.all(
-              color: AppColors.border.withValues(alpha: 0.5),
-            ),
-            boxShadow: AppShadows.xs,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: AppColors.border),
           ),
           child: Column(
             children: [

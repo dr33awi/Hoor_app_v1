@@ -1,9 +1,10 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Returns Screen Pro - Unified Returns Management
+// Returns Screen Pro - Enterprise Accounting Design
+// Unified Returns Management with Ledger Precision
 // Handles both Sales Returns and Purchase Returns
-// Replaces: sales_returns_screen_pro.dart & purchase_returns_screen_pro.dart
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';

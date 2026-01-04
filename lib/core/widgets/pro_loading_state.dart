@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Pro Loading State - Shared Loading State Widget
+// Pro Loading State - Enterprise Accounting Design
 // Unified loading component for all screens
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 

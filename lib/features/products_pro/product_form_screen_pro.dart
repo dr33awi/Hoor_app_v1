@@ -1,9 +1,10 @@
 // ═══════════════════════════════════════════════════════════════════════════════
-// Product Form Screen Pro
+// Product Form Screen Pro - Enterprise Accounting Design
 // Add/Edit product with auto barcode generation and printing
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import 'dart:math';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

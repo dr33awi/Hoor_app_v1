@@ -1,7 +1,10 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Vouchers Screen Pro - Professional Design System
-// Voucher Management Interface with Real Data
+// Vouchers Screen Pro - Enterprise Design System
+// Voucher Management Interface
+// Hoor Enterprise Design System 2026
 // ═══════════════════════════════════════════════════════════════════════════
+
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

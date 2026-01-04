@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Pro Empty State - Shared Empty State Widget
+// Pro Empty State - Enterprise Accounting Design
 // Unified empty state component for all screens
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 

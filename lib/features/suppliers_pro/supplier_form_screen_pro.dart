@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Supplier Form Screen Pro
-// Add/Edit Supplier Form - Professional Design System
+// Supplier Form Screen Pro - Enterprise Accounting Design
+// Add/Edit Supplier Form with Professional Touch
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';

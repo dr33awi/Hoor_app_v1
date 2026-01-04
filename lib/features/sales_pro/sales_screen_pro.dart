@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Sales Screen Pro - Professional Point of Sale Interface
-// Modern, Fast & Intuitive Sales Experience
+// Sales Screen Pro - Enterprise Accounting Design
+// Professional Point of Sale Interface with Ledger Precision
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -173,7 +174,7 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
     );
   }
 
-  /// عرض رسالة عدم وجود وردية مفتوحة
+  /// عرض رسالة عدم وجود وردية مفتوحة - Enterprise Style
   Widget _buildNoShiftView() {
     return Column(
       children: [
@@ -181,32 +182,36 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
         Expanded(
           child: Center(
             child: Padding(
-              padding: EdgeInsets.all(AppSpacing.xl),
+              padding: EdgeInsets.all(AppSpacing.screenPadding),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  // Enterprise: Square icon container with border
                   Container(
-                    width: 100.w,
-                    height: 100.w,
+                    width: 80.w,
+                    height: 80.w,
                     decoration: BoxDecoration(
-                      color: AppColors.warning.soft,
-                      shape: BoxShape.circle,
+                      color: AppColors.warning.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      border: Border.all(
+                        color: AppColors.warning.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: Icon(
                       Icons.access_time_rounded,
-                      size: 48.sp,
+                      size: 40.sp,
                       color: AppColors.warning,
                     ),
                   ),
-                  SizedBox(height: AppSpacing.xl),
+                  SizedBox(height: AppSpacing.lg),
                   Text(
                     'لا توجد وردية مفتوحة',
                     style: AppTypography.headlineSmall.copyWith(
                       color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  SizedBox(height: AppSpacing.sm),
+                  SizedBox(height: AppSpacing.xs),
                   Text(
                     'يجب فتح وردية قبل البدء بعمليات البيع',
                     style: AppTypography.bodyMedium.copyWith(
@@ -214,16 +219,17 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  SizedBox(height: AppSpacing.xl),
-                  FilledButton.icon(
+                  SizedBox(height: AppSpacing.lg),
+                  // Enterprise: Text button style
+                  TextButton.icon(
                     onPressed: () => context.push('/shifts'),
-                    icon: const Icon(Icons.play_arrow_rounded),
+                    icon: const Icon(Icons.play_arrow_rounded, size: 18),
                     label: const Text('فتح وردية'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.success,
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.success,
                       padding: EdgeInsets.symmetric(
-                        horizontal: AppSpacing.xl,
-                        vertical: AppSpacing.md,
+                        horizontal: AppSpacing.lg,
+                        vertical: AppSpacing.sm,
                       ),
                     ),
                   ),
@@ -257,7 +263,7 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
           ),
         ),
 
-        // Cart Section
+        // Cart Section - Enterprise: clean borders instead of heavy shadows
         Container(
           width: 380.w,
           decoration: BoxDecoration(
@@ -265,13 +271,6 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
             border: Border(
               right: BorderSide(color: AppColors.border),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.subtle,
-                blurRadius: 20,
-                offset: const Offset(-5, 0),
-              ),
-            ],
           ),
           child: Column(
             children: [
@@ -304,12 +303,12 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Header
+  // Header - Enterprise Style
   // ═══════════════════════════════════════════════════════════════════════════
 
   Widget _buildHeader() {
     return Container(
-      padding: EdgeInsets.all(AppSpacing.md),
+      padding: EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
         color: AppColors.surface,
         border: Border(
@@ -318,11 +317,12 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
       ),
       child: Row(
         children: [
-          // Back Button
+          // Back Button - Enterprise: subtle background
           Container(
             decoration: BoxDecoration(
               color: AppColors.background,
-              borderRadius: BorderRadius.circular(AppRadius.md),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+              border: Border.all(color: AppColors.border),
             ),
             child: IconButton(
               onPressed: () => context.go('/'),
@@ -333,18 +333,18 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
               ),
             ),
           ),
-          SizedBox(width: AppSpacing.md),
+          SizedBox(width: AppSpacing.sm),
 
-          // Title
+          // Title - Enterprise: compact spacing
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'نقطة البيع',
-                  style: AppTypography.headlineSmall.copyWith(
+                  style: AppTypography.titleMedium.copyWith(
                     color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 Text(
@@ -628,7 +628,7 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Products Grid
+  // Products Grid - Enterprise Style
   // ═══════════════════════════════════════════════════════════════════════════
 
   Widget _buildProductsGrid(List<Product> products, {int crossAxisCount = 3}) {
@@ -637,11 +637,11 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
     }
 
     return GridView.builder(
-      padding: EdgeInsets.all(AppSpacing.md),
+      padding: EdgeInsets.all(AppSpacing.sm),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: crossAxisCount,
-        crossAxisSpacing: AppSpacing.sm,
-        mainAxisSpacing: AppSpacing.sm,
+        crossAxisSpacing: AppSpacing.xs,
+        mainAxisSpacing: AppSpacing.xs,
         childAspectRatio: 1,
       ),
       itemCount: products.length,
@@ -662,26 +662,29 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          // Enterprise: Square container with border
           Container(
-            padding: EdgeInsets.all(AppSpacing.xl),
+            width: 72.w,
+            height: 72.w,
             decoration: BoxDecoration(
               color: AppColors.surface,
-              shape: BoxShape.circle,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(color: AppColors.border),
             ),
             child: Icon(
               Icons.inventory_2_outlined,
-              size: 64.sp,
+              size: 36.sp,
               color: AppColors.textTertiary,
             ),
           ),
-          SizedBox(height: AppSpacing.lg),
+          SizedBox(height: AppSpacing.md),
           Text(
             'لا توجد منتجات',
-            style: AppTypography.titleMedium.copyWith(
+            style: AppTypography.titleSmall.copyWith(
               color: AppColors.textSecondary,
             ),
           ),
-          SizedBox(height: AppSpacing.xs),
+          SizedBox(height: AppSpacing.xxs),
           Text(
             'جرب تغيير التصنيف أو البحث',
             style: AppTypography.bodySmall.copyWith(
@@ -694,28 +697,29 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Cart Header
+  // Cart Header - Enterprise Style
   // ═══════════════════════════════════════════════════════════════════════════
 
   Widget _buildCartHeader() {
     return Container(
-      padding: EdgeInsets.all(AppSpacing.md),
+      padding: EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.primary, AppColors.primary.overlayHeavy],
-        ),
+        color: AppColors.primary,
+        border: Border(
+            bottom:
+                BorderSide(color: AppColors.primary.withValues(alpha: 0.8))),
       ),
       child: Row(
         children: [
           Icon(
             Icons.shopping_cart_rounded,
             color: Colors.white,
-            size: AppIconSize.md,
+            size: 18.sp,
           ),
-          SizedBox(width: AppSpacing.sm),
+          SizedBox(width: AppSpacing.xs),
           Text(
             'السلة',
-            style: AppTypography.titleMedium.copyWith(
+            style: AppTypography.titleSmall.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.w600,
             ),
@@ -724,28 +728,29 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
           if (_cartItems.isNotEmpty) ...[
             Container(
               padding: EdgeInsets.symmetric(
-                horizontal: AppSpacing.sm,
-                vertical: 4.h,
+                horizontal: AppSpacing.xs,
+                vertical: 2.h,
               ),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(AppRadius.full),
+                borderRadius: BorderRadius.circular(AppRadius.xs),
               ),
               child: Text(
                 '${_cartItems.length}',
-                style: AppTypography.labelMedium.copyWith(
+                style: AppTypography.labelSmall.copyWith(
                   color: AppColors.primary,
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w600,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
             ),
-            SizedBox(width: AppSpacing.sm),
+            SizedBox(width: AppSpacing.xs),
             IconButton(
               onPressed: _clearCart,
               icon: Icon(
                 Icons.delete_outline_rounded,
-                color: Colors.white.overlayHeavy,
-                size: AppIconSize.sm,
+                color: Colors.white.withValues(alpha: 0.8),
+                size: 18.sp,
               ),
               tooltip: 'مسح السلة',
             ),
@@ -756,7 +761,7 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Cart Items
+  // Cart Items - Enterprise Style
   // ═══════════════════════════════════════════════════════════════════════════
 
   Widget _buildCartItems() {
@@ -767,17 +772,17 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
           children: [
             Icon(
               Icons.shopping_cart_outlined,
-              size: 64.sp,
+              size: 48.sp,
               color: AppColors.textTertiary,
             ),
-            SizedBox(height: AppSpacing.md),
+            SizedBox(height: AppSpacing.sm),
             Text(
               'السلة فارغة',
-              style: AppTypography.titleSmall.copyWith(
+              style: AppTypography.bodyMedium.copyWith(
                 color: AppColors.textSecondary,
               ),
             ),
-            SizedBox(height: AppSpacing.xs),
+            SizedBox(height: AppSpacing.xxs),
             Text(
               'اضغط على المنتجات لإضافتها',
               style: AppTypography.bodySmall.copyWith(
@@ -790,9 +795,9 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
     }
 
     return ListView.separated(
-      padding: EdgeInsets.all(AppSpacing.sm),
+      padding: EdgeInsets.all(AppSpacing.xs),
       itemCount: _cartItems.length,
-      separatorBuilder: (_, __) => SizedBox(height: AppSpacing.xs),
+      separatorBuilder: (_, __) => SizedBox(height: 4.h),
       itemBuilder: (context, index) {
         final item = _cartItems[index];
         return _CartItemCard(
@@ -814,12 +819,12 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Cart Summary
+  // Cart Summary - Enterprise Style with Tabular Figures
   // ═══════════════════════════════════════════════════════════════════════════
 
   Widget _buildCartSummary() {
     return Container(
-      padding: EdgeInsets.all(AppSpacing.md),
+      padding: EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
         color: AppColors.background,
         border: Border(
@@ -834,24 +839,23 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
             children: [
               Text(
                 'المجموع الفرعي',
-                style: AppTypography.bodyMedium.copyWith(
+                style: AppTypography.bodySmall.copyWith(
                   color: AppColors.textSecondary,
                 ),
               ),
               Text(
                 '${_subtotal.toStringAsFixed(2)} ر.س',
-                style: AppTypography.bodyMedium
-                    .copyWith(
-                      color: AppColors.textPrimary,
-                    )
-                    .mono,
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textPrimary,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
               ),
             ],
           ),
 
           // Discount
           if (_discount > 0) ...[
-            SizedBox(height: AppSpacing.xs),
+            SizedBox(height: AppSpacing.xxs),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -859,16 +863,16 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
                   children: [
                     Text(
                       'الخصم',
-                      style: AppTypography.bodyMedium.copyWith(
+                      style: AppTypography.bodySmall.copyWith(
                         color: AppColors.success,
                       ),
                     ),
-                    SizedBox(width: AppSpacing.xs),
+                    SizedBox(width: AppSpacing.xxs),
                     GestureDetector(
                       onTap: () => setState(() => _discount = 0),
                       child: Icon(
                         Icons.close,
-                        size: 14.sp,
+                        size: 12.sp,
                         color: AppColors.success,
                       ),
                     ),
@@ -876,36 +880,35 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
                 ),
                 Text(
                   '-${_discount.toStringAsFixed(2)} ر.س',
-                  style: AppTypography.bodyMedium
-                      .copyWith(
-                        color: AppColors.success,
-                      )
-                      .mono,
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.success,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
                 ),
               ],
             ),
           ],
 
-          Divider(height: AppSpacing.lg, color: AppColors.border),
+          Divider(height: AppSpacing.md, color: AppColors.border),
 
-          // Total
+          // Total - Enterprise: prominent but not oversized
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 'الإجمالي',
-                style: AppTypography.titleMedium.copyWith(
+                style: AppTypography.titleSmall.copyWith(
                   color: AppColors.textPrimary,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
               Text(
                 '${_total.toStringAsFixed(2)} ر.س',
-                style: AppTypography.headlineSmall
-                    .copyWith(
-                      color: AppColors.success,
-                    )
-                    .monoBold,
+                style: AppTypography.titleMedium.copyWith(
+                  color: AppColors.success,
+                  fontWeight: FontWeight.w700,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
               ),
             ],
           ),
@@ -915,12 +918,12 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Payment Actions
+  // Payment Actions - Enterprise Style
   // ═══════════════════════════════════════════════════════════════════════════
 
   Widget _buildPaymentActions() {
     return Container(
-      padding: EdgeInsets.all(AppSpacing.md),
+      padding: EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
         color: AppColors.surface,
         border: Border(
@@ -934,15 +937,15 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: _showDiscountDialog,
-                icon: Icon(Icons.discount_outlined, size: AppIconSize.sm),
+                icon: Icon(Icons.discount_outlined, size: 16.sp),
                 label: const Text('خصم'),
                 style: OutlinedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+                  padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
                   side: BorderSide(color: AppColors.border),
                 ),
               ),
             ),
-            SizedBox(width: AppSpacing.sm),
+            SizedBox(width: AppSpacing.xs),
 
             // Pay Button
             Expanded(

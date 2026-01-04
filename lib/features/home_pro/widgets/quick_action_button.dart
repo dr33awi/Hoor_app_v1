@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Quick Action Button Component
+// Quick Action Button - Enterprise Accounting Design
 // Compact button for frequently used actions
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';

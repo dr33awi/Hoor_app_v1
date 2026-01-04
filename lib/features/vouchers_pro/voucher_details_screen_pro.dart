@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Voucher Details Screen Pro
+// Voucher Details Screen Pro - Enterprise Accounting Design
 // عرض تفاصيل السند مع خيارات الطباعة والتعديل والحذف
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';

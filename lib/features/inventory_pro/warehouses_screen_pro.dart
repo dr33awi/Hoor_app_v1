@@ -1,9 +1,10 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Warehouses Screen Pro - Professional Design System
-// Modern Warehouse Management Interface
+// Warehouses Screen Pro - Enterprise Accounting Design
+// Warehouse Management with Ledger Precision
 // ═══════════════════════════════════════════════════════════════════════════
 
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';

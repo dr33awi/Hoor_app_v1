@@ -1,7 +1,10 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // Hoor Manager Pro - Home Screen
-// Modern accounting app home page with clean professional design
+// Enterprise accounting dashboard with professional design
+// Hoor Enterprise Design System 2026
 // ═══════════════════════════════════════════════════════════════════════════
+
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -151,7 +154,7 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // MODERN HEADER
+  // ENTERPRISE HEADER
   // ═══════════════════════════════════════════════════════════════════════════
 
   Widget _buildModernHeader() {
@@ -159,79 +162,78 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
     final alertsCount =
         alertsAsync.whenOrNull(data: (alerts) => alerts.length) ?? 0;
 
-    return Row(
-      children: [
-        // Profile / Menu
-        GestureDetector(
-          onTap: () => _scaffoldKey.currentState?.openDrawer(),
-          child: Container(
-            width: 48.w,
-            height: 48.w,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14.r),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm.w,
+        vertical: AppSpacing.xs.h,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          // Menu Button - Enterprise Style
+          GestureDetector(
+            onTap: () => _scaffoldKey.currentState?.openDrawer(),
+            child: Container(
+              width: 40.w,
+              height: 40.w,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(AppRadius.xs),
+              ),
+              child: Icon(
+                Icons.menu_rounded,
+                color: Colors.white,
+                size: 20.sp,
+              ),
+            ),
+          ),
+          SizedBox(width: AppSpacing.sm.w),
+
+          // Brand
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Hoor Manager',
+                  style: AppTypography.titleSmall.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  'نظام إدارة المبيعات',
+                  style: AppTypography.labelSmall.copyWith(
+                    color: AppColors.textTertiary,
+                  ),
                 ),
               ],
             ),
-            child: Icon(
-              Icons.menu_rounded,
-              color: AppColors.primary,
-              size: 24.sp,
-            ),
           ),
-        ),
-        SizedBox(width: AppSpacing.md.w),
 
-        // Welcome Text
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'مرحباً بك 👋',
-                style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              Text(
-                'Hoor Manager',
-                style: AppTypography.titleMedium.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w800,
-                  height: 1.2,
-                ),
-              ),
-            ],
+          // Actions - Compact
+          _HeaderActionButton(
+            icon: Icons.notifications_none_rounded,
+            badgeCount: alertsCount,
+            onTap: () => context.push('/alerts'),
           ),
-        ),
-
-        // Actions
-        Row(
-          children: [
-            _HeaderActionButton(
-              icon: Icons.notifications_outlined,
-              badgeCount: alertsCount,
-              onTap: () => context.push('/alerts'),
-            ),
-            SizedBox(width: AppSpacing.sm.w),
-            _HeaderActionButton(
-              icon: Icons.settings_outlined,
-              onTap: () => context.push('/settings'),
-            ),
-          ],
-        ),
-      ],
+          SizedBox(width: AppSpacing.xs.w),
+          _HeaderActionButton(
+            icon: Icons.settings_outlined,
+            onTap: () => context.push('/settings'),
+          ),
+        ],
+      ),
     );
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // HERO SECTION (SHIFT STATUS)
+  // HERO SECTION (SHIFT STATUS) - Enterprise Style
   // ═══════════════════════════════════════════════════════════════════════════
 
   Widget _buildHeroSection() {
@@ -244,51 +246,41 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
         final isOpen = shift != null;
         return Container(
           width: double.infinity,
-          padding: EdgeInsets.all(20.w),
+          padding: EdgeInsets.all(AppSpacing.md.w),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: isOpen
-                  ? [const Color(0xFF0F172A), const Color(0xFF334155)]
-                  : [const Color(0xFFF59E0B), const Color(0xFFD97706)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(24.r),
-            boxShadow: [
-              BoxShadow(
-                color: (isOpen ? AppColors.primary : AppColors.warning)
-                    .withOpacity(0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
+            color: isOpen ? AppColors.primary : AppColors.warning,
+            borderRadius: BorderRadius.circular(AppRadius.md),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Status Badge
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Container(
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm.w,
+                      vertical: AppSpacing.xs.h,
+                    ),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(20.r),
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(AppRadius.xs),
                     ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
                           isOpen
                               ? Icons.check_circle_rounded
-                              : Icons.access_time_filled_rounded,
+                              : Icons.access_time_rounded,
                           color: Colors.white,
-                          size: 16.sp,
+                          size: 14.sp,
                         ),
-                        SizedBox(width: 6.w),
+                        SizedBox(width: 4.w),
                         Text(
                           isOpen ? 'الوردية مفتوحة' : 'الوردية مغلقة',
-                          style: AppTypography.labelMedium.copyWith(
+                          style: AppTypography.labelSmall.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
                           ),
@@ -298,71 +290,76 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
                   ),
                   Icon(
                     Icons.storefront_rounded,
-                    color: Colors.white.withOpacity(0.5),
-                    size: 28.sp,
+                    color: Colors.white.withValues(alpha: 0.3),
+                    size: 24.sp,
                   ),
                 ],
               ),
-              SizedBox(height: 20.h),
+              SizedBox(height: AppSpacing.md.h),
+
               if (isOpen) ...[
                 Text(
-                  'مبيعات الوردية الحالية',
-                  style: AppTypography.bodySmall.copyWith(
-                    color: Colors.white.withOpacity(0.8),
+                  'مبيعات الوردية',
+                  style: AppTypography.labelSmall.copyWith(
+                    color: Colors.white.withValues(alpha: 0.8),
                   ),
                 ),
-                SizedBox(height: 4.h),
+                SizedBox(height: 2.h),
                 Text(
                   '${shift.totalSales.toStringAsFixed(2)} ر.س',
                   style: AppTypography.displaySmall.copyWith(
                     color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 32.sp,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 28.sp,
+                    fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
-                SizedBox(height: 16.h),
+                SizedBox(height: AppSpacing.sm.h),
                 Row(
                   children: [
-                    Icon(Icons.schedule_rounded,
-                        color: Colors.white70, size: 16.sp),
-                    SizedBox(width: 6.w),
+                    Icon(
+                      Icons.schedule_rounded,
+                      color: Colors.white70,
+                      size: 14.sp,
+                    ),
+                    SizedBox(width: 4.w),
                     Text(
-                      'بدأت منذ: ${shift.openedAt.hour}:${shift.openedAt.minute.toString().padLeft(2, '0')}',
-                      style: AppTypography.bodySmall.copyWith(
-                        color: Colors.white.withOpacity(0.9),
+                      'بدأت: ${shift.openedAt.hour}:${shift.openedAt.minute.toString().padLeft(2, '0')}',
+                      style: AppTypography.labelSmall.copyWith(
+                        color: Colors.white.withValues(alpha: 0.9),
                       ),
                     ),
                   ],
                 ),
               ] else ...[
                 Text(
-                  'لا توجد وردية نشطة حالياً',
-                  style: AppTypography.titleMedium.copyWith(
+                  'لا توجد وردية نشطة',
+                  style: AppTypography.titleSmall.copyWith(
                     color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-                SizedBox(height: 8.h),
+                SizedBox(height: 4.h),
                 Text(
-                  'ابدأ وردية جديدة لتتمكن من إجراء عمليات البيع وتسجيل الحركات المالية',
-                  style: AppTypography.bodySmall.copyWith(
-                    color: Colors.white.withOpacity(0.9),
-                    height: 1.5,
+                  'ابدأ وردية جديدة لتتمكن من إجراء عمليات البيع',
+                  style: AppTypography.labelSmall.copyWith(
+                    color: Colors.white.withValues(alpha: 0.9),
                   ),
                 ),
-                SizedBox(height: 16.h),
-                ElevatedButton.icon(
+                SizedBox(height: AppSpacing.sm.h),
+                TextButton.icon(
                   onPressed: () => context.push('/shifts'),
-                  icon: const Icon(Icons.play_arrow_rounded, size: 18),
-                  label: const Text('فتح وردية جديدة'),
-                  style: ElevatedButton.styleFrom(
+                  icon: Icon(Icons.play_arrow_rounded, size: 16.sp),
+                  label: const Text('فتح وردية'),
+                  style: TextButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: AppColors.warning,
-                    elevation: 0,
-                    padding:
-                        EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md.w,
+                      vertical: AppSpacing.xs.h,
+                    ),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.r),
+                      borderRadius: BorderRadius.circular(AppRadius.xs),
                     ),
                   ),
                 ),
@@ -376,21 +373,21 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
 
   Widget _buildHeroLoading() {
     return Container(
-      height: 180.h,
+      height: 140.h,
       decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(24.r),
+        color: AppColors.surfaceMuted,
+        borderRadius: BorderRadius.circular(AppRadius.md),
       ),
     );
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // QUICK ACTIONS
+  // QUICK ACTIONS - Enterprise Style
   // ═══════════════════════════════════════════════════════════════════════════
 
   Widget _buildQuickActionsSection() {
     return SizedBox(
-      height: 110.h,
+      height: 88.h,
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding.w),
@@ -425,7 +422,7 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // OPERATIONS GRID
+  // OPERATIONS GRID - Enterprise Style
   // ═══════════════════════════════════════════════════════════════════════════
 
   Widget _buildOperationsGrid() {
@@ -433,9 +430,9 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: 2,
-      mainAxisSpacing: 16.h,
-      crossAxisSpacing: 16.w,
-      childAspectRatio: 1.5,
+      mainAxisSpacing: AppSpacing.sm.h,
+      crossAxisSpacing: AppSpacing.sm.w,
+      childAspectRatio: 1.6,
       children: [
         _ModernMenuCard(
           title: 'فواتير البيع',
@@ -470,7 +467,7 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // MANAGEMENT GRID
+  // MANAGEMENT GRID - Enterprise Style
   // ═══════════════════════════════════════════════════════════════════════════
 
   Widget _buildManagementGrid() {
@@ -478,9 +475,9 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       crossAxisCount: 4,
-      mainAxisSpacing: 12.h,
-      crossAxisSpacing: 12.w,
-      childAspectRatio: 0.8,
+      mainAxisSpacing: AppSpacing.xs.h,
+      crossAxisSpacing: AppSpacing.xs.w,
+      childAspectRatio: 0.85,
       children: [
         _SmallMenuCard(
           icon: Icons.people_alt_rounded,
@@ -498,7 +495,7 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
           icon: Icons.warehouse_rounded,
           label: 'المخازن',
           color: AppColors.inventory,
-          onTap: () => context.push('/warehouses'),
+          onTap: () => context.push('/inventory'),
         ),
         _SmallMenuCard(
           icon: Icons.category_rounded,
@@ -538,18 +535,18 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
     return Row(
       children: [
         Container(
-          width: 4.w,
-          height: 18.h,
+          width: 3.w,
+          height: 16.h,
           decoration: BoxDecoration(
             color: AppColors.primary,
-            borderRadius: BorderRadius.circular(2.r),
+            borderRadius: BorderRadius.circular(1.5.r),
           ),
         ),
-        SizedBox(width: 8.w),
+        SizedBox(width: AppSpacing.xs.w),
         Text(
           title,
-          style: AppTypography.titleMedium.copyWith(
-            fontWeight: FontWeight.bold,
+          style: AppTypography.titleSmall.copyWith(
+            fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
           ),
         ),
@@ -559,7 +556,7 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// HELPER WIDGETS
+// HELPER WIDGETS - Enterprise Style
 // ═══════════════════════════════════════════════════════════════════════════
 
 class _HeaderActionButton extends StatelessWidget {
@@ -578,24 +575,24 @@ class _HeaderActionButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 42.w,
-        height: 42.w,
+        width: 36.w,
+        height: 36.w,
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12.r),
+          color: AppColors.surfaceMuted,
+          borderRadius: BorderRadius.circular(AppRadius.xs),
           border: Border.all(color: AppColors.border),
         ),
         child: Stack(
           alignment: Alignment.center,
           children: [
-            Icon(icon, color: AppColors.textPrimary, size: 22.sp),
+            Icon(icon, color: AppColors.textSecondary, size: 18.sp),
             if (badgeCount > 0)
               Positioned(
-                top: 8.h,
-                right: 8.w,
+                top: 6.h,
+                right: 6.w,
                 child: Container(
-                  width: 8.w,
-                  height: 8.w,
+                  width: 7.w,
+                  height: 7.w,
                   decoration: const BoxDecoration(
                     color: AppColors.error,
                     shape: BoxShape.circle,
@@ -630,25 +627,26 @@ class _QuickActionItem extends StatelessWidget {
         onTap();
       },
       child: Container(
-        margin: EdgeInsets.only(left: 16.w),
+        margin: EdgeInsets.only(left: AppSpacing.sm.w),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 64.w,
-              height: 64.w,
+              width: 52.w,
+              height: 52.w,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20.r),
-                border: Border.all(color: color.withOpacity(0.2)),
+                color: color.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+                border: Border.all(color: color.withValues(alpha: 0.15)),
               ),
-              child: Icon(icon, color: color, size: 28.sp),
+              child: Icon(icon, color: color, size: 22.sp),
             ),
-            SizedBox(height: 8.h),
+            SizedBox(height: AppSpacing.xs.h),
             Text(
               label,
-              style: AppTypography.labelMedium.copyWith(
+              style: AppTypography.labelSmall.copyWith(
                 color: AppColors.textSecondary,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
@@ -681,44 +679,38 @@ class _ModernMenuCard extends StatelessWidget {
         onTap();
       },
       child: Container(
-        padding: EdgeInsets.all(16.w),
+        padding: EdgeInsets.all(AppSpacing.sm.w),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20.r),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 15,
-              offset: const Offset(0, 5),
-            ),
-          ],
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          border: Border.all(color: AppColors.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: EdgeInsets.all(10.w),
+              width: 36.w,
+              height: 36.w,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12.r),
+                color: color.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(AppRadius.xs),
               ),
-              child: Icon(icon, color: color, size: 24.sp),
+              child: Icon(icon, color: color, size: 18.sp),
             ),
             const Spacer(),
             Text(
               title,
-              style: AppTypography.titleSmall.copyWith(
-                fontWeight: FontWeight.bold,
+              style: AppTypography.labelMedium.copyWith(
+                fontWeight: FontWeight.w600,
                 color: AppColors.textPrimary,
               ),
             ),
-            SizedBox(height: 4.h),
+            SizedBox(height: 2.h),
             Text(
               subtitle,
-              style: AppTypography.bodySmall.copyWith(
-                color: AppColors.textSecondary,
-                fontSize: 11.sp,
+              style: AppTypography.labelSmall.copyWith(
+                color: AppColors.textTertiary,
               ),
             ),
           ],
@@ -750,21 +742,21 @@ class _SmallMenuCard extends StatelessWidget {
       },
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16.r),
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.xs),
           border: Border.all(color: AppColors.border),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: color, size: 24.sp),
-            SizedBox(height: 8.h),
+            Icon(icon, color: color, size: 20.sp),
+            SizedBox(height: AppSpacing.xs.h),
             Text(
               label,
               textAlign: TextAlign.center,
               style: AppTypography.labelSmall.copyWith(
                 color: AppColors.textSecondary,
-                fontWeight: FontWeight.w600,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],

@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Shift Status Banner Component
+// Shift Status Banner - Enterprise Accounting Design
 // Displays current shift information prominently
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';

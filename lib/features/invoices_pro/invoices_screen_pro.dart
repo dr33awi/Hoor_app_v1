@@ -1,6 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Invoices Screen Pro - Professional Design System
-// Sales & Purchase Invoices List with Real Data
+// Invoices Screen Pro - Enterprise Design System
+// Sales & Purchase Invoices List with Professional Interface
+// Hoor Enterprise Design System 2026
 // ═══════════════════════════════════════════════════════════════════════════
 
 import 'package:flutter/material.dart';
@@ -168,7 +169,7 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
                       padding: EdgeInsets.all(AppSpacing.screenPadding.w),
                       itemCount: filtered.length,
                       separatorBuilder: (_, __) =>
-                          SizedBox(height: AppSpacing.md.h),
+                          SizedBox(height: AppSpacing.xs.h),
                       itemBuilder: (context, index) {
                         final invoice = filtered[index];
                         final isSelected =

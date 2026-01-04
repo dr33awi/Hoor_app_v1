@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Pro Tab Scaffold - Shared Tab Layout Widget
+// Pro Tab Scaffold - Enterprise Accounting Design
 // Unified tab scaffold component for all screens
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import '../theme/design_tokens.dart';

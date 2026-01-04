@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Stock Transfer Screen Pro - Professional Design System
-// Modern Stock Transfer Interface
+// Stock Transfer Screen Pro - Enterprise Accounting Design
+// Stock Transfer with Ledger Precision
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';

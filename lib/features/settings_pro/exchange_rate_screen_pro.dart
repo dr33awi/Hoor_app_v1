@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Exchange Rate Screen Pro
-// Currency & Exchange Rate Management
+// Exchange Rate Screen Pro - Enterprise Accounting Design
+// Currency & Exchange Rate Management with Ledger Precision
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

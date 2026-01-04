@@ -1,6 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // Party List Screen Pro - Unified Customers & Suppliers Management
-// Replaces: customers_screen_pro.dart & suppliers_screen_pro.dart
+// Professional party management interface
+// Hoor Enterprise Design System 2026
 // ═══════════════════════════════════════════════════════════════════════════
 
 import 'package:flutter/material.dart';

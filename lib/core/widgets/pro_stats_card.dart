@@ -1,6 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Pro Stats Card - Shared Statistics Widgets
-// Unified stats components for all screens
+// Pro Stats Card - Enterprise Statistics Widgets
+// Professional metrics display for accounting interfaces
+// Hoor Enterprise Design System 2026
 // ═══════════════════════════════════════════════════════════════════════════
 
 import 'package:flutter/material.dart';
@@ -9,7 +10,7 @@ import 'package:intl/intl.dart';
 
 import '../theme/design_tokens.dart';
 
-/// بطاقة إحصائية صغيرة - موحدة لجميع الشاشات
+/// بطاقة إحصائية - تصميم Enterprise المحاسبي
 class ProStatCard extends StatelessWidget {
   final String label;
   final double amount;
@@ -74,16 +75,21 @@ class ProStatCard extends StatelessWidget {
         return _buildMini();
       case ProStatCardStyle.standard:
         return _buildStandard();
+      case ProStatCardStyle.ledger:
+        return _buildLedger();
+      case ProStatCardStyle.metric:
+        return _buildMetric();
     }
   }
 
+  // النمط القياسي - Enterprise
   Widget _buildStandard() {
     return Container(
-      padding: EdgeInsets.all(compact ? AppSpacing.sm : AppSpacing.md),
+      padding: EdgeInsets.all(compact ? AppSpacing.sm : AppSpacing.cardPadding),
       decoration: BoxDecoration(
-        color: color.o8,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: color.light),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -91,28 +97,33 @@ class ProStatCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, color: color, size: compact ? 16.sp : 20.sp),
+              Container(
+                padding: EdgeInsets.all(6.w),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(AppRadius.xs),
+                ),
+                child: Icon(icon, color: color, size: compact ? 14.sp : 16.sp),
+              ),
               SizedBox(width: AppSpacing.xs),
               Expanded(
                 child: Text(
                   label,
-                  style: (compact
-                          ? AppTypography.labelSmall
-                          : AppTypography.labelMedium)
-                      .copyWith(color: AppColors.textSecondary),
+                  style: AppTypography.labelSmall.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
-          SizedBox(height: AppSpacing.xs),
+          SizedBox(height: AppSpacing.sm),
           Text(
             '${NumberFormat('#,###').format(amount)}${suffix ?? ''}',
-            style:
-                (compact ? AppTypography.titleSmall : AppTypography.titleMedium)
-                    .copyWith(
+            style: AppTypography.titleMedium.copyWith(
               color: color,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
         ],
@@ -120,17 +131,26 @@ class ProStatCard extends StatelessWidget {
     );
   }
 
+  // نمط أفقي - Enterprise
   Widget _buildHorizontal() {
     return Container(
-      padding: EdgeInsets.all(AppSpacing.md),
+      padding: EdgeInsets.all(AppSpacing.cardPadding),
       decoration: BoxDecoration(
-        color: color.soft,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: color.border),
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         children: [
-          Icon(icon, color: color, size: AppIconSize.md),
+          Container(
+            width: 36.w,
+            height: 36.w,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+            ),
+            child: Icon(icon, color: color, size: 18.sp),
+          ),
           SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Column(
@@ -138,12 +158,17 @@ class ProStatCard extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: AppTypography.labelSmall.copyWith(color: color),
+                  style: AppTypography.labelSmall.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 Text(
-                  ' ${NumberFormat('#,###').format(amount)}${suffix ?? ' ر.س'}',
-                  style:
-                      AppTypography.titleSmall.copyWith(color: color).monoBold,
+                  '${NumberFormat('#,###').format(amount)}${suffix ?? ' ر.س'}',
+                  style: AppTypography.titleSmall.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
                 ),
               ],
             ),
@@ -153,6 +178,7 @@ class ProStatCard extends StatelessWidget {
     );
   }
 
+  // نمط مركزي - Enterprise
   Widget _buildCentered() {
     return Container(
       padding: EdgeInsets.all(AppSpacing.sm),
@@ -164,16 +190,16 @@ class ProStatCard extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: AppIconSize.sm, color: color),
-          SizedBox(height: AppSpacing.xs),
+          Icon(icon, size: 16.sp, color: color),
+          SizedBox(height: AppSpacing.xxs),
           FittedBox(
             fit: BoxFit.scaleDown,
             child: Text(
               _formatCompactAmount(amount),
-              style: AppTypography.titleMedium.copyWith(
+              style: AppTypography.titleSmall.copyWith(
                 color: AppColors.textPrimary,
-                fontWeight: FontWeight.w700,
-                fontFamily: 'JetBrains Mono',
+                fontWeight: FontWeight.w600,
+                fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
           ),
@@ -181,6 +207,7 @@ class ProStatCard extends StatelessWidget {
             label,
             style: AppTypography.labelSmall.copyWith(
               color: AppColors.textTertiary,
+              fontSize: 10.sp,
             ),
           ),
         ],
@@ -188,25 +215,136 @@ class ProStatCard extends StatelessWidget {
     );
   }
 
+  // نمط مصغّر - Enterprise
   Widget _buildMini() {
     return Container(
-      padding: EdgeInsets.all(AppSpacing.sm),
+      padding: EdgeInsets.all(AppSpacing.xs),
       decoration: BoxDecoration(
-        color: color.soft,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: color.border),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: AppIconSize.sm),
-          SizedBox(height: 4.h),
+          Icon(icon, color: color, size: 14.sp),
+          SizedBox(height: 2.h),
           Text(
             label,
-            style: AppTypography.labelSmall.copyWith(color: color),
+            style: AppTypography.labelSmall.copyWith(
+              color: AppColors.textTertiary,
+              fontSize: 9.sp,
+            ),
           ),
           Text(
             NumberFormat('#,###').format(amount),
-            style: AppTypography.titleSmall.copyWith(color: color).monoBold,
+            style: AppTypography.labelMedium.copyWith(
+              color: color,
+              fontWeight: FontWeight.w600,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // NEW ENTERPRISE STYLES
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// نمط دفتري - للأرصدة والحسابات (Enterprise)
+  Widget _buildLedger() {
+    final isPositive = amount >= 0;
+    final displayColor = isPositive ? AppColors.income : AppColors.expense;
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: AppSpacing.cardPadding,
+        vertical: AppSpacing.sm,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border(
+          right: BorderSide(
+            color: displayColor,
+            width: 3,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+          Text(
+            '${NumberFormat('#,###.00').format(amount.abs())}${suffix ?? ' ر.س'}',
+            style: AppTypography.titleSmall.copyWith(
+              color: displayColor,
+              fontWeight: FontWeight.w600,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+          SizedBox(width: AppSpacing.xs),
+          Icon(
+            isPositive ? Icons.add : Icons.remove,
+            size: 14.sp,
+            color: displayColor,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// نمط متري - للـ KPIs (Enterprise)
+  Widget _buildMetric() {
+    return Container(
+      padding: EdgeInsets.all(AppSpacing.cardPadding),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: AppTypography.labelSmall.copyWith(
+              color: AppColors.textTertiary,
+              letterSpacing: 0.5,
+            ),
+          ),
+          SizedBox(height: AppSpacing.xs),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                NumberFormat('#,###').format(amount),
+                style: AppTypography.headlineMedium.copyWith(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+              if (suffix != null) ...[
+                SizedBox(width: AppSpacing.xxs),
+                Padding(
+                  padding: EdgeInsets.only(bottom: 4.h),
+                  child: Text(
+                    suffix!,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ],
+            ],
           ),
         ],
       ),
@@ -229,6 +367,8 @@ enum ProStatCardStyle {
   horizontal, // أفقي (للورديات)
   centered, // مركزي (للفواتير)
   mini, // صغير (للسندات)
+  ledger, // دفتري (للحسابات) - NEW
+  metric, // متري (للـ KPIs) - NEW
 }
 
 /// بطاقة إحصائية نصية (للقيم النصية مثل النسب المئوية)

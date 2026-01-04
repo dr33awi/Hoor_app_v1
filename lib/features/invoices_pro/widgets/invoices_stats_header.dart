@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Invoices Stats Header Widget - Modern Pro Design
-// Summary cards showing invoice statistics with modern glass morphism style
+// Invoices Stats Header Widget - Enterprise Accounting Design
+// Summary cards showing invoice statistics with ledger precision
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 

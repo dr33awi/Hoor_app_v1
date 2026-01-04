@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Inventory Screen Pro - Professional Design System
-// Inventory Management with Modern UI
+// Inventory Screen Pro - Enterprise Accounting Design
+// Inventory Management with Ledger Precision
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -414,7 +415,7 @@ class _InventoryScreenProState extends ConsumerState<InventoryScreenPro>
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Movement Card
+// Movement Card - Enterprise Style with Tabular Figures
 // ═══════════════════════════════════════════════════════════════════════════
 
 class _MovementCard extends StatelessWidget {
@@ -428,26 +429,42 @@ class _MovementCard extends StatelessWidget {
     final dateFormat = DateFormat('dd/MM/yyyy hh:mm a', 'ar');
 
     return ProCard(
-      margin: EdgeInsets.only(bottom: AppSpacing.sm),
+      margin: EdgeInsets.only(bottom: AppSpacing.xs),
       child: Row(
         children: [
-          ProIconBox(
-            icon:
-                isAdd ? Icons.add_circle_outline : Icons.remove_circle_outline,
-            color: isAdd ? AppColors.success : AppColors.error,
+          // Enterprise: Square icon container
+          Container(
+            width: 36.w,
+            height: 36.w,
+            decoration: BoxDecoration(
+              color: (isAdd ? AppColors.success : AppColors.error)
+                  .withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+              border: Border.all(
+                color: (isAdd ? AppColors.success : AppColors.error)
+                    .withValues(alpha: 0.2),
+              ),
+            ),
+            child: Icon(
+              isAdd ? Icons.add_circle_outline : Icons.remove_circle_outline,
+              size: 18.sp,
+              color: isAdd ? AppColors.success : AppColors.error,
+            ),
           ),
-          SizedBox(width: AppSpacing.md),
+          SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   movement.reason ?? (isAdd ? 'إضافة' : 'سحب'),
-                  style: AppTypography.titleSmall,
+                  style: AppTypography.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 Text(
                   dateFormat.format(movement.createdAt),
-                  style: AppTypography.bodySmall.copyWith(
+                  style: AppTypography.labelSmall.copyWith(
                     color: AppColors.textTertiary,
                   ),
                 ),
@@ -456,20 +473,20 @@ class _MovementCard extends StatelessWidget {
           ),
           Container(
             padding: EdgeInsets.symmetric(
-              horizontal: AppSpacing.sm,
-              vertical: AppSpacing.xs,
+              horizontal: AppSpacing.xs,
+              vertical: 2.h,
             ),
             decoration: BoxDecoration(
               color: (isAdd ? AppColors.success : AppColors.error)
-                  .withOpacity(0.1),
-              borderRadius: BorderRadius.circular(AppRadius.sm),
+                  .withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(AppRadius.xs),
             ),
             child: Text(
               '${isAdd ? '+' : '-'}${movement.quantity}',
-              style: AppTypography.titleMedium.copyWith(
+              style: AppTypography.labelMedium.copyWith(
                 color: isAdd ? AppColors.success : AppColors.error,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'monospace',
+                fontWeight: FontWeight.w600,
+                fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
           ),
@@ -480,7 +497,7 @@ class _MovementCard extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Low Stock Card
+// Low Stock Card - Enterprise Style
 // ═══════════════════════════════════════════════════════════════════════════
 
 class _LowStockCard extends StatelessWidget {
@@ -494,28 +511,35 @@ class _LowStockCard extends StatelessWidget {
     final severity = _calculateSeverity();
 
     return ProCard(
-      margin: EdgeInsets.only(bottom: AppSpacing.sm),
-      borderColor: severity.color.withOpacity(0.5),
+      margin: EdgeInsets.only(bottom: AppSpacing.xs),
+      borderColor: severity.color.withValues(alpha: 0.3),
       child: Row(
         children: [
-          // ✅ أيقونة حسب مستوى الخطورة
+          // ✅ أيقونة حسب مستوى الخطورة - Enterprise Square Style
           Container(
-            padding: EdgeInsets.all(AppSpacing.sm),
+            width: 36.w,
+            height: 36.w,
             decoration: BoxDecoration(
-              color: severity.color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(AppRadius.md),
+              color: severity.color.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+              border: Border.all(color: severity.color.withValues(alpha: 0.2)),
             ),
-            child: Icon(severity.icon, color: severity.color, size: 20.sp),
+            child: Icon(severity.icon, color: severity.color, size: 18.sp),
           ),
-          SizedBox(width: AppSpacing.md),
+          SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(product.name, style: AppTypography.titleSmall),
+                Text(
+                  product.name,
+                  style: AppTypography.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
                 Text(
                   'الحد الأدنى: ${product.minQuantity}',
-                  style: AppTypography.bodySmall.copyWith(
+                  style: AppTypography.labelSmall.copyWith(
                     color: AppColors.textTertiary,
                   ),
                 ),
@@ -527,19 +551,19 @@ class _LowStockCard extends StatelessWidget {
             children: [
               Container(
                 padding: EdgeInsets.symmetric(
-                  horizontal: AppSpacing.sm,
-                  vertical: AppSpacing.xs,
+                  horizontal: AppSpacing.xs,
+                  vertical: 2.h,
                 ),
                 decoration: BoxDecoration(
-                  color: severity.color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  color: severity.color.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(AppRadius.xs),
                 ),
                 child: Text(
                   '${product.quantity}',
-                  style: AppTypography.titleMedium.copyWith(
+                  style: AppTypography.labelMedium.copyWith(
                     color: severity.color,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'monospace',
+                    fontWeight: FontWeight.w600,
+                    fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
               ),
@@ -595,7 +619,7 @@ class _StockSeverity {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Stock Card
+// Stock Card - Enterprise Style with Tabular Figures
 // ═══════════════════════════════════════════════════════════════════════════
 
 class _StockCard extends StatelessWidget {
@@ -616,34 +640,53 @@ class _StockCard extends StatelessWidget {
             : AppColors.success;
 
     return ProCard(
-      margin: EdgeInsets.only(bottom: AppSpacing.sm),
+      margin: EdgeInsets.only(bottom: AppSpacing.xs),
       child: Row(
         children: [
-          ProIconBox.inventory(),
-          SizedBox(width: AppSpacing.md),
+          // Enterprise: Compact square icon
+          Container(
+            width: 36.w,
+            height: 36.w,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Icon(
+              Icons.inventory_2_outlined,
+              size: 18.sp,
+              color: AppColors.primary,
+            ),
+          ),
+          SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(product.name, style: AppTypography.titleSmall),
+                Text(
+                  product.name,
+                  style: AppTypography.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
                 Row(
                   children: [
                     Text(
                       'SKU: ${product.sku ?? 'N/A'}',
-                      style: AppTypography.bodySmall.copyWith(
+                      style: AppTypography.labelSmall.copyWith(
                         color: AppColors.textTertiary,
                       ),
                     ),
                     if (product.barcode != null) ...[
-                      SizedBox(width: AppSpacing.sm),
+                      SizedBox(width: AppSpacing.xs),
                       Icon(Icons.qr_code,
-                          size: 12.sp, color: AppColors.textTertiary),
+                          size: 10.sp, color: AppColors.textTertiary),
                       SizedBox(width: 2.w),
                       Text(
                         product.barcode!,
-                        style: AppTypography.bodySmall.copyWith(
+                        style: AppTypography.labelSmall.copyWith(
                           color: AppColors.textTertiary,
-                          fontFamily: 'monospace',
+                          fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
                     ],
@@ -654,26 +697,27 @@ class _StockCard extends StatelessWidget {
           ),
           Container(
             padding: EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.xs,
+              horizontal: AppSpacing.sm,
+              vertical: AppSpacing.xxs,
             ),
             decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(AppRadius.full),
-              border: Border.all(color: statusColor.withOpacity(0.3)),
+              color: statusColor.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(AppRadius.xs),
+              border: Border.all(color: statusColor.withValues(alpha: 0.2)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (isOut)
-                  Icon(Icons.error_outline, size: 14.sp, color: statusColor),
-                if (isOut) SizedBox(width: 4.w),
+                  Icon(Icons.error_outline, size: 12.sp, color: statusColor),
+                if (isOut) SizedBox(width: 2.w),
                 Text(
                   isOut ? 'نفذ' : '${product.quantity}',
-                  style: AppTypography.labelLarge.copyWith(
+                  style: AppTypography.labelMedium.copyWith(
                     color: statusColor,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: isOut ? null : 'monospace',
+                    fontWeight: FontWeight.w600,
+                    fontFeatures:
+                        isOut ? null : const [FontFeature.tabularFigures()],
                   ),
                 ),
               ],
@@ -686,7 +730,7 @@ class _StockCard extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Type Button
+// Type Button - Enterprise Style
 // ═══════════════════════════════════════════════════════════════════════════
 
 class _TypeButton extends StatelessWidget {
@@ -708,27 +752,31 @@ class _TypeButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.md),
+      borderRadius: BorderRadius.circular(AppRadius.sm),
       child: Container(
-        padding: EdgeInsets.all(AppSpacing.md),
+        padding: EdgeInsets.all(AppSpacing.sm),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.1) : AppColors.surfaceVariant,
-          borderRadius: BorderRadius.circular(AppRadius.md),
+          color: isSelected
+              ? color.withValues(alpha: 0.08)
+              : AppColors.surfaceVariant,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           border: Border.all(
             color: isSelected ? color : AppColors.border,
-            width: isSelected ? 2 : 1,
+            width: 1,
           ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: isSelected ? color : AppColors.textSecondary),
-            SizedBox(width: AppSpacing.xs),
+            Icon(icon,
+                size: 18.sp,
+                color: isSelected ? color : AppColors.textSecondary),
+            SizedBox(width: AppSpacing.xxs),
             Text(
               label,
-              style: AppTypography.labelLarge.copyWith(
+              style: AppTypography.labelMedium.copyWith(
                 color: isSelected ? color : AppColors.textSecondary,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
           ],

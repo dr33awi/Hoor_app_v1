@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Backup Screen Pro - Professional Design System
-// Backup Management with Modern UI
+// Backup Screen Pro - Enterprise Accounting Design
+// Backup Management with Professional Data Protection
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';

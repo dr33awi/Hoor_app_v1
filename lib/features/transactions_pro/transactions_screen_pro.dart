@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Unified Transactions Screen Pro
-// Sales & Purchase Invoices - Single Source of Truth
+// Unified Transactions Screen Pro - Enterprise Accounting Design
+// Sales & Purchase Invoices with Ledger Precision
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';

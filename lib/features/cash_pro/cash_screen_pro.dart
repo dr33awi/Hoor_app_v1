@@ -1,7 +1,10 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Cash Screen Pro - Professional Design System
-// Cash Drawer Management with Modern UI
+// Cash Screen Pro - Enterprise Design System
+// Cash Drawer Management Interface
+// Hoor Enterprise Design System 2026
 // ═══════════════════════════════════════════════════════════════════════════
+
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -124,28 +127,30 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: EdgeInsets.all(AppSpacing.xl),
+              width: 80.w,
+              height: 80.w,
               decoration: BoxDecoration(
-                color: AppColors.warning.soft,
-                shape: BoxShape.circle,
+                color: AppColors.warning.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(AppRadius.md),
               ),
               child: Icon(
                 Icons.point_of_sale_rounded,
-                size: 64.sp,
+                size: 40.sp,
                 color: AppColors.warning,
               ),
             ),
-            SizedBox(height: AppSpacing.lg),
+            SizedBox(height: AppSpacing.md),
             Text(
               'لا توجد وردية مفتوحة',
-              style: AppTypography.titleLarge.copyWith(
+              style: AppTypography.titleMedium.copyWith(
                 color: AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
               ),
             ),
-            SizedBox(height: AppSpacing.sm),
+            SizedBox(height: AppSpacing.xs),
             Text(
               'افتح وردية جديدة للبدء في إدارة الصندوق',
-              style: AppTypography.bodyMedium.copyWith(
+              style: AppTypography.bodySmall.copyWith(
                 color: AppColors.textSecondary,
               ),
               textAlign: TextAlign.center,

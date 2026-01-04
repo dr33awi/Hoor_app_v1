@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Alerts Screen Pro - Professional Design System
-// System Alerts and Notifications
+// Alerts Screen Pro - Enterprise Accounting Design
+// System Alerts and Notifications with Professional Touch
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';

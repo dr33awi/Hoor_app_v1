@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Shift Details Screen Pro - Professional Design System
-// Modern Shift Details View with Complete Summary
+// Shift Details Screen Pro - Enterprise Accounting Design
+// Shift Details View with Ledger Precision
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';

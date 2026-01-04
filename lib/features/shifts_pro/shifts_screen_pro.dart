@@ -1,7 +1,10 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Shifts Screen Pro - Professional Design System
-// Shift Management Interface with Real Data
+// Shifts Screen Pro - Enterprise Design System
+// Shift Management Interface
+// Hoor Enterprise Design System 2026
 // ═══════════════════════════════════════════════════════════════════════════
+
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -132,17 +135,29 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
     final dateFormat = DateFormat('yyyy/MM/dd HH:mm', 'ar');
 
     return Container(
-      margin: EdgeInsets.all(AppSpacing.md),
-      padding: EdgeInsets.all(AppSpacing.md),
+      margin: EdgeInsets.all(AppSpacing.screenPadding),
+      padding: EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
-        color: AppColors.success.soft,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.success.border),
+        color: AppColors.success.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        border: Border.all(color: AppColors.success.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
-          ProIconBox(icon: Icons.access_time_rounded, color: AppColors.success),
-          SizedBox(width: AppSpacing.md),
+          Container(
+            width: 40.w,
+            height: 40.w,
+            decoration: BoxDecoration(
+              color: AppColors.success.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppRadius.xs),
+            ),
+            child: Icon(
+              Icons.access_time_rounded,
+              color: AppColors.success,
+              size: 20.sp,
+            ),
+          ),
+          SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -173,7 +188,8 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
                       '${(shift.openingBalance + shift.totalSales - shift.totalExpenses).toStringAsFixed(0)} ر.س',
                       style: AppTypography.labelMedium.copyWith(
                         color: AppColors.success,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w600,
+                        fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
                   ],
@@ -181,11 +197,16 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
               ],
             ),
           ),
-          ProButton(
-            label: 'إغلاق',
+          TextButton(
             onPressed: () => _closeShift(context, ref, shift),
-            color: AppColors.error,
-            size: ProButtonSize.small,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.error,
+              padding: EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm,
+                vertical: AppSpacing.xs,
+              ),
+            ),
+            child: const Text('إغلاق'),
           ),
         ],
       ),
@@ -322,7 +343,7 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
         shifts.fold<double>(0.0, (sum, s) => sum + s.totalExpenses);
 
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: AppSpacing.md),
+      margin: EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
       child: Row(
         children: [
           Expanded(
@@ -333,7 +354,7 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
               color: AppColors.success,
             ),
           ),
-          SizedBox(width: AppSpacing.sm),
+          SizedBox(width: AppSpacing.xs),
           Expanded(
             child: ProStatCard.horizontal(
               label: 'إجمالي المصاريف',

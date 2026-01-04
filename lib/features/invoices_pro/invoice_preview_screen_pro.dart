@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Invoice Preview Screen Pro
+// Invoice Preview Screen Pro - Enterprise Accounting Design
 // Preview and Print Invoice with Multiple Formats
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

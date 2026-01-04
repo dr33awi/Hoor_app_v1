@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Categories Screen Pro - Professional Design System
-// Category Management with Modern UI
+// Categories Screen Pro - Enterprise Accounting Design
+// Category Management with Ledger Precision
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -187,24 +188,35 @@ class _CategoriesScreenProState extends ConsumerState<CategoriesScreenPro> {
       return c.name.toLowerCase().contains(_searchQuery.toLowerCase());
     }).toList();
 
+    // Enterprise: Empty state with compact styling
     if (filtered.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.category_outlined,
-              size: 64.sp,
-              color: AppColors.textTertiary,
+            // Enterprise: Square icon container
+            Container(
+              width: 64.w,
+              height: 64.w,
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Icon(
+                Icons.category_outlined,
+                size: 32.sp,
+                color: AppColors.textTertiary,
+              ),
             ),
             SizedBox(height: AppSpacing.md),
             Text(
               _searchQuery.isEmpty ? 'لا توجد فئات' : 'لا توجد نتائج',
-              style: AppTypography.titleMedium.copyWith(
+              style: AppTypography.titleSmall.copyWith(
                 color: AppColors.textSecondary,
               ),
             ),
-            SizedBox(height: AppSpacing.xs),
+            SizedBox(height: AppSpacing.xxs),
             Text(
               _searchQuery.isEmpty
                   ? 'أضف فئة جديدة لتنظيم منتجاتك'
@@ -227,7 +239,7 @@ class _CategoriesScreenProState extends ConsumerState<CategoriesScreenPro> {
 
     if (_isReorderMode) {
       return ReorderableListView.builder(
-        padding: EdgeInsets.all(AppSpacing.md),
+        padding: EdgeInsets.all(AppSpacing.sm),
         itemCount: filtered.length,
         onReorder: (oldIndex, newIndex) =>
             _handleReorder(filtered, oldIndex, newIndex),
@@ -247,7 +259,7 @@ class _CategoriesScreenProState extends ConsumerState<CategoriesScreenPro> {
     }
 
     return ListView.builder(
-      padding: EdgeInsets.all(AppSpacing.md),
+      padding: EdgeInsets.all(AppSpacing.sm),
       itemCount: filtered.length,
       itemBuilder: (context, index) {
         final category = filtered[index];
@@ -445,7 +457,7 @@ class _CategoriesScreenProState extends ConsumerState<CategoriesScreenPro> {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Category Card
+// Category Card - Enterprise Style
 // ═══════════════════════════════════════════════════════════════════════════
 
 class _CategoryCard extends StatelessWidget {
@@ -467,24 +479,41 @@ class _CategoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ProCard(
-      margin: EdgeInsets.only(bottom: AppSpacing.sm),
+      margin: EdgeInsets.only(bottom: AppSpacing.xs),
       onTap: isReorderMode ? null : onEdit,
       child: Row(
         children: [
           if (isReorderMode)
             Padding(
-              padding: EdgeInsets.only(left: AppSpacing.sm),
-              child: Icon(Icons.drag_handle, color: AppColors.textTertiary),
+              padding: EdgeInsets.only(left: AppSpacing.xs),
+              child: Icon(Icons.drag_handle,
+                  size: 18.sp, color: AppColors.textTertiary),
             ),
-          ProIconBox.category(),
-          SizedBox(width: AppSpacing.md),
+          // Enterprise: Square icon container
+          Container(
+            width: 36.w,
+            height: 36.w,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Icon(
+              Icons.category_outlined,
+              size: 18.sp,
+              color: AppColors.primary,
+            ),
+          ),
+          SizedBox(width: AppSpacing.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   category.name,
-                  style: AppTypography.titleSmall,
+                  style: AppTypography.bodyMedium.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 Row(
                   children: [
@@ -493,7 +522,7 @@ class _CategoryCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           category.description!,
-                          style: AppTypography.bodySmall.copyWith(
+                          style: AppTypography.labelSmall.copyWith(
                             color: AppColors.textTertiary,
                           ),
                           maxLines: 1,
@@ -503,16 +532,16 @@ class _CategoryCard extends StatelessWidget {
                     else
                       const SizedBox.shrink(),
                     Container(
-                      margin: EdgeInsets.only(right: AppSpacing.xs),
+                      margin: EdgeInsets.only(right: AppSpacing.xxs),
                       padding: EdgeInsets.symmetric(
-                        horizontal: AppSpacing.sm,
-                        vertical: AppSpacing.xxs,
+                        horizontal: AppSpacing.xs,
+                        vertical: 2.h,
                       ),
                       decoration: BoxDecoration(
                         color: productCount > 0
-                            ? AppColors.primary.withValues(alpha: 0.1)
-                            : AppColors.textTertiary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(AppSpacing.xs),
+                            ? AppColors.primary.withValues(alpha: 0.08)
+                            : AppColors.textTertiary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(AppRadius.xs),
                       ),
                       child: Text(
                         '$productCount منتج',
@@ -520,6 +549,7 @@ class _CategoryCard extends StatelessWidget {
                           color: productCount > 0
                               ? AppColors.primary
                               : AppColors.textTertiary,
+                          fontFeatures: const [FontFeature.tabularFigures()],
                         ),
                       ),
                     ),
@@ -530,7 +560,8 @@ class _CategoryCard extends StatelessWidget {
           ),
           if (!isReorderMode)
             PopupMenuButton<String>(
-              icon: Icon(Icons.more_vert, color: AppColors.textTertiary),
+              icon: Icon(Icons.more_vert,
+                  size: 18.sp, color: AppColors.textTertiary),
               onSelected: (value) {
                 if (value == 'edit') onEdit();
                 if (value == 'delete') onDelete();

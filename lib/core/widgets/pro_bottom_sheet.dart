@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Pro Bottom Sheet - Unified Bottom Sheet Widget
+// Pro Bottom Sheet - Enterprise Accounting Design
 // Consistent bottom sheets across all screens
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 

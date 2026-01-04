@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Customer Form Screen Pro
-// Add/Edit Customer Form
+// Customer Form Screen Pro - Enterprise Accounting Design
+// Add/Edit Customer Form with Professional Touch
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';

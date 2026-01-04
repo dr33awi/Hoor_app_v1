@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Settings Screen Pro - Professional Design System
-// App Settings and Configuration
+// Settings Screen Pro - Enterprise Accounting Design
+// App Settings and Configuration with Professional Touch
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -165,35 +166,34 @@ class _SettingsScreenProState extends ConsumerState<SettingsScreenPro> {
 
   Widget _buildBusinessCard() {
     return Container(
-      margin: EdgeInsets.all(AppSpacing.md),
-      padding: EdgeInsets.all(AppSpacing.md),
+      margin: EdgeInsets.all(AppSpacing.sm),
+      padding: EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.primary,
-            AppColors.primary.o87,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(AppRadius.lg),
+        color: AppColors.primary,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.8)),
       ),
       child: Column(
         children: [
           Row(
             children: [
+              // Enterprise: Square icon container
               Container(
-                width: 64.w,
-                height: 64.w,
+                width: 48.w,
+                height: 48.w,
                 decoration: BoxDecoration(
-                  color: Colors.white.light,
-                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  color: Colors.white.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: 0.2)),
                 ),
                 child: Icon(
                   Icons.store_rounded,
                   color: Colors.white,
-                  size: 32.sp,
+                  size: 24.sp,
                 ),
               ),
-              SizedBox(width: AppSpacing.md),
+              SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,

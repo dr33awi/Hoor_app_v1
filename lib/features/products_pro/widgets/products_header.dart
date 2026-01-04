@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Products Header Widget
+// Products Header Widget - Enterprise Accounting Design
 // Top section with back button, title, and add button
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 

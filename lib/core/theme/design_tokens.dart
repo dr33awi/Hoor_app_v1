@@ -160,48 +160,6 @@ class AppColors {
   static const Color divider = Color(0xFFE2E8F0); // Slate 200
 
   // ─────────────────────────────────────────────────────────────────────────
-  // Gradient Presets (Professional & Subtle)
-  // ─────────────────────────────────────────────────────────────────────────
-
-  static const LinearGradient primaryGradient = LinearGradient(
-    colors: [Color(0xFF1E293B), Color(0xFF334155)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
-  static const LinearGradient secondaryGradient = LinearGradient(
-    colors: [Color(0xFF2563EB), Color(0xFF3B82F6)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
-  static const LinearGradient incomeGradient = LinearGradient(
-    colors: [Color(0xFF15803D), Color(0xFF22C55E)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
-  static const LinearGradient expenseGradient = LinearGradient(
-    colors: [Color(0xFFDC2626), Color(0xFFF87171)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
-  /// Professional header gradient
-  static const LinearGradient premiumGradient = LinearGradient(
-    colors: [Color(0xFF1E293B), Color(0xFF334155)],
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-  );
-
-  /// Subtle overlay gradient
-  static const LinearGradient glassGradient = LinearGradient(
-    colors: [Color(0x08FFFFFF), Color(0x04FFFFFF)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-
-  // ─────────────────────────────────────────────────────────────────────────
   // Dark Theme Colors (Deep Slate - Professional Dark Mode)
   // ─────────────────────────────────────────────────────────────────────────
 

@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Product Card Pro Widget
+// Product Card Pro Widget - Enterprise Accounting Design
 // Modern product card with grid and list view support
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 

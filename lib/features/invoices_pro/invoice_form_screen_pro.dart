@@ -1,8 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// Invoice Form Screen Pro
-// Create/Edit Invoice with Professional Design
+// Invoice Form Screen Pro - Enterprise Accounting Design
+// Create/Edit Invoice with Ledger Precision
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
