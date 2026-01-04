@@ -8,7 +8,6 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../di/injection.dart';
 import 'pdf_theme.dart';
-import '../currency_service.dart';
 import '../currency_formatter.dart';
 import '../export/export_templates.dart';
 import 'print_settings_service.dart';

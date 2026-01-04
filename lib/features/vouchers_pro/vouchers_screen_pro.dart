@@ -15,9 +15,9 @@ import 'package:intl/intl.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/services/currency_service.dart';
 import '../../core/widgets/widgets.dart';
 import '../../core/widgets/dual_price_display.dart';
-import '../../core/services/currency_service.dart';
 import '../../core/services/export/export_services.dart';
 import '../../core/services/export/export_button.dart';
 import '../../data/database/app_database.dart';
@@ -581,8 +581,7 @@ class _VoucherCard extends StatelessWidget {
             ),
             Builder(
               builder: (context) {
-                final exchangeRate =
-                    voucher.exchangeRate ?? CurrencyService.currentRate;
+                final exchangeRate = voucher.exchangeRate;
                 final amountUsd = voucher.amountUsd ??
                     (exchangeRate > 0 ? voucher.amount / exchangeRate : null);
                 return CompactDualPrice(
@@ -634,6 +633,7 @@ class VoucherFormScreenPro extends ConsumerStatefulWidget {
 class _VoucherFormScreenProState extends ConsumerState<VoucherFormScreenPro> {
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
+  final _amountUsdController = TextEditingController();
   final _descriptionController = TextEditingController();
 
   String? _selectedCustomerId;
@@ -748,6 +748,7 @@ class _VoucherFormScreenProState extends ConsumerState<VoucherFormScreenPro> {
   @override
   void dispose() {
     _amountController.dispose();
+    _amountUsdController.dispose();
     _descriptionController.dispose();
     super.dispose();
   }
@@ -885,6 +886,7 @@ class _VoucherFormScreenProState extends ConsumerState<VoucherFormScreenPro> {
       ),
       child: Column(
         children: [
+          // المبلغ بالليرة
           TextFormField(
             controller: _amountController,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -904,6 +906,16 @@ class _VoucherFormScreenProState extends ConsumerState<VoucherFormScreenPro> {
                 color: AppColors.textSecondary,
               ),
             ),
+            onChanged: (value) {
+              // حساب تلقائي بالدولار
+              if (value.isNotEmpty) {
+                final syp = double.tryParse(value);
+                if (syp != null && syp > 0) {
+                  final usd = syp / CurrencyService.currentRate;
+                  _amountUsdController.text = usd.toStringAsFixed(2);
+                }
+              }
+            },
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return 'المبلغ مطلوب';
@@ -914,6 +926,58 @@ class _VoucherFormScreenProState extends ConsumerState<VoucherFormScreenPro> {
               }
               return null;
             },
+          ),
+          Divider(color: AppColors.border),
+          // المبلغ بالدولار
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _amountUsdController,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  textAlign: TextAlign.center,
+                  style: AppTypography.titleLarge.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: '0.00',
+                    hintStyle: AppTypography.titleLarge.copyWith(
+                      color: AppColors.textTertiary,
+                    ),
+                    border: InputBorder.none,
+                    prefixText: '\$ ',
+                    prefixStyle: AppTypography.titleLarge.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  onChanged: (value) {
+                    // حساب تلقائي بالليرة
+                    if (value.isNotEmpty) {
+                      final usd = double.tryParse(value);
+                      if (usd != null && usd > 0) {
+                        final syp = usd * CurrencyService.currentRate;
+                        _amountController.text = syp.toStringAsFixed(0);
+                      }
+                    }
+                  },
+                ),
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceMuted,
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: Text(
+                  '1\$ = ${CurrencyService.currentRate.toStringAsFixed(0)}',
+                  style: AppTypography.labelSmall.copyWith(
+                    color: AppColors.textTertiary,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

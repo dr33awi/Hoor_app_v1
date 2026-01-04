@@ -568,13 +568,27 @@ class _ProductDetailsView extends StatelessWidget {
   }
 
   Widget _buildQuickStats() {
+    // حساب السعر من الدولار × سعر الصرف الحالي
+    final currentRate = CurrencyService.currentRate;
+    final salePriceSyp =
+        (product.salePriceUsd != null && product.salePriceUsd! > 0)
+            ? product.salePriceUsd! * currentRate
+            : product.salePrice;
+    final purchasePriceSyp =
+        (product.purchasePriceUsd != null && product.purchasePriceUsd! > 0)
+            ? product.purchasePriceUsd! * currentRate
+            : product.purchasePrice;
+    final currentProfit = salePriceSyp - purchasePriceSyp;
+    final currentMargin =
+        salePriceSyp > 0 ? (currentProfit / salePriceSyp * 100) : 0.0;
+
     return Row(
       children: [
         Expanded(
           child: ProStatCardText(
             icon: Icons.attach_money_rounded,
             label: 'سعر البيع',
-            value: product.salePrice.toStringAsFixed(0),
+            value: salePriceSyp.toStringAsFixed(0),
             color: AppColors.secondary,
           ),
         ),
@@ -594,7 +608,7 @@ class _ProductDetailsView extends StatelessWidget {
           child: ProStatCardText(
             icon: Icons.trending_up_rounded,
             label: 'هامش الربح',
-            value: '${margin.toStringAsFixed(0)}%',
+            value: '${currentMargin.toStringAsFixed(0)}%',
             color: AppColors.success,
           ),
         ),
@@ -603,16 +617,29 @@ class _ProductDetailsView extends StatelessWidget {
   }
 
   Widget _buildPriceSection() {
-    // حساب قيم الدولار من البيانات المخزنة أو من سعر الصرف الحالي
-    final exchangeRate =
-        product.exchangeRateAtCreation ?? CurrencyService.currentRate;
-    final salePriceUsd = product.salePriceUsd ??
-        (exchangeRate > 0 ? product.salePrice / exchangeRate : null);
-    final purchasePriceUsd = product.purchasePriceUsd ??
-        (exchangeRate > 0 ? product.purchasePrice / exchangeRate : null);
+    // ═══════════════════════════════════════════════════════════════════════════
+    // الدولار هو الأساس: السعر بالليرة = الدولار × سعر الصرف الحالي
+    // ═══════════════════════════════════════════════════════════════════════════
+    final currentRate = CurrencyService.currentRate;
+
+    // استخدام أسعار الدولار المحفوظة وحساب الليرة من سعر الصرف الحالي
+    final purchasePriceUsd = product.purchasePriceUsd;
+    final salePriceUsd = product.salePriceUsd;
+
+    // حساب الأسعار بالليرة من الدولار × سعر الصرف الحالي
+    final purchasePriceSyp = (purchasePriceUsd != null && purchasePriceUsd > 0)
+        ? purchasePriceUsd * currentRate
+        : product.purchasePrice;
+    final salePriceSyp = (salePriceUsd != null && salePriceUsd > 0)
+        ? salePriceUsd * currentRate
+        : product.salePrice;
+
+    final profitSyp = salePriceSyp - purchasePriceSyp;
     final profitUsd = (salePriceUsd != null && purchasePriceUsd != null)
         ? salePriceUsd - purchasePriceUsd
         : null;
+    final marginPercent =
+        salePriceSyp > 0 ? (profitSyp / salePriceSyp * 100) : 0.0;
 
     return _buildCard(
       title: 'التسعير',
@@ -621,28 +648,28 @@ class _ProductDetailsView extends StatelessWidget {
         children: [
           _buildInfoRowWithDualPrice(
             'سعر البيع',
-            product.salePrice,
+            salePriceSyp,
             salePriceUsd,
-            exchangeRate,
+            currentRate,
             valueColor: AppColors.secondary,
             isBold: true,
           ),
           Divider(height: AppSpacing.md, color: AppColors.border),
           _buildInfoRowWithDualPrice(
             'سعر التكلفة',
-            product.purchasePrice,
+            purchasePriceSyp,
             purchasePriceUsd,
-            exchangeRate,
+            currentRate,
             valueColor: AppColors.textSecondary,
           ),
           SizedBox(height: AppSpacing.xs),
           _buildInfoRowWithDualPrice(
             'الربح لكل وحدة',
-            profit,
+            profitSyp,
             profitUsd,
-            exchangeRate,
+            currentRate,
             valueColor: AppColors.success,
-            suffix: ' (${margin.toStringAsFixed(1)}%)',
+            suffix: ' (${marginPercent.toStringAsFixed(1)}%)',
           ),
         ],
       ),

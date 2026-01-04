@@ -15,8 +15,10 @@ import 'package:printing/printing.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/services/printing/invoice_pdf_generator.dart';
+import '../../core/services/currency_service.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/widgets/widgets.dart';
+import '../../core/widgets/dual_price_display.dart';
 import '../../core/services/export/export_button.dart';
 import '../../core/services/export/export_services.dart';
 import '../../core/services/printing/print_menu_button.dart';
@@ -185,9 +187,12 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
                         color: AppColors.textSecondary,
                       ),
                     ),
-                    Text(
-                      '${(shift.openingBalance + shift.totalSales - shift.totalExpenses).toStringAsFixed(0)} ل.س',
-                      style: AppTypography.labelMedium.copyWith(
+                    CompactDualPrice(
+                      amountSyp: shift.openingBalance +
+                          shift.totalSales -
+                          shift.totalExpenses,
+                      exchangeRate: CurrencyService.currentRate,
+                      sypStyle: AppTypography.labelMedium.copyWith(
                         color: AppColors.success,
                         fontWeight: FontWeight.w600,
                         fontFeatures: const [FontFeature.tabularFigures()],
@@ -419,9 +424,10 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
     final confirm = await showProConfirmDialog(
       context: context,
       title: 'إغلاق الوردية',
-      message: 'رصيد الافتتاح: ${shift.openingBalance.toStringAsFixed(0)} ل.س\n'
-          'المبيعات: ${shift.totalSales.toStringAsFixed(0)} ل.س\n'
-          'المصاريف: ${shift.totalExpenses.toStringAsFixed(0)} ل.س\n\n'
+      message:
+          'رصيد الافتتاح: ${shift.openingBalance.toStringAsFixed(0)} ل.س (\$${(shift.openingBalance / CurrencyService.currentRate).toStringAsFixed(2)})\n'
+          'المبيعات: ${shift.totalSales.toStringAsFixed(0)} ل.س (\$${(shift.totalSales / CurrencyService.currentRate).toStringAsFixed(2)})\n'
+          'المصاريف: ${shift.totalExpenses.toStringAsFixed(0)} ل.س (\$${(shift.totalExpenses / CurrencyService.currentRate).toStringAsFixed(2)})\n\n'
           'هل تريد إغلاق الوردية؟',
       icon: Icons.stop_rounded,
       isDanger: true,
@@ -521,12 +527,16 @@ class _ShiftCard extends StatelessWidget {
                 child: _InfoItem(
                   label: 'الافتتاح',
                   value: '${shift.openingBalance.toStringAsFixed(0)} ل.س',
+                  usdValue:
+                      '\$${(shift.openingBalance / CurrencyService.currentRate).toStringAsFixed(2)}',
                 ),
               ),
               Expanded(
                 child: _InfoItem(
                   label: 'المبيعات',
                   value: '${shift.totalSales.toStringAsFixed(0)} ل.س',
+                  usdValue:
+                      '\$${(shift.totalSales / CurrencyService.currentRate).toStringAsFixed(2)}',
                   color: AppColors.success,
                 ),
               ),
@@ -534,6 +544,8 @@ class _ShiftCard extends StatelessWidget {
                 child: _InfoItem(
                   label: 'المصاريف',
                   value: '${shift.totalExpenses.toStringAsFixed(0)} ل.س',
+                  usdValue:
+                      '\$${(shift.totalExpenses / CurrencyService.currentRate).toStringAsFixed(2)}',
                   color: AppColors.error,
                 ),
               ),
@@ -542,6 +554,8 @@ class _ShiftCard extends StatelessWidget {
                   child: _InfoItem(
                     label: 'الإغلاق',
                     value: '${shift.closingBalance!.toStringAsFixed(0)} ل.س',
+                    usdValue:
+                        '\$${(shift.closingBalance! / CurrencyService.currentRate).toStringAsFixed(2)}',
                   ),
                 ),
             ],
@@ -555,11 +569,13 @@ class _ShiftCard extends StatelessWidget {
 class _InfoItem extends StatelessWidget {
   final String label;
   final String value;
+  final String? usdValue;
   final Color? color;
 
   const _InfoItem({
     required this.label,
     required this.value,
+    this.usdValue,
     this.color,
   });
 
@@ -582,6 +598,13 @@ class _InfoItem extends StatelessWidget {
               )
               .mono,
         ),
+        if (usdValue != null)
+          Text(
+            usdValue!,
+            style: AppTypography.labelSmall.copyWith(
+              color: (color ?? AppColors.textPrimary).withValues(alpha: 0.7),
+            ),
+          ),
       ],
     );
   }

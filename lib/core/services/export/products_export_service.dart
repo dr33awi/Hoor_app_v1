@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../export/export_templates.dart';
 import '../printing/pdf_theme.dart';
+import '../currency_service.dart';
 import '../../../data/database/app_database.dart';
 
 /// خدمة تصدير المنتجات
@@ -107,10 +108,22 @@ class ProductsExportService {
       final isEven = i.isEven;
       final isLowStock = product.quantity <= product.minQuantity;
 
-      final profit = product.salePrice - product.purchasePrice;
-      final margin =
-          product.salePrice > 0 ? (profit / product.salePrice * 100) : 0;
-      final stockValue = product.quantity * product.purchasePrice;
+      // ═══════════════════════════════════════════════════════════════════════════
+      // الدولار هو الأساس: حساب السعر من الدولار × سعر الصرف الحالي
+      // ═══════════════════════════════════════════════════════════════════════════
+      final currentRate = CurrencyService.currentRate;
+      final purchasePriceSyp =
+          (product.purchasePriceUsd != null && product.purchasePriceUsd! > 0)
+              ? product.purchasePriceUsd! * currentRate
+              : product.purchasePrice;
+      final salePriceSyp =
+          (product.salePriceUsd != null && product.salePriceUsd! > 0)
+              ? product.salePriceUsd! * currentRate
+              : product.salePrice;
+
+      final profit = salePriceSyp - purchasePriceSyp;
+      final margin = salePriceSyp > 0 ? (profit / salePriceSyp * 100) : 0;
+      final stockValue = product.quantity * purchasePriceSyp;
 
       final categoryName = product.categoryId != null
           ? categoryMap[product.categoryId] ?? ''
@@ -141,15 +154,19 @@ class ProductsExportService {
           .cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: row))
           .value = TextCellValue(categoryName);
 
-      // سعر التكلفة
+      // سعر التكلفة (بالليرة من الدولار)
       sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: row))
-          .value = DoubleCellValue(product.purchasePrice);
+              .cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: row))
+              .value =
+          TextCellValue(
+              '${purchasePriceSyp.toStringAsFixed(0)} (\$${product.purchasePriceUsd?.toStringAsFixed(2) ?? "-"})');
 
-      // سعر البيع
+      // سعر البيع (بالليرة من الدولار)
       sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: row))
-          .value = DoubleCellValue(product.salePrice);
+              .cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: row))
+              .value =
+          TextCellValue(
+              '${salePriceSyp.toStringAsFixed(0)} (\$${product.salePriceUsd?.toStringAsFixed(2) ?? "-"})');
 
       // هامش الربح
       sheet
@@ -285,12 +302,22 @@ class ProductsExportService {
       }
     }
 
-    // حساب الإحصائيات
+    // حساب الإحصائيات (مع استخدام الدولار كأساس)
+    final currentRate = CurrencyService.currentRate;
     final totalQty = products.fold(0, (sum, p) => sum + p.quantity);
-    final totalCostValue =
-        products.fold(0.0, (sum, p) => sum + (p.quantity * p.purchasePrice));
-    final totalSaleValue =
-        products.fold(0.0, (sum, p) => sum + (p.quantity * p.salePrice));
+    final totalCostValue = products.fold(0.0, (sum, p) {
+      final purchasePriceSyp =
+          (p.purchasePriceUsd != null && p.purchasePriceUsd! > 0)
+              ? p.purchasePriceUsd! * currentRate
+              : p.purchasePrice;
+      return sum + (p.quantity * purchasePriceSyp);
+    });
+    final totalSaleValue = products.fold(0.0, (sum, p) {
+      final salePriceSyp = (p.salePriceUsd != null && p.salePriceUsd! > 0)
+          ? p.salePriceUsd! * currentRate
+          : p.salePrice;
+      return sum + (p.quantity * salePriceSyp);
+    });
     final lowStockCount =
         products.where((p) => p.quantity <= p.minQuantity).length;
 
@@ -515,13 +542,23 @@ class ProductsExportService {
             _headerCell('#'),
           ],
         ),
-        // البيانات (RTL)
+        // البيانات (RTL) - الدولار هو الأساس
         ...products.asMap().entries.map((entry) {
           final i = entry.key;
           final p = entry.value;
           final isEven = i.isEven;
           final isLowStock = p.quantity <= p.minQuantity;
-          final stockValue = p.quantity * p.purchasePrice;
+
+          // حساب الأسعار من الدولار × سعر الصرف الحالي
+          final currentRate = CurrencyService.currentRate;
+          final purchasePriceSyp =
+              (p.purchasePriceUsd != null && p.purchasePriceUsd! > 0)
+                  ? p.purchasePriceUsd! * currentRate
+                  : p.purchasePrice;
+          final salePriceSyp = (p.salePriceUsd != null && p.salePriceUsd! > 0)
+              ? p.salePriceUsd! * currentRate
+              : p.salePrice;
+          final stockValue = p.quantity * purchasePriceSyp;
 
           return pw.TableRow(
             decoration: pw.BoxDecoration(
@@ -539,10 +576,10 @@ class ProductsExportService {
                 color: isLowStock ? ExportColors.error : null,
                 bold: isLowStock,
               ),
-              _dataCell(ExportFormatters.formatPrice(p.salePrice,
-                  showCurrency: false)),
-              _dataCell(ExportFormatters.formatPrice(p.purchasePrice,
-                  showCurrency: false)),
+              _dataCell(
+                  '${salePriceSyp.toStringAsFixed(0)} (\$${p.salePriceUsd?.toStringAsFixed(1) ?? "-"})'),
+              _dataCell(
+                  '${purchasePriceSyp.toStringAsFixed(0)} (\$${p.purchasePriceUsd?.toStringAsFixed(1) ?? "-"})'),
               _dataCell(p.barcode ?? '-'),
               _dataCell(p.name, align: pw.Alignment.centerRight),
               _dataCell('${i + 1}'),

@@ -208,7 +208,9 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
       customerId: customerId,
       supplierId: supplierId,
       total: total,
+      totalUsd: totalUsd,
       paidAmount: paidAmount,
+      paidAmountUsd: paidAmountUsd,
       paymentMethod: paymentMethod,
     );
 
@@ -279,7 +281,9 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
     String? customerId,
     String? supplierId,
     required double total,
+    double? totalUsd,
     required double paidAmount,
+    double? paidAmountUsd,
     required String paymentMethod,
     bool isAdjustment = false,
     bool isIncrease = true,
@@ -287,13 +291,19 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
     try {
       // حساب المبلغ المتبقي (الدين)
       final remainingAmount = total - paidAmount;
+      final remainingAmountUsd = (totalUsd ?? 0) - (paidAmountUsd ?? 0);
 
       // في حالة التعديل، نستخدم المبلغ مباشرة
       double amountToUpdate;
+      double? amountToUpdateUsd;
       if (isAdjustment) {
         amountToUpdate = isIncrease ? total : -total;
+        amountToUpdateUsd =
+            totalUsd != null ? (isIncrease ? totalUsd : -totalUsd) : null;
       } else {
         amountToUpdate = remainingAmount > 0 ? remainingAmount : total;
+        amountToUpdateUsd =
+            remainingAmountUsd > 0 ? remainingAmountUsd : totalUsd;
       }
 
       switch (type) {
@@ -303,7 +313,8 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
               (paymentMethod == 'credit' ||
                   remainingAmount > 0 ||
                   isAdjustment)) {
-            await customerRepo.updateBalance(customerId, amountToUpdate);
+            await customerRepo.updateBalance(customerId, amountToUpdate,
+                amountUsd: amountToUpdateUsd);
           }
           break;
         case 'purchase':
@@ -312,19 +323,22 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
               (paymentMethod == 'credit' ||
                   remainingAmount > 0 ||
                   isAdjustment)) {
-            await supplierRepo.updateBalance(supplierId, amountToUpdate);
+            await supplierRepo.updateBalance(supplierId, amountToUpdate,
+                amountUsd: amountToUpdateUsd);
           }
           break;
         case 'sale_return':
           // مرتجع بيع = خصم من رصيد العميل
           if (customerId != null) {
-            await customerRepo.updateBalance(customerId, -total);
+            await customerRepo.updateBalance(customerId, -total,
+                amountUsd: totalUsd != null ? -totalUsd : null);
           }
           break;
         case 'purchase_return':
           // مرتجع شراء = خصم من رصيد المورد
           if (supplierId != null) {
-            await supplierRepo.updateBalance(supplierId, -total);
+            await supplierRepo.updateBalance(supplierId, -total,
+                amountUsd: totalUsd != null ? -totalUsd : null);
           }
           break;
       }
@@ -590,7 +604,9 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
       customerId: invoice.customerId,
       supplierId: invoice.supplierId,
       total: invoice.total,
+      totalUsd: invoice.totalUsd,
       paidAmount: invoice.paidAmount,
+      paidAmountUsd: invoice.paidAmountUsd,
       paymentMethod: invoice.paymentMethod,
     );
 
@@ -628,12 +644,15 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
     String? customerId,
     String? supplierId,
     required double total,
+    double? totalUsd,
     required double paidAmount,
+    double? paidAmountUsd,
     required String paymentMethod,
   }) async {
     try {
       // حساب المبلغ المتبقي (الدين) الذي كان على الفاتورة
       final remainingAmount = total - paidAmount;
+      final remainingAmountUsd = (totalUsd ?? 0) - (paidAmountUsd ?? 0);
 
       switch (type) {
         case 'sale':
@@ -642,7 +661,11 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
               (paymentMethod == 'credit' || remainingAmount > 0)) {
             final amountToReverse =
                 remainingAmount > 0 ? remainingAmount : total;
-            await customerRepo.updateBalance(customerId, -amountToReverse);
+            final amountToReverseUsd =
+                remainingAmountUsd > 0 ? remainingAmountUsd : totalUsd;
+            await customerRepo.updateBalance(customerId, -amountToReverse,
+                amountUsd:
+                    amountToReverseUsd != null ? -amountToReverseUsd : null);
             debugPrint(
                 'عكس رصيد العميل $customerId بمقدار -$amountToReverse (حذف فاتورة بيع)');
           }
@@ -653,7 +676,11 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
               (paymentMethod == 'credit' || remainingAmount > 0)) {
             final amountToReverse =
                 remainingAmount > 0 ? remainingAmount : total;
-            await supplierRepo.updateBalance(supplierId, -amountToReverse);
+            final amountToReverseUsd =
+                remainingAmountUsd > 0 ? remainingAmountUsd : totalUsd;
+            await supplierRepo.updateBalance(supplierId, -amountToReverse,
+                amountUsd:
+                    amountToReverseUsd != null ? -amountToReverseUsd : null);
             debugPrint(
                 'عكس رصيد المورد $supplierId بمقدار -$amountToReverse (حذف فاتورة شراء)');
           }
@@ -661,7 +688,8 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
         case 'sale_return':
           // مرتجع بيع كان خصم من رصيد العميل، العكس = زيادة
           if (customerId != null) {
-            await customerRepo.updateBalance(customerId, total);
+            await customerRepo.updateBalance(customerId, total,
+                amountUsd: totalUsd);
             debugPrint(
                 'عكس رصيد العميل $customerId بمقدار +$total (حذف مرتجع بيع)');
           }
@@ -669,7 +697,8 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
         case 'purchase_return':
           // مرتجع شراء كان خصم من رصيد المورد، العكس = زيادة
           if (supplierId != null) {
-            await supplierRepo.updateBalance(supplierId, total);
+            await supplierRepo.updateBalance(supplierId, total,
+                amountUsd: totalUsd);
             debugPrint(
                 'عكس رصيد المورد $supplierId بمقدار +$total (حذف مرتجع شراء)');
           }

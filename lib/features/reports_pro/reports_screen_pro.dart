@@ -15,6 +15,8 @@ import 'package:intl/intl.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/widgets/widgets.dart';
+import '../../core/widgets/dual_price_display.dart';
+import '../../core/services/currency_service.dart';
 import '../../core/mixins/invoice_filter_mixin.dart';
 import '../../core/services/export/export_button.dart';
 import '../../core/services/export/reports_export_service.dart';
@@ -664,12 +666,16 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro>
                               ],
                             ),
                           ),
-                          Text(
-                            '${NumberFormat('#,###').format(supplier.balance)} ل.س',
-                            style: AppTypography.titleSmall.copyWith(
+                          CompactDualPrice(
+                            amountSyp: supplier.balance,
+                            amountUsd:
+                                supplier.balance / CurrencyService.currentRate,
+                            sypStyle: AppTypography.titleSmall.copyWith(
                               color: AppColors.warning,
                               fontWeight: FontWeight.bold,
                             ),
+                            usdStyle: AppTypography.labelSmall
+                                .copyWith(color: AppColors.textSecondary),
                           ),
                         ],
                       ),
@@ -728,7 +734,8 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro>
                   Expanded(
                     child: _SummaryCard(
                       title: 'قيمة المخزون',
-                      value: '${NumberFormat('#,###').format(totalValue)} ل.س',
+                      value:
+                          '${NumberFormat('#,###').format(totalValue)} (\$${NumberFormat('#,###').format(totalValue / CurrencyService.currentRate)}) ل.س',
                       icon: Icons.attach_money_rounded,
                       color: AppColors.success,
                     ),
@@ -839,11 +846,16 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro>
                             ],
                           ),
                         ),
-                        Text(
-                          '${NumberFormat('#,###').format(product.quantity * product.purchasePrice)} ل.س',
-                          style: AppTypography.labelMedium.copyWith(
+                        CompactDualPrice(
+                          amountSyp: product.quantity * product.purchasePrice,
+                          amountUsd:
+                              (product.quantity * product.purchasePrice) /
+                                  CurrencyService.currentRate,
+                          sypStyle: AppTypography.labelMedium.copyWith(
                             color: AppColors.textSecondary,
                           ),
+                          usdStyle: AppTypography.labelSmall
+                              .copyWith(color: AppColors.textTertiary),
                         ),
                       ],
                     ),
@@ -922,7 +934,8 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro>
         Expanded(
           child: _SummaryCard(
             title: label,
-            value: '${NumberFormat('#,###').format(total)} ل.س',
+            value:
+                '${NumberFormat('#,###').format(total)} (\$${NumberFormat('#,###').format(total / CurrencyService.currentRate)}) ل.س',
             icon: Icons.attach_money_rounded,
             color: color,
           ),
@@ -952,7 +965,8 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro>
             Expanded(
               child: _SummaryCard(
                 title: 'المبيعات',
-                value: '${NumberFormat('#,###').format(sales)} ل.س',
+                value:
+                    '${NumberFormat('#,###').format(sales)} (\$${NumberFormat('#,###').format(sales / CurrencyService.currentRate)}) ل.س',
                 icon: Icons.trending_up_rounded,
                 color: AppColors.success,
               ),
@@ -961,7 +975,8 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro>
             Expanded(
               child: _SummaryCard(
                 title: 'المشتريات',
-                value: '${NumberFormat('#,###').format(purchases)} ل.س',
+                value:
+                    '${NumberFormat('#,###').format(purchases)} (\$${NumberFormat('#,###').format(purchases / CurrencyService.currentRate)}) ل.س',
                 icon: Icons.trending_down_rounded,
                 color: AppColors.error,
               ),
@@ -971,7 +986,8 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro>
         SizedBox(height: AppSpacing.md),
         _SummaryCard(
           title: 'صافي الربح',
-          value: '${NumberFormat('#,###').format(profit)} ل.س',
+          value:
+              '${NumberFormat('#,###').format(profit)} (\$${NumberFormat('#,###').format(profit / CurrencyService.currentRate)}) ل.س',
           icon: profit >= 0
               ? Icons.trending_up_rounded
               : Icons.trending_down_rounded,
@@ -1452,12 +1468,16 @@ class _InvoiceListItem extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                '${NumberFormat('#,###').format(invoice.total)} ل.س',
-                style: AppTypography.titleSmall.copyWith(
+              CompactDualPrice(
+                amountSyp: invoice.total,
+                amountUsd: invoice.totalUsd ??
+                    invoice.total / CurrencyService.currentRate,
+                sypStyle: AppTypography.titleSmall.copyWith(
                   fontWeight: FontWeight.bold,
                   color: AppColors.success,
                 ),
+                usdStyle: AppTypography.labelSmall
+                    .copyWith(color: AppColors.textSecondary),
               ),
               Text(
                 format.format(invoice.invoiceDate),

@@ -7,7 +7,6 @@ import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../export/export_templates.dart';
-import '../currency_service.dart';
 import '../currency_formatter.dart';
 import 'pdf_theme.dart';
 

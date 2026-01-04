@@ -477,6 +477,10 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
       'status': statusText,
       'items': 0, // Will be loaded separately
       'paymentMethod': invoice.paymentMethod,
+      // سعر الصرف المحفوظ وقت إنشاء الفاتورة
+      'exchangeRate': invoice.exchangeRate,
+      'totalUsd': invoice.totalUsd,
+      'paidAmountUsd': invoice.paidAmountUsd,
     };
   }
 

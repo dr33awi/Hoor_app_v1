@@ -14,6 +14,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:excel/excel.dart';
 
 import '../../../data/database/app_database.dart';
+import '../currency_service.dart';
 
 class ExportService {
   static final ExportService _instance = ExportService._internal();
@@ -61,7 +62,7 @@ class ExportService {
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text(
-                    'الإجمالي: ${_priceFormat.format(total)} ل.س',
+                    'الإجمالي: ${_priceFormat.format(total)} ل.س (\$${(total / CurrencyService.currentRate).toStringAsFixed(2)})',
                     style: pw.TextStyle(
                       font: arabicTtf,
                       fontWeight: pw.FontWeight.bold,
@@ -100,7 +101,7 @@ class ExportService {
               ],
               data: invoices
                   .map((inv) => [
-                        '${_priceFormat.format(inv.total)} ل.س',
+                        '${_priceFormat.format(inv.total)} ل.س (\$${(inv.total / CurrencyService.currentRate).toStringAsFixed(2)})',
                         _getStatusText(inv.status),
                         _dateFormat.format(inv.invoiceDate),
                         inv.customerId ?? inv.supplierId ?? '-',
@@ -155,7 +156,7 @@ class ExportService {
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Text(
-                    'قيمة المخزون: ${_priceFormat.format(totalValue)} ل.س',
+                    'قيمة المخزون: ${_priceFormat.format(totalValue)} ل.س (\$${(totalValue / CurrencyService.currentRate).toStringAsFixed(2)})',
                     style: pw.TextStyle(
                       font: arabicTtf,
                       fontWeight: pw.FontWeight.bold,
@@ -196,8 +197,8 @@ class ExportService {
                   .map((p) => [
                         '${_priceFormat.format(p.quantity * p.purchasePrice)} ل.س',
                         '${p.quantity}',
-                        '${_priceFormat.format(p.salePrice)} ل.س',
-                        '${_priceFormat.format(p.purchasePrice)} ل.س',
+                        '${_priceFormat.format(p.salePrice)} (\$${(p.salePrice / CurrencyService.currentRate).toStringAsFixed(2)}) ل.س',
+                        '${_priceFormat.format(p.purchasePrice)} (\$${(p.purchasePrice / CurrencyService.currentRate).toStringAsFixed(2)}) ل.س',
                         p.name,
                       ])
                   .toList(),

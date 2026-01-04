@@ -234,6 +234,9 @@ class CashMovements extends Table {
 }
 
 /// Customers table
+/// ═══════════════════════════════════════════════════════════════════════════
+/// سياسة تثبيت السعر: الرصيد بالدولار يُحسب من سعر الصرف المحفوظ لكل فاتورة
+/// ═══════════════════════════════════════════════════════════════════════════
 class Customers extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
@@ -241,7 +244,9 @@ class Customers extends Table {
   TextColumn get email => text().nullable()();
   TextColumn get address => text().nullable()();
   RealColumn get balance =>
-      real().withDefault(const Constant(0))(); // Credit balance
+      real().withDefault(const Constant(0))(); // Credit balance بالليرة
+  RealColumn get balanceUsd => real()
+      .nullable()(); // Credit balance بالدولار (محسوب من سعر الصرف المحفوظ)
   TextColumn get notes => text().nullable()();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
   TextColumn get syncStatus => text().withDefault(const Constant('pending'))();
@@ -253,6 +258,9 @@ class Customers extends Table {
 }
 
 /// Suppliers table
+/// ═══════════════════════════════════════════════════════════════════════════
+/// سياسة تثبيت السعر: الرصيد بالدولار يُحسب من سعر الصرف المحفوظ لكل فاتورة
+/// ═══════════════════════════════════════════════════════════════════════════
 class Suppliers extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
@@ -260,7 +268,9 @@ class Suppliers extends Table {
   TextColumn get email => text().nullable()();
   TextColumn get address => text().nullable()();
   RealColumn get balance =>
-      real().withDefault(const Constant(0))(); // Payable balance
+      real().withDefault(const Constant(0))(); // Payable balance بالليرة
+  RealColumn get balanceUsd => real()
+      .nullable()(); // Payable balance بالدولار (محسوب من سعر الصرف المحفوظ)
   TextColumn get notes => text().nullable()();
   BoolColumn get isActive => boolean().withDefault(const Constant(true))();
   TextColumn get syncStatus => text().withDefault(const Constant('pending'))();

@@ -15,6 +15,7 @@ import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/widgets/widgets.dart';
 import '../../core/widgets/dual_price_display.dart';
+import '../../core/services/currency_service.dart';
 import '../../data/database/app_database.dart';
 
 class SalesScreenPro extends ConsumerStatefulWidget {
@@ -844,12 +845,15 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
                   color: AppColors.textSecondary,
                 ),
               ),
-              Text(
-                '${_subtotal.toStringAsFixed(2)} ل.س',
-                style: AppTypography.bodySmall.copyWith(
+              CompactDualPrice(
+                amountSyp: _subtotal,
+                amountUsd: _subtotal / CurrencyService.currentRate,
+                sypStyle: AppTypography.bodySmall.copyWith(
                   color: AppColors.textPrimary,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
+                usdStyle: AppTypography.labelSmall
+                    .copyWith(color: AppColors.textSecondary),
               ),
             ],
           ),
@@ -879,12 +883,15 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
                     ),
                   ],
                 ),
-                Text(
-                  '-${_discount.toStringAsFixed(2)} ل.س',
-                  style: AppTypography.bodySmall.copyWith(
+                CompactDualPrice(
+                  amountSyp: -_discount,
+                  amountUsd: -_discount / CurrencyService.currentRate,
+                  sypStyle: AppTypography.bodySmall.copyWith(
                     color: AppColors.success,
                     fontFeatures: const [FontFeature.tabularFigures()],
                   ),
+                  usdStyle: AppTypography.labelSmall.copyWith(
+                      color: AppColors.success.withValues(alpha: 0.7)),
                 ),
               ],
             ),
@@ -903,13 +910,16 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              Text(
-                '${_total.toStringAsFixed(2)} ل.س',
-                style: AppTypography.titleMedium.copyWith(
+              CompactDualPrice(
+                amountSyp: _total,
+                amountUsd: _total / CurrencyService.currentRate,
+                sypStyle: AppTypography.titleMedium.copyWith(
                   color: AppColors.success,
                   fontWeight: FontWeight.w700,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
+                usdStyle: AppTypography.bodySmall
+                    .copyWith(color: AppColors.success.withValues(alpha: 0.8)),
               ),
             ],
           ),
@@ -1043,13 +1053,14 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
                                 color: AppColors.textSecondary,
                               ),
                             ),
-                            Text(
-                              '${_total.toStringAsFixed(2)} ل.س',
-                              style: AppTypography.titleMedium
-                                  .copyWith(
-                                    color: AppColors.textPrimary,
-                                  )
+                            CompactDualPrice(
+                              amountSyp: _total,
+                              amountUsd: _total / CurrencyService.currentRate,
+                              sypStyle: AppTypography.titleMedium
+                                  .copyWith(color: AppColors.textPrimary)
                                   .monoBold,
+                              usdStyle: AppTypography.labelSmall
+                                  .copyWith(color: AppColors.textSecondary),
                             ),
                           ],
                         ),
@@ -1257,7 +1268,7 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
                               ),
                               title: Text(customer.name),
                               subtitle: Text(
-                                'الرصيد: ${customer.balance.toStringAsFixed(0)} ل.س',
+                                'الرصيد: ${customer.balance.toStringAsFixed(0)} (\$${(customer.balance / CurrencyService.currentRate).toStringAsFixed(1)}) ل.س',
                                 style: AppTypography.bodySmall.copyWith(
                                   color: AppColors.textTertiary,
                                 ),
@@ -1464,10 +1475,14 @@ class _ProductCard extends StatelessWidget {
                   SizedBox(height: AppSpacing.xs),
 
                   // Price - عرض مزدوج (ليرة + دولار)
+                  // الدولار هو الأساس: السعر بالليرة = الدولار × سعر الصرف الحالي
                   DualPriceDisplay(
-                    amountSyp: product.salePrice,
+                    amountSyp: (product.salePriceUsd != null &&
+                            product.salePriceUsd! > 0)
+                        ? product.salePriceUsd! * CurrencyService.currentRate
+                        : product.salePrice,
                     amountUsd: product.salePriceUsd,
-                    exchangeRate: product.exchangeRateAtCreation,
+                    exchangeRate: CurrencyService.currentRate,
                     sypStyle: AppTypography.titleSmall
                         .copyWith(
                           color: isOutOfStock
@@ -1580,9 +1595,12 @@ class _CartItemCard extends StatelessWidget {
                   ),
                 ),
                 CompactDualPrice(
-                  amountSyp: item.product.salePrice,
+                  amountSyp: (item.product.salePriceUsd != null &&
+                          item.product.salePriceUsd! > 0)
+                      ? item.product.salePriceUsd! * CurrencyService.currentRate
+                      : item.product.salePrice,
                   amountUsd: item.product.salePriceUsd,
-                  exchangeRate: item.product.exchangeRateAtCreation,
+                  exchangeRate: CurrencyService.currentRate,
                 ),
               ],
             ),
@@ -1680,7 +1698,7 @@ class _CartItemCard extends StatelessWidget {
                         ),
                         SizedBox(width: 4.w),
                         Text(
-                          '${item.price.toStringAsFixed(0)} ل.س',
+                          '${item.price.toStringAsFixed(0)} (\$${(item.price / CurrencyService.currentRate).toStringAsFixed(1)}) ل.س',
                           style: AppTypography.bodySmall
                               .copyWith(
                                 color: hasCustomPrice
@@ -1884,13 +1902,14 @@ class _PaymentSheetState extends State<_PaymentSheet> {
                         color: Colors.white,
                       ),
                     ),
-                    Text(
-                      '${widget.total.toStringAsFixed(2)} ل.س',
-                      style: AppTypography.headlineMedium
-                          .copyWith(
-                            color: Colors.white,
-                          )
+                    CompactDualPrice(
+                      amountSyp: widget.total,
+                      amountUsd: widget.total / CurrencyService.currentRate,
+                      sypStyle: AppTypography.headlineMedium
+                          .copyWith(color: Colors.white)
                           .monoBold,
+                      usdStyle: AppTypography.titleSmall
+                          .copyWith(color: Colors.white.withValues(alpha: 0.8)),
                     ),
                   ],
                 ),
@@ -1986,13 +2005,14 @@ class _PaymentSheetState extends State<_PaymentSheet> {
                             color: AppColors.success,
                           ),
                         ),
-                        Text(
-                          '${_change.toStringAsFixed(2)} ل.س',
-                          style: AppTypography.titleMedium
-                              .copyWith(
-                                color: AppColors.success,
-                              )
+                        CompactDualPrice(
+                          amountSyp: _change,
+                          amountUsd: _change / CurrencyService.currentRate,
+                          sypStyle: AppTypography.titleMedium
+                              .copyWith(color: AppColors.success)
                               .monoBold,
+                          usdStyle: AppTypography.bodySmall.copyWith(
+                              color: AppColors.success.withValues(alpha: 0.7)),
                         ),
                       ],
                     ),
@@ -2057,15 +2077,21 @@ class _PaymentSheetState extends State<_PaymentSheet> {
                               : AppColors.success,
                         ),
                       ),
-                      Text(
-                        '${_remainingAmount.toStringAsFixed(2)} ل.س',
-                        style: AppTypography.titleMedium
+                      CompactDualPrice(
+                        amountSyp: _remainingAmount,
+                        amountUsd:
+                            _remainingAmount / CurrencyService.currentRate,
+                        sypStyle: AppTypography.titleMedium
                             .copyWith(
                               color: _remainingAmount > 0
                                   ? AppColors.warning
                                   : AppColors.success,
                             )
                             .monoBold,
+                        usdStyle: AppTypography.bodySmall.copyWith(
+                            color: _remainingAmount > 0
+                                ? AppColors.warning.withValues(alpha: 0.7)
+                                : AppColors.success.withValues(alpha: 0.7)),
                       ),
                     ],
                   ),
@@ -2274,8 +2300,16 @@ class CartItem {
     this.customPrice,
   });
 
-  /// السعر الفعلي (المخصص أو سعر المنتج الأصلي)
-  double get price => customPrice ?? product.salePrice;
+  /// السعر الفعلي (المخصص أو سعر المنتج المحسوب من الدولار)
+  /// الدولار هو الأساس: السعر = الدولار × سعر الصرف الحالي
+  double get price {
+    if (customPrice != null) return customPrice!;
+    // حساب السعر من الدولار × سعر الصرف الحالي
+    if (product.salePriceUsd != null && product.salePriceUsd! > 0) {
+      return product.salePriceUsd! * CurrencyService.currentRate;
+    }
+    return product.salePrice;
+  }
 
   /// الإجمالي
   double get total => price * quantity;

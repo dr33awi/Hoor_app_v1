@@ -13,6 +13,7 @@ import '../../core/providers/app_providers.dart';
 import '../../core/widgets/widgets.dart';
 import '../../core/services/export/export_button.dart';
 import '../../core/services/export/products_export_service.dart';
+import '../../core/services/currency_service.dart';
 import '../../data/database/app_database.dart';
 import 'widgets/product_card_pro.dart';
 import 'widgets/products_filter_bar.dart';
@@ -851,13 +852,28 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
       status = 'low_stock';
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // الدولار هو الأساس: حساب السعر بالليرة من الدولار × سعر الصرف الحالي
+    // ═══════════════════════════════════════════════════════════════════════════
+    final currentRate = CurrencyService.currentRate;
+    final salePriceSyp =
+        (product.salePriceUsd != null && product.salePriceUsd! > 0)
+            ? product.salePriceUsd! * currentRate
+            : product.salePrice;
+    final purchasePriceSyp =
+        (product.purchasePriceUsd != null && product.purchasePriceUsd! > 0)
+            ? product.purchasePriceUsd! * currentRate
+            : product.purchasePrice;
+
     return {
       'id': product.id,
       'name': product.name,
       'sku': product.sku ?? '',
       'barcode': product.barcode ?? '',
-      'price': product.salePrice,
-      'cost': product.purchasePrice,
+      'price': salePriceSyp,
+      'cost': purchasePriceSyp,
+      'priceUsd': product.salePriceUsd,
+      'costUsd': product.purchasePriceUsd,
       'stock': product.quantity,
       'minStock': product.minQuantity,
       'category': category?.name ?? 'بدون تصنيف',

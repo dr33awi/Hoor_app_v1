@@ -246,6 +246,7 @@ class VoucherRepository extends BaseRepository<Voucher, VouchersCompanion> {
     await _updateCustomerSupplierBalance(
       type: type,
       amount: amount,
+      amountUsd: amountUsd,
       customerId: customerId,
       supplierId: supplierId,
     );
@@ -260,6 +261,7 @@ class VoucherRepository extends BaseRepository<Voucher, VouchersCompanion> {
   Future<void> _updateCustomerSupplierBalance({
     required VoucherType type,
     required double amount,
+    double? amountUsd,
     String? customerId,
     String? supplierId,
   }) async {
@@ -268,7 +270,8 @@ class VoucherRepository extends BaseRepository<Voucher, VouchersCompanion> {
         case VoucherType.receipt:
           // سند قبض من عميل = خصم من رصيد العميل (العميل دفع)
           if (customerId != null) {
-            await customerRepo.updateBalance(customerId, -amount);
+            await customerRepo.updateBalance(customerId, -amount,
+                amountUsd: amountUsd != null ? -amountUsd : null);
             debugPrint(
                 'Updated customer $customerId balance by -$amount (receipt voucher)');
           }
@@ -276,7 +279,8 @@ class VoucherRepository extends BaseRepository<Voucher, VouchersCompanion> {
         case VoucherType.payment:
           // سند دفع للمورد = خصم من رصيد المورد (دفعنا للمورد)
           if (supplierId != null) {
-            await supplierRepo.updateBalance(supplierId, -amount);
+            await supplierRepo.updateBalance(supplierId, -amount,
+                amountUsd: amountUsd != null ? -amountUsd : null);
             debugPrint(
                 'Updated supplier $supplierId balance by -$amount (payment voucher)');
           }
@@ -294,6 +298,7 @@ class VoucherRepository extends BaseRepository<Voucher, VouchersCompanion> {
   Future<void> _reverseCustomerSupplierBalance({
     required String voucherType,
     required double amount,
+    double? amountUsd,
     String? customerId,
     String? supplierId,
   }) async {
@@ -302,7 +307,8 @@ class VoucherRepository extends BaseRepository<Voucher, VouchersCompanion> {
         case VoucherType.receipt:
           // سند قبض كان خصم من العميل، العكس = زيادة
           if (customerId != null) {
-            await customerRepo.updateBalance(customerId, amount);
+            await customerRepo.updateBalance(customerId, amount,
+                amountUsd: amountUsd);
             debugPrint(
                 'عكس رصيد العميل $customerId بمقدار +$amount (حذف سند قبض)');
           }
@@ -310,7 +316,8 @@ class VoucherRepository extends BaseRepository<Voucher, VouchersCompanion> {
         case VoucherType.payment:
           // سند دفع كان خصم من المورد، العكس = زيادة
           if (supplierId != null) {
-            await supplierRepo.updateBalance(supplierId, amount);
+            await supplierRepo.updateBalance(supplierId, amount,
+                amountUsd: amountUsd);
             debugPrint(
                 'عكس رصيد المورد $supplierId بمقدار +$amount (حذف سند دفع)');
           }
@@ -340,13 +347,17 @@ class VoucherRepository extends BaseRepository<Voucher, VouchersCompanion> {
     // ═══════════════════════════════════════════════════════════════════════════
     if (amount != null && amount != voucher.amount) {
       final difference = amount - voucher.amount;
+      // حساب فرق المبلغ بالدولار باستخدام سعر الصرف المحفوظ
+      final differenceUsd =
+          voucher.exchangeRate > 0 ? difference / voucher.exchangeRate : null;
 
       // تحديث الفرق في الرصيد
       switch (VoucherTypeExtension.fromString(voucher.type)) {
         case VoucherType.receipt:
           // سند قبض: الزيادة = خصم إضافي من العميل
           if (voucher.customerId != null) {
-            await customerRepo.updateBalance(voucher.customerId!, -difference);
+            await customerRepo.updateBalance(voucher.customerId!, -difference,
+                amountUsd: differenceUsd != null ? -differenceUsd : null);
             debugPrint(
                 'تحديث رصيد العميل ${voucher.customerId} بمقدار ${-difference} (تعديل سند قبض)');
           }
@@ -354,7 +365,8 @@ class VoucherRepository extends BaseRepository<Voucher, VouchersCompanion> {
         case VoucherType.payment:
           // سند دفع: الزيادة = خصم إضافي من المورد
           if (voucher.supplierId != null) {
-            await supplierRepo.updateBalance(voucher.supplierId!, -difference);
+            await supplierRepo.updateBalance(voucher.supplierId!, -difference,
+                amountUsd: differenceUsd != null ? -differenceUsd : null);
             debugPrint(
                 'تحديث رصيد المورد ${voucher.supplierId} بمقدار ${-difference} (تعديل سند دفع)');
           }
@@ -365,12 +377,18 @@ class VoucherRepository extends BaseRepository<Voucher, VouchersCompanion> {
       }
     }
 
+    // حساب المبلغ الجديد بالدولار
+    final newAmountUsd = amount != null && voucher.exchangeRate > 0
+        ? amount / voucher.exchangeRate
+        : voucher.amountUsd;
+
     await database.updateVoucher(VouchersCompanion(
       id: Value(id),
       voucherNumber: Value(voucher.voucherNumber),
       type: Value(voucher.type),
       categoryId: Value(categoryId ?? voucher.categoryId),
       amount: Value(amount ?? voucher.amount),
+      amountUsd: Value(newAmountUsd),
       exchangeRate: Value(voucher.exchangeRate),
       description: Value(description ?? voucher.description),
       customerId: Value(voucher.customerId),
@@ -397,6 +415,7 @@ class VoucherRepository extends BaseRepository<Voucher, VouchersCompanion> {
       await _reverseCustomerSupplierBalance(
         voucherType: voucher.type,
         amount: voucher.amount,
+        amountUsd: voucher.amountUsd,
         customerId: voucher.customerId,
         supplierId: voucher.supplierId,
       );

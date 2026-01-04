@@ -12,6 +12,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/services/currency_service.dart';
 import '../../core/widgets/widgets.dart';
 import '../../core/widgets/dual_price_display.dart';
 import '../../core/services/printing/printing_services.dart';
@@ -386,13 +387,26 @@ class _InvoiceDetailsScreenProState
                         .mono,
                   ),
                   if (!isPaid)
-                    Text(
-                      'متبقي: ${remaining.toStringAsFixed(0)} ل.س',
-                      style: AppTypography.bodySmall
-                          .copyWith(
-                            color: AppColors.error,
-                          )
-                          .mono,
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('متبقي: ',
+                            style: AppTypography.bodySmall
+                                .copyWith(color: AppColors.error)),
+                        CompactDualPrice(
+                          amountSyp: remaining,
+                          amountUsd: _invoice!.exchangeRate != null &&
+                                  _invoice!.exchangeRate! > 0
+                              ? remaining / _invoice!.exchangeRate!
+                              : null,
+                          sypStyle: AppTypography.bodySmall
+                              .copyWith(color: AppColors.error)
+                              .mono,
+                          usdStyle: AppTypography.labelSmall
+                              .copyWith(color: AppColors.textTertiary)
+                              .mono,
+                        ),
+                      ],
                     ),
                 ],
               ),
@@ -419,13 +433,34 @@ class _InvoiceDetailsScreenProState
                     color: AppColors.success,
                   ),
                 ),
-                Text(
-                  '${_invoice!.paidAmount.toStringAsFixed(0)} من ${_invoice!.total.toStringAsFixed(0)} ل.س',
-                  style: AppTypography.labelSmall
-                      .copyWith(
-                        color: AppColors.textSecondary,
-                      )
-                      .mono,
+                Builder(
+                  builder: (context) {
+                    final rate =
+                        _invoice!.exchangeRate ?? CurrencyService.currentRate;
+                    final paidUsd =
+                        rate > 0 ? _invoice!.paidAmount / rate : null;
+                    final totalUsd = rate > 0 ? _invoice!.total / rate : null;
+                    return Text.rich(
+                      TextSpan(children: [
+                        TextSpan(
+                            text: '${_invoice!.paidAmount.toStringAsFixed(0)}'),
+                        if (paidUsd != null)
+                          TextSpan(
+                              text: ' (\$${paidUsd.toStringAsFixed(1)})',
+                              style: TextStyle(fontSize: 10)),
+                        TextSpan(
+                            text: ' من ${_invoice!.total.toStringAsFixed(0)}'),
+                        if (totalUsd != null)
+                          TextSpan(
+                              text: ' (\$${totalUsd.toStringAsFixed(1)})',
+                              style: TextStyle(fontSize: 10)),
+                        TextSpan(text: ' ل.س'),
+                      ]),
+                      style: AppTypography.labelSmall
+                          .copyWith(color: AppColors.textSecondary)
+                          .mono,
+                    );
+                  },
                 ),
               ],
             ),
@@ -545,24 +580,54 @@ class _InvoiceDetailsScreenProState
                               color: AppColors.textPrimary,
                             ),
                           ),
-                          Text(
-                            '${item.unitPrice.toStringAsFixed(0)} ل.س للوحدة',
-                            style: AppTypography.bodySmall
-                                .copyWith(
-                                  color: AppColors.textTertiary,
-                                )
-                                .mono,
+                          Builder(
+                            builder: (context) {
+                              final rate = item.exchangeRate ??
+                                  _invoice?.exchangeRate ??
+                                  CurrencyService.currentRate;
+                              final unitPriceUsd = item.unitPriceUsd ??
+                                  (rate > 0 ? item.unitPrice / rate : null);
+                              return Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  CompactDualPrice(
+                                    amountSyp: item.unitPrice,
+                                    amountUsd: unitPriceUsd,
+                                    sypStyle: AppTypography.bodySmall
+                                        .copyWith(color: AppColors.textTertiary)
+                                        .mono,
+                                    usdStyle: AppTypography.labelSmall
+                                        .copyWith(color: AppColors.textTertiary)
+                                        .mono,
+                                  ),
+                                  Text(' للوحدة',
+                                      style: AppTypography.bodySmall.copyWith(
+                                          color: AppColors.textTertiary)),
+                                ],
+                              );
+                            },
                           ),
                         ],
                       ),
                     ),
-                    Text(
-                      '${item.total.toStringAsFixed(0)} ل.س',
-                      style: AppTypography.titleSmall
-                          .copyWith(
-                            color: AppColors.textPrimary,
-                          )
-                          .monoSemibold,
+                    Builder(
+                      builder: (context) {
+                        final rate = item.exchangeRate ??
+                            _invoice?.exchangeRate ??
+                            CurrencyService.currentRate;
+                        final itemTotalUsd = item.totalUsd ??
+                            (rate > 0 ? item.total / rate : null);
+                        return CompactDualPrice(
+                          amountSyp: item.total,
+                          amountUsd: itemTotalUsd,
+                          sypStyle: AppTypography.titleSmall
+                              .copyWith(color: AppColors.textPrimary)
+                              .monoSemibold,
+                          usdStyle: AppTypography.labelSmall
+                              .copyWith(color: AppColors.textSecondary)
+                              .mono,
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -716,12 +781,19 @@ class _InvoiceDetailsScreenProState
             // TODO: Show payment dialog
           },
           icon: const Icon(Icons.payments_outlined),
-          label: Text(
-            'تسجيل دفعة (${remaining.toStringAsFixed(0)} ل.س)',
-            style: AppTypography.labelLarge.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-            ),
+          label: Builder(
+            builder: (context) {
+              final rate =
+                  _invoice?.exchangeRate ?? CurrencyService.currentRate;
+              final remainingUsd = rate > 0 ? remaining / rate : null;
+              return Text(
+                'تسجيل دفعة (${remaining.toStringAsFixed(0)}${remainingUsd != null ? " / \$${remainingUsd.toStringAsFixed(0)}" : ""} ل.س)',
+                style: AppTypography.labelLarge.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              );
+            },
           ),
           style: FilledButton.styleFrom(
             backgroundColor: AppColors.success,

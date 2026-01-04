@@ -58,6 +58,7 @@ class CustomerRepository extends BaseRepository<Customer, CustomersCompanion> {
     String? email,
     String? address,
     double? balance,
+    double? balanceUsd,
     String? notes,
     bool? isActive,
   }) async {
@@ -71,6 +72,7 @@ class CustomerRepository extends BaseRepository<Customer, CustomersCompanion> {
       email: Value(email ?? existing.email),
       address: Value(address ?? existing.address),
       balance: Value(balance ?? existing.balance),
+      balanceUsd: Value(balanceUsd ?? existing.balanceUsd),
       notes: Value(notes ?? existing.notes),
       isActive: Value(isActive ?? existing.isActive),
       syncStatus: const Value('pending'),
@@ -79,13 +81,16 @@ class CustomerRepository extends BaseRepository<Customer, CustomersCompanion> {
     ));
   }
 
-  Future<void> updateBalance(String customerId, double amount) async {
+  Future<void> updateBalance(String customerId, double amount,
+      {double? amountUsd}) async {
     final customer = await database.getCustomerById(customerId);
     if (customer == null) return;
 
     await updateCustomer(
       id: customerId,
       balance: customer.balance + amount,
+      balanceUsd:
+          amountUsd != null ? (customer.balanceUsd ?? 0) + amountUsd : null,
     );
   }
 

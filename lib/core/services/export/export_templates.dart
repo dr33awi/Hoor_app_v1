@@ -2,6 +2,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../printing/pdf_theme.dart';
+import '../currency_service.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
 /// Export Templates - قوالب التصدير الموحدة
@@ -489,6 +490,19 @@ class ExportFormatters {
     }
 
     return showCurrency ? '$formatted ل.س' : formatted;
+  }
+
+  /// تنسيق السعر مع الدولار (مزدوج)
+  /// يعرض السعر بالليرة السورية + المقابل بالدولار
+  static String formatDualPrice(double priceSyp, {bool showCurrency = true}) {
+    final priceUsd = priceSyp / CurrencyService.currentRate;
+    final sypFormatted = formatPrice(priceSyp, showCurrency: false);
+    final usdFormatted = priceUsd.toStringAsFixed(2);
+
+    if (showCurrency) {
+      return '$sypFormatted ل.س (\$$usdFormatted)';
+    }
+    return '$sypFormatted (\$$usdFormatted)';
   }
 
   /// تنسيق التاريخ

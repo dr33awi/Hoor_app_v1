@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../data/database/app_database.dart' hide Category;
 import '../../../data/database/app_database.dart' as db show Category;
+import '../currency_service.dart';
 import 'export_templates.dart';
 
 // Type alias for clarity
@@ -740,7 +741,7 @@ class ExcelExportService {
             .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
             .value =
         TextCellValue(
-            'الرصيد الحالي: ${customer.balance.toStringAsFixed(0)} ل.س');
+            'الرصيد الحالي: ${customer.balance.toStringAsFixed(0)} ل.س (\$${(customer.balance / CurrencyService.currentRate).toStringAsFixed(2)})');
     row += 2;
 
     // رأس الجدول
@@ -848,7 +849,7 @@ class ExcelExportService {
             .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
             .value =
         TextCellValue(
-            'الرصيد الحالي: ${supplier.balance.toStringAsFixed(0)} ل.س');
+            'الرصيد الحالي: ${supplier.balance.toStringAsFixed(0)} ل.س (\$${(supplier.balance / CurrencyService.currentRate).toStringAsFixed(2)})');
     row += 2;
 
     // رأس الجدول

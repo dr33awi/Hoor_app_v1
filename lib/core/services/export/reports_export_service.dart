@@ -66,9 +66,9 @@ class ReportsExportService {
         inv.invoiceNumber,
         ExportFormatters.formatDate(inv.invoiceDate),
         inv.customerId ?? 'نقدي',
-        ExportFormatters.formatPrice(inv.total, showCurrency: false),
-        ExportFormatters.formatPrice(inv.paidAmount, showCurrency: false),
-        ExportFormatters.formatPrice(inv.total - inv.paidAmount,
+        ExportFormatters.formatDualPrice(inv.total, showCurrency: false),
+        ExportFormatters.formatDualPrice(inv.paidAmount, showCurrency: false),
+        ExportFormatters.formatDualPrice(inv.total - inv.paidAmount,
             showCurrency: false),
         _getPaymentStatusText(inv.total, inv.paidAmount),
       ]);
@@ -81,14 +81,14 @@ class ReportsExportService {
         3,
         'الإجمالي:',
         [
-          ExportFormatters.formatPrice(totalSales, showCurrency: false),
-          ExportFormatters.formatPrice(totalPaid, showCurrency: false),
-          ExportFormatters.formatPrice(totalSales - totalPaid,
+          ExportFormatters.formatDualPrice(totalSales, showCurrency: false),
+          ExportFormatters.formatDualPrice(totalPaid, showCurrency: false),
+          ExportFormatters.formatDualPrice(totalSales - totalPaid,
               showCurrency: false),
         ],
         ExcelStyles.successColor);
 
-    _setExcelColumnWidths(sheet, [5, 20, 15, 20, 15, 15, 15, 12]);
+    _setExcelColumnWidths(sheet, [5, 20, 15, 20, 20, 20, 20, 12]);
 
     return await _saveExcelFile(excel, fileName ?? 'sales_report');
   }
@@ -130,17 +130,17 @@ class ReportsExportService {
           template.buildStatsBox([
             StatItem(
               label: 'إجمالي المبيعات',
-              value: ExportFormatters.formatPrice(totalSales),
+              value: ExportFormatters.formatDualPrice(totalSales),
               color: ExportColors.success,
             ),
             StatItem(
               label: 'المدفوع',
-              value: ExportFormatters.formatPrice(totalPaid),
+              value: ExportFormatters.formatDualPrice(totalPaid),
               color: ExportColors.info,
             ),
             StatItem(
               label: 'المتبقي',
-              value: ExportFormatters.formatPrice(totalSales - totalPaid),
+              value: ExportFormatters.formatDualPrice(totalSales - totalPaid),
               color: ExportColors.warning,
             ),
             StatItem(
@@ -159,7 +159,7 @@ class ReportsExportService {
                 '${i + 1}',
                 inv.invoiceNumber,
                 ExportFormatters.formatDate(inv.invoiceDate),
-                ExportFormatters.formatPrice(inv.total),
+                ExportFormatters.formatDualPrice(inv.total),
                 _getPaymentStatusText(inv.total, inv.paidAmount),
               ];
             }),
@@ -220,9 +220,9 @@ class ReportsExportService {
         inv.invoiceNumber,
         ExportFormatters.formatDate(inv.invoiceDate),
         inv.supplierId ?? '-',
-        ExportFormatters.formatPrice(inv.total, showCurrency: false),
-        ExportFormatters.formatPrice(inv.paidAmount, showCurrency: false),
-        ExportFormatters.formatPrice(inv.total - inv.paidAmount,
+        ExportFormatters.formatDualPrice(inv.total, showCurrency: false),
+        ExportFormatters.formatDualPrice(inv.paidAmount, showCurrency: false),
+        ExportFormatters.formatDualPrice(inv.total - inv.paidAmount,
             showCurrency: false),
         _getPaymentStatusText(inv.total, inv.paidAmount),
       ]);
@@ -234,14 +234,14 @@ class ReportsExportService {
         3,
         'الإجمالي:',
         [
-          ExportFormatters.formatPrice(totalPurchases, showCurrency: false),
-          ExportFormatters.formatPrice(totalPaid, showCurrency: false),
-          ExportFormatters.formatPrice(totalPurchases - totalPaid,
+          ExportFormatters.formatDualPrice(totalPurchases, showCurrency: false),
+          ExportFormatters.formatDualPrice(totalPaid, showCurrency: false),
+          ExportFormatters.formatDualPrice(totalPurchases - totalPaid,
               showCurrency: false),
         ],
         ExcelStyles.purchaseColor);
 
-    _setExcelColumnWidths(sheet, [5, 20, 15, 20, 15, 15, 15, 12]);
+    _setExcelColumnWidths(sheet, [5, 20, 15, 20, 20, 20, 20, 12]);
 
     return await _saveExcelFile(excel, fileName ?? 'purchases_report');
   }
@@ -282,12 +282,12 @@ class ReportsExportService {
           template.buildStatsBox([
             StatItem(
               label: 'إجمالي المشتريات',
-              value: ExportFormatters.formatPrice(totalPurchases),
+              value: ExportFormatters.formatDualPrice(totalPurchases),
               color: ExportColors.purchase,
             ),
             StatItem(
               label: 'المدفوع',
-              value: ExportFormatters.formatPrice(totalPaid),
+              value: ExportFormatters.formatDualPrice(totalPaid),
               color: ExportColors.success,
             ),
             StatItem(
@@ -304,7 +304,7 @@ class ReportsExportService {
                 '${i + 1}',
                 inv.invoiceNumber,
                 ExportFormatters.formatDate(inv.invoiceDate),
-                ExportFormatters.formatPrice(inv.total),
+                ExportFormatters.formatDualPrice(inv.total),
                 _getPaymentStatusText(inv.total, inv.paidAmount),
               ];
             }),
@@ -418,7 +418,7 @@ class ReportsExportService {
             // Sales Card
             _buildProfitCard(
               title: 'إجمالي المبيعات',
-              value: ExportFormatters.formatPrice(totalSales),
+              value: ExportFormatters.formatDualPrice(totalSales),
               subtitle: '${sales.length} فاتورة',
               color: ExportColors.success,
             ),
@@ -427,7 +427,7 @@ class ReportsExportService {
             // Purchases Card
             _buildProfitCard(
               title: 'إجمالي المشتريات',
-              value: ExportFormatters.formatPrice(totalPurchases),
+              value: ExportFormatters.formatDualPrice(totalPurchases),
               subtitle: '${purchases.length} فاتورة',
               color: ExportColors.purchase,
             ),
@@ -457,7 +457,7 @@ class ReportsExportService {
                   ),
                   pw.SizedBox(height: 8),
                   pw.Text(
-                    ExportFormatters.formatPrice(profit),
+                    ExportFormatters.formatDualPrice(profit),
                     style: pw.TextStyle(
                       font: PdfFonts.bold,
                       fontSize: 32,

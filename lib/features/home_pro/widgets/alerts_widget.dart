@@ -13,6 +13,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/theme/design_tokens.dart';
 import '../../../core/providers/app_providers.dart';
+import '../../../core/services/currency_service.dart';
 import '../../../core/widgets/widgets.dart';
 
 /// Alert severity levels
@@ -76,7 +77,7 @@ final dashboardAlertsProvider = FutureProvider<List<AlertItem>>((ref) async {
       severity: AlertSeverity.info,
       title: 'ذمم مدينة مستحقة',
       message:
-          '${customersWithBalance.length} عميل بإجمالي ${formatter.format(totalReceivables)} ل.س',
+          '${customersWithBalance.length} عميل بإجمالي ${formatter.format(totalReceivables)} ل.س (\$${(totalReceivables / CurrencyService.currentRate).toStringAsFixed(2)})',
       actionLabel: 'عرض العملاء',
       route: '/customers',
     ));
@@ -94,7 +95,7 @@ final dashboardAlertsProvider = FutureProvider<List<AlertItem>>((ref) async {
       severity: AlertSeverity.info,
       title: 'ذمم دائنة مستحقة',
       message:
-          '${suppliersWithBalance.length} مورد بإجمالي ${formatter.format(totalPayables)} ل.س',
+          '${suppliersWithBalance.length} مورد بإجمالي ${formatter.format(totalPayables)} ل.س (\$${(totalPayables / CurrencyService.currentRate).toStringAsFixed(2)})',
       actionLabel: 'عرض الموردين',
       route: '/suppliers',
     ));

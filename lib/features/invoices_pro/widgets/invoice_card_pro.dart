@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/theme/design_tokens.dart';
+import '../../../core/services/currency_service.dart';
 
 class InvoiceCardPro extends StatelessWidget {
   final Map<String, dynamic> invoice;
@@ -29,6 +30,16 @@ class InvoiceCardPro extends StatelessWidget {
     final remaining = total - paid;
     final paymentProgress = total > 0 ? paid / total : 0.0;
     final isPartial = status == 'جزئي' || (paid > 0 && paid < total);
+
+    // استخدام سعر الصرف المحفوظ أو السعر الحالي كاحتياط
+    final exchangeRate =
+        (invoice['exchangeRate'] as double?) ?? CurrencyService.currentRate;
+    // استخدام السعر بالدولار المحفوظ أو حسابه من سعر الصرف المحفوظ
+    final totalUsd = (invoice['totalUsd'] as double?) ??
+        (exchangeRate > 0 ? total / exchangeRate : 0.0);
+    final paidUsd = (invoice['paidAmountUsd'] as double?) ??
+        (exchangeRate > 0 ? paid / exchangeRate : 0.0);
+    final remainingUsd = exchangeRate > 0 ? remaining / exchangeRate : 0.0;
 
     return Material(
       color: Colors.transparent,
@@ -161,7 +172,7 @@ class InvoiceCardPro extends StatelessWidget {
                                   size: 12.sp, color: AppColors.income),
                               SizedBox(width: 4.w),
                               Text(
-                                'مدفوع ${paid.toStringAsFixed(0)} ل.س',
+                                'مدفوع ${paid.toStringAsFixed(0)} (\$${paidUsd.toStringAsFixed(1)}) ل.س',
                                 style: AppTypography.labelSmall.copyWith(
                                   color: AppColors.income,
                                   fontWeight: FontWeight.w500,
@@ -175,7 +186,7 @@ class InvoiceCardPro extends StatelessWidget {
                                   size: 12.sp, color: AppColors.warning),
                               SizedBox(width: 4.w),
                               Text(
-                                'متبقي ${remaining.toStringAsFixed(0)} ل.س',
+                                'متبقي ${remaining.toStringAsFixed(0)} (\$${remainingUsd.toStringAsFixed(1)}) ل.س',
                                 style: AppTypography.labelSmall.copyWith(
                                   color: AppColors.warning,
                                   fontWeight: FontWeight.w500,
@@ -243,13 +254,29 @@ class InvoiceCardPro extends StatelessWidget {
                           .withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
-                    child: Text(
-                      '${total.toStringAsFixed(0)} ل.س',
-                      style: AppTypography.titleSmall.copyWith(
-                        color: isSales ? AppColors.income : AppColors.purchases,
-                        fontWeight: FontWeight.w700,
-                        fontFamily: 'JetBrains Mono',
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Text(
+                          '${total.toStringAsFixed(0)} ل.س',
+                          style: AppTypography.titleSmall.copyWith(
+                            color: isSales
+                                ? AppColors.income
+                                : AppColors.purchases,
+                            fontWeight: FontWeight.w700,
+                            fontFamily: 'JetBrains Mono',
+                          ),
+                        ),
+                        Text(
+                          '\$${totalUsd.toStringAsFixed(2)}',
+                          style: AppTypography.labelSmall.copyWith(
+                            color: (isSales
+                                    ? AppColors.income
+                                    : AppColors.purchases)
+                                .withValues(alpha: 0.8),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

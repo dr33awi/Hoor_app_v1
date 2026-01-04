@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/theme/design_tokens.dart';
+import '../../../core/services/currency_service.dart';
 
 class InvoicesStatsHeader extends StatelessWidget {
   final bool isSales;
@@ -97,6 +98,12 @@ class InvoicesStatsHeader extends StatelessWidget {
               fontSize: 28.sp,
             ),
           ),
+          Text(
+            '\$${(totalAmount / CurrencyService.currentRate).toStringAsFixed(2)}',
+            style: AppTypography.titleSmall.copyWith(
+              color: Colors.white.withValues(alpha: 0.8),
+            ),
+          ),
 
           SizedBox(height: AppSpacing.md.h),
 
@@ -169,7 +176,7 @@ class InvoicesStatsHeader extends StatelessWidget {
             ),
             SizedBox(height: 2.h),
             Text(
-              '${_formatAmount(amount)} ل.س',
+              '${_formatAmount(amount)} ل.س (\$${(amount / CurrencyService.currentRate).toStringAsFixed(1)})',
               style: AppTypography.bodyMedium.copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,

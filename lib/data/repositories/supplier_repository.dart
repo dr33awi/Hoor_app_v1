@@ -58,6 +58,7 @@ class SupplierRepository extends BaseRepository<Supplier, SuppliersCompanion> {
     String? email,
     String? address,
     double? balance,
+    double? balanceUsd,
     String? notes,
     bool? isActive,
   }) async {
@@ -71,6 +72,7 @@ class SupplierRepository extends BaseRepository<Supplier, SuppliersCompanion> {
       email: Value(email ?? existing.email),
       address: Value(address ?? existing.address),
       balance: Value(balance ?? existing.balance),
+      balanceUsd: Value(balanceUsd ?? existing.balanceUsd),
       notes: Value(notes ?? existing.notes),
       isActive: Value(isActive ?? existing.isActive),
       syncStatus: const Value('pending'),
@@ -79,13 +81,16 @@ class SupplierRepository extends BaseRepository<Supplier, SuppliersCompanion> {
     ));
   }
 
-  Future<void> updateBalance(String supplierId, double amount) async {
+  Future<void> updateBalance(String supplierId, double amount,
+      {double? amountUsd}) async {
     final supplier = await database.getSupplierById(supplierId);
     if (supplier == null) return;
 
     await updateSupplier(
       id: supplierId,
       balance: supplier.balance + amount,
+      balanceUsd:
+          amountUsd != null ? (supplier.balanceUsd ?? 0) + amountUsd : null,
     );
   }
 

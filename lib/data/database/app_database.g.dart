@@ -1339,6 +1339,12 @@ class $CustomersTable extends Customers
       type: DriftSqlType.double,
       requiredDuringInsert: false,
       defaultValue: const Constant(0));
+  static const VerificationMeta _balanceUsdMeta =
+      const VerificationMeta('balanceUsd');
+  @override
+  late final GeneratedColumn<double> balanceUsd = GeneratedColumn<double>(
+      'balance_usd', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
   static const VerificationMeta _notesMeta = const VerificationMeta('notes');
   @override
   late final GeneratedColumn<String> notes = GeneratedColumn<String>(
@@ -1386,6 +1392,7 @@ class $CustomersTable extends Customers
         email,
         address,
         balance,
+        balanceUsd,
         notes,
         isActive,
         syncStatus,
@@ -1428,6 +1435,12 @@ class $CustomersTable extends Customers
     if (data.containsKey('balance')) {
       context.handle(_balanceMeta,
           balance.isAcceptableOrUnknown(data['balance']!, _balanceMeta));
+    }
+    if (data.containsKey('balance_usd')) {
+      context.handle(
+          _balanceUsdMeta,
+          balanceUsd.isAcceptableOrUnknown(
+              data['balance_usd']!, _balanceUsdMeta));
     }
     if (data.containsKey('notes')) {
       context.handle(
@@ -1472,6 +1485,8 @@ class $CustomersTable extends Customers
           .read(DriftSqlType.string, data['${effectivePrefix}address']),
       balance: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}balance'])!,
+      balanceUsd: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}balance_usd']),
       notes: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}notes']),
       isActive: attachedDatabase.typeMapping
@@ -1498,6 +1513,7 @@ class Customer extends DataClass implements Insertable<Customer> {
   final String? email;
   final String? address;
   final double balance;
+  final double? balanceUsd;
   final String? notes;
   final bool isActive;
   final String syncStatus;
@@ -1510,6 +1526,7 @@ class Customer extends DataClass implements Insertable<Customer> {
       this.email,
       this.address,
       required this.balance,
+      this.balanceUsd,
       this.notes,
       required this.isActive,
       required this.syncStatus,
@@ -1530,6 +1547,9 @@ class Customer extends DataClass implements Insertable<Customer> {
       map['address'] = Variable<String>(address);
     }
     map['balance'] = Variable<double>(balance);
+    if (!nullToAbsent || balanceUsd != null) {
+      map['balance_usd'] = Variable<double>(balanceUsd);
+    }
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
     }
@@ -1552,6 +1572,9 @@ class Customer extends DataClass implements Insertable<Customer> {
           ? const Value.absent()
           : Value(address),
       balance: Value(balance),
+      balanceUsd: balanceUsd == null && nullToAbsent
+          ? const Value.absent()
+          : Value(balanceUsd),
       notes:
           notes == null && nullToAbsent ? const Value.absent() : Value(notes),
       isActive: Value(isActive),
@@ -1571,6 +1594,7 @@ class Customer extends DataClass implements Insertable<Customer> {
       email: serializer.fromJson<String?>(json['email']),
       address: serializer.fromJson<String?>(json['address']),
       balance: serializer.fromJson<double>(json['balance']),
+      balanceUsd: serializer.fromJson<double?>(json['balanceUsd']),
       notes: serializer.fromJson<String?>(json['notes']),
       isActive: serializer.fromJson<bool>(json['isActive']),
       syncStatus: serializer.fromJson<String>(json['syncStatus']),
@@ -1588,6 +1612,7 @@ class Customer extends DataClass implements Insertable<Customer> {
       'email': serializer.toJson<String?>(email),
       'address': serializer.toJson<String?>(address),
       'balance': serializer.toJson<double>(balance),
+      'balanceUsd': serializer.toJson<double?>(balanceUsd),
       'notes': serializer.toJson<String?>(notes),
       'isActive': serializer.toJson<bool>(isActive),
       'syncStatus': serializer.toJson<String>(syncStatus),
@@ -1603,6 +1628,7 @@ class Customer extends DataClass implements Insertable<Customer> {
           Value<String?> email = const Value.absent(),
           Value<String?> address = const Value.absent(),
           double? balance,
+          Value<double?> balanceUsd = const Value.absent(),
           Value<String?> notes = const Value.absent(),
           bool? isActive,
           String? syncStatus,
@@ -1615,6 +1641,7 @@ class Customer extends DataClass implements Insertable<Customer> {
         email: email.present ? email.value : this.email,
         address: address.present ? address.value : this.address,
         balance: balance ?? this.balance,
+        balanceUsd: balanceUsd.present ? balanceUsd.value : this.balanceUsd,
         notes: notes.present ? notes.value : this.notes,
         isActive: isActive ?? this.isActive,
         syncStatus: syncStatus ?? this.syncStatus,
@@ -1629,6 +1656,8 @@ class Customer extends DataClass implements Insertable<Customer> {
       email: data.email.present ? data.email.value : this.email,
       address: data.address.present ? data.address.value : this.address,
       balance: data.balance.present ? data.balance.value : this.balance,
+      balanceUsd:
+          data.balanceUsd.present ? data.balanceUsd.value : this.balanceUsd,
       notes: data.notes.present ? data.notes.value : this.notes,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
       syncStatus:
@@ -1647,6 +1676,7 @@ class Customer extends DataClass implements Insertable<Customer> {
           ..write('email: $email, ')
           ..write('address: $address, ')
           ..write('balance: $balance, ')
+          ..write('balanceUsd: $balanceUsd, ')
           ..write('notes: $notes, ')
           ..write('isActive: $isActive, ')
           ..write('syncStatus: $syncStatus, ')
@@ -1658,7 +1688,7 @@ class Customer extends DataClass implements Insertable<Customer> {
 
   @override
   int get hashCode => Object.hash(id, name, phone, email, address, balance,
-      notes, isActive, syncStatus, createdAt, updatedAt);
+      balanceUsd, notes, isActive, syncStatus, createdAt, updatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1669,6 +1699,7 @@ class Customer extends DataClass implements Insertable<Customer> {
           other.email == this.email &&
           other.address == this.address &&
           other.balance == this.balance &&
+          other.balanceUsd == this.balanceUsd &&
           other.notes == this.notes &&
           other.isActive == this.isActive &&
           other.syncStatus == this.syncStatus &&
@@ -1683,6 +1714,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
   final Value<String?> email;
   final Value<String?> address;
   final Value<double> balance;
+  final Value<double?> balanceUsd;
   final Value<String?> notes;
   final Value<bool> isActive;
   final Value<String> syncStatus;
@@ -1696,6 +1728,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
     this.email = const Value.absent(),
     this.address = const Value.absent(),
     this.balance = const Value.absent(),
+    this.balanceUsd = const Value.absent(),
     this.notes = const Value.absent(),
     this.isActive = const Value.absent(),
     this.syncStatus = const Value.absent(),
@@ -1710,6 +1743,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
     this.email = const Value.absent(),
     this.address = const Value.absent(),
     this.balance = const Value.absent(),
+    this.balanceUsd = const Value.absent(),
     this.notes = const Value.absent(),
     this.isActive = const Value.absent(),
     this.syncStatus = const Value.absent(),
@@ -1725,6 +1759,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
     Expression<String>? email,
     Expression<String>? address,
     Expression<double>? balance,
+    Expression<double>? balanceUsd,
     Expression<String>? notes,
     Expression<bool>? isActive,
     Expression<String>? syncStatus,
@@ -1739,6 +1774,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
       if (email != null) 'email': email,
       if (address != null) 'address': address,
       if (balance != null) 'balance': balance,
+      if (balanceUsd != null) 'balance_usd': balanceUsd,
       if (notes != null) 'notes': notes,
       if (isActive != null) 'is_active': isActive,
       if (syncStatus != null) 'sync_status': syncStatus,
@@ -1755,6 +1791,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
       Value<String?>? email,
       Value<String?>? address,
       Value<double>? balance,
+      Value<double?>? balanceUsd,
       Value<String?>? notes,
       Value<bool>? isActive,
       Value<String>? syncStatus,
@@ -1768,6 +1805,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
       email: email ?? this.email,
       address: address ?? this.address,
       balance: balance ?? this.balance,
+      balanceUsd: balanceUsd ?? this.balanceUsd,
       notes: notes ?? this.notes,
       isActive: isActive ?? this.isActive,
       syncStatus: syncStatus ?? this.syncStatus,
@@ -1797,6 +1835,9 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
     }
     if (balance.present) {
       map['balance'] = Variable<double>(balance.value);
+    }
+    if (balanceUsd.present) {
+      map['balance_usd'] = Variable<double>(balanceUsd.value);
     }
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
@@ -1828,6 +1869,7 @@ class CustomersCompanion extends UpdateCompanion<Customer> {
           ..write('email: $email, ')
           ..write('address: $address, ')
           ..write('balance: $balance, ')
+          ..write('balanceUsd: $balanceUsd, ')
           ..write('notes: $notes, ')
           ..write('isActive: $isActive, ')
           ..write('syncStatus: $syncStatus, ')
@@ -1879,6 +1921,12 @@ class $SuppliersTable extends Suppliers
       type: DriftSqlType.double,
       requiredDuringInsert: false,
       defaultValue: const Constant(0));
+  static const VerificationMeta _balanceUsdMeta =
+      const VerificationMeta('balanceUsd');
+  @override
+  late final GeneratedColumn<double> balanceUsd = GeneratedColumn<double>(
+      'balance_usd', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
   static const VerificationMeta _notesMeta = const VerificationMeta('notes');
   @override
   late final GeneratedColumn<String> notes = GeneratedColumn<String>(
@@ -1926,6 +1974,7 @@ class $SuppliersTable extends Suppliers
         email,
         address,
         balance,
+        balanceUsd,
         notes,
         isActive,
         syncStatus,
@@ -1968,6 +2017,12 @@ class $SuppliersTable extends Suppliers
     if (data.containsKey('balance')) {
       context.handle(_balanceMeta,
           balance.isAcceptableOrUnknown(data['balance']!, _balanceMeta));
+    }
+    if (data.containsKey('balance_usd')) {
+      context.handle(
+          _balanceUsdMeta,
+          balanceUsd.isAcceptableOrUnknown(
+              data['balance_usd']!, _balanceUsdMeta));
     }
     if (data.containsKey('notes')) {
       context.handle(
@@ -2012,6 +2067,8 @@ class $SuppliersTable extends Suppliers
           .read(DriftSqlType.string, data['${effectivePrefix}address']),
       balance: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}balance'])!,
+      balanceUsd: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}balance_usd']),
       notes: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}notes']),
       isActive: attachedDatabase.typeMapping
@@ -2038,6 +2095,7 @@ class Supplier extends DataClass implements Insertable<Supplier> {
   final String? email;
   final String? address;
   final double balance;
+  final double? balanceUsd;
   final String? notes;
   final bool isActive;
   final String syncStatus;
@@ -2050,6 +2108,7 @@ class Supplier extends DataClass implements Insertable<Supplier> {
       this.email,
       this.address,
       required this.balance,
+      this.balanceUsd,
       this.notes,
       required this.isActive,
       required this.syncStatus,
@@ -2070,6 +2129,9 @@ class Supplier extends DataClass implements Insertable<Supplier> {
       map['address'] = Variable<String>(address);
     }
     map['balance'] = Variable<double>(balance);
+    if (!nullToAbsent || balanceUsd != null) {
+      map['balance_usd'] = Variable<double>(balanceUsd);
+    }
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
     }
@@ -2092,6 +2154,9 @@ class Supplier extends DataClass implements Insertable<Supplier> {
           ? const Value.absent()
           : Value(address),
       balance: Value(balance),
+      balanceUsd: balanceUsd == null && nullToAbsent
+          ? const Value.absent()
+          : Value(balanceUsd),
       notes:
           notes == null && nullToAbsent ? const Value.absent() : Value(notes),
       isActive: Value(isActive),
@@ -2111,6 +2176,7 @@ class Supplier extends DataClass implements Insertable<Supplier> {
       email: serializer.fromJson<String?>(json['email']),
       address: serializer.fromJson<String?>(json['address']),
       balance: serializer.fromJson<double>(json['balance']),
+      balanceUsd: serializer.fromJson<double?>(json['balanceUsd']),
       notes: serializer.fromJson<String?>(json['notes']),
       isActive: serializer.fromJson<bool>(json['isActive']),
       syncStatus: serializer.fromJson<String>(json['syncStatus']),
@@ -2128,6 +2194,7 @@ class Supplier extends DataClass implements Insertable<Supplier> {
       'email': serializer.toJson<String?>(email),
       'address': serializer.toJson<String?>(address),
       'balance': serializer.toJson<double>(balance),
+      'balanceUsd': serializer.toJson<double?>(balanceUsd),
       'notes': serializer.toJson<String?>(notes),
       'isActive': serializer.toJson<bool>(isActive),
       'syncStatus': serializer.toJson<String>(syncStatus),
@@ -2143,6 +2210,7 @@ class Supplier extends DataClass implements Insertable<Supplier> {
           Value<String?> email = const Value.absent(),
           Value<String?> address = const Value.absent(),
           double? balance,
+          Value<double?> balanceUsd = const Value.absent(),
           Value<String?> notes = const Value.absent(),
           bool? isActive,
           String? syncStatus,
@@ -2155,6 +2223,7 @@ class Supplier extends DataClass implements Insertable<Supplier> {
         email: email.present ? email.value : this.email,
         address: address.present ? address.value : this.address,
         balance: balance ?? this.balance,
+        balanceUsd: balanceUsd.present ? balanceUsd.value : this.balanceUsd,
         notes: notes.present ? notes.value : this.notes,
         isActive: isActive ?? this.isActive,
         syncStatus: syncStatus ?? this.syncStatus,
@@ -2169,6 +2238,8 @@ class Supplier extends DataClass implements Insertable<Supplier> {
       email: data.email.present ? data.email.value : this.email,
       address: data.address.present ? data.address.value : this.address,
       balance: data.balance.present ? data.balance.value : this.balance,
+      balanceUsd:
+          data.balanceUsd.present ? data.balanceUsd.value : this.balanceUsd,
       notes: data.notes.present ? data.notes.value : this.notes,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
       syncStatus:
@@ -2187,6 +2258,7 @@ class Supplier extends DataClass implements Insertable<Supplier> {
           ..write('email: $email, ')
           ..write('address: $address, ')
           ..write('balance: $balance, ')
+          ..write('balanceUsd: $balanceUsd, ')
           ..write('notes: $notes, ')
           ..write('isActive: $isActive, ')
           ..write('syncStatus: $syncStatus, ')
@@ -2198,7 +2270,7 @@ class Supplier extends DataClass implements Insertable<Supplier> {
 
   @override
   int get hashCode => Object.hash(id, name, phone, email, address, balance,
-      notes, isActive, syncStatus, createdAt, updatedAt);
+      balanceUsd, notes, isActive, syncStatus, createdAt, updatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2209,6 +2281,7 @@ class Supplier extends DataClass implements Insertable<Supplier> {
           other.email == this.email &&
           other.address == this.address &&
           other.balance == this.balance &&
+          other.balanceUsd == this.balanceUsd &&
           other.notes == this.notes &&
           other.isActive == this.isActive &&
           other.syncStatus == this.syncStatus &&
@@ -2223,6 +2296,7 @@ class SuppliersCompanion extends UpdateCompanion<Supplier> {
   final Value<String?> email;
   final Value<String?> address;
   final Value<double> balance;
+  final Value<double?> balanceUsd;
   final Value<String?> notes;
   final Value<bool> isActive;
   final Value<String> syncStatus;
@@ -2236,6 +2310,7 @@ class SuppliersCompanion extends UpdateCompanion<Supplier> {
     this.email = const Value.absent(),
     this.address = const Value.absent(),
     this.balance = const Value.absent(),
+    this.balanceUsd = const Value.absent(),
     this.notes = const Value.absent(),
     this.isActive = const Value.absent(),
     this.syncStatus = const Value.absent(),
@@ -2250,6 +2325,7 @@ class SuppliersCompanion extends UpdateCompanion<Supplier> {
     this.email = const Value.absent(),
     this.address = const Value.absent(),
     this.balance = const Value.absent(),
+    this.balanceUsd = const Value.absent(),
     this.notes = const Value.absent(),
     this.isActive = const Value.absent(),
     this.syncStatus = const Value.absent(),
@@ -2265,6 +2341,7 @@ class SuppliersCompanion extends UpdateCompanion<Supplier> {
     Expression<String>? email,
     Expression<String>? address,
     Expression<double>? balance,
+    Expression<double>? balanceUsd,
     Expression<String>? notes,
     Expression<bool>? isActive,
     Expression<String>? syncStatus,
@@ -2279,6 +2356,7 @@ class SuppliersCompanion extends UpdateCompanion<Supplier> {
       if (email != null) 'email': email,
       if (address != null) 'address': address,
       if (balance != null) 'balance': balance,
+      if (balanceUsd != null) 'balance_usd': balanceUsd,
       if (notes != null) 'notes': notes,
       if (isActive != null) 'is_active': isActive,
       if (syncStatus != null) 'sync_status': syncStatus,
@@ -2295,6 +2373,7 @@ class SuppliersCompanion extends UpdateCompanion<Supplier> {
       Value<String?>? email,
       Value<String?>? address,
       Value<double>? balance,
+      Value<double?>? balanceUsd,
       Value<String?>? notes,
       Value<bool>? isActive,
       Value<String>? syncStatus,
@@ -2308,6 +2387,7 @@ class SuppliersCompanion extends UpdateCompanion<Supplier> {
       email: email ?? this.email,
       address: address ?? this.address,
       balance: balance ?? this.balance,
+      balanceUsd: balanceUsd ?? this.balanceUsd,
       notes: notes ?? this.notes,
       isActive: isActive ?? this.isActive,
       syncStatus: syncStatus ?? this.syncStatus,
@@ -2337,6 +2417,9 @@ class SuppliersCompanion extends UpdateCompanion<Supplier> {
     }
     if (balance.present) {
       map['balance'] = Variable<double>(balance.value);
+    }
+    if (balanceUsd.present) {
+      map['balance_usd'] = Variable<double>(balanceUsd.value);
     }
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
@@ -2368,6 +2451,7 @@ class SuppliersCompanion extends UpdateCompanion<Supplier> {
           ..write('email: $email, ')
           ..write('address: $address, ')
           ..write('balance: $balance, ')
+          ..write('balanceUsd: $balanceUsd, ')
           ..write('notes: $notes, ')
           ..write('isActive: $isActive, ')
           ..write('syncStatus: $syncStatus, ')
@@ -14028,6 +14112,7 @@ typedef $$CustomersTableCreateCompanionBuilder = CustomersCompanion Function({
   Value<String?> email,
   Value<String?> address,
   Value<double> balance,
+  Value<double?> balanceUsd,
   Value<String?> notes,
   Value<bool> isActive,
   Value<String> syncStatus,
@@ -14042,6 +14127,7 @@ typedef $$CustomersTableUpdateCompanionBuilder = CustomersCompanion Function({
   Value<String?> email,
   Value<String?> address,
   Value<double> balance,
+  Value<double?> balanceUsd,
   Value<String?> notes,
   Value<bool> isActive,
   Value<String> syncStatus,
@@ -14111,6 +14197,9 @@ class $$CustomersTableFilterComposer
 
   ColumnFilters<double> get balance => $composableBuilder(
       column: $table.balance, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get balanceUsd => $composableBuilder(
+      column: $table.balanceUsd, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get notes => $composableBuilder(
       column: $table.notes, builder: (column) => ColumnFilters(column));
@@ -14197,6 +14286,9 @@ class $$CustomersTableOrderingComposer
   ColumnOrderings<double> get balance => $composableBuilder(
       column: $table.balance, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<double> get balanceUsd => $composableBuilder(
+      column: $table.balanceUsd, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get notes => $composableBuilder(
       column: $table.notes, builder: (column) => ColumnOrderings(column));
 
@@ -14239,6 +14331,9 @@ class $$CustomersTableAnnotationComposer
 
   GeneratedColumn<double> get balance =>
       $composableBuilder(column: $table.balance, builder: (column) => column);
+
+  GeneratedColumn<double> get balanceUsd => $composableBuilder(
+      column: $table.balanceUsd, builder: (column) => column);
 
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
@@ -14327,6 +14422,7 @@ class $$CustomersTableTableManager extends RootTableManager<
             Value<String?> email = const Value.absent(),
             Value<String?> address = const Value.absent(),
             Value<double> balance = const Value.absent(),
+            Value<double?> balanceUsd = const Value.absent(),
             Value<String?> notes = const Value.absent(),
             Value<bool> isActive = const Value.absent(),
             Value<String> syncStatus = const Value.absent(),
@@ -14341,6 +14437,7 @@ class $$CustomersTableTableManager extends RootTableManager<
             email: email,
             address: address,
             balance: balance,
+            balanceUsd: balanceUsd,
             notes: notes,
             isActive: isActive,
             syncStatus: syncStatus,
@@ -14355,6 +14452,7 @@ class $$CustomersTableTableManager extends RootTableManager<
             Value<String?> email = const Value.absent(),
             Value<String?> address = const Value.absent(),
             Value<double> balance = const Value.absent(),
+            Value<double?> balanceUsd = const Value.absent(),
             Value<String?> notes = const Value.absent(),
             Value<bool> isActive = const Value.absent(),
             Value<String> syncStatus = const Value.absent(),
@@ -14369,6 +14467,7 @@ class $$CustomersTableTableManager extends RootTableManager<
             email: email,
             address: address,
             balance: balance,
+            balanceUsd: balanceUsd,
             notes: notes,
             isActive: isActive,
             syncStatus: syncStatus,
@@ -14443,6 +14542,7 @@ typedef $$SuppliersTableCreateCompanionBuilder = SuppliersCompanion Function({
   Value<String?> email,
   Value<String?> address,
   Value<double> balance,
+  Value<double?> balanceUsd,
   Value<String?> notes,
   Value<bool> isActive,
   Value<String> syncStatus,
@@ -14457,6 +14557,7 @@ typedef $$SuppliersTableUpdateCompanionBuilder = SuppliersCompanion Function({
   Value<String?> email,
   Value<String?> address,
   Value<double> balance,
+  Value<double?> balanceUsd,
   Value<String?> notes,
   Value<bool> isActive,
   Value<String> syncStatus,
@@ -14526,6 +14627,9 @@ class $$SuppliersTableFilterComposer
 
   ColumnFilters<double> get balance => $composableBuilder(
       column: $table.balance, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get balanceUsd => $composableBuilder(
+      column: $table.balanceUsd, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get notes => $composableBuilder(
       column: $table.notes, builder: (column) => ColumnFilters(column));
@@ -14612,6 +14716,9 @@ class $$SuppliersTableOrderingComposer
   ColumnOrderings<double> get balance => $composableBuilder(
       column: $table.balance, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<double> get balanceUsd => $composableBuilder(
+      column: $table.balanceUsd, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get notes => $composableBuilder(
       column: $table.notes, builder: (column) => ColumnOrderings(column));
 
@@ -14654,6 +14761,9 @@ class $$SuppliersTableAnnotationComposer
 
   GeneratedColumn<double> get balance =>
       $composableBuilder(column: $table.balance, builder: (column) => column);
+
+  GeneratedColumn<double> get balanceUsd => $composableBuilder(
+      column: $table.balanceUsd, builder: (column) => column);
 
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
@@ -14742,6 +14852,7 @@ class $$SuppliersTableTableManager extends RootTableManager<
             Value<String?> email = const Value.absent(),
             Value<String?> address = const Value.absent(),
             Value<double> balance = const Value.absent(),
+            Value<double?> balanceUsd = const Value.absent(),
             Value<String?> notes = const Value.absent(),
             Value<bool> isActive = const Value.absent(),
             Value<String> syncStatus = const Value.absent(),
@@ -14756,6 +14867,7 @@ class $$SuppliersTableTableManager extends RootTableManager<
             email: email,
             address: address,
             balance: balance,
+            balanceUsd: balanceUsd,
             notes: notes,
             isActive: isActive,
             syncStatus: syncStatus,
@@ -14770,6 +14882,7 @@ class $$SuppliersTableTableManager extends RootTableManager<
             Value<String?> email = const Value.absent(),
             Value<String?> address = const Value.absent(),
             Value<double> balance = const Value.absent(),
+            Value<double?> balanceUsd = const Value.absent(),
             Value<String?> notes = const Value.absent(),
             Value<bool> isActive = const Value.absent(),
             Value<String> syncStatus = const Value.absent(),
@@ -14784,6 +14897,7 @@ class $$SuppliersTableTableManager extends RootTableManager<
             email: email,
             address: address,
             balance: balance,
+            balanceUsd: balanceUsd,
             notes: notes,
             isActive: isActive,
             syncStatus: syncStatus,

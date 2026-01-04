@@ -15,6 +15,7 @@ import 'package:printing/printing.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/services/currency_service.dart';
 import '../../core/widgets/widgets.dart';
 
 class ProductFormScreenPro extends ConsumerStatefulWidget {
@@ -38,6 +39,7 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
   final _barcodeController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _costPriceController = TextEditingController();
+  final _costPriceUsdController = TextEditingController();
   final _salePriceController = TextEditingController();
   final _stockController = TextEditingController();
   final _minStockController = TextEditingController();
@@ -66,6 +68,7 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
     _barcodeController.dispose();
     _descriptionController.dispose();
     _costPriceController.dispose();
+    _costPriceUsdController.dispose();
     _salePriceController.dispose();
     _stockController.dispose();
     _minStockController.dispose();
@@ -86,11 +89,30 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
         _nameController.text = product.name;
         _barcodeController.text = product.barcode ?? '';
         _descriptionController.text = product.description ?? '';
-        _costPriceController.text = product.purchasePrice > 0
-            ? product.purchasePrice.toStringAsFixed(0)
-            : '';
-        _salePriceController.text =
-            product.salePrice > 0 ? product.salePrice.toStringAsFixed(0) : '';
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // تحميل الأسعار: الدولار هو الأساس، والليرة تُحسب من سعر الصرف الحالي
+        // ═══════════════════════════════════════════════════════════════════════
+        if (product.purchasePriceUsd != null && product.purchasePriceUsd! > 0) {
+          // حساب سعر الليرة من الدولار × سعر الصرف الحالي
+          _costPriceUsdController.text =
+              product.purchasePriceUsd!.toStringAsFixed(2);
+          final sypPrice =
+              product.purchasePriceUsd! * CurrencyService.currentRate;
+          _costPriceController.text = sypPrice.toStringAsFixed(0);
+        } else if (product.purchasePrice > 0) {
+          _costPriceController.text = product.purchasePrice.toStringAsFixed(0);
+        }
+
+        if (product.salePriceUsd != null && product.salePriceUsd! > 0) {
+          // حساب سعر البيع بالليرة من الدولار × سعر الصرف الحالي
+          final sypSalePrice =
+              product.salePriceUsd! * CurrencyService.currentRate;
+          _salePriceController.text = sypSalePrice.toStringAsFixed(0);
+        } else if (product.salePrice > 0) {
+          _salePriceController.text = product.salePrice.toStringAsFixed(0);
+        }
+
         _stockController.text = product.quantity.toString();
         _minStockController.text = product.minQuantity.toString();
         _selectedCategoryId = product.categoryId;
@@ -252,6 +274,7 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
           ? null
           : _descriptionController.text.trim();
       final purchasePrice = double.tryParse(_costPriceController.text) ?? 0;
+      final purchasePriceUsd = double.tryParse(_costPriceUsdController.text);
       final salePrice = double.tryParse(_salePriceController.text) ?? 0;
       final quantity = int.tryParse(_stockController.text) ?? 0;
       final minQuantity = int.tryParse(_minStockController.text) ?? 0;
@@ -264,6 +287,7 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
           barcode: barcode,
           description: description,
           purchasePrice: purchasePrice,
+          purchasePriceUsd: purchasePriceUsd,
           salePrice: salePrice,
           quantity: quantity,
           minQuantity: minQuantity,
@@ -276,6 +300,7 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
           barcode: barcode,
           description: description,
           purchasePrice: purchasePrice,
+          purchasePriceUsd: purchasePriceUsd,
           salePrice: salePrice,
           quantity: quantity,
           minQuantity: minQuantity,
@@ -381,7 +406,7 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
               Expanded(
                 child: ProNumberField(
                   controller: _costPriceController,
-                  label: 'سعر التكلفة',
+                  label: 'سعر التكلفة (ل.س)',
                   hint: '0.00',
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
@@ -389,14 +414,78 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
                     }
                     return null;
                   },
+                  onChanged: (value) {
+                    // حساب تلقائي للدولار إذا كان فارغاً
+                    if (_costPriceUsdController.text.isEmpty &&
+                        value.isNotEmpty) {
+                      final syp = double.tryParse(value);
+                      if (syp != null && syp > 0) {
+                        final usd = syp / CurrencyService.currentRate;
+                        _costPriceUsdController.text = usd.toStringAsFixed(2);
+                      }
+                    }
+                  },
                 ),
               ),
               SizedBox(width: AppSpacing.md),
               Expanded(
                 child: ProNumberField(
+                  controller: _costPriceUsdController,
+                  label: 'سعر التكلفة (\$)',
+                  hint: '0.00',
+                  onChanged: (value) {
+                    // حساب تلقائي لليرة
+                    if (value.isNotEmpty) {
+                      final usd = double.tryParse(value);
+                      if (usd != null && usd > 0) {
+                        final syp = usd * CurrencyService.currentRate;
+                        _costPriceController.text = syp.toStringAsFixed(0);
+                      }
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              Expanded(
+                child: ProNumberField(
                   controller: _salePriceController,
                   label: 'سعر البيع (اختياري)',
                   hint: '0.00',
+                ),
+              ),
+              SizedBox(width: AppSpacing.md),
+              // معلومة سعر الصرف
+              Expanded(
+                child: Container(
+                  padding: EdgeInsets.all(AppSpacing.sm),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceMuted,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'سعر الصرف الحالي',
+                        style: AppTypography.labelSmall.copyWith(
+                          color: AppColors.textTertiary,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        '1\$ = ${CurrencyService.currentRate.toStringAsFixed(0)} ل.س',
+                        style: AppTypography.labelMedium.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],

@@ -12,6 +12,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/services/currency_service.dart';
 import '../../core/widgets/widgets.dart';
 import '../../data/database/app_database.dart';
 
@@ -49,7 +50,9 @@ class _ShiftDetailsScreenProState extends ConsumerState<ShiftDetailsScreenPro> {
   }
 
   String _formatPrice(double price) {
-    return '${NumberFormat('#,###').format(price)} ل.س';
+    final syp = '${NumberFormat('#,###').format(price)} ل.س';
+    final usd = '\$${(price / CurrencyService.currentRate).toStringAsFixed(2)}';
+    return '$syp ($usd)';
   }
 
   @override

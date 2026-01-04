@@ -15,6 +15,7 @@ import 'package:hoor_manager/features/home_pro/widgets/alerts_widget.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/services/currency_service.dart';
 import 'widgets/pro_navigation_drawer.dart';
 
 class HomeScreenPro extends ConsumerStatefulWidget {
@@ -306,12 +307,18 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
                 ),
                 SizedBox(height: 2.h),
                 Text(
-                  '${shift.totalSales.toStringAsFixed(2)} ل.س',
+                  '${shift.totalSales.toStringAsFixed(0)} ل.س',
                   style: AppTypography.displaySmall.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
                     fontSize: 28.sp,
                     fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+                Text(
+                  '\$${(shift.totalSales / CurrencyService.currentRate).toStringAsFixed(2)}',
+                  style: AppTypography.titleSmall.copyWith(
+                    color: Colors.white.withValues(alpha: 0.8),
                   ),
                 ),
                 SizedBox(height: AppSpacing.sm.h),

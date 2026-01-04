@@ -325,6 +325,7 @@ class _SupplierFormScreenProState extends ConsumerState<SupplierFormScreenPro> {
 
   Widget _buildBalanceCard() {
     final balance = _existingSupplier!.balance;
+    final balanceUsd = _existingSupplier!.balanceUsd;
     final isOwed = balance > 0;
 
     return Container(
@@ -371,6 +372,14 @@ class _SupplierFormScreenProState extends ConsumerState<SupplierFormScreenPro> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+                if (balanceUsd != null)
+                  Text(
+                    '\$${balanceUsd.abs().toStringAsFixed(2)}',
+                    style: AppTypography.bodySmall.copyWith(
+                      color: (isOwed ? AppColors.error : AppColors.success)
+                          .withValues(alpha: 0.8),
+                    ),
+                  ),
               ],
             ),
           ),

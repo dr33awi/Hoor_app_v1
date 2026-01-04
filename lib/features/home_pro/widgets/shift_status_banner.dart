@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/theme/design_tokens.dart';
+import '../../../core/services/currency_service.dart';
 
 class ShiftStatusBanner extends StatelessWidget {
   const ShiftStatusBanner({
@@ -105,7 +106,7 @@ class ShiftStatusBanner extends StatelessWidget {
                           ),
                           SizedBox(width: AppSpacing.xxs.w),
                           Text(
-                            '${_formatAmount(totalSales!)} ل.س',
+                            '${_formatAmount(totalSales!)} ل.س (\$${(totalSales! / CurrencyService.currentRate).toStringAsFixed(2)})',
                             style: AppTypography.bodySmall.copyWith(
                               color: AppColors.income,
                               fontWeight: FontWeight.w600,

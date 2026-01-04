@@ -13,6 +13,8 @@ import 'package:intl/intl.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/widgets/widgets.dart';
+import '../../core/widgets/dual_price_display.dart';
+import '../../core/services/currency_service.dart';
 import '../../core/services/export/export_services.dart';
 import '../../core/services/export/export_button.dart';
 import '../../data/database/app_database.dart';
@@ -334,11 +336,15 @@ class _SupplierDetailsScreenProState
                   ),
                 ),
                 SizedBox(height: AppSpacing.xs),
-                Text(
-                  '${balance.abs().toStringAsFixed(0)} ل.س',
-                  style: AppTypography.displaySmall.copyWith(
+                CompactDualPrice(
+                  amountSyp: balance.abs(),
+                  amountUsd: _supplier!.balanceUsd?.abs(),
+                  sypStyle: AppTypography.displaySmall.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
+                  ),
+                  usdStyle: AppTypography.titleMedium.copyWith(
+                    color: Colors.white.withValues(alpha: 0.8),
                   ),
                 ),
                 SizedBox(height: AppSpacing.xs),
@@ -837,12 +843,16 @@ class _PurchaseCard extends StatelessWidget {
                 ],
               ),
             ),
-            Text(
-              '${invoice.total.toStringAsFixed(0)} ل.س',
-              style: AppTypography.titleSmall.copyWith(
+            CompactDualPrice(
+              amountSyp: invoice.total,
+              amountUsd: invoice.totalUsd ??
+                  invoice.total / CurrencyService.currentRate,
+              sypStyle: AppTypography.titleSmall.copyWith(
                 color: AppColors.primary,
                 fontWeight: FontWeight.bold,
               ),
+              usdStyle: AppTypography.labelSmall
+                  .copyWith(color: AppColors.textSecondary),
             ),
             SizedBox(width: AppSpacing.sm),
             Icon(Icons.chevron_right_rounded,
@@ -901,12 +911,16 @@ class _PaymentVoucherCard extends StatelessWidget {
                 ],
               ),
             ),
-            Text(
-              '${voucher.amount.toStringAsFixed(0)} ل.س',
-              style: AppTypography.titleSmall.copyWith(
+            CompactDualPrice(
+              amountSyp: voucher.amount,
+              amountUsd: voucher.amountUsd ??
+                  voucher.amount / CurrencyService.currentRate,
+              sypStyle: AppTypography.titleSmall.copyWith(
                 color: AppColors.error,
                 fontWeight: FontWeight.bold,
               ),
+              usdStyle: AppTypography.labelSmall
+                  .copyWith(color: AppColors.textSecondary),
             ),
             SizedBox(width: AppSpacing.sm),
             Icon(Icons.chevron_right_rounded,

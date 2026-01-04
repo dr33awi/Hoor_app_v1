@@ -12,7 +12,9 @@ import 'package:intl/intl.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/services/currency_service.dart';
 import '../../core/widgets/widgets.dart';
+import '../../core/widgets/dual_price_display.dart';
 import '../../core/mixins/invoice_filter_mixin.dart';
 import '../../core/services/party_name_resolver.dart';
 import '../../data/database/app_database.dart';
@@ -471,9 +473,10 @@ class _InvoiceCard extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              Text(
-                '${invoice.total.toStringAsFixed(2)} ل.س',
-                style: AppTypography.titleMedium
+              CompactDualPrice(
+                amountSyp: invoice.total,
+                exchangeRate: CurrencyService.currentRate,
+                sypStyle: AppTypography.titleMedium
                     .copyWith(
                       color: type.color,
                     )

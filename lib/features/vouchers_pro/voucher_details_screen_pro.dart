@@ -258,8 +258,7 @@ class _VoucherDetailsScreenProState
           SizedBox(height: AppSpacing.lg),
           Builder(
             builder: (context) {
-              final exchangeRate =
-                  _voucher!.exchangeRate ?? CurrencyService.currentRate;
+              final exchangeRate = _voucher!.exchangeRate;
               final amountUsd = _voucher!.amountUsd ??
                   (exchangeRate > 0 ? _voucher!.amount / exchangeRate : null);
               return DualPriceDisplay(

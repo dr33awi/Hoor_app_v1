@@ -80,21 +80,39 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
     if (widget.preSelectedProduct != null) {
       final productData = widget.preSelectedProduct!['preSelectedProduct'];
       if (productData != null) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          setState(() {
-            _items.add({
-              'id': '1',
-              'productId': productData['id'],
-              'name': productData['name'],
-              'quantity': productData['quantity'] ?? 1,
-              'price': widget.isSales
-                  ? productData['salePrice']
-                  : productData['purchasePrice'],
-              'purchasePrice': productData['purchasePrice'],
-              'discount': 0.0,
-              'maxQuantity': productData['availableStock'] ?? 999,
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          // تحديد السعر حسب نوع الفاتورة
+          double price = widget.isSales
+              ? (productData['salePrice'] ?? 0.0)
+              : (productData['purchasePrice'] ?? 0.0);
+
+          // إذا كان سعر البيع صفراً، اطلب من المستخدم إدخاله
+          if (widget.isSales && price <= 0) {
+            final enteredPrice =
+                await _showPriceInputDialog(productData['name'] ?? '');
+            if (enteredPrice == null || enteredPrice <= 0) {
+              if (mounted) {
+                ProSnackbar.warning(context, 'يجب إدخال سعر البيع');
+              }
+              return;
+            }
+            price = enteredPrice;
+          }
+
+          if (mounted) {
+            setState(() {
+              _items.add({
+                'id': '1',
+                'productId': productData['id'],
+                'name': productData['name'],
+                'quantity': productData['quantity'] ?? 1,
+                'price': price,
+                'purchasePrice': productData['purchasePrice'],
+                'discount': 0.0,
+                'maxQuantity': productData['availableStock'] ?? 999,
+              });
             });
-          });
+          }
         });
       }
     }
@@ -676,7 +694,9 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
                 child: Column(
                   children: [
                     Icon(
-                      Icons.add_shopping_cart_rounded,
+                      widget.isSales
+                          ? Icons.add_shopping_cart_rounded
+                          : Icons.inventory_2_outlined,
                       size: 48.sp,
                       color: AppColors.textTertiary,
                     ),
@@ -751,7 +771,7 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
                             ),
                             SizedBox(width: 4.w),
                             Text(
-                              '${item['price'].toStringAsFixed(0)} ل.س × ${item['quantity']}',
+                              '${item['price'].toStringAsFixed(0)} (\$${(item['price'] / CurrencyService.currentRate).toStringAsFixed(1)}) ل.س × ${item['quantity']}',
                               style: AppTypography.bodySmall
                                   .copyWith(
                                     color: AppColors.secondary,
@@ -775,13 +795,15 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    '${total.toStringAsFixed(0)} ل.س',
-                    style: AppTypography.titleSmall
-                        .copyWith(
-                          color: AppColors.textPrimary,
-                        )
+                  CompactDualPrice(
+                    amountSyp: total,
+                    amountUsd: total / CurrencyService.currentRate,
+                    sypStyle: AppTypography.titleSmall
+                        .copyWith(color: AppColors.textPrimary)
                         .monoSemibold,
+                    usdStyle: AppTypography.labelSmall
+                        .copyWith(color: AppColors.textSecondary)
+                        .mono,
                   ),
                   SizedBox(height: AppSpacing.sm),
                   Row(
@@ -1404,7 +1426,7 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
                         ),
                         title: Text(item['name']),
                         subtitle: Text(
-                            'الرصيد: ${(item['balance'] as double).toStringAsFixed(0)} ل.س'),
+                            'الرصيد: ${(item['balance'] as double).toStringAsFixed(0)} (\$${((item['balance'] as double) / CurrencyService.currentRate).toStringAsFixed(1)}) ل.س'),
                         onTap: () => onSelect(item),
                       );
                     },
@@ -1448,6 +1470,18 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
                             final product = products[index];
                             final alreadyAdded =
                                 _items.any((i) => i['productId'] == product.id);
+                            // حساب السعر من الدولار × سعر الصرف الحالي
+                            final currentRate = CurrencyService.currentRate;
+                            final displaySalePrice =
+                                (product.salePriceUsd != null &&
+                                        product.salePriceUsd! > 0)
+                                    ? product.salePriceUsd! * currentRate
+                                    : product.salePrice;
+                            final displayPurchasePrice =
+                                (product.purchasePriceUsd != null &&
+                                        product.purchasePriceUsd! > 0)
+                                    ? product.purchasePriceUsd! * currentRate
+                                    : product.purchasePrice;
                             return ListTile(
                               leading: CircleAvatar(
                                 backgroundColor: AppColors.secondary.soft,
@@ -1456,7 +1490,7 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
                               ),
                               title: Text(product.name),
                               subtitle: Text(
-                                  '${product.salePrice.toStringAsFixed(0)} ل.س • المخزون: ${product.quantity}'),
+                                  '${(widget.isSales ? displaySalePrice : displayPurchasePrice).toStringAsFixed(0)} ل.س • المخزون: ${product.quantity}'),
                               trailing: alreadyAdded
                                   ? Icon(Icons.check, color: AppColors.success)
                                   : null,
@@ -1464,10 +1498,10 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
                               onTap: alreadyAdded || product.quantity == 0
                                   ? null
                                   : () async {
-                                      // تحديد السعر حسب نوع الفاتورة
+                                      // تحديد السعر حسب نوع الفاتورة (محسوب من الدولار)
                                       double price = widget.isSales
-                                          ? product.salePrice
-                                          : product.purchasePrice;
+                                          ? displaySalePrice
+                                          : displayPurchasePrice;
 
                                       // إذا كان سعر البيع صفراً، اطلب من المستخدم إدخاله
                                       if (widget.isSales && price <= 0) {
@@ -1493,8 +1527,7 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
                                           'name': product.name,
                                           'quantity': 1,
                                           'price': price,
-                                          'purchasePrice':
-                                              product.purchasePrice,
+                                          'purchasePrice': displayPurchasePrice,
                                           'discount': 0.0,
                                           'maxQuantity': product.quantity,
                                         });
@@ -1622,6 +1655,21 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
       return;
     }
 
+    // حساب المبلغ المدفوع بناءً على طريقة الدفع
+    double paidAmount;
+    if (_paymentMethod == 'cash') {
+      paidAmount = _total;
+    } else if (_paymentMethod == 'credit') {
+      paidAmount = 0;
+    } else {
+      // partial - المبلغ المدفوع إجباري
+      paidAmount = _paidAmount;
+    }
+
+    // عرض ديالوغ التأكيد قبل الحفظ
+    final shouldSave = await _showSaveConfirmationDialog(paidAmount);
+    if (shouldSave != true) return;
+
     setState(() => _isSaving = true);
     try {
       final customerRepo = ref.read(customerRepositoryProvider);
@@ -1639,17 +1687,6 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
                     (item['quantity'] * item['price'] * item['discount'] / 100),
               })
           .toList();
-
-      // حساب المبلغ المدفوع بناءً على طريقة الدفع
-      double paidAmount;
-      if (_paymentMethod == 'cash') {
-        paidAmount = _total;
-      } else if (_paymentMethod == 'credit') {
-        paidAmount = 0;
-      } else {
-        // partial - المبلغ المدفوع إجباري
-        paidAmount = _paidAmount;
-      }
 
       // استخدام AccountingService لضمان اتساق العمليات المحاسبية
       final accountingService = ref.read(accountingServiceProvider);
@@ -1710,16 +1747,12 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
           },
         );
 
-        // معالجة نتيجة الحوار
-        if (result == InvoiceDialogResult.newInvoice) {
-          // البقاء في نفس الصفحة مع إعادة تعيين النموذج
+        // معالجة نتيجة الحوار - إعادة تعيين الصفحة في جميع الحالات ما عدا viewDetails
+        if (result == InvoiceDialogResult.viewDetails) {
+          // viewDetails يقوم بالتوجيه تلقائياً للتفاصيل
+        } else {
+          // في حالة الإغلاق أو فاتورة جديدة - إعادة تعيين النموذج
           _resetForm();
-        } else if (result == InvoiceDialogResult.close ||
-            result == InvoiceDialogResult.viewDetails) {
-          // الخروج من الصفحة (viewDetails يقوم بالتوجيه تلقائياً)
-          if (mounted && result == InvoiceDialogResult.close) {
-            context.pop();
-          }
         }
       }
     } catch (e) {
@@ -1746,6 +1779,275 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
       _notesController.clear();
       _paidAmountController.clear();
     });
+  }
+
+  /// عرض ديالوغ تأكيد الحفظ قبل حفظ الفاتورة
+  Future<bool?> _showSaveConfirmationDialog(double paidAmount) async {
+    final currentRate = CurrencyService.currentRate;
+    final totalUsd = _total / currentRate;
+    final paidUsd = paidAmount / currentRate;
+    final remainingAmount = _total - paidAmount;
+    final remainingUsd = remainingAmount / currentRate;
+
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+        insetPadding: EdgeInsets.symmetric(horizontal: 24.w),
+        child: Padding(
+          padding: EdgeInsets.all(20.w),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // أيقونة وعنوان
+              Container(
+                width: 56.w,
+                height: 56.w,
+                decoration: BoxDecoration(
+                  color:
+                      (widget.isSales ? AppColors.success : AppColors.secondary)
+                          .withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.receipt_long_rounded,
+                  color:
+                      widget.isSales ? AppColors.success : AppColors.secondary,
+                  size: 28.sp,
+                ),
+              ),
+              SizedBox(height: 16.h),
+              Text(
+                'تأكيد حفظ الفاتورة',
+                style: AppTypography.titleMedium.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(height: 8.h),
+              Text(
+                widget.isSales ? 'فاتورة مبيعات' : 'فاتورة مشتريات',
+                style: AppTypography.bodySmall.copyWith(
+                  color: AppColors.textTertiary,
+                ),
+              ),
+              SizedBox(height: 20.h),
+
+              // تفاصيل الفاتورة
+              Container(
+                padding: EdgeInsets.all(12.w),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: Column(
+                  children: [
+                    _buildConfirmRow(
+                      'العميل/المورد',
+                      widget.isSales
+                          ? (_selectedCustomerName ?? 'عميل نقدي')
+                          : (_selectedSupplierName ?? 'مورد غير محدد'),
+                    ),
+                    Divider(height: 16.h, color: AppColors.border),
+                    _buildConfirmRow(
+                      'عدد المنتجات',
+                      '${_items.length} منتج',
+                    ),
+                    Divider(height: 16.h, color: AppColors.border),
+                    _buildConfirmRow(
+                      'طريقة الدفع',
+                      _paymentMethod == 'cash'
+                          ? 'نقداً'
+                          : _paymentMethod == 'credit'
+                              ? 'آجل'
+                              : 'دفع جزئي',
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 16.h),
+
+              // المبلغ الإجمالي
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(16.w),
+                decoration: BoxDecoration(
+                  color:
+                      (widget.isSales ? AppColors.success : AppColors.secondary)
+                          .withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  border: Border.all(
+                    color: (widget.isSales
+                            ? AppColors.success
+                            : AppColors.secondary)
+                        .withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'الإجمالي',
+                          style: AppTypography.bodyMedium.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              '${_total.toStringAsFixed(0)} ل.س',
+                              style: AppTypography.titleLarge.copyWith(
+                                color: widget.isSales
+                                    ? AppColors.success
+                                    : AppColors.secondary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            Text(
+                              '\$${totalUsd.toStringAsFixed(2)}',
+                              style: AppTypography.bodySmall.copyWith(
+                                color: AppColors.textTertiary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    // تفاصيل الدفع الجزئي
+                    if (_paymentMethod == 'partial') ...[
+                      SizedBox(height: 12.h),
+                      Divider(height: 1, color: AppColors.border),
+                      SizedBox(height: 12.h),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'المدفوع',
+                            style: AppTypography.bodySmall.copyWith(
+                              color: AppColors.success,
+                            ),
+                          ),
+                          Text(
+                            '${paidAmount.toStringAsFixed(0)} ل.س (\$${paidUsd.toStringAsFixed(2)})',
+                            style: AppTypography.labelMedium.copyWith(
+                              color: AppColors.success,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 8.h),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'المتبقي',
+                            style: AppTypography.bodySmall.copyWith(
+                              color: AppColors.error,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            '${remainingAmount.toStringAsFixed(0)} ل.س (\$${remainingUsd.toStringAsFixed(2)})',
+                            style: AppTypography.labelMedium.copyWith(
+                              color: AppColors.error,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    // حالة الآجل
+                    if (_paymentMethod == 'credit') ...[
+                      SizedBox(height: 8.h),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 8.w, vertical: 4.h),
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                        ),
+                        child: Text(
+                          'آجل - المبلغ كامل على الذمة',
+                          style: AppTypography.labelSmall.copyWith(
+                            color: AppColors.error,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              SizedBox(height: 20.h),
+
+              // أزرار التأكيد والإلغاء
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: 12.h),
+                        side: BorderSide(color: AppColors.border),
+                      ),
+                      child: Text(
+                        'رجوع',
+                        style: AppTypography.labelLarge.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  Expanded(
+                    flex: 2,
+                    child: FilledButton.icon(
+                      onPressed: () => Navigator.pop(context, true),
+                      icon: const Icon(Icons.check_rounded, size: 20),
+                      label: const Text('حفظ الفاتورة'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: widget.isSales
+                            ? AppColors.success
+                            : AppColors.secondary,
+                        padding: EdgeInsets.symmetric(vertical: 12.h),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// صف معلومات في ديالوغ التأكيد
+  Widget _buildConfirmRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: AppTypography.bodySmall.copyWith(
+            color: AppColors.textTertiary,
+          ),
+        ),
+        Text(
+          value,
+          style: AppTypography.bodySmall.copyWith(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
   }
 
   void _showDiscardDialog() async {

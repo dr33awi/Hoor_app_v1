@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../data/database/app_database.dart' hide Category;
 import '../../../data/database/app_database.dart' as db show Category;
 import '../printing/pdf_theme.dart';
+import '../currency_service.dart';
 import 'export_templates.dart';
 
 // Type alias for clarity
@@ -831,7 +832,7 @@ class PdfExportService {
                           ),
                           pw.SizedBox(height: 4),
                           pw.Text(
-                            'الصافي: ${(totalIncome - totalExpense).toStringAsFixed(2)} ل.س',
+                            'الصافي: ${(totalIncome - totalExpense).toStringAsFixed(2)} ل.س (\$${((totalIncome - totalExpense) / CurrencyService.currentRate).toStringAsFixed(2)})',
                             style: pw.TextStyle(
                               fontWeight: pw.FontWeight.bold,
                               fontSize: 11,
@@ -1152,12 +1153,12 @@ class PdfExportService {
                       _buildZReportRow(
                           'عدد فواتير البيع', '$salesCount فاتورة'),
                       _buildZReportRow('مبيعات نقدية',
-                          '${cashSales.toStringAsFixed(2)} ل.س'),
+                          '${cashSales.toStringAsFixed(2)} ل.س (\$${(cashSales / CurrencyService.currentRate).toStringAsFixed(2)})'),
                       _buildZReportRow('مبيعات آجلة',
-                          '${creditSales.toStringAsFixed(2)} ل.س'),
+                          '${creditSales.toStringAsFixed(2)} ل.س (\$${(creditSales / CurrencyService.currentRate).toStringAsFixed(2)})'),
                       pw.Divider(color: PdfColors.green200),
                       _buildZReportRow('إجمالي المبيعات',
-                          '${shift.totalSales.toStringAsFixed(2)} ل.س',
+                          '${shift.totalSales.toStringAsFixed(2)} ل.س (\$${(shift.totalSales / CurrencyService.currentRate).toStringAsFixed(2)})',
                           isBold: true),
                     ],
                   ),
@@ -1189,7 +1190,7 @@ class PdfExportService {
                       _buildZReportRow('عدد المرتجعات', '$returnsCount فاتورة'),
                       pw.Divider(color: PdfColors.red200),
                       _buildZReportRow('إجمالي المصروفات',
-                          '${shift.totalExpenses.toStringAsFixed(2)} ل.س',
+                          '${shift.totalExpenses.toStringAsFixed(2)} ل.س (\$${(shift.totalExpenses / CurrencyService.currentRate).toStringAsFixed(2)})',
                           isBold: true),
                     ],
                   ),
@@ -1217,16 +1218,16 @@ class PdfExportService {
                       ),
                       pw.SizedBox(height: 12),
                       _buildZReportRow('الرصيد الافتتاحي',
-                          '${shift.openingBalance.toStringAsFixed(2)} ل.س'),
+                          '${shift.openingBalance.toStringAsFixed(2)} ل.س (\$${(shift.openingBalance / CurrencyService.currentRate).toStringAsFixed(2)})'),
                       _buildZReportRow('+ المبيعات النقدية',
-                          '${shift.totalSales.toStringAsFixed(2)} ل.س',
+                          '${shift.totalSales.toStringAsFixed(2)} ل.س (\$${(shift.totalSales / CurrencyService.currentRate).toStringAsFixed(2)})',
                           color: PdfColors.green),
                       _buildZReportRow('- المصروفات',
-                          '${shift.totalExpenses.toStringAsFixed(2)} ل.س',
+                          '${shift.totalExpenses.toStringAsFixed(2)} ل.س (\$${(shift.totalExpenses / CurrencyService.currentRate).toStringAsFixed(2)})',
                           color: PdfColors.red),
                       pw.Divider(color: PdfColors.blue200, thickness: 2),
                       _buildZReportRow('= صافي النقدية المتوقع',
-                          '${netCash.toStringAsFixed(2)} ل.س',
+                          '${netCash.toStringAsFixed(2)} ل.س (\$${(netCash / CurrencyService.currentRate).toStringAsFixed(2)})',
                           isBold: true, fontSize: 14),
                     ],
                   ),

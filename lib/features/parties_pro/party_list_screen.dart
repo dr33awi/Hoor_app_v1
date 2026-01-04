@@ -13,6 +13,7 @@ import 'package:intl/intl.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/widgets/widgets.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/services/currency_service.dart';
 import '../../data/database/app_database.dart';
 
 /// نوع الطرف (عميل/مورد)
@@ -432,6 +433,12 @@ class _PartyCard extends StatelessWidget {
                     style: AppTypography.titleSmall.copyWith(
                       color: balanceColor,
                       fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    '\$${(_balance.abs() / CurrencyService.currentRate).toStringAsFixed(2)}',
+                    style: AppTypography.labelSmall.copyWith(
+                      color: balanceColor.withValues(alpha: 0.8),
                     ),
                   ),
                   if (_balance != 0)

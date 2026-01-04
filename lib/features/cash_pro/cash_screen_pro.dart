@@ -14,7 +14,9 @@ import 'package:intl/intl.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/services/currency_service.dart';
 import '../../core/widgets/widgets.dart';
+import '../../core/widgets/dual_price_display.dart';
 import '../../core/services/export/export_button.dart';
 import '../../core/services/export/export_services.dart';
 import '../../data/database/app_database.dart';
@@ -479,9 +481,10 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
           ],
         ),
         SizedBox(height: AppSpacing.xxs),
-        Text(
-          '${value.toStringAsFixed(0)} ل.س',
-          style: AppTypography.titleSmall.copyWith(
+        CompactDualPrice(
+          amountSyp: value,
+          exchangeRate: CurrencyService.currentRate,
+          sypStyle: AppTypography.titleSmall.copyWith(
             color: color,
             fontWeight: FontWeight.bold,
           ),
@@ -687,13 +690,24 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
             ],
           ),
           SizedBox(height: AppSpacing.md),
-          Text(
-            '${currentBalance.toStringAsFixed(2)} ل.س',
-            style: AppTypography.displaySmall
-                .copyWith(
-                  color: Colors.white,
-                )
-                .monoBold,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${currentBalance.toStringAsFixed(0)} ل.س',
+                style: AppTypography.displaySmall
+                    .copyWith(
+                      color: Colors.white,
+                    )
+                    .monoBold,
+              ),
+              Text(
+                '\$${(currentBalance / CurrencyService.currentRate).toStringAsFixed(2)}',
+                style: AppTypography.titleMedium.copyWith(
+                  color: Colors.white.withValues(alpha: 0.8),
+                ),
+              ),
+            ],
           ),
           SizedBox(height: AppSpacing.lg),
           Row(

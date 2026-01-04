@@ -14,7 +14,9 @@ import 'package:intl/intl.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/widgets/widgets.dart';
 import '../../core/providers/app_providers.dart';
+import '../../core/services/currency_service.dart';
 import '../../data/database/app_database.dart';
+import '../../core/widgets/dual_price_display.dart';
 
 /// نوع المرتجع
 enum ReturnType {
@@ -304,7 +306,7 @@ class _ReturnsScreenProState extends ConsumerState<ReturnsScreenPro> {
                               .map((i) => DropdownMenuItem(
                                     value: i,
                                     child: Text(
-                                      '${i.invoiceNumber} - ${NumberFormat('#,###').format(i.total)} ل.س',
+                                      '${i.invoiceNumber} - ${NumberFormat('#,###').format(i.total)} ل.س (\$${(i.totalUsd ?? (i.exchangeRate != null && i.exchangeRate! > 0 ? i.total / i.exchangeRate! : i.total / CurrencyService.currentRate)).toStringAsFixed(2)})',
                                     ),
                                   ))
                               .toList(),
@@ -496,9 +498,10 @@ class _ReturnCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Text(
-                '${NumberFormat('#,###').format(returnInvoice.total)} ل.س',
-                style: AppTypography.titleMedium.copyWith(
+              CompactDualPrice(
+                amountSyp: returnInvoice.total,
+                exchangeRate: CurrencyService.currentRate,
+                sypStyle: AppTypography.titleMedium.copyWith(
                   color: type.accentColor,
                   fontWeight: FontWeight.bold,
                 ),
