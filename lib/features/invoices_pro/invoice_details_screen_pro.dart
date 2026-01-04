@@ -1,4 +1,4 @@
-// ═══════════════════════════════════════════════════════════════════════════
+﻿// ═══════════════════════════════════════════════════════════════════════════
 // Invoice Details Screen Pro - Enterprise Accounting Design
 // View detailed invoice information with Print Support
 // ═══════════════════════════════════════════════════════════════════════════
@@ -13,6 +13,7 @@ import 'package:intl/intl.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/widgets/widgets.dart';
+import '../../core/widgets/dual_price_display.dart';
 import '../../core/services/printing/printing_services.dart';
 import '../../core/di/injection.dart';
 import '../../core/services/printing/print_settings_service.dart';
@@ -370,18 +371,23 @@ class _InvoiceDetailsScreenProState
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    '${_invoice!.total.toStringAsFixed(2)} ر.س',
-                    style: AppTypography.headlineSmall
+                  DualPriceDisplay(
+                    amountSyp: _invoice!.total,
+                    amountUsd: _invoice!.totalUsd,
+                    exchangeRate: _invoice!.exchangeRate,
+                    sypStyle: AppTypography.headlineSmall
                         .copyWith(
                           color:
                               isSales ? AppColors.success : AppColors.secondary,
                         )
                         .monoBold,
+                    usdStyle: AppTypography.bodySmall
+                        .copyWith(color: AppColors.textSecondary)
+                        .mono,
                   ),
                   if (!isPaid)
                     Text(
-                      'متبقي: ${remaining.toStringAsFixed(0)} ر.س',
+                      'متبقي: ${remaining.toStringAsFixed(0)} ل.س',
                       style: AppTypography.bodySmall
                           .copyWith(
                             color: AppColors.error,
@@ -414,7 +420,7 @@ class _InvoiceDetailsScreenProState
                   ),
                 ),
                 Text(
-                  '${_invoice!.paidAmount.toStringAsFixed(0)} من ${_invoice!.total.toStringAsFixed(0)} ر.س',
+                  '${_invoice!.paidAmount.toStringAsFixed(0)} من ${_invoice!.total.toStringAsFixed(0)} ل.س',
                   style: AppTypography.labelSmall
                       .copyWith(
                         color: AppColors.textSecondary,
@@ -540,7 +546,7 @@ class _InvoiceDetailsScreenProState
                             ),
                           ),
                           Text(
-                            '${item.unitPrice.toStringAsFixed(0)} ر.س للوحدة',
+                            '${item.unitPrice.toStringAsFixed(0)} ل.س للوحدة',
                             style: AppTypography.bodySmall
                                 .copyWith(
                                   color: AppColors.textTertiary,
@@ -551,7 +557,7 @@ class _InvoiceDetailsScreenProState
                       ),
                     ),
                     Text(
-                      '${item.total.toStringAsFixed(0)} ر.س',
+                      '${item.total.toStringAsFixed(0)} ل.س',
                       style: AppTypography.titleSmall
                           .copyWith(
                             color: AppColors.textPrimary,
@@ -588,13 +594,19 @@ class _InvoiceDetailsScreenProState
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              Text(
-                '${_invoice!.total.toStringAsFixed(2)} ر.س',
-                style: AppTypography.titleLarge
+              DualPriceDisplay(
+                amountSyp: _invoice!.total,
+                amountUsd: _invoice!.totalUsd,
+                exchangeRate: _invoice!.exchangeRate,
+                type: DualPriceDisplayType.horizontal,
+                sypStyle: AppTypography.titleLarge
                     .copyWith(
                       color: isSales ? AppColors.success : AppColors.secondary,
                     )
                     .monoBold,
+                usdStyle: AppTypography.bodySmall
+                    .copyWith(color: AppColors.textSecondary)
+                    .mono,
               ),
             ],
           ),
@@ -655,7 +667,14 @@ class _InvoiceDetailsScreenProState
   }
 
   Widget _buildTotalRow(String label, double amount,
-      {bool isNegative = false}) {
+      {bool isNegative = false, double? amountUsd}) {
+    final exchangeRate = _invoice?.exchangeRate;
+    // إذا لم يتم تمرير قيمة الدولار، نحسبها من سعر الصرف
+    final usdValue = amountUsd ??
+        (exchangeRate != null && exchangeRate > 0
+            ? amount.abs() / exchangeRate
+            : null);
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -665,12 +684,19 @@ class _InvoiceDetailsScreenProState
             color: AppColors.textSecondary,
           ),
         ),
-        Text(
-          '${isNegative ? "-" : ""}${amount.abs().toStringAsFixed(2)} ر.س',
-          style: AppTypography.bodyMedium
+        DualPriceDisplay(
+          amountSyp: isNegative ? -amount.abs() : amount.abs(),
+          amountUsd:
+              usdValue != null ? (isNegative ? -usdValue : usdValue) : null,
+          exchangeRate: exchangeRate,
+          type: DualPriceDisplayType.horizontal,
+          sypStyle: AppTypography.bodyMedium
               .copyWith(
                 color: isNegative ? AppColors.error : AppColors.textPrimary,
               )
+              .mono,
+          usdStyle: AppTypography.bodySmall
+              .copyWith(color: AppColors.textSecondary)
               .mono,
         ),
       ],
@@ -691,7 +717,7 @@ class _InvoiceDetailsScreenProState
           },
           icon: const Icon(Icons.payments_outlined),
           label: Text(
-            'تسجيل دفعة (${remaining.toStringAsFixed(0)} ر.س)',
+            'تسجيل دفعة (${remaining.toStringAsFixed(0)} ل.س)',
             style: AppTypography.labelLarge.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.w600,

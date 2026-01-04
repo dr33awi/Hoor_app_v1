@@ -1,4 +1,4 @@
-// ═══════════════════════════════════════════════════════════════════════════
+﻿// ═══════════════════════════════════════════════════════════════════════════
 // Sales Screen Pro - Enterprise Accounting Design
 // Professional Point of Sale Interface with Ledger Precision
 // ═══════════════════════════════════════════════════════════════════════════
@@ -14,6 +14,7 @@ import '../invoices_pro/widgets/invoice_success_dialog.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/widgets/widgets.dart';
+import '../../core/widgets/dual_price_display.dart';
 import '../../data/database/app_database.dart';
 
 class SalesScreenPro extends ConsumerStatefulWidget {
@@ -844,7 +845,7 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
                 ),
               ),
               Text(
-                '${_subtotal.toStringAsFixed(2)} ر.س',
+                '${_subtotal.toStringAsFixed(2)} ل.س',
                 style: AppTypography.bodySmall.copyWith(
                   color: AppColors.textPrimary,
                   fontFeatures: const [FontFeature.tabularFigures()],
@@ -879,7 +880,7 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
                   ],
                 ),
                 Text(
-                  '-${_discount.toStringAsFixed(2)} ر.س',
+                  '-${_discount.toStringAsFixed(2)} ل.س',
                   style: AppTypography.bodySmall.copyWith(
                     color: AppColors.success,
                     fontFeatures: const [FontFeature.tabularFigures()],
@@ -903,7 +904,7 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
                 ),
               ),
               Text(
-                '${_total.toStringAsFixed(2)} ر.س',
+                '${_total.toStringAsFixed(2)} ل.س',
                 style: AppTypography.titleMedium.copyWith(
                   color: AppColors.success,
                   fontWeight: FontWeight.w700,
@@ -1043,7 +1044,7 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
                               ),
                             ),
                             Text(
-                              '${_total.toStringAsFixed(2)} ر.س',
+                              '${_total.toStringAsFixed(2)} ل.س',
                               style: AppTypography.titleMedium
                                   .copyWith(
                                     color: AppColors.textPrimary,
@@ -1150,7 +1151,7 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
               style: AppTypography.titleMedium.mono,
               decoration: InputDecoration(
                 labelText: 'قيمة الخصم',
-                suffixText: 'ر.س',
+                suffixText: 'ل.س',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
@@ -1256,7 +1257,7 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
                               ),
                               title: Text(customer.name),
                               subtitle: Text(
-                                'الرصيد: ${customer.balance.toStringAsFixed(0)} ر.س',
+                                'الرصيد: ${customer.balance.toStringAsFixed(0)} ل.س',
                                 style: AppTypography.bodySmall.copyWith(
                                   color: AppColors.textTertiary,
                                 ),
@@ -1462,16 +1463,24 @@ class _ProductCard extends StatelessWidget {
                   ),
                   SizedBox(height: AppSpacing.xs),
 
-                  // Price
-                  Text(
-                    '${product.salePrice.toStringAsFixed(0)} ر.س',
-                    style: AppTypography.titleSmall
+                  // Price - عرض مزدوج (ليرة + دولار)
+                  DualPriceDisplay(
+                    amountSyp: product.salePrice,
+                    amountUsd: product.salePriceUsd,
+                    exchangeRate: product.exchangeRateAtCreation,
+                    sypStyle: AppTypography.titleSmall
                         .copyWith(
                           color: isOutOfStock
                               ? AppColors.textTertiary
                               : AppColors.success,
                         )
                         .monoBold,
+                    usdStyle: AppTypography.labelSmall.copyWith(
+                      color: isOutOfStock
+                          ? AppColors.textTertiary.withValues(alpha: 0.7)
+                          : AppColors.success.withValues(alpha: 0.7),
+                    ),
+                    alignment: CrossAxisAlignment.center,
                   ),
 
                   // Stock
@@ -1562,11 +1571,20 @@ class _CartItemCard extends StatelessWidget {
               ),
             ),
             SizedBox(height: AppSpacing.sm),
-            Text(
-              'السعر الأصلي: ${item.product.salePrice.toStringAsFixed(0)} ر.س',
-              style: AppTypography.bodySmall.copyWith(
-                color: AppColors.textTertiary,
-              ),
+            Row(
+              children: [
+                Text(
+                  'السعر الأصلي: ',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.textTertiary,
+                  ),
+                ),
+                CompactDualPrice(
+                  amountSyp: item.product.salePrice,
+                  amountUsd: item.product.salePriceUsd,
+                  exchangeRate: item.product.exchangeRateAtCreation,
+                ),
+              ],
             ),
             SizedBox(height: AppSpacing.md),
             TextField(
@@ -1576,7 +1594,7 @@ class _CartItemCard extends StatelessWidget {
               autofocus: true,
               decoration: InputDecoration(
                 labelText: 'سعر البيع',
-                suffixText: 'ر.س',
+                suffixText: 'ل.س',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
@@ -1662,7 +1680,7 @@ class _CartItemCard extends StatelessWidget {
                         ),
                         SizedBox(width: 4.w),
                         Text(
-                          '${item.price.toStringAsFixed(0)} ر.س',
+                          '${item.price.toStringAsFixed(0)} ل.س',
                           style: AppTypography.bodySmall
                               .copyWith(
                                 color: hasCustomPrice
@@ -1867,7 +1885,7 @@ class _PaymentSheetState extends State<_PaymentSheet> {
                       ),
                     ),
                     Text(
-                      '${widget.total.toStringAsFixed(2)} ر.س',
+                      '${widget.total.toStringAsFixed(2)} ل.س',
                       style: AppTypography.headlineMedium
                           .copyWith(
                             color: Colors.white,
@@ -1939,7 +1957,7 @@ class _PaymentSheetState extends State<_PaymentSheet> {
                   style: AppTypography.titleLarge.mono,
                   decoration: InputDecoration(
                     labelText: 'المبلغ المدفوع',
-                    suffixText: 'ر.س',
+                    suffixText: 'ل.س',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
@@ -1969,7 +1987,7 @@ class _PaymentSheetState extends State<_PaymentSheet> {
                           ),
                         ),
                         Text(
-                          '${_change.toStringAsFixed(2)} ر.س',
+                          '${_change.toStringAsFixed(2)} ل.س',
                           style: AppTypography.titleMedium
                               .copyWith(
                                 color: AppColors.success,
@@ -1997,7 +2015,7 @@ class _PaymentSheetState extends State<_PaymentSheet> {
                   decoration: InputDecoration(
                     labelText: 'المبلغ المدفوع *',
                     hintText: 'أدخل المبلغ المدفوع',
-                    suffixText: 'ر.س',
+                    suffixText: 'ل.س',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(AppRadius.md),
                       borderSide: BorderSide(color: AppColors.success),
@@ -2040,7 +2058,7 @@ class _PaymentSheetState extends State<_PaymentSheet> {
                         ),
                       ),
                       Text(
-                        '${_remainingAmount.toStringAsFixed(2)} ر.س',
+                        '${_remainingAmount.toStringAsFixed(2)} ل.س',
                         style: AppTypography.titleMedium
                             .copyWith(
                               color: _remainingAmount > 0

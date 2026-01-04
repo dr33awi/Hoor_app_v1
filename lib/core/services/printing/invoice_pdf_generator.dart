@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../export/export_templates.dart';
 import '../currency_service.dart';
+import '../currency_formatter.dart';
 import 'pdf_theme.dart';
 
 /// أحجام الطباعة المدعومة للفواتير
@@ -911,7 +912,7 @@ class InvoicePdfGenerator {
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
                       pw.Text(
-                        '${ExportFormatters.formatPrice(invoice.exchangeRate, showCurrency: false)} ${CurrencyService.currencySymbol}/\$',
+                        '${ExportFormatters.formatPrice(invoice.exchangeRate, showCurrency: false)} ${CurrencyFormatter.sypSymbol}/\$',
                         style: pw.TextStyle(
                             font: PdfFonts.regular,
                             fontSize: 10,
@@ -1319,7 +1320,7 @@ class InvoicePdfGenerator {
         if (options.showExchangeRate && invoice.exchangeRate > 0) ...[
           pw.SizedBox(height: 4),
           _thermalTotalRow('سعر الصرف', invoice.exchangeRate,
-              suffix: ' ${CurrencyService.currencySymbol}/\$'),
+              suffix: ' ${CurrencyFormatter.sypSymbol}/\$'),
           pw.Container(
             padding: const pw.EdgeInsets.symmetric(vertical: 2),
             child: pw.Row(

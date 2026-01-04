@@ -1,15 +1,39 @@
 import 'package:drift/drift.dart';
 
 /// Products table
+/// ═══════════════════════════════════════════════════════════════════════════
+/// سياسة تثبيت السعر (Price Locking Policy):
+/// - يتم حفظ السعر بالدولار + سعر الصرف وقت الإنشاء
+/// - السعر بالليرة = السعر بالدولار × سعر الصرف وقت الإنشاء
+/// - تغيير سعر الصرف لاحقاً لا يؤثر على الأسعار المحفوظة
+/// ═══════════════════════════════════════════════════════════════════════════
 class Products extends Table {
   TextColumn get id => text()();
   TextColumn get name => text()();
   TextColumn get sku => text().nullable()();
   TextColumn get barcode => text().nullable()();
   TextColumn get categoryId => text().nullable().references(Categories, #id)();
-  RealColumn get purchasePrice => real()();
-  RealColumn get purchasePriceUsd => real().nullable()(); // سعر الشراء بالدولار
-  RealColumn get salePrice => real()();
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // أسعار الشراء (مع تثبيت السعر)
+  // ═══════════════════════════════════════════════════════════════════════════
+  RealColumn get purchasePrice => real()(); // سعر الشراء بالليرة (محسوب ومخزن)
+  RealColumn get purchasePriceUsd =>
+      real().nullable()(); // سعر الشراء بالدولار (المرجع الأساسي)
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // أسعار البيع (مع تثبيت السعر)
+  // ═══════════════════════════════════════════════════════════════════════════
+  RealColumn get salePrice => real()(); // سعر البيع بالليرة (محسوب ومخزن)
+  RealColumn get salePriceUsd =>
+      real().nullable()(); // سعر البيع بالدولار (المرجع الأساسي)
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // سعر الصرف المثبت وقت الإنشاء/التحديث
+  // ═══════════════════════════════════════════════════════════════════════════
+  RealColumn get exchangeRateAtCreation =>
+      real().nullable()(); // سعر الصرف وقت إنشاء/تحديث المنتج
+
   IntColumn get quantity => integer().withDefault(const Constant(0))();
   IntColumn get minQuantity => integer().withDefault(const Constant(5))();
   RealColumn get taxRate => real().nullable()();
@@ -39,6 +63,12 @@ class Categories extends Table {
 }
 
 /// Invoices table
+/// ═══════════════════════════════════════════════════════════════════════════
+/// سياسة تثبيت السعر (Price Locking Policy):
+/// - يتم حفظ الإجمالي بالدولار + سعر الصرف وقت الإنشاء
+/// - الإجمالي بالليرة = الإجمالي بالدولار × سعر الصرف
+/// - تغيير سعر الصرف لاحقاً لا يؤثر على الفواتير السابقة
+/// ═══════════════════════════════════════════════════════════════════════════
 class Invoices extends Table {
   TextColumn get id => text()();
   TextColumn get invoiceNumber => text()();
@@ -48,13 +78,29 @@ class Invoices extends Table {
   TextColumn get supplierId => text().nullable().references(Suppliers, #id)();
   TextColumn get warehouseId => text()
       .nullable()(); // معرف المستودع (nullable للتوافق مع البيانات القديمة)
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // المبالغ بالليرة السورية (محسوبة ومخزنة)
+  // ═══════════════════════════════════════════════════════════════════════════
   RealColumn get subtotal => real()();
   RealColumn get taxAmount => real().withDefault(const Constant(0))();
   RealColumn get discountAmount => real().withDefault(const Constant(0))();
   RealColumn get total => real()();
   RealColumn get paidAmount => real().withDefault(const Constant(0))();
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // المبالغ بالدولار (المرجع الأساسي للحسابات)
+  // ═══════════════════════════════════════════════════════════════════════════
+  RealColumn get totalUsd => real().nullable()(); // الإجمالي بالدولار
+  RealColumn get paidAmountUsd =>
+      real().nullable()(); // المبلغ المدفوع بالدولار
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // سعر الصرف المثبت وقت إنشاء الفاتورة
+  // ═══════════════════════════════════════════════════════════════════════════
   RealColumn get exchangeRate =>
       real().nullable()(); // سعر صرف الدولار وقت إنشاء الفاتورة
+
   TextColumn get paymentMethod => text().withDefault(const Constant('cash'))();
   TextColumn get status => text().withDefault(const Constant('completed'))();
   TextColumn get notes => text().nullable()();
@@ -70,17 +116,37 @@ class Invoices extends Table {
 }
 
 /// Invoice Items table
+/// ═══════════════════════════════════════════════════════════════════════════
+/// سياسة تثبيت السعر: كل عنصر يحتفظ بسعره الخاص وقت الإنشاء
+/// ═══════════════════════════════════════════════════════════════════════════
 class InvoiceItems extends Table {
   TextColumn get id => text()();
   TextColumn get invoiceId => text().references(Invoices, #id)();
   TextColumn get productId => text().references(Products, #id)();
   TextColumn get productName => text()();
   IntColumn get quantity => integer()();
-  RealColumn get unitPrice => real()();
-  RealColumn get purchasePrice => real()();
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // الأسعار بالليرة السورية (محسوبة ومخزنة)
+  // ═══════════════════════════════════════════════════════════════════════════
+  RealColumn get unitPrice => real()(); // سعر الوحدة بالليرة
+  RealColumn get purchasePrice => real()(); // سعر الشراء بالليرة
   RealColumn get discountAmount => real().withDefault(const Constant(0))();
   RealColumn get taxAmount => real().withDefault(const Constant(0))();
-  RealColumn get total => real()();
+  RealColumn get total => real()(); // الإجمالي بالليرة
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // الأسعار بالدولار (المرجع الأساسي)
+  // ═══════════════════════════════════════════════════════════════════════════
+  RealColumn get unitPriceUsd => real().nullable()(); // سعر الوحدة بالدولار
+  RealColumn get totalUsd => real().nullable()(); // الإجمالي بالدولار
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // سعر الصرف المثبت وقت إضافة العنصر
+  // ═══════════════════════════════════════════════════════════════════════════
+  RealColumn get exchangeRate =>
+      real().nullable()(); // سعر الصرف وقت إضافة العنصر
+
   TextColumn get syncStatus => text().withDefault(const Constant('pending'))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 
@@ -138,19 +204,28 @@ class Shifts extends Table {
 }
 
 /// Cash Movements table
+/// ═══════════════════════════════════════════════════════════════════════════
+/// سياسة تثبيت السعر: الحركة تحتفظ بالمبلغ بالدولار + سعر الصرف
+/// ═══════════════════════════════════════════════════════════════════════════
 class CashMovements extends Table {
   TextColumn get id => text()();
   TextColumn get shiftId => text().references(Shifts, #id)();
   TextColumn get type =>
       text()(); // income, expense, sale, purchase, opening, closing
-  RealColumn get amount => real()();
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // المبالغ (مع تثبيت السعر)
+  // ═══════════════════════════════════════════════════════════════════════════
+  RealColumn get amount => real()(); // المبلغ بالليرة (محسوب ومخزن)
+  RealColumn get amountUsd => real().nullable()(); // المبلغ بالدولار (المرجع)
+  RealColumn get exchangeRate =>
+      real().nullable()(); // سعر صرف الدولار وقت الحركة
+
   TextColumn get description => text()();
   TextColumn get category => text().nullable()();
   TextColumn get referenceId => text().nullable()();
   TextColumn get referenceType => text().nullable()();
   TextColumn get paymentMethod => text().withDefault(const Constant('cash'))();
-  RealColumn get exchangeRate =>
-      real().nullable()(); // سعر صرف الدولار وقت الحركة
   TextColumn get syncStatus => text().withDefault(const Constant('pending'))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 
@@ -301,6 +376,9 @@ class VoucherCategories extends Table {
 }
 
 /// Vouchers table - جدول السندات
+/// ═══════════════════════════════════════════════════════════════════════════
+/// سياسة تثبيت السعر: السند يحتفظ بالمبلغ بالدولار + سعر الصرف
+/// ═══════════════════════════════════════════════════════════════════════════
 class Vouchers extends Table {
   TextColumn get id => text()();
   TextColumn get voucherNumber => text()(); // رقم السند
@@ -308,9 +386,15 @@ class Vouchers extends Table {
       text()(); // payment (دفع), receipt (قبض), expense (مصاريف)
   TextColumn get categoryId =>
       text().nullable().references(VoucherCategories, #id)();
-  RealColumn get amount => real()(); // المبلغ بالدينار
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // المبالغ (مع تثبيت السعر)
+  // ═══════════════════════════════════════════════════════════════════════════
+  RealColumn get amount => real()(); // المبلغ بالليرة (محسوب ومخزن)
+  RealColumn get amountUsd => real().nullable()(); // المبلغ بالدولار (المرجع)
   RealColumn get exchangeRate =>
       real().withDefault(const Constant(1.0))(); // سعر الصرف وقت الإنشاء
+
   TextColumn get description => text().nullable()(); // الوصف/الملاحظات
   TextColumn get customerId =>
       text().nullable().references(Customers, #id)(); // العميل (للقبض)

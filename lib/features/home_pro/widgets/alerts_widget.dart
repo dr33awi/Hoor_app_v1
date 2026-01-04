@@ -1,4 +1,4 @@
-// ═══════════════════════════════════════════════════════════════════════════
+﻿// ═══════════════════════════════════════════════════════════════════════════
 // Alerts Widget Component - Enterprise Accounting Design
 // Displays important notifications and warnings FROM REAL DATABASE
 // ═══════════════════════════════════════════════════════════════════════════
@@ -76,7 +76,7 @@ final dashboardAlertsProvider = FutureProvider<List<AlertItem>>((ref) async {
       severity: AlertSeverity.info,
       title: 'ذمم مدينة مستحقة',
       message:
-          '${customersWithBalance.length} عميل بإجمالي ${formatter.format(totalReceivables)} ر.س',
+          '${customersWithBalance.length} عميل بإجمالي ${formatter.format(totalReceivables)} ل.س',
       actionLabel: 'عرض العملاء',
       route: '/customers',
     ));
@@ -94,7 +94,7 @@ final dashboardAlertsProvider = FutureProvider<List<AlertItem>>((ref) async {
       severity: AlertSeverity.info,
       title: 'ذمم دائنة مستحقة',
       message:
-          '${suppliersWithBalance.length} مورد بإجمالي ${formatter.format(totalPayables)} ر.س',
+          '${suppliersWithBalance.length} مورد بإجمالي ${formatter.format(totalPayables)} ل.س',
       actionLabel: 'عرض الموردين',
       route: '/suppliers',
     ));

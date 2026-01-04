@@ -7,6 +7,7 @@ import '../database/app_database.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/constants/accounting_exceptions.dart';
 import '../../core/services/currency_service.dart';
+import '../../core/services/price_locking_service.dart';
 import '../../core/di/injection.dart';
 import 'base_repository.dart';
 import 'cash_repository.dart';
@@ -115,6 +116,14 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
 
       subtotal += itemSubtotal;
 
+      // ═══════════════════════════════════════════════════════════════════════
+      // تثبيت السعر: حفظ السعر بالدولار وسعر الصرف لكل عنصر
+      // ═══════════════════════════════════════════════════════════════════════
+      final priceLockingService = getIt<PriceLockingService>();
+      final exchangeRate = priceLockingService.currentExchangeRate;
+      final unitPriceUsd = exchangeRate > 0 ? unitPrice / exchangeRate : 0.0;
+      final totalUsd = exchangeRate > 0 ? itemTotal / exchangeRate : 0.0;
+
       invoiceItems.add(InvoiceItemsCompanion(
         id: Value(generateId()),
         invoiceId: Value(id),
@@ -122,10 +131,13 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
         productName: Value(item['productName'] as String),
         quantity: Value(quantity),
         unitPrice: Value(unitPrice),
+        unitPriceUsd: Value(unitPriceUsd), // سعر الوحدة بالدولار
         purchasePrice: Value(purchasePrice),
         discountAmount: Value(itemDiscount),
         taxAmount: const Value(0),
         total: Value(itemTotal),
+        totalUsd: Value(totalUsd), // الإجمالي بالدولار
+        exchangeRate: Value(exchangeRate), // سعر الصرف وقت الإضافة
         syncStatus: const Value('pending'),
         createdAt: Value(now),
       ));
@@ -133,8 +145,15 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
 
     final total = subtotal - discountAmount;
 
-    // Insert invoice
+    // ═══════════════════════════════════════════════════════════════════════════
+    // تثبيت السعر: حفظ الإجمالي بالدولار وسعر الصرف
+    // ═══════════════════════════════════════════════════════════════════════════
     final currencyService = getIt<CurrencyService>();
+    final exchangeRate = currencyService.exchangeRate;
+    final totalUsd = exchangeRate > 0 ? total / exchangeRate : 0.0;
+    final paidAmountUsd = exchangeRate > 0 ? paidAmount / exchangeRate : 0.0;
+
+    // Insert invoice
     await database.insertInvoice(InvoicesCompanion(
       id: Value(id),
       invoiceNumber: Value(invoiceNumber),
@@ -146,8 +165,10 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
       taxAmount: const Value(0),
       discountAmount: Value(discountAmount),
       total: Value(total),
+      totalUsd: Value(totalUsd), // الإجمالي بالدولار
       paidAmount: Value(paidAmount),
-      exchangeRate: Value(currencyService.exchangeRate), // حفظ سعر الصرف الحالي
+      paidAmountUsd: Value(paidAmountUsd), // المدفوع بالدولار
+      exchangeRate: Value(exchangeRate), // سعر الصرف وقت الإنشاء
       paymentMethod: Value(paymentMethod),
       status: const Value('completed'),
       notes: Value(notes),

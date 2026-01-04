@@ -1,4 +1,4 @@
-// ═══════════════════════════════════════════════════════════════════════════
+﻿// ═══════════════════════════════════════════════════════════════════════════
 // Invoice Form Screen Pro - Enterprise Accounting Design
 // Create/Edit Invoice with Ledger Precision
 // ═══════════════════════════════════════════════════════════════════════════
@@ -14,7 +14,9 @@ import 'package:printing/printing.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/widgets/widgets.dart';
+import '../../core/widgets/dual_price_display.dart';
 import '../../core/services/printing/invoice_pdf_generator.dart';
+import '../../core/services/currency_service.dart';
 import '../../features/invoices_pro/widgets/invoice_success_dialog.dart';
 import '../../data/database/app_database.dart';
 
@@ -749,7 +751,7 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
                             ),
                             SizedBox(width: 4.w),
                             Text(
-                              '${item['price'].toStringAsFixed(0)} ر.س × ${item['quantity']}',
+                              '${item['price'].toStringAsFixed(0)} ل.س × ${item['quantity']}',
                               style: AppTypography.bodySmall
                                   .copyWith(
                                     color: AppColors.secondary,
@@ -774,7 +776,7 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    '${total.toStringAsFixed(0)} ر.س',
+                    '${total.toStringAsFixed(0)} ل.س',
                     style: AppTypography.titleSmall
                         .copyWith(
                           color: AppColors.textPrimary,
@@ -861,7 +863,7 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
               autofocus: true,
               decoration: InputDecoration(
                 labelText: 'سعر البيع',
-                suffixText: 'ر.س',
+                suffixText: 'ل.س',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
@@ -951,7 +953,7 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
                       .mono,
                   decoration: InputDecoration(
                     hintText: '0',
-                    suffixText: 'ر.س',
+                    suffixText: 'ل.س',
                     isDense: true,
                     contentPadding: EdgeInsets.symmetric(
                       horizontal: AppSpacing.sm,
@@ -983,15 +985,28 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              Text(
-                '${_total.toStringAsFixed(2)} ر.س',
-                style: AppTypography.headlineSmall
-                    .copyWith(
-                      color: widget.isSales
-                          ? AppColors.success
-                          : AppColors.secondary,
-                    )
-                    .monoBold,
+              Builder(
+                builder: (context) {
+                  final exchangeRate = CurrencyService.currentRate;
+                  final totalUsd =
+                      exchangeRate > 0 ? _total / exchangeRate : null;
+                  return DualPriceDisplay(
+                    amountSyp: _total,
+                    amountUsd: totalUsd,
+                    exchangeRate: exchangeRate,
+                    type: DualPriceDisplayType.horizontal,
+                    sypStyle: AppTypography.headlineSmall
+                        .copyWith(
+                          color: widget.isSales
+                              ? AppColors.success
+                              : AppColors.secondary,
+                        )
+                        .monoBold,
+                    usdStyle: AppTypography.bodySmall
+                        .copyWith(color: AppColors.textSecondary)
+                        .mono,
+                  );
+                },
               ),
             ],
           ),
@@ -1056,7 +1071,7 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
                       .mono,
                   decoration: InputDecoration(
                     hintText: '0',
-                    suffixText: 'ر.س',
+                    suffixText: 'ل.س',
                     isDense: true,
                     contentPadding: EdgeInsets.symmetric(
                       horizontal: AppSpacing.sm,
@@ -1103,15 +1118,29 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                Text(
-                  '${_remainingAmount.toStringAsFixed(2)} ر.س',
-                  style: AppTypography.titleMedium
-                      .copyWith(
-                        color: _remainingAmount > 0
-                            ? AppColors.warning
-                            : AppColors.success,
-                      )
-                      .monoBold,
+                Builder(
+                  builder: (context) {
+                    final exchangeRate = CurrencyService.currentRate;
+                    final remainingUsd = exchangeRate > 0
+                        ? _remainingAmount / exchangeRate
+                        : null;
+                    return DualPriceDisplay(
+                      amountSyp: _remainingAmount,
+                      amountUsd: remainingUsd,
+                      exchangeRate: exchangeRate,
+                      type: DualPriceDisplayType.horizontal,
+                      sypStyle: AppTypography.titleMedium
+                          .copyWith(
+                            color: _remainingAmount > 0
+                                ? AppColors.warning
+                                : AppColors.success,
+                          )
+                          .monoBold,
+                      usdStyle: AppTypography.bodySmall
+                          .copyWith(color: AppColors.textSecondary)
+                          .mono,
+                    );
+                  },
                 ),
               ],
             ),
@@ -1147,6 +1176,9 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
   }
 
   Widget _buildTotalRow(String label, double amount) {
+    final exchangeRate = CurrencyService.currentRate;
+    final amountUsd = exchangeRate > 0 ? amount / exchangeRate : null;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -1156,12 +1188,18 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
             color: AppColors.textSecondary,
           ),
         ),
-        Text(
-          '${amount.toStringAsFixed(2)} ر.س',
-          style: AppTypography.bodyMedium
+        DualPriceDisplay(
+          amountSyp: amount,
+          amountUsd: amountUsd,
+          exchangeRate: exchangeRate,
+          type: DualPriceDisplayType.horizontal,
+          sypStyle: AppTypography.bodyMedium
               .copyWith(
                 color: AppColors.textPrimary,
               )
+              .mono,
+          usdStyle: AppTypography.bodySmall
+              .copyWith(color: AppColors.textSecondary)
               .mono,
         ),
       ],
@@ -1366,7 +1404,7 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
                         ),
                         title: Text(item['name']),
                         subtitle: Text(
-                            'الرصيد: ${(item['balance'] as double).toStringAsFixed(0)} ر.س'),
+                            'الرصيد: ${(item['balance'] as double).toStringAsFixed(0)} ل.س'),
                         onTap: () => onSelect(item),
                       );
                     },
@@ -1418,7 +1456,7 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
                               ),
                               title: Text(product.name),
                               subtitle: Text(
-                                  '${product.salePrice.toStringAsFixed(0)} ر.س • المخزون: ${product.quantity}'),
+                                  '${product.salePrice.toStringAsFixed(0)} ل.س • المخزون: ${product.quantity}'),
                               trailing: alreadyAdded
                                   ? Icon(Icons.check, color: AppColors.success)
                                   : null,
@@ -1542,7 +1580,7 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
               autofocus: true,
               decoration: InputDecoration(
                 labelText: 'سعر البيع',
-                suffixText: 'ر.س',
+                suffixText: 'ل.س',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),

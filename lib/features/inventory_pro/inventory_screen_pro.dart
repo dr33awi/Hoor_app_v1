@@ -9,11 +9,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:collection/collection.dart'; // ✅ إضافة للـ firstWhereOrNull
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/widgets/widgets.dart';
-import '../home_pro/widgets/pro_navigation_drawer.dart';
 import '../../core/providers/app_providers.dart';
 import '../../data/database/app_database.dart';
 

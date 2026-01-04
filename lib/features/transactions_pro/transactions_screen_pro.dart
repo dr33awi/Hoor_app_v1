@@ -1,4 +1,4 @@
-// ═══════════════════════════════════════════════════════════════════════════
+﻿// ═══════════════════════════════════════════════════════════════════════════
 // Unified Transactions Screen Pro - Enterprise Accounting Design
 // Sales & Purchase Invoices with Ledger Precision
 // ═══════════════════════════════════════════════════════════════════════════
@@ -472,7 +472,7 @@ class _InvoiceCard extends StatelessWidget {
               ),
               const Spacer(),
               Text(
-                '${invoice.total.toStringAsFixed(2)} ر.س',
+                '${invoice.total.toStringAsFixed(2)} ل.س',
                 style: AppTypography.titleMedium
                     .copyWith(
                       color: type.color,

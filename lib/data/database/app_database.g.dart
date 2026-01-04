@@ -444,6 +444,18 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
   late final GeneratedColumn<double> salePrice = GeneratedColumn<double>(
       'sale_price', aliasedName, false,
       type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _salePriceUsdMeta =
+      const VerificationMeta('salePriceUsd');
+  @override
+  late final GeneratedColumn<double> salePriceUsd = GeneratedColumn<double>(
+      'sale_price_usd', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _exchangeRateAtCreationMeta =
+      const VerificationMeta('exchangeRateAtCreation');
+  @override
+  late final GeneratedColumn<double> exchangeRateAtCreation =
+      GeneratedColumn<double>('exchange_rate_at_creation', aliasedName, true,
+          type: DriftSqlType.double, requiredDuringInsert: false);
   static const VerificationMeta _quantityMeta =
       const VerificationMeta('quantity');
   @override
@@ -522,6 +534,8 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
         purchasePrice,
         purchasePriceUsd,
         salePrice,
+        salePriceUsd,
+        exchangeRateAtCreation,
         quantity,
         minQuantity,
         taxRate,
@@ -586,6 +600,18 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
           salePrice.isAcceptableOrUnknown(data['sale_price']!, _salePriceMeta));
     } else if (isInserting) {
       context.missing(_salePriceMeta);
+    }
+    if (data.containsKey('sale_price_usd')) {
+      context.handle(
+          _salePriceUsdMeta,
+          salePriceUsd.isAcceptableOrUnknown(
+              data['sale_price_usd']!, _salePriceUsdMeta));
+    }
+    if (data.containsKey('exchange_rate_at_creation')) {
+      context.handle(
+          _exchangeRateAtCreationMeta,
+          exchangeRateAtCreation.isAcceptableOrUnknown(
+              data['exchange_rate_at_creation']!, _exchangeRateAtCreationMeta));
     }
     if (data.containsKey('quantity')) {
       context.handle(_quantityMeta,
@@ -654,6 +680,11 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
           DriftSqlType.double, data['${effectivePrefix}purchase_price_usd']),
       salePrice: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}sale_price'])!,
+      salePriceUsd: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}sale_price_usd']),
+      exchangeRateAtCreation: attachedDatabase.typeMapping.read(
+          DriftSqlType.double,
+          data['${effectivePrefix}exchange_rate_at_creation']),
       quantity: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}quantity'])!,
       minQuantity: attachedDatabase.typeMapping
@@ -690,6 +721,8 @@ class Product extends DataClass implements Insertable<Product> {
   final double purchasePrice;
   final double? purchasePriceUsd;
   final double salePrice;
+  final double? salePriceUsd;
+  final double? exchangeRateAtCreation;
   final int quantity;
   final int minQuantity;
   final double? taxRate;
@@ -708,6 +741,8 @@ class Product extends DataClass implements Insertable<Product> {
       required this.purchasePrice,
       this.purchasePriceUsd,
       required this.salePrice,
+      this.salePriceUsd,
+      this.exchangeRateAtCreation,
       required this.quantity,
       required this.minQuantity,
       this.taxRate,
@@ -736,6 +771,13 @@ class Product extends DataClass implements Insertable<Product> {
       map['purchase_price_usd'] = Variable<double>(purchasePriceUsd);
     }
     map['sale_price'] = Variable<double>(salePrice);
+    if (!nullToAbsent || salePriceUsd != null) {
+      map['sale_price_usd'] = Variable<double>(salePriceUsd);
+    }
+    if (!nullToAbsent || exchangeRateAtCreation != null) {
+      map['exchange_rate_at_creation'] =
+          Variable<double>(exchangeRateAtCreation);
+    }
     map['quantity'] = Variable<int>(quantity);
     map['min_quantity'] = Variable<int>(minQuantity);
     if (!nullToAbsent || taxRate != null) {
@@ -770,6 +812,12 @@ class Product extends DataClass implements Insertable<Product> {
           ? const Value.absent()
           : Value(purchasePriceUsd),
       salePrice: Value(salePrice),
+      salePriceUsd: salePriceUsd == null && nullToAbsent
+          ? const Value.absent()
+          : Value(salePriceUsd),
+      exchangeRateAtCreation: exchangeRateAtCreation == null && nullToAbsent
+          ? const Value.absent()
+          : Value(exchangeRateAtCreation),
       quantity: Value(quantity),
       minQuantity: Value(minQuantity),
       taxRate: taxRate == null && nullToAbsent
@@ -800,6 +848,9 @@ class Product extends DataClass implements Insertable<Product> {
       purchasePrice: serializer.fromJson<double>(json['purchasePrice']),
       purchasePriceUsd: serializer.fromJson<double?>(json['purchasePriceUsd']),
       salePrice: serializer.fromJson<double>(json['salePrice']),
+      salePriceUsd: serializer.fromJson<double?>(json['salePriceUsd']),
+      exchangeRateAtCreation:
+          serializer.fromJson<double?>(json['exchangeRateAtCreation']),
       quantity: serializer.fromJson<int>(json['quantity']),
       minQuantity: serializer.fromJson<int>(json['minQuantity']),
       taxRate: serializer.fromJson<double?>(json['taxRate']),
@@ -823,6 +874,9 @@ class Product extends DataClass implements Insertable<Product> {
       'purchasePrice': serializer.toJson<double>(purchasePrice),
       'purchasePriceUsd': serializer.toJson<double?>(purchasePriceUsd),
       'salePrice': serializer.toJson<double>(salePrice),
+      'salePriceUsd': serializer.toJson<double?>(salePriceUsd),
+      'exchangeRateAtCreation':
+          serializer.toJson<double?>(exchangeRateAtCreation),
       'quantity': serializer.toJson<int>(quantity),
       'minQuantity': serializer.toJson<int>(minQuantity),
       'taxRate': serializer.toJson<double?>(taxRate),
@@ -844,6 +898,8 @@ class Product extends DataClass implements Insertable<Product> {
           double? purchasePrice,
           Value<double?> purchasePriceUsd = const Value.absent(),
           double? salePrice,
+          Value<double?> salePriceUsd = const Value.absent(),
+          Value<double?> exchangeRateAtCreation = const Value.absent(),
           int? quantity,
           int? minQuantity,
           Value<double?> taxRate = const Value.absent(),
@@ -864,6 +920,11 @@ class Product extends DataClass implements Insertable<Product> {
             ? purchasePriceUsd.value
             : this.purchasePriceUsd,
         salePrice: salePrice ?? this.salePrice,
+        salePriceUsd:
+            salePriceUsd.present ? salePriceUsd.value : this.salePriceUsd,
+        exchangeRateAtCreation: exchangeRateAtCreation.present
+            ? exchangeRateAtCreation.value
+            : this.exchangeRateAtCreation,
         quantity: quantity ?? this.quantity,
         minQuantity: minQuantity ?? this.minQuantity,
         taxRate: taxRate.present ? taxRate.value : this.taxRate,
@@ -889,6 +950,12 @@ class Product extends DataClass implements Insertable<Product> {
           ? data.purchasePriceUsd.value
           : this.purchasePriceUsd,
       salePrice: data.salePrice.present ? data.salePrice.value : this.salePrice,
+      salePriceUsd: data.salePriceUsd.present
+          ? data.salePriceUsd.value
+          : this.salePriceUsd,
+      exchangeRateAtCreation: data.exchangeRateAtCreation.present
+          ? data.exchangeRateAtCreation.value
+          : this.exchangeRateAtCreation,
       quantity: data.quantity.present ? data.quantity.value : this.quantity,
       minQuantity:
           data.minQuantity.present ? data.minQuantity.value : this.minQuantity,
@@ -915,6 +982,8 @@ class Product extends DataClass implements Insertable<Product> {
           ..write('purchasePrice: $purchasePrice, ')
           ..write('purchasePriceUsd: $purchasePriceUsd, ')
           ..write('salePrice: $salePrice, ')
+          ..write('salePriceUsd: $salePriceUsd, ')
+          ..write('exchangeRateAtCreation: $exchangeRateAtCreation, ')
           ..write('quantity: $quantity, ')
           ..write('minQuantity: $minQuantity, ')
           ..write('taxRate: $taxRate, ')
@@ -938,6 +1007,8 @@ class Product extends DataClass implements Insertable<Product> {
       purchasePrice,
       purchasePriceUsd,
       salePrice,
+      salePriceUsd,
+      exchangeRateAtCreation,
       quantity,
       minQuantity,
       taxRate,
@@ -959,6 +1030,8 @@ class Product extends DataClass implements Insertable<Product> {
           other.purchasePrice == this.purchasePrice &&
           other.purchasePriceUsd == this.purchasePriceUsd &&
           other.salePrice == this.salePrice &&
+          other.salePriceUsd == this.salePriceUsd &&
+          other.exchangeRateAtCreation == this.exchangeRateAtCreation &&
           other.quantity == this.quantity &&
           other.minQuantity == this.minQuantity &&
           other.taxRate == this.taxRate &&
@@ -979,6 +1052,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
   final Value<double> purchasePrice;
   final Value<double?> purchasePriceUsd;
   final Value<double> salePrice;
+  final Value<double?> salePriceUsd;
+  final Value<double?> exchangeRateAtCreation;
   final Value<int> quantity;
   final Value<int> minQuantity;
   final Value<double?> taxRate;
@@ -998,6 +1073,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     this.purchasePrice = const Value.absent(),
     this.purchasePriceUsd = const Value.absent(),
     this.salePrice = const Value.absent(),
+    this.salePriceUsd = const Value.absent(),
+    this.exchangeRateAtCreation = const Value.absent(),
     this.quantity = const Value.absent(),
     this.minQuantity = const Value.absent(),
     this.taxRate = const Value.absent(),
@@ -1018,6 +1095,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     required double purchasePrice,
     this.purchasePriceUsd = const Value.absent(),
     required double salePrice,
+    this.salePriceUsd = const Value.absent(),
+    this.exchangeRateAtCreation = const Value.absent(),
     this.quantity = const Value.absent(),
     this.minQuantity = const Value.absent(),
     this.taxRate = const Value.absent(),
@@ -1041,6 +1120,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     Expression<double>? purchasePrice,
     Expression<double>? purchasePriceUsd,
     Expression<double>? salePrice,
+    Expression<double>? salePriceUsd,
+    Expression<double>? exchangeRateAtCreation,
     Expression<int>? quantity,
     Expression<int>? minQuantity,
     Expression<double>? taxRate,
@@ -1061,6 +1142,9 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       if (purchasePrice != null) 'purchase_price': purchasePrice,
       if (purchasePriceUsd != null) 'purchase_price_usd': purchasePriceUsd,
       if (salePrice != null) 'sale_price': salePrice,
+      if (salePriceUsd != null) 'sale_price_usd': salePriceUsd,
+      if (exchangeRateAtCreation != null)
+        'exchange_rate_at_creation': exchangeRateAtCreation,
       if (quantity != null) 'quantity': quantity,
       if (minQuantity != null) 'min_quantity': minQuantity,
       if (taxRate != null) 'tax_rate': taxRate,
@@ -1083,6 +1167,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       Value<double>? purchasePrice,
       Value<double?>? purchasePriceUsd,
       Value<double>? salePrice,
+      Value<double?>? salePriceUsd,
+      Value<double?>? exchangeRateAtCreation,
       Value<int>? quantity,
       Value<int>? minQuantity,
       Value<double?>? taxRate,
@@ -1102,6 +1188,9 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       purchasePrice: purchasePrice ?? this.purchasePrice,
       purchasePriceUsd: purchasePriceUsd ?? this.purchasePriceUsd,
       salePrice: salePrice ?? this.salePrice,
+      salePriceUsd: salePriceUsd ?? this.salePriceUsd,
+      exchangeRateAtCreation:
+          exchangeRateAtCreation ?? this.exchangeRateAtCreation,
       quantity: quantity ?? this.quantity,
       minQuantity: minQuantity ?? this.minQuantity,
       taxRate: taxRate ?? this.taxRate,
@@ -1141,6 +1230,13 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     }
     if (salePrice.present) {
       map['sale_price'] = Variable<double>(salePrice.value);
+    }
+    if (salePriceUsd.present) {
+      map['sale_price_usd'] = Variable<double>(salePriceUsd.value);
+    }
+    if (exchangeRateAtCreation.present) {
+      map['exchange_rate_at_creation'] =
+          Variable<double>(exchangeRateAtCreation.value);
     }
     if (quantity.present) {
       map['quantity'] = Variable<int>(quantity.value);
@@ -1186,6 +1282,8 @@ class ProductsCompanion extends UpdateCompanion<Product> {
           ..write('purchasePrice: $purchasePrice, ')
           ..write('purchasePriceUsd: $purchasePriceUsd, ')
           ..write('salePrice: $salePrice, ')
+          ..write('salePriceUsd: $salePriceUsd, ')
+          ..write('exchangeRateAtCreation: $exchangeRateAtCreation, ')
           ..write('quantity: $quantity, ')
           ..write('minQuantity: $minQuantity, ')
           ..write('taxRate: $taxRate, ')
@@ -3220,6 +3318,18 @@ class $InvoicesTable extends Invoices with TableInfo<$InvoicesTable, Invoice> {
       type: DriftSqlType.double,
       requiredDuringInsert: false,
       defaultValue: const Constant(0));
+  static const VerificationMeta _totalUsdMeta =
+      const VerificationMeta('totalUsd');
+  @override
+  late final GeneratedColumn<double> totalUsd = GeneratedColumn<double>(
+      'total_usd', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _paidAmountUsdMeta =
+      const VerificationMeta('paidAmountUsd');
+  @override
+  late final GeneratedColumn<double> paidAmountUsd = GeneratedColumn<double>(
+      'paid_amount_usd', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
   static const VerificationMeta _exchangeRateMeta =
       const VerificationMeta('exchangeRate');
   @override
@@ -3300,6 +3410,8 @@ class $InvoicesTable extends Invoices with TableInfo<$InvoicesTable, Invoice> {
         discountAmount,
         total,
         paidAmount,
+        totalUsd,
+        paidAmountUsd,
         exchangeRate,
         paymentMethod,
         status,
@@ -3385,6 +3497,16 @@ class $InvoicesTable extends Invoices with TableInfo<$InvoicesTable, Invoice> {
           paidAmount.isAcceptableOrUnknown(
               data['paid_amount']!, _paidAmountMeta));
     }
+    if (data.containsKey('total_usd')) {
+      context.handle(_totalUsdMeta,
+          totalUsd.isAcceptableOrUnknown(data['total_usd']!, _totalUsdMeta));
+    }
+    if (data.containsKey('paid_amount_usd')) {
+      context.handle(
+          _paidAmountUsdMeta,
+          paidAmountUsd.isAcceptableOrUnknown(
+              data['paid_amount_usd']!, _paidAmountUsdMeta));
+    }
     if (data.containsKey('exchange_rate')) {
       context.handle(
           _exchangeRateMeta,
@@ -3460,6 +3582,10 @@ class $InvoicesTable extends Invoices with TableInfo<$InvoicesTable, Invoice> {
           .read(DriftSqlType.double, data['${effectivePrefix}total'])!,
       paidAmount: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}paid_amount'])!,
+      totalUsd: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}total_usd']),
+      paidAmountUsd: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}paid_amount_usd']),
       exchangeRate: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}exchange_rate']),
       paymentMethod: attachedDatabase.typeMapping
@@ -3499,6 +3625,8 @@ class Invoice extends DataClass implements Insertable<Invoice> {
   final double discountAmount;
   final double total;
   final double paidAmount;
+  final double? totalUsd;
+  final double? paidAmountUsd;
   final double? exchangeRate;
   final String paymentMethod;
   final String status;
@@ -3520,6 +3648,8 @@ class Invoice extends DataClass implements Insertable<Invoice> {
       required this.discountAmount,
       required this.total,
       required this.paidAmount,
+      this.totalUsd,
+      this.paidAmountUsd,
       this.exchangeRate,
       required this.paymentMethod,
       required this.status,
@@ -3549,6 +3679,12 @@ class Invoice extends DataClass implements Insertable<Invoice> {
     map['discount_amount'] = Variable<double>(discountAmount);
     map['total'] = Variable<double>(total);
     map['paid_amount'] = Variable<double>(paidAmount);
+    if (!nullToAbsent || totalUsd != null) {
+      map['total_usd'] = Variable<double>(totalUsd);
+    }
+    if (!nullToAbsent || paidAmountUsd != null) {
+      map['paid_amount_usd'] = Variable<double>(paidAmountUsd);
+    }
     if (!nullToAbsent || exchangeRate != null) {
       map['exchange_rate'] = Variable<double>(exchangeRate);
     }
@@ -3586,6 +3722,12 @@ class Invoice extends DataClass implements Insertable<Invoice> {
       discountAmount: Value(discountAmount),
       total: Value(total),
       paidAmount: Value(paidAmount),
+      totalUsd: totalUsd == null && nullToAbsent
+          ? const Value.absent()
+          : Value(totalUsd),
+      paidAmountUsd: paidAmountUsd == null && nullToAbsent
+          ? const Value.absent()
+          : Value(paidAmountUsd),
       exchangeRate: exchangeRate == null && nullToAbsent
           ? const Value.absent()
           : Value(exchangeRate),
@@ -3618,6 +3760,8 @@ class Invoice extends DataClass implements Insertable<Invoice> {
       discountAmount: serializer.fromJson<double>(json['discountAmount']),
       total: serializer.fromJson<double>(json['total']),
       paidAmount: serializer.fromJson<double>(json['paidAmount']),
+      totalUsd: serializer.fromJson<double?>(json['totalUsd']),
+      paidAmountUsd: serializer.fromJson<double?>(json['paidAmountUsd']),
       exchangeRate: serializer.fromJson<double?>(json['exchangeRate']),
       paymentMethod: serializer.fromJson<String>(json['paymentMethod']),
       status: serializer.fromJson<String>(json['status']),
@@ -3644,6 +3788,8 @@ class Invoice extends DataClass implements Insertable<Invoice> {
       'discountAmount': serializer.toJson<double>(discountAmount),
       'total': serializer.toJson<double>(total),
       'paidAmount': serializer.toJson<double>(paidAmount),
+      'totalUsd': serializer.toJson<double?>(totalUsd),
+      'paidAmountUsd': serializer.toJson<double?>(paidAmountUsd),
       'exchangeRate': serializer.toJson<double?>(exchangeRate),
       'paymentMethod': serializer.toJson<String>(paymentMethod),
       'status': serializer.toJson<String>(status),
@@ -3668,6 +3814,8 @@ class Invoice extends DataClass implements Insertable<Invoice> {
           double? discountAmount,
           double? total,
           double? paidAmount,
+          Value<double?> totalUsd = const Value.absent(),
+          Value<double?> paidAmountUsd = const Value.absent(),
           Value<double?> exchangeRate = const Value.absent(),
           String? paymentMethod,
           String? status,
@@ -3689,6 +3837,9 @@ class Invoice extends DataClass implements Insertable<Invoice> {
         discountAmount: discountAmount ?? this.discountAmount,
         total: total ?? this.total,
         paidAmount: paidAmount ?? this.paidAmount,
+        totalUsd: totalUsd.present ? totalUsd.value : this.totalUsd,
+        paidAmountUsd:
+            paidAmountUsd.present ? paidAmountUsd.value : this.paidAmountUsd,
         exchangeRate:
             exchangeRate.present ? exchangeRate.value : this.exchangeRate,
         paymentMethod: paymentMethod ?? this.paymentMethod,
@@ -3721,6 +3872,10 @@ class Invoice extends DataClass implements Insertable<Invoice> {
       total: data.total.present ? data.total.value : this.total,
       paidAmount:
           data.paidAmount.present ? data.paidAmount.value : this.paidAmount,
+      totalUsd: data.totalUsd.present ? data.totalUsd.value : this.totalUsd,
+      paidAmountUsd: data.paidAmountUsd.present
+          ? data.paidAmountUsd.value
+          : this.paidAmountUsd,
       exchangeRate: data.exchangeRate.present
           ? data.exchangeRate.value
           : this.exchangeRate,
@@ -3753,6 +3908,8 @@ class Invoice extends DataClass implements Insertable<Invoice> {
           ..write('discountAmount: $discountAmount, ')
           ..write('total: $total, ')
           ..write('paidAmount: $paidAmount, ')
+          ..write('totalUsd: $totalUsd, ')
+          ..write('paidAmountUsd: $paidAmountUsd, ')
           ..write('exchangeRate: $exchangeRate, ')
           ..write('paymentMethod: $paymentMethod, ')
           ..write('status: $status, ')
@@ -3767,27 +3924,30 @@ class Invoice extends DataClass implements Insertable<Invoice> {
   }
 
   @override
-  int get hashCode => Object.hash(
-      id,
-      invoiceNumber,
-      type,
-      customerId,
-      supplierId,
-      warehouseId,
-      subtotal,
-      taxAmount,
-      discountAmount,
-      total,
-      paidAmount,
-      exchangeRate,
-      paymentMethod,
-      status,
-      notes,
-      shiftId,
-      syncStatus,
-      invoiceDate,
-      createdAt,
-      updatedAt);
+  int get hashCode => Object.hashAll([
+        id,
+        invoiceNumber,
+        type,
+        customerId,
+        supplierId,
+        warehouseId,
+        subtotal,
+        taxAmount,
+        discountAmount,
+        total,
+        paidAmount,
+        totalUsd,
+        paidAmountUsd,
+        exchangeRate,
+        paymentMethod,
+        status,
+        notes,
+        shiftId,
+        syncStatus,
+        invoiceDate,
+        createdAt,
+        updatedAt
+      ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3803,6 +3963,8 @@ class Invoice extends DataClass implements Insertable<Invoice> {
           other.discountAmount == this.discountAmount &&
           other.total == this.total &&
           other.paidAmount == this.paidAmount &&
+          other.totalUsd == this.totalUsd &&
+          other.paidAmountUsd == this.paidAmountUsd &&
           other.exchangeRate == this.exchangeRate &&
           other.paymentMethod == this.paymentMethod &&
           other.status == this.status &&
@@ -3826,6 +3988,8 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
   final Value<double> discountAmount;
   final Value<double> total;
   final Value<double> paidAmount;
+  final Value<double?> totalUsd;
+  final Value<double?> paidAmountUsd;
   final Value<double?> exchangeRate;
   final Value<String> paymentMethod;
   final Value<String> status;
@@ -3848,6 +4012,8 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
     this.discountAmount = const Value.absent(),
     this.total = const Value.absent(),
     this.paidAmount = const Value.absent(),
+    this.totalUsd = const Value.absent(),
+    this.paidAmountUsd = const Value.absent(),
     this.exchangeRate = const Value.absent(),
     this.paymentMethod = const Value.absent(),
     this.status = const Value.absent(),
@@ -3871,6 +4037,8 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
     this.discountAmount = const Value.absent(),
     required double total,
     this.paidAmount = const Value.absent(),
+    this.totalUsd = const Value.absent(),
+    this.paidAmountUsd = const Value.absent(),
     this.exchangeRate = const Value.absent(),
     this.paymentMethod = const Value.absent(),
     this.status = const Value.absent(),
@@ -3898,6 +4066,8 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
     Expression<double>? discountAmount,
     Expression<double>? total,
     Expression<double>? paidAmount,
+    Expression<double>? totalUsd,
+    Expression<double>? paidAmountUsd,
     Expression<double>? exchangeRate,
     Expression<String>? paymentMethod,
     Expression<String>? status,
@@ -3921,6 +4091,8 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
       if (discountAmount != null) 'discount_amount': discountAmount,
       if (total != null) 'total': total,
       if (paidAmount != null) 'paid_amount': paidAmount,
+      if (totalUsd != null) 'total_usd': totalUsd,
+      if (paidAmountUsd != null) 'paid_amount_usd': paidAmountUsd,
       if (exchangeRate != null) 'exchange_rate': exchangeRate,
       if (paymentMethod != null) 'payment_method': paymentMethod,
       if (status != null) 'status': status,
@@ -3946,6 +4118,8 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
       Value<double>? discountAmount,
       Value<double>? total,
       Value<double>? paidAmount,
+      Value<double?>? totalUsd,
+      Value<double?>? paidAmountUsd,
       Value<double?>? exchangeRate,
       Value<String>? paymentMethod,
       Value<String>? status,
@@ -3968,6 +4142,8 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
       discountAmount: discountAmount ?? this.discountAmount,
       total: total ?? this.total,
       paidAmount: paidAmount ?? this.paidAmount,
+      totalUsd: totalUsd ?? this.totalUsd,
+      paidAmountUsd: paidAmountUsd ?? this.paidAmountUsd,
       exchangeRate: exchangeRate ?? this.exchangeRate,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       status: status ?? this.status,
@@ -4017,6 +4193,12 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
     if (paidAmount.present) {
       map['paid_amount'] = Variable<double>(paidAmount.value);
     }
+    if (totalUsd.present) {
+      map['total_usd'] = Variable<double>(totalUsd.value);
+    }
+    if (paidAmountUsd.present) {
+      map['paid_amount_usd'] = Variable<double>(paidAmountUsd.value);
+    }
     if (exchangeRate.present) {
       map['exchange_rate'] = Variable<double>(exchangeRate.value);
     }
@@ -4064,6 +4246,8 @@ class InvoicesCompanion extends UpdateCompanion<Invoice> {
           ..write('discountAmount: $discountAmount, ')
           ..write('total: $total, ')
           ..write('paidAmount: $paidAmount, ')
+          ..write('totalUsd: $totalUsd, ')
+          ..write('paidAmountUsd: $paidAmountUsd, ')
           ..write('exchangeRate: $exchangeRate, ')
           ..write('paymentMethod: $paymentMethod, ')
           ..write('status: $status, ')
@@ -4153,6 +4337,24 @@ class $InvoiceItemsTable extends InvoiceItems
   late final GeneratedColumn<double> total = GeneratedColumn<double>(
       'total', aliasedName, false,
       type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _unitPriceUsdMeta =
+      const VerificationMeta('unitPriceUsd');
+  @override
+  late final GeneratedColumn<double> unitPriceUsd = GeneratedColumn<double>(
+      'unit_price_usd', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _totalUsdMeta =
+      const VerificationMeta('totalUsd');
+  @override
+  late final GeneratedColumn<double> totalUsd = GeneratedColumn<double>(
+      'total_usd', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _exchangeRateMeta =
+      const VerificationMeta('exchangeRate');
+  @override
+  late final GeneratedColumn<double> exchangeRate = GeneratedColumn<double>(
+      'exchange_rate', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
   static const VerificationMeta _syncStatusMeta =
       const VerificationMeta('syncStatus');
   @override
@@ -4181,6 +4383,9 @@ class $InvoiceItemsTable extends InvoiceItems
         discountAmount,
         taxAmount,
         total,
+        unitPriceUsd,
+        totalUsd,
+        exchangeRate,
         syncStatus,
         createdAt
       ];
@@ -4255,6 +4460,22 @@ class $InvoiceItemsTable extends InvoiceItems
     } else if (isInserting) {
       context.missing(_totalMeta);
     }
+    if (data.containsKey('unit_price_usd')) {
+      context.handle(
+          _unitPriceUsdMeta,
+          unitPriceUsd.isAcceptableOrUnknown(
+              data['unit_price_usd']!, _unitPriceUsdMeta));
+    }
+    if (data.containsKey('total_usd')) {
+      context.handle(_totalUsdMeta,
+          totalUsd.isAcceptableOrUnknown(data['total_usd']!, _totalUsdMeta));
+    }
+    if (data.containsKey('exchange_rate')) {
+      context.handle(
+          _exchangeRateMeta,
+          exchangeRate.isAcceptableOrUnknown(
+              data['exchange_rate']!, _exchangeRateMeta));
+    }
     if (data.containsKey('sync_status')) {
       context.handle(
           _syncStatusMeta,
@@ -4294,6 +4515,12 @@ class $InvoiceItemsTable extends InvoiceItems
           .read(DriftSqlType.double, data['${effectivePrefix}tax_amount'])!,
       total: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}total'])!,
+      unitPriceUsd: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}unit_price_usd']),
+      totalUsd: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}total_usd']),
+      exchangeRate: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}exchange_rate']),
       syncStatus: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}sync_status'])!,
       createdAt: attachedDatabase.typeMapping
@@ -4318,6 +4545,9 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
   final double discountAmount;
   final double taxAmount;
   final double total;
+  final double? unitPriceUsd;
+  final double? totalUsd;
+  final double? exchangeRate;
   final String syncStatus;
   final DateTime createdAt;
   const InvoiceItem(
@@ -4331,6 +4561,9 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
       required this.discountAmount,
       required this.taxAmount,
       required this.total,
+      this.unitPriceUsd,
+      this.totalUsd,
+      this.exchangeRate,
       required this.syncStatus,
       required this.createdAt});
   @override
@@ -4346,6 +4579,15 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
     map['discount_amount'] = Variable<double>(discountAmount);
     map['tax_amount'] = Variable<double>(taxAmount);
     map['total'] = Variable<double>(total);
+    if (!nullToAbsent || unitPriceUsd != null) {
+      map['unit_price_usd'] = Variable<double>(unitPriceUsd);
+    }
+    if (!nullToAbsent || totalUsd != null) {
+      map['total_usd'] = Variable<double>(totalUsd);
+    }
+    if (!nullToAbsent || exchangeRate != null) {
+      map['exchange_rate'] = Variable<double>(exchangeRate);
+    }
     map['sync_status'] = Variable<String>(syncStatus);
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
@@ -4363,6 +4605,15 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
       discountAmount: Value(discountAmount),
       taxAmount: Value(taxAmount),
       total: Value(total),
+      unitPriceUsd: unitPriceUsd == null && nullToAbsent
+          ? const Value.absent()
+          : Value(unitPriceUsd),
+      totalUsd: totalUsd == null && nullToAbsent
+          ? const Value.absent()
+          : Value(totalUsd),
+      exchangeRate: exchangeRate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(exchangeRate),
       syncStatus: Value(syncStatus),
       createdAt: Value(createdAt),
     );
@@ -4382,6 +4633,9 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
       discountAmount: serializer.fromJson<double>(json['discountAmount']),
       taxAmount: serializer.fromJson<double>(json['taxAmount']),
       total: serializer.fromJson<double>(json['total']),
+      unitPriceUsd: serializer.fromJson<double?>(json['unitPriceUsd']),
+      totalUsd: serializer.fromJson<double?>(json['totalUsd']),
+      exchangeRate: serializer.fromJson<double?>(json['exchangeRate']),
       syncStatus: serializer.fromJson<String>(json['syncStatus']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
@@ -4400,6 +4654,9 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
       'discountAmount': serializer.toJson<double>(discountAmount),
       'taxAmount': serializer.toJson<double>(taxAmount),
       'total': serializer.toJson<double>(total),
+      'unitPriceUsd': serializer.toJson<double?>(unitPriceUsd),
+      'totalUsd': serializer.toJson<double?>(totalUsd),
+      'exchangeRate': serializer.toJson<double?>(exchangeRate),
       'syncStatus': serializer.toJson<String>(syncStatus),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
@@ -4416,6 +4673,9 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
           double? discountAmount,
           double? taxAmount,
           double? total,
+          Value<double?> unitPriceUsd = const Value.absent(),
+          Value<double?> totalUsd = const Value.absent(),
+          Value<double?> exchangeRate = const Value.absent(),
           String? syncStatus,
           DateTime? createdAt}) =>
       InvoiceItem(
@@ -4429,6 +4689,11 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
         discountAmount: discountAmount ?? this.discountAmount,
         taxAmount: taxAmount ?? this.taxAmount,
         total: total ?? this.total,
+        unitPriceUsd:
+            unitPriceUsd.present ? unitPriceUsd.value : this.unitPriceUsd,
+        totalUsd: totalUsd.present ? totalUsd.value : this.totalUsd,
+        exchangeRate:
+            exchangeRate.present ? exchangeRate.value : this.exchangeRate,
         syncStatus: syncStatus ?? this.syncStatus,
         createdAt: createdAt ?? this.createdAt,
       );
@@ -4449,6 +4714,13 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
           : this.discountAmount,
       taxAmount: data.taxAmount.present ? data.taxAmount.value : this.taxAmount,
       total: data.total.present ? data.total.value : this.total,
+      unitPriceUsd: data.unitPriceUsd.present
+          ? data.unitPriceUsd.value
+          : this.unitPriceUsd,
+      totalUsd: data.totalUsd.present ? data.totalUsd.value : this.totalUsd,
+      exchangeRate: data.exchangeRate.present
+          ? data.exchangeRate.value
+          : this.exchangeRate,
       syncStatus:
           data.syncStatus.present ? data.syncStatus.value : this.syncStatus,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -4468,6 +4740,9 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
           ..write('discountAmount: $discountAmount, ')
           ..write('taxAmount: $taxAmount, ')
           ..write('total: $total, ')
+          ..write('unitPriceUsd: $unitPriceUsd, ')
+          ..write('totalUsd: $totalUsd, ')
+          ..write('exchangeRate: $exchangeRate, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -4486,6 +4761,9 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
       discountAmount,
       taxAmount,
       total,
+      unitPriceUsd,
+      totalUsd,
+      exchangeRate,
       syncStatus,
       createdAt);
   @override
@@ -4502,6 +4780,9 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
           other.discountAmount == this.discountAmount &&
           other.taxAmount == this.taxAmount &&
           other.total == this.total &&
+          other.unitPriceUsd == this.unitPriceUsd &&
+          other.totalUsd == this.totalUsd &&
+          other.exchangeRate == this.exchangeRate &&
           other.syncStatus == this.syncStatus &&
           other.createdAt == this.createdAt);
 }
@@ -4517,6 +4798,9 @@ class InvoiceItemsCompanion extends UpdateCompanion<InvoiceItem> {
   final Value<double> discountAmount;
   final Value<double> taxAmount;
   final Value<double> total;
+  final Value<double?> unitPriceUsd;
+  final Value<double?> totalUsd;
+  final Value<double?> exchangeRate;
   final Value<String> syncStatus;
   final Value<DateTime> createdAt;
   final Value<int> rowid;
@@ -4531,6 +4815,9 @@ class InvoiceItemsCompanion extends UpdateCompanion<InvoiceItem> {
     this.discountAmount = const Value.absent(),
     this.taxAmount = const Value.absent(),
     this.total = const Value.absent(),
+    this.unitPriceUsd = const Value.absent(),
+    this.totalUsd = const Value.absent(),
+    this.exchangeRate = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -4546,6 +4833,9 @@ class InvoiceItemsCompanion extends UpdateCompanion<InvoiceItem> {
     this.discountAmount = const Value.absent(),
     this.taxAmount = const Value.absent(),
     required double total,
+    this.unitPriceUsd = const Value.absent(),
+    this.totalUsd = const Value.absent(),
+    this.exchangeRate = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -4568,6 +4858,9 @@ class InvoiceItemsCompanion extends UpdateCompanion<InvoiceItem> {
     Expression<double>? discountAmount,
     Expression<double>? taxAmount,
     Expression<double>? total,
+    Expression<double>? unitPriceUsd,
+    Expression<double>? totalUsd,
+    Expression<double>? exchangeRate,
     Expression<String>? syncStatus,
     Expression<DateTime>? createdAt,
     Expression<int>? rowid,
@@ -4583,6 +4876,9 @@ class InvoiceItemsCompanion extends UpdateCompanion<InvoiceItem> {
       if (discountAmount != null) 'discount_amount': discountAmount,
       if (taxAmount != null) 'tax_amount': taxAmount,
       if (total != null) 'total': total,
+      if (unitPriceUsd != null) 'unit_price_usd': unitPriceUsd,
+      if (totalUsd != null) 'total_usd': totalUsd,
+      if (exchangeRate != null) 'exchange_rate': exchangeRate,
       if (syncStatus != null) 'sync_status': syncStatus,
       if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
@@ -4600,6 +4896,9 @@ class InvoiceItemsCompanion extends UpdateCompanion<InvoiceItem> {
       Value<double>? discountAmount,
       Value<double>? taxAmount,
       Value<double>? total,
+      Value<double?>? unitPriceUsd,
+      Value<double?>? totalUsd,
+      Value<double?>? exchangeRate,
       Value<String>? syncStatus,
       Value<DateTime>? createdAt,
       Value<int>? rowid}) {
@@ -4614,6 +4913,9 @@ class InvoiceItemsCompanion extends UpdateCompanion<InvoiceItem> {
       discountAmount: discountAmount ?? this.discountAmount,
       taxAmount: taxAmount ?? this.taxAmount,
       total: total ?? this.total,
+      unitPriceUsd: unitPriceUsd ?? this.unitPriceUsd,
+      totalUsd: totalUsd ?? this.totalUsd,
+      exchangeRate: exchangeRate ?? this.exchangeRate,
       syncStatus: syncStatus ?? this.syncStatus,
       createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
@@ -4653,6 +4955,15 @@ class InvoiceItemsCompanion extends UpdateCompanion<InvoiceItem> {
     if (total.present) {
       map['total'] = Variable<double>(total.value);
     }
+    if (unitPriceUsd.present) {
+      map['unit_price_usd'] = Variable<double>(unitPriceUsd.value);
+    }
+    if (totalUsd.present) {
+      map['total_usd'] = Variable<double>(totalUsd.value);
+    }
+    if (exchangeRate.present) {
+      map['exchange_rate'] = Variable<double>(exchangeRate.value);
+    }
     if (syncStatus.present) {
       map['sync_status'] = Variable<String>(syncStatus.value);
     }
@@ -4678,6 +4989,9 @@ class InvoiceItemsCompanion extends UpdateCompanion<InvoiceItem> {
           ..write('discountAmount: $discountAmount, ')
           ..write('taxAmount: $taxAmount, ')
           ..write('total: $total, ')
+          ..write('unitPriceUsd: $unitPriceUsd, ')
+          ..write('totalUsd: $totalUsd, ')
+          ..write('exchangeRate: $exchangeRate, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
@@ -5332,6 +5646,18 @@ class $CashMovementsTable extends CashMovements
   late final GeneratedColumn<double> amount = GeneratedColumn<double>(
       'amount', aliasedName, false,
       type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _amountUsdMeta =
+      const VerificationMeta('amountUsd');
+  @override
+  late final GeneratedColumn<double> amountUsd = GeneratedColumn<double>(
+      'amount_usd', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _exchangeRateMeta =
+      const VerificationMeta('exchangeRate');
+  @override
+  late final GeneratedColumn<double> exchangeRate = GeneratedColumn<double>(
+      'exchange_rate', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
   static const VerificationMeta _descriptionMeta =
       const VerificationMeta('description');
   @override
@@ -5364,12 +5690,6 @@ class $CashMovementsTable extends CashMovements
       type: DriftSqlType.string,
       requiredDuringInsert: false,
       defaultValue: const Constant('cash'));
-  static const VerificationMeta _exchangeRateMeta =
-      const VerificationMeta('exchangeRate');
-  @override
-  late final GeneratedColumn<double> exchangeRate = GeneratedColumn<double>(
-      'exchange_rate', aliasedName, true,
-      type: DriftSqlType.double, requiredDuringInsert: false);
   static const VerificationMeta _syncStatusMeta =
       const VerificationMeta('syncStatus');
   @override
@@ -5392,12 +5712,13 @@ class $CashMovementsTable extends CashMovements
         shiftId,
         type,
         amount,
+        amountUsd,
+        exchangeRate,
         description,
         category,
         referenceId,
         referenceType,
         paymentMethod,
-        exchangeRate,
         syncStatus,
         createdAt
       ];
@@ -5434,6 +5755,16 @@ class $CashMovementsTable extends CashMovements
     } else if (isInserting) {
       context.missing(_amountMeta);
     }
+    if (data.containsKey('amount_usd')) {
+      context.handle(_amountUsdMeta,
+          amountUsd.isAcceptableOrUnknown(data['amount_usd']!, _amountUsdMeta));
+    }
+    if (data.containsKey('exchange_rate')) {
+      context.handle(
+          _exchangeRateMeta,
+          exchangeRate.isAcceptableOrUnknown(
+              data['exchange_rate']!, _exchangeRateMeta));
+    }
     if (data.containsKey('description')) {
       context.handle(
           _descriptionMeta,
@@ -5464,12 +5795,6 @@ class $CashMovementsTable extends CashMovements
           paymentMethod.isAcceptableOrUnknown(
               data['payment_method']!, _paymentMethodMeta));
     }
-    if (data.containsKey('exchange_rate')) {
-      context.handle(
-          _exchangeRateMeta,
-          exchangeRate.isAcceptableOrUnknown(
-              data['exchange_rate']!, _exchangeRateMeta));
-    }
     if (data.containsKey('sync_status')) {
       context.handle(
           _syncStatusMeta,
@@ -5497,6 +5822,10 @@ class $CashMovementsTable extends CashMovements
           .read(DriftSqlType.string, data['${effectivePrefix}type'])!,
       amount: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}amount'])!,
+      amountUsd: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}amount_usd']),
+      exchangeRate: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}exchange_rate']),
       description: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}description'])!,
       category: attachedDatabase.typeMapping
@@ -5507,8 +5836,6 @@ class $CashMovementsTable extends CashMovements
           .read(DriftSqlType.string, data['${effectivePrefix}reference_type']),
       paymentMethod: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}payment_method'])!,
-      exchangeRate: attachedDatabase.typeMapping
-          .read(DriftSqlType.double, data['${effectivePrefix}exchange_rate']),
       syncStatus: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}sync_status'])!,
       createdAt: attachedDatabase.typeMapping
@@ -5527,12 +5854,13 @@ class CashMovement extends DataClass implements Insertable<CashMovement> {
   final String shiftId;
   final String type;
   final double amount;
+  final double? amountUsd;
+  final double? exchangeRate;
   final String description;
   final String? category;
   final String? referenceId;
   final String? referenceType;
   final String paymentMethod;
-  final double? exchangeRate;
   final String syncStatus;
   final DateTime createdAt;
   const CashMovement(
@@ -5540,12 +5868,13 @@ class CashMovement extends DataClass implements Insertable<CashMovement> {
       required this.shiftId,
       required this.type,
       required this.amount,
+      this.amountUsd,
+      this.exchangeRate,
       required this.description,
       this.category,
       this.referenceId,
       this.referenceType,
       required this.paymentMethod,
-      this.exchangeRate,
       required this.syncStatus,
       required this.createdAt});
   @override
@@ -5555,6 +5884,12 @@ class CashMovement extends DataClass implements Insertable<CashMovement> {
     map['shift_id'] = Variable<String>(shiftId);
     map['type'] = Variable<String>(type);
     map['amount'] = Variable<double>(amount);
+    if (!nullToAbsent || amountUsd != null) {
+      map['amount_usd'] = Variable<double>(amountUsd);
+    }
+    if (!nullToAbsent || exchangeRate != null) {
+      map['exchange_rate'] = Variable<double>(exchangeRate);
+    }
     map['description'] = Variable<String>(description);
     if (!nullToAbsent || category != null) {
       map['category'] = Variable<String>(category);
@@ -5566,9 +5901,6 @@ class CashMovement extends DataClass implements Insertable<CashMovement> {
       map['reference_type'] = Variable<String>(referenceType);
     }
     map['payment_method'] = Variable<String>(paymentMethod);
-    if (!nullToAbsent || exchangeRate != null) {
-      map['exchange_rate'] = Variable<double>(exchangeRate);
-    }
     map['sync_status'] = Variable<String>(syncStatus);
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
@@ -5580,6 +5912,12 @@ class CashMovement extends DataClass implements Insertable<CashMovement> {
       shiftId: Value(shiftId),
       type: Value(type),
       amount: Value(amount),
+      amountUsd: amountUsd == null && nullToAbsent
+          ? const Value.absent()
+          : Value(amountUsd),
+      exchangeRate: exchangeRate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(exchangeRate),
       description: Value(description),
       category: category == null && nullToAbsent
           ? const Value.absent()
@@ -5591,9 +5929,6 @@ class CashMovement extends DataClass implements Insertable<CashMovement> {
           ? const Value.absent()
           : Value(referenceType),
       paymentMethod: Value(paymentMethod),
-      exchangeRate: exchangeRate == null && nullToAbsent
-          ? const Value.absent()
-          : Value(exchangeRate),
       syncStatus: Value(syncStatus),
       createdAt: Value(createdAt),
     );
@@ -5607,12 +5942,13 @@ class CashMovement extends DataClass implements Insertable<CashMovement> {
       shiftId: serializer.fromJson<String>(json['shiftId']),
       type: serializer.fromJson<String>(json['type']),
       amount: serializer.fromJson<double>(json['amount']),
+      amountUsd: serializer.fromJson<double?>(json['amountUsd']),
+      exchangeRate: serializer.fromJson<double?>(json['exchangeRate']),
       description: serializer.fromJson<String>(json['description']),
       category: serializer.fromJson<String?>(json['category']),
       referenceId: serializer.fromJson<String?>(json['referenceId']),
       referenceType: serializer.fromJson<String?>(json['referenceType']),
       paymentMethod: serializer.fromJson<String>(json['paymentMethod']),
-      exchangeRate: serializer.fromJson<double?>(json['exchangeRate']),
       syncStatus: serializer.fromJson<String>(json['syncStatus']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
@@ -5625,12 +5961,13 @@ class CashMovement extends DataClass implements Insertable<CashMovement> {
       'shiftId': serializer.toJson<String>(shiftId),
       'type': serializer.toJson<String>(type),
       'amount': serializer.toJson<double>(amount),
+      'amountUsd': serializer.toJson<double?>(amountUsd),
+      'exchangeRate': serializer.toJson<double?>(exchangeRate),
       'description': serializer.toJson<String>(description),
       'category': serializer.toJson<String?>(category),
       'referenceId': serializer.toJson<String?>(referenceId),
       'referenceType': serializer.toJson<String?>(referenceType),
       'paymentMethod': serializer.toJson<String>(paymentMethod),
-      'exchangeRate': serializer.toJson<double?>(exchangeRate),
       'syncStatus': serializer.toJson<String>(syncStatus),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
@@ -5641,12 +5978,13 @@ class CashMovement extends DataClass implements Insertable<CashMovement> {
           String? shiftId,
           String? type,
           double? amount,
+          Value<double?> amountUsd = const Value.absent(),
+          Value<double?> exchangeRate = const Value.absent(),
           String? description,
           Value<String?> category = const Value.absent(),
           Value<String?> referenceId = const Value.absent(),
           Value<String?> referenceType = const Value.absent(),
           String? paymentMethod,
-          Value<double?> exchangeRate = const Value.absent(),
           String? syncStatus,
           DateTime? createdAt}) =>
       CashMovement(
@@ -5654,14 +5992,15 @@ class CashMovement extends DataClass implements Insertable<CashMovement> {
         shiftId: shiftId ?? this.shiftId,
         type: type ?? this.type,
         amount: amount ?? this.amount,
+        amountUsd: amountUsd.present ? amountUsd.value : this.amountUsd,
+        exchangeRate:
+            exchangeRate.present ? exchangeRate.value : this.exchangeRate,
         description: description ?? this.description,
         category: category.present ? category.value : this.category,
         referenceId: referenceId.present ? referenceId.value : this.referenceId,
         referenceType:
             referenceType.present ? referenceType.value : this.referenceType,
         paymentMethod: paymentMethod ?? this.paymentMethod,
-        exchangeRate:
-            exchangeRate.present ? exchangeRate.value : this.exchangeRate,
         syncStatus: syncStatus ?? this.syncStatus,
         createdAt: createdAt ?? this.createdAt,
       );
@@ -5671,6 +6010,10 @@ class CashMovement extends DataClass implements Insertable<CashMovement> {
       shiftId: data.shiftId.present ? data.shiftId.value : this.shiftId,
       type: data.type.present ? data.type.value : this.type,
       amount: data.amount.present ? data.amount.value : this.amount,
+      amountUsd: data.amountUsd.present ? data.amountUsd.value : this.amountUsd,
+      exchangeRate: data.exchangeRate.present
+          ? data.exchangeRate.value
+          : this.exchangeRate,
       description:
           data.description.present ? data.description.value : this.description,
       category: data.category.present ? data.category.value : this.category,
@@ -5682,9 +6025,6 @@ class CashMovement extends DataClass implements Insertable<CashMovement> {
       paymentMethod: data.paymentMethod.present
           ? data.paymentMethod.value
           : this.paymentMethod,
-      exchangeRate: data.exchangeRate.present
-          ? data.exchangeRate.value
-          : this.exchangeRate,
       syncStatus:
           data.syncStatus.present ? data.syncStatus.value : this.syncStatus,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -5698,12 +6038,13 @@ class CashMovement extends DataClass implements Insertable<CashMovement> {
           ..write('shiftId: $shiftId, ')
           ..write('type: $type, ')
           ..write('amount: $amount, ')
+          ..write('amountUsd: $amountUsd, ')
+          ..write('exchangeRate: $exchangeRate, ')
           ..write('description: $description, ')
           ..write('category: $category, ')
           ..write('referenceId: $referenceId, ')
           ..write('referenceType: $referenceType, ')
           ..write('paymentMethod: $paymentMethod, ')
-          ..write('exchangeRate: $exchangeRate, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
@@ -5716,12 +6057,13 @@ class CashMovement extends DataClass implements Insertable<CashMovement> {
       shiftId,
       type,
       amount,
+      amountUsd,
+      exchangeRate,
       description,
       category,
       referenceId,
       referenceType,
       paymentMethod,
-      exchangeRate,
       syncStatus,
       createdAt);
   @override
@@ -5732,12 +6074,13 @@ class CashMovement extends DataClass implements Insertable<CashMovement> {
           other.shiftId == this.shiftId &&
           other.type == this.type &&
           other.amount == this.amount &&
+          other.amountUsd == this.amountUsd &&
+          other.exchangeRate == this.exchangeRate &&
           other.description == this.description &&
           other.category == this.category &&
           other.referenceId == this.referenceId &&
           other.referenceType == this.referenceType &&
           other.paymentMethod == this.paymentMethod &&
-          other.exchangeRate == this.exchangeRate &&
           other.syncStatus == this.syncStatus &&
           other.createdAt == this.createdAt);
 }
@@ -5747,12 +6090,13 @@ class CashMovementsCompanion extends UpdateCompanion<CashMovement> {
   final Value<String> shiftId;
   final Value<String> type;
   final Value<double> amount;
+  final Value<double?> amountUsd;
+  final Value<double?> exchangeRate;
   final Value<String> description;
   final Value<String?> category;
   final Value<String?> referenceId;
   final Value<String?> referenceType;
   final Value<String> paymentMethod;
-  final Value<double?> exchangeRate;
   final Value<String> syncStatus;
   final Value<DateTime> createdAt;
   final Value<int> rowid;
@@ -5761,12 +6105,13 @@ class CashMovementsCompanion extends UpdateCompanion<CashMovement> {
     this.shiftId = const Value.absent(),
     this.type = const Value.absent(),
     this.amount = const Value.absent(),
+    this.amountUsd = const Value.absent(),
+    this.exchangeRate = const Value.absent(),
     this.description = const Value.absent(),
     this.category = const Value.absent(),
     this.referenceId = const Value.absent(),
     this.referenceType = const Value.absent(),
     this.paymentMethod = const Value.absent(),
-    this.exchangeRate = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -5776,12 +6121,13 @@ class CashMovementsCompanion extends UpdateCompanion<CashMovement> {
     required String shiftId,
     required String type,
     required double amount,
+    this.amountUsd = const Value.absent(),
+    this.exchangeRate = const Value.absent(),
     required String description,
     this.category = const Value.absent(),
     this.referenceId = const Value.absent(),
     this.referenceType = const Value.absent(),
     this.paymentMethod = const Value.absent(),
-    this.exchangeRate = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -5795,12 +6141,13 @@ class CashMovementsCompanion extends UpdateCompanion<CashMovement> {
     Expression<String>? shiftId,
     Expression<String>? type,
     Expression<double>? amount,
+    Expression<double>? amountUsd,
+    Expression<double>? exchangeRate,
     Expression<String>? description,
     Expression<String>? category,
     Expression<String>? referenceId,
     Expression<String>? referenceType,
     Expression<String>? paymentMethod,
-    Expression<double>? exchangeRate,
     Expression<String>? syncStatus,
     Expression<DateTime>? createdAt,
     Expression<int>? rowid,
@@ -5810,12 +6157,13 @@ class CashMovementsCompanion extends UpdateCompanion<CashMovement> {
       if (shiftId != null) 'shift_id': shiftId,
       if (type != null) 'type': type,
       if (amount != null) 'amount': amount,
+      if (amountUsd != null) 'amount_usd': amountUsd,
+      if (exchangeRate != null) 'exchange_rate': exchangeRate,
       if (description != null) 'description': description,
       if (category != null) 'category': category,
       if (referenceId != null) 'reference_id': referenceId,
       if (referenceType != null) 'reference_type': referenceType,
       if (paymentMethod != null) 'payment_method': paymentMethod,
-      if (exchangeRate != null) 'exchange_rate': exchangeRate,
       if (syncStatus != null) 'sync_status': syncStatus,
       if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
@@ -5827,12 +6175,13 @@ class CashMovementsCompanion extends UpdateCompanion<CashMovement> {
       Value<String>? shiftId,
       Value<String>? type,
       Value<double>? amount,
+      Value<double?>? amountUsd,
+      Value<double?>? exchangeRate,
       Value<String>? description,
       Value<String?>? category,
       Value<String?>? referenceId,
       Value<String?>? referenceType,
       Value<String>? paymentMethod,
-      Value<double?>? exchangeRate,
       Value<String>? syncStatus,
       Value<DateTime>? createdAt,
       Value<int>? rowid}) {
@@ -5841,12 +6190,13 @@ class CashMovementsCompanion extends UpdateCompanion<CashMovement> {
       shiftId: shiftId ?? this.shiftId,
       type: type ?? this.type,
       amount: amount ?? this.amount,
+      amountUsd: amountUsd ?? this.amountUsd,
+      exchangeRate: exchangeRate ?? this.exchangeRate,
       description: description ?? this.description,
       category: category ?? this.category,
       referenceId: referenceId ?? this.referenceId,
       referenceType: referenceType ?? this.referenceType,
       paymentMethod: paymentMethod ?? this.paymentMethod,
-      exchangeRate: exchangeRate ?? this.exchangeRate,
       syncStatus: syncStatus ?? this.syncStatus,
       createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
@@ -5868,6 +6218,12 @@ class CashMovementsCompanion extends UpdateCompanion<CashMovement> {
     if (amount.present) {
       map['amount'] = Variable<double>(amount.value);
     }
+    if (amountUsd.present) {
+      map['amount_usd'] = Variable<double>(amountUsd.value);
+    }
+    if (exchangeRate.present) {
+      map['exchange_rate'] = Variable<double>(exchangeRate.value);
+    }
     if (description.present) {
       map['description'] = Variable<String>(description.value);
     }
@@ -5882,9 +6238,6 @@ class CashMovementsCompanion extends UpdateCompanion<CashMovement> {
     }
     if (paymentMethod.present) {
       map['payment_method'] = Variable<String>(paymentMethod.value);
-    }
-    if (exchangeRate.present) {
-      map['exchange_rate'] = Variable<double>(exchangeRate.value);
     }
     if (syncStatus.present) {
       map['sync_status'] = Variable<String>(syncStatus.value);
@@ -5905,12 +6258,13 @@ class CashMovementsCompanion extends UpdateCompanion<CashMovement> {
           ..write('shiftId: $shiftId, ')
           ..write('type: $type, ')
           ..write('amount: $amount, ')
+          ..write('amountUsd: $amountUsd, ')
+          ..write('exchangeRate: $exchangeRate, ')
           ..write('description: $description, ')
           ..write('category: $category, ')
           ..write('referenceId: $referenceId, ')
           ..write('referenceType: $referenceType, ')
           ..write('paymentMethod: $paymentMethod, ')
-          ..write('exchangeRate: $exchangeRate, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
@@ -6528,6 +6882,12 @@ class $VouchersTable extends Vouchers with TableInfo<$VouchersTable, Voucher> {
   late final GeneratedColumn<double> amount = GeneratedColumn<double>(
       'amount', aliasedName, false,
       type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _amountUsdMeta =
+      const VerificationMeta('amountUsd');
+  @override
+  late final GeneratedColumn<double> amountUsd = GeneratedColumn<double>(
+      'amount_usd', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
   static const VerificationMeta _exchangeRateMeta =
       const VerificationMeta('exchangeRate');
   @override
@@ -6600,6 +6960,7 @@ class $VouchersTable extends Vouchers with TableInfo<$VouchersTable, Voucher> {
         type,
         categoryId,
         amount,
+        amountUsd,
         exchangeRate,
         description,
         customerId,
@@ -6649,6 +7010,10 @@ class $VouchersTable extends Vouchers with TableInfo<$VouchersTable, Voucher> {
           amount.isAcceptableOrUnknown(data['amount']!, _amountMeta));
     } else if (isInserting) {
       context.missing(_amountMeta);
+    }
+    if (data.containsKey('amount_usd')) {
+      context.handle(_amountUsdMeta,
+          amountUsd.isAcceptableOrUnknown(data['amount_usd']!, _amountUsdMeta));
     }
     if (data.containsKey('exchange_rate')) {
       context.handle(
@@ -6713,6 +7078,8 @@ class $VouchersTable extends Vouchers with TableInfo<$VouchersTable, Voucher> {
           .read(DriftSqlType.string, data['${effectivePrefix}category_id']),
       amount: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}amount'])!,
+      amountUsd: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}amount_usd']),
       exchangeRate: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}exchange_rate'])!,
       description: attachedDatabase.typeMapping
@@ -6744,6 +7111,7 @@ class Voucher extends DataClass implements Insertable<Voucher> {
   final String type;
   final String? categoryId;
   final double amount;
+  final double? amountUsd;
   final double exchangeRate;
   final String? description;
   final String? customerId;
@@ -6758,6 +7126,7 @@ class Voucher extends DataClass implements Insertable<Voucher> {
       required this.type,
       this.categoryId,
       required this.amount,
+      this.amountUsd,
       required this.exchangeRate,
       this.description,
       this.customerId,
@@ -6776,6 +7145,9 @@ class Voucher extends DataClass implements Insertable<Voucher> {
       map['category_id'] = Variable<String>(categoryId);
     }
     map['amount'] = Variable<double>(amount);
+    if (!nullToAbsent || amountUsd != null) {
+      map['amount_usd'] = Variable<double>(amountUsd);
+    }
     map['exchange_rate'] = Variable<double>(exchangeRate);
     if (!nullToAbsent || description != null) {
       map['description'] = Variable<String>(description);
@@ -6804,6 +7176,9 @@ class Voucher extends DataClass implements Insertable<Voucher> {
           ? const Value.absent()
           : Value(categoryId),
       amount: Value(amount),
+      amountUsd: amountUsd == null && nullToAbsent
+          ? const Value.absent()
+          : Value(amountUsd),
       exchangeRate: Value(exchangeRate),
       description: description == null && nullToAbsent
           ? const Value.absent()
@@ -6832,6 +7207,7 @@ class Voucher extends DataClass implements Insertable<Voucher> {
       type: serializer.fromJson<String>(json['type']),
       categoryId: serializer.fromJson<String?>(json['categoryId']),
       amount: serializer.fromJson<double>(json['amount']),
+      amountUsd: serializer.fromJson<double?>(json['amountUsd']),
       exchangeRate: serializer.fromJson<double>(json['exchangeRate']),
       description: serializer.fromJson<String?>(json['description']),
       customerId: serializer.fromJson<String?>(json['customerId']),
@@ -6851,6 +7227,7 @@ class Voucher extends DataClass implements Insertable<Voucher> {
       'type': serializer.toJson<String>(type),
       'categoryId': serializer.toJson<String?>(categoryId),
       'amount': serializer.toJson<double>(amount),
+      'amountUsd': serializer.toJson<double?>(amountUsd),
       'exchangeRate': serializer.toJson<double>(exchangeRate),
       'description': serializer.toJson<String?>(description),
       'customerId': serializer.toJson<String?>(customerId),
@@ -6868,6 +7245,7 @@ class Voucher extends DataClass implements Insertable<Voucher> {
           String? type,
           Value<String?> categoryId = const Value.absent(),
           double? amount,
+          Value<double?> amountUsd = const Value.absent(),
           double? exchangeRate,
           Value<String?> description = const Value.absent(),
           Value<String?> customerId = const Value.absent(),
@@ -6882,6 +7260,7 @@ class Voucher extends DataClass implements Insertable<Voucher> {
         type: type ?? this.type,
         categoryId: categoryId.present ? categoryId.value : this.categoryId,
         amount: amount ?? this.amount,
+        amountUsd: amountUsd.present ? amountUsd.value : this.amountUsd,
         exchangeRate: exchangeRate ?? this.exchangeRate,
         description: description.present ? description.value : this.description,
         customerId: customerId.present ? customerId.value : this.customerId,
@@ -6901,6 +7280,7 @@ class Voucher extends DataClass implements Insertable<Voucher> {
       categoryId:
           data.categoryId.present ? data.categoryId.value : this.categoryId,
       amount: data.amount.present ? data.amount.value : this.amount,
+      amountUsd: data.amountUsd.present ? data.amountUsd.value : this.amountUsd,
       exchangeRate: data.exchangeRate.present
           ? data.exchangeRate.value
           : this.exchangeRate,
@@ -6927,6 +7307,7 @@ class Voucher extends DataClass implements Insertable<Voucher> {
           ..write('type: $type, ')
           ..write('categoryId: $categoryId, ')
           ..write('amount: $amount, ')
+          ..write('amountUsd: $amountUsd, ')
           ..write('exchangeRate: $exchangeRate, ')
           ..write('description: $description, ')
           ..write('customerId: $customerId, ')
@@ -6946,6 +7327,7 @@ class Voucher extends DataClass implements Insertable<Voucher> {
       type,
       categoryId,
       amount,
+      amountUsd,
       exchangeRate,
       description,
       customerId,
@@ -6963,6 +7345,7 @@ class Voucher extends DataClass implements Insertable<Voucher> {
           other.type == this.type &&
           other.categoryId == this.categoryId &&
           other.amount == this.amount &&
+          other.amountUsd == this.amountUsd &&
           other.exchangeRate == this.exchangeRate &&
           other.description == this.description &&
           other.customerId == this.customerId &&
@@ -6979,6 +7362,7 @@ class VouchersCompanion extends UpdateCompanion<Voucher> {
   final Value<String> type;
   final Value<String?> categoryId;
   final Value<double> amount;
+  final Value<double?> amountUsd;
   final Value<double> exchangeRate;
   final Value<String?> description;
   final Value<String?> customerId;
@@ -6994,6 +7378,7 @@ class VouchersCompanion extends UpdateCompanion<Voucher> {
     this.type = const Value.absent(),
     this.categoryId = const Value.absent(),
     this.amount = const Value.absent(),
+    this.amountUsd = const Value.absent(),
     this.exchangeRate = const Value.absent(),
     this.description = const Value.absent(),
     this.customerId = const Value.absent(),
@@ -7010,6 +7395,7 @@ class VouchersCompanion extends UpdateCompanion<Voucher> {
     required String type,
     this.categoryId = const Value.absent(),
     required double amount,
+    this.amountUsd = const Value.absent(),
     this.exchangeRate = const Value.absent(),
     this.description = const Value.absent(),
     this.customerId = const Value.absent(),
@@ -7029,6 +7415,7 @@ class VouchersCompanion extends UpdateCompanion<Voucher> {
     Expression<String>? type,
     Expression<String>? categoryId,
     Expression<double>? amount,
+    Expression<double>? amountUsd,
     Expression<double>? exchangeRate,
     Expression<String>? description,
     Expression<String>? customerId,
@@ -7045,6 +7432,7 @@ class VouchersCompanion extends UpdateCompanion<Voucher> {
       if (type != null) 'type': type,
       if (categoryId != null) 'category_id': categoryId,
       if (amount != null) 'amount': amount,
+      if (amountUsd != null) 'amount_usd': amountUsd,
       if (exchangeRate != null) 'exchange_rate': exchangeRate,
       if (description != null) 'description': description,
       if (customerId != null) 'customer_id': customerId,
@@ -7063,6 +7451,7 @@ class VouchersCompanion extends UpdateCompanion<Voucher> {
       Value<String>? type,
       Value<String?>? categoryId,
       Value<double>? amount,
+      Value<double?>? amountUsd,
       Value<double>? exchangeRate,
       Value<String?>? description,
       Value<String?>? customerId,
@@ -7078,6 +7467,7 @@ class VouchersCompanion extends UpdateCompanion<Voucher> {
       type: type ?? this.type,
       categoryId: categoryId ?? this.categoryId,
       amount: amount ?? this.amount,
+      amountUsd: amountUsd ?? this.amountUsd,
       exchangeRate: exchangeRate ?? this.exchangeRate,
       description: description ?? this.description,
       customerId: customerId ?? this.customerId,
@@ -7107,6 +7497,9 @@ class VouchersCompanion extends UpdateCompanion<Voucher> {
     }
     if (amount.present) {
       map['amount'] = Variable<double>(amount.value);
+    }
+    if (amountUsd.present) {
+      map['amount_usd'] = Variable<double>(amountUsd.value);
     }
     if (exchangeRate.present) {
       map['exchange_rate'] = Variable<double>(exchangeRate.value);
@@ -7146,6 +7539,7 @@ class VouchersCompanion extends UpdateCompanion<Voucher> {
           ..write('type: $type, ')
           ..write('categoryId: $categoryId, ')
           ..write('amount: $amount, ')
+          ..write('amountUsd: $amountUsd, ')
           ..write('exchangeRate: $exchangeRate, ')
           ..write('description: $description, ')
           ..write('customerId: $customerId, ')
@@ -12687,6 +13081,8 @@ typedef $$ProductsTableCreateCompanionBuilder = ProductsCompanion Function({
   required double purchasePrice,
   Value<double?> purchasePriceUsd,
   required double salePrice,
+  Value<double?> salePriceUsd,
+  Value<double?> exchangeRateAtCreation,
   Value<int> quantity,
   Value<int> minQuantity,
   Value<double?> taxRate,
@@ -12707,6 +13103,8 @@ typedef $$ProductsTableUpdateCompanionBuilder = ProductsCompanion Function({
   Value<double> purchasePrice,
   Value<double?> purchasePriceUsd,
   Value<double> salePrice,
+  Value<double?> salePriceUsd,
+  Value<double?> exchangeRateAtCreation,
   Value<int> quantity,
   Value<int> minQuantity,
   Value<double?> taxRate,
@@ -12869,6 +13267,13 @@ class $$ProductsTableFilterComposer
 
   ColumnFilters<double> get salePrice => $composableBuilder(
       column: $table.salePrice, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get salePriceUsd => $composableBuilder(
+      column: $table.salePriceUsd, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get exchangeRateAtCreation => $composableBuilder(
+      column: $table.exchangeRateAtCreation,
+      builder: (column) => ColumnFilters(column));
 
   ColumnFilters<int> get quantity => $composableBuilder(
       column: $table.quantity, builder: (column) => ColumnFilters(column));
@@ -13078,6 +13483,14 @@ class $$ProductsTableOrderingComposer
   ColumnOrderings<double> get salePrice => $composableBuilder(
       column: $table.salePrice, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<double> get salePriceUsd => $composableBuilder(
+      column: $table.salePriceUsd,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get exchangeRateAtCreation => $composableBuilder(
+      column: $table.exchangeRateAtCreation,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get quantity => $composableBuilder(
       column: $table.quantity, builder: (column) => ColumnOrderings(column));
 
@@ -13155,6 +13568,12 @@ class $$ProductsTableAnnotationComposer
 
   GeneratedColumn<double> get salePrice =>
       $composableBuilder(column: $table.salePrice, builder: (column) => column);
+
+  GeneratedColumn<double> get salePriceUsd => $composableBuilder(
+      column: $table.salePriceUsd, builder: (column) => column);
+
+  GeneratedColumn<double> get exchangeRateAtCreation => $composableBuilder(
+      column: $table.exchangeRateAtCreation, builder: (column) => column);
 
   GeneratedColumn<int> get quantity =>
       $composableBuilder(column: $table.quantity, builder: (column) => column);
@@ -13375,6 +13794,8 @@ class $$ProductsTableTableManager extends RootTableManager<
             Value<double> purchasePrice = const Value.absent(),
             Value<double?> purchasePriceUsd = const Value.absent(),
             Value<double> salePrice = const Value.absent(),
+            Value<double?> salePriceUsd = const Value.absent(),
+            Value<double?> exchangeRateAtCreation = const Value.absent(),
             Value<int> quantity = const Value.absent(),
             Value<int> minQuantity = const Value.absent(),
             Value<double?> taxRate = const Value.absent(),
@@ -13395,6 +13816,8 @@ class $$ProductsTableTableManager extends RootTableManager<
             purchasePrice: purchasePrice,
             purchasePriceUsd: purchasePriceUsd,
             salePrice: salePrice,
+            salePriceUsd: salePriceUsd,
+            exchangeRateAtCreation: exchangeRateAtCreation,
             quantity: quantity,
             minQuantity: minQuantity,
             taxRate: taxRate,
@@ -13415,6 +13838,8 @@ class $$ProductsTableTableManager extends RootTableManager<
             required double purchasePrice,
             Value<double?> purchasePriceUsd = const Value.absent(),
             required double salePrice,
+            Value<double?> salePriceUsd = const Value.absent(),
+            Value<double?> exchangeRateAtCreation = const Value.absent(),
             Value<int> quantity = const Value.absent(),
             Value<int> minQuantity = const Value.absent(),
             Value<double?> taxRate = const Value.absent(),
@@ -13435,6 +13860,8 @@ class $$ProductsTableTableManager extends RootTableManager<
             purchasePrice: purchasePrice,
             purchasePriceUsd: purchasePriceUsd,
             salePrice: salePrice,
+            salePriceUsd: salePriceUsd,
+            exchangeRateAtCreation: exchangeRateAtCreation,
             quantity: quantity,
             minQuantity: minQuantity,
             taxRate: taxRate,
@@ -15034,6 +15461,8 @@ typedef $$InvoicesTableCreateCompanionBuilder = InvoicesCompanion Function({
   Value<double> discountAmount,
   required double total,
   Value<double> paidAmount,
+  Value<double?> totalUsd,
+  Value<double?> paidAmountUsd,
   Value<double?> exchangeRate,
   Value<String> paymentMethod,
   Value<String> status,
@@ -15057,6 +15486,8 @@ typedef $$InvoicesTableUpdateCompanionBuilder = InvoicesCompanion Function({
   Value<double> discountAmount,
   Value<double> total,
   Value<double> paidAmount,
+  Value<double?> totalUsd,
+  Value<double?> paidAmountUsd,
   Value<double?> exchangeRate,
   Value<String> paymentMethod,
   Value<String> status,
@@ -15166,6 +15597,12 @@ class $$InvoicesTableFilterComposer
 
   ColumnFilters<double> get paidAmount => $composableBuilder(
       column: $table.paidAmount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get totalUsd => $composableBuilder(
+      column: $table.totalUsd, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get paidAmountUsd => $composableBuilder(
+      column: $table.paidAmountUsd, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<double> get exchangeRate => $composableBuilder(
       column: $table.exchangeRate, builder: (column) => ColumnFilters(column));
@@ -15311,6 +15748,13 @@ class $$InvoicesTableOrderingComposer
   ColumnOrderings<double> get paidAmount => $composableBuilder(
       column: $table.paidAmount, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<double> get totalUsd => $composableBuilder(
+      column: $table.totalUsd, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get paidAmountUsd => $composableBuilder(
+      column: $table.paidAmountUsd,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<double> get exchangeRate => $composableBuilder(
       column: $table.exchangeRate,
       builder: (column) => ColumnOrderings(column));
@@ -15433,6 +15877,12 @@ class $$InvoicesTableAnnotationComposer
 
   GeneratedColumn<double> get paidAmount => $composableBuilder(
       column: $table.paidAmount, builder: (column) => column);
+
+  GeneratedColumn<double> get totalUsd =>
+      $composableBuilder(column: $table.totalUsd, builder: (column) => column);
+
+  GeneratedColumn<double> get paidAmountUsd => $composableBuilder(
+      column: $table.paidAmountUsd, builder: (column) => column);
 
   GeneratedColumn<double> get exchangeRate => $composableBuilder(
       column: $table.exchangeRate, builder: (column) => column);
@@ -15578,6 +16028,8 @@ class $$InvoicesTableTableManager extends RootTableManager<
             Value<double> discountAmount = const Value.absent(),
             Value<double> total = const Value.absent(),
             Value<double> paidAmount = const Value.absent(),
+            Value<double?> totalUsd = const Value.absent(),
+            Value<double?> paidAmountUsd = const Value.absent(),
             Value<double?> exchangeRate = const Value.absent(),
             Value<String> paymentMethod = const Value.absent(),
             Value<String> status = const Value.absent(),
@@ -15601,6 +16053,8 @@ class $$InvoicesTableTableManager extends RootTableManager<
             discountAmount: discountAmount,
             total: total,
             paidAmount: paidAmount,
+            totalUsd: totalUsd,
+            paidAmountUsd: paidAmountUsd,
             exchangeRate: exchangeRate,
             paymentMethod: paymentMethod,
             status: status,
@@ -15624,6 +16078,8 @@ class $$InvoicesTableTableManager extends RootTableManager<
             Value<double> discountAmount = const Value.absent(),
             required double total,
             Value<double> paidAmount = const Value.absent(),
+            Value<double?> totalUsd = const Value.absent(),
+            Value<double?> paidAmountUsd = const Value.absent(),
             Value<double?> exchangeRate = const Value.absent(),
             Value<String> paymentMethod = const Value.absent(),
             Value<String> status = const Value.absent(),
@@ -15647,6 +16103,8 @@ class $$InvoicesTableTableManager extends RootTableManager<
             discountAmount: discountAmount,
             total: total,
             paidAmount: paidAmount,
+            totalUsd: totalUsd,
+            paidAmountUsd: paidAmountUsd,
             exchangeRate: exchangeRate,
             paymentMethod: paymentMethod,
             status: status,
@@ -15765,6 +16223,9 @@ typedef $$InvoiceItemsTableCreateCompanionBuilder = InvoiceItemsCompanion
   Value<double> discountAmount,
   Value<double> taxAmount,
   required double total,
+  Value<double?> unitPriceUsd,
+  Value<double?> totalUsd,
+  Value<double?> exchangeRate,
   Value<String> syncStatus,
   Value<DateTime> createdAt,
   Value<int> rowid,
@@ -15781,6 +16242,9 @@ typedef $$InvoiceItemsTableUpdateCompanionBuilder = InvoiceItemsCompanion
   Value<double> discountAmount,
   Value<double> taxAmount,
   Value<double> total,
+  Value<double?> unitPriceUsd,
+  Value<double?> totalUsd,
+  Value<double?> exchangeRate,
   Value<String> syncStatus,
   Value<DateTime> createdAt,
   Value<int> rowid,
@@ -15852,6 +16316,15 @@ class $$InvoiceItemsTableFilterComposer
 
   ColumnFilters<double> get total => $composableBuilder(
       column: $table.total, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get unitPriceUsd => $composableBuilder(
+      column: $table.unitPriceUsd, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get totalUsd => $composableBuilder(
+      column: $table.totalUsd, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get exchangeRate => $composableBuilder(
+      column: $table.exchangeRate, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get syncStatus => $composableBuilder(
       column: $table.syncStatus, builder: (column) => ColumnFilters(column));
@@ -15935,6 +16408,17 @@ class $$InvoiceItemsTableOrderingComposer
   ColumnOrderings<double> get total => $composableBuilder(
       column: $table.total, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<double> get unitPriceUsd => $composableBuilder(
+      column: $table.unitPriceUsd,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get totalUsd => $composableBuilder(
+      column: $table.totalUsd, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get exchangeRate => $composableBuilder(
+      column: $table.exchangeRate,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get syncStatus => $composableBuilder(
       column: $table.syncStatus, builder: (column) => ColumnOrderings(column));
 
@@ -16014,6 +16498,15 @@ class $$InvoiceItemsTableAnnotationComposer
 
   GeneratedColumn<double> get total =>
       $composableBuilder(column: $table.total, builder: (column) => column);
+
+  GeneratedColumn<double> get unitPriceUsd => $composableBuilder(
+      column: $table.unitPriceUsd, builder: (column) => column);
+
+  GeneratedColumn<double> get totalUsd =>
+      $composableBuilder(column: $table.totalUsd, builder: (column) => column);
+
+  GeneratedColumn<double> get exchangeRate => $composableBuilder(
+      column: $table.exchangeRate, builder: (column) => column);
 
   GeneratedColumn<String> get syncStatus => $composableBuilder(
       column: $table.syncStatus, builder: (column) => column);
@@ -16095,6 +16588,9 @@ class $$InvoiceItemsTableTableManager extends RootTableManager<
             Value<double> discountAmount = const Value.absent(),
             Value<double> taxAmount = const Value.absent(),
             Value<double> total = const Value.absent(),
+            Value<double?> unitPriceUsd = const Value.absent(),
+            Value<double?> totalUsd = const Value.absent(),
+            Value<double?> exchangeRate = const Value.absent(),
             Value<String> syncStatus = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -16110,6 +16606,9 @@ class $$InvoiceItemsTableTableManager extends RootTableManager<
             discountAmount: discountAmount,
             taxAmount: taxAmount,
             total: total,
+            unitPriceUsd: unitPriceUsd,
+            totalUsd: totalUsd,
+            exchangeRate: exchangeRate,
             syncStatus: syncStatus,
             createdAt: createdAt,
             rowid: rowid,
@@ -16125,6 +16624,9 @@ class $$InvoiceItemsTableTableManager extends RootTableManager<
             Value<double> discountAmount = const Value.absent(),
             Value<double> taxAmount = const Value.absent(),
             required double total,
+            Value<double?> unitPriceUsd = const Value.absent(),
+            Value<double?> totalUsd = const Value.absent(),
+            Value<double?> exchangeRate = const Value.absent(),
             Value<String> syncStatus = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -16140,6 +16642,9 @@ class $$InvoiceItemsTableTableManager extends RootTableManager<
             discountAmount: discountAmount,
             taxAmount: taxAmount,
             total: total,
+            unitPriceUsd: unitPriceUsd,
+            totalUsd: totalUsd,
+            exchangeRate: exchangeRate,
             syncStatus: syncStatus,
             createdAt: createdAt,
             rowid: rowid,
@@ -16602,12 +17107,13 @@ typedef $$CashMovementsTableCreateCompanionBuilder = CashMovementsCompanion
   required String shiftId,
   required String type,
   required double amount,
+  Value<double?> amountUsd,
+  Value<double?> exchangeRate,
   required String description,
   Value<String?> category,
   Value<String?> referenceId,
   Value<String?> referenceType,
   Value<String> paymentMethod,
-  Value<double?> exchangeRate,
   Value<String> syncStatus,
   Value<DateTime> createdAt,
   Value<int> rowid,
@@ -16618,12 +17124,13 @@ typedef $$CashMovementsTableUpdateCompanionBuilder = CashMovementsCompanion
   Value<String> shiftId,
   Value<String> type,
   Value<double> amount,
+  Value<double?> amountUsd,
+  Value<double?> exchangeRate,
   Value<String> description,
   Value<String?> category,
   Value<String?> referenceId,
   Value<String?> referenceType,
   Value<String> paymentMethod,
-  Value<double?> exchangeRate,
   Value<String> syncStatus,
   Value<DateTime> createdAt,
   Value<int> rowid,
@@ -16666,6 +17173,12 @@ class $$CashMovementsTableFilterComposer
   ColumnFilters<double> get amount => $composableBuilder(
       column: $table.amount, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<double> get amountUsd => $composableBuilder(
+      column: $table.amountUsd, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get exchangeRate => $composableBuilder(
+      column: $table.exchangeRate, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<String> get description => $composableBuilder(
       column: $table.description, builder: (column) => ColumnFilters(column));
 
@@ -16680,9 +17193,6 @@ class $$CashMovementsTableFilterComposer
 
   ColumnFilters<String> get paymentMethod => $composableBuilder(
       column: $table.paymentMethod, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<double> get exchangeRate => $composableBuilder(
-      column: $table.exchangeRate, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get syncStatus => $composableBuilder(
       column: $table.syncStatus, builder: (column) => ColumnFilters(column));
@@ -16729,6 +17239,13 @@ class $$CashMovementsTableOrderingComposer
   ColumnOrderings<double> get amount => $composableBuilder(
       column: $table.amount, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<double> get amountUsd => $composableBuilder(
+      column: $table.amountUsd, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get exchangeRate => $composableBuilder(
+      column: $table.exchangeRate,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get description => $composableBuilder(
       column: $table.description, builder: (column) => ColumnOrderings(column));
 
@@ -16744,10 +17261,6 @@ class $$CashMovementsTableOrderingComposer
 
   ColumnOrderings<String> get paymentMethod => $composableBuilder(
       column: $table.paymentMethod,
-      builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<double> get exchangeRate => $composableBuilder(
-      column: $table.exchangeRate,
       builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get syncStatus => $composableBuilder(
@@ -16795,6 +17308,12 @@ class $$CashMovementsTableAnnotationComposer
   GeneratedColumn<double> get amount =>
       $composableBuilder(column: $table.amount, builder: (column) => column);
 
+  GeneratedColumn<double> get amountUsd =>
+      $composableBuilder(column: $table.amountUsd, builder: (column) => column);
+
+  GeneratedColumn<double> get exchangeRate => $composableBuilder(
+      column: $table.exchangeRate, builder: (column) => column);
+
   GeneratedColumn<String> get description => $composableBuilder(
       column: $table.description, builder: (column) => column);
 
@@ -16809,9 +17328,6 @@ class $$CashMovementsTableAnnotationComposer
 
   GeneratedColumn<String> get paymentMethod => $composableBuilder(
       column: $table.paymentMethod, builder: (column) => column);
-
-  GeneratedColumn<double> get exchangeRate => $composableBuilder(
-      column: $table.exchangeRate, builder: (column) => column);
 
   GeneratedColumn<String> get syncStatus => $composableBuilder(
       column: $table.syncStatus, builder: (column) => column);
@@ -16867,12 +17383,13 @@ class $$CashMovementsTableTableManager extends RootTableManager<
             Value<String> shiftId = const Value.absent(),
             Value<String> type = const Value.absent(),
             Value<double> amount = const Value.absent(),
+            Value<double?> amountUsd = const Value.absent(),
+            Value<double?> exchangeRate = const Value.absent(),
             Value<String> description = const Value.absent(),
             Value<String?> category = const Value.absent(),
             Value<String?> referenceId = const Value.absent(),
             Value<String?> referenceType = const Value.absent(),
             Value<String> paymentMethod = const Value.absent(),
-            Value<double?> exchangeRate = const Value.absent(),
             Value<String> syncStatus = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -16882,12 +17399,13 @@ class $$CashMovementsTableTableManager extends RootTableManager<
             shiftId: shiftId,
             type: type,
             amount: amount,
+            amountUsd: amountUsd,
+            exchangeRate: exchangeRate,
             description: description,
             category: category,
             referenceId: referenceId,
             referenceType: referenceType,
             paymentMethod: paymentMethod,
-            exchangeRate: exchangeRate,
             syncStatus: syncStatus,
             createdAt: createdAt,
             rowid: rowid,
@@ -16897,12 +17415,13 @@ class $$CashMovementsTableTableManager extends RootTableManager<
             required String shiftId,
             required String type,
             required double amount,
+            Value<double?> amountUsd = const Value.absent(),
+            Value<double?> exchangeRate = const Value.absent(),
             required String description,
             Value<String?> category = const Value.absent(),
             Value<String?> referenceId = const Value.absent(),
             Value<String?> referenceType = const Value.absent(),
             Value<String> paymentMethod = const Value.absent(),
-            Value<double?> exchangeRate = const Value.absent(),
             Value<String> syncStatus = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -16912,12 +17431,13 @@ class $$CashMovementsTableTableManager extends RootTableManager<
             shiftId: shiftId,
             type: type,
             amount: amount,
+            amountUsd: amountUsd,
+            exchangeRate: exchangeRate,
             description: description,
             category: category,
             referenceId: referenceId,
             referenceType: referenceType,
             paymentMethod: paymentMethod,
-            exchangeRate: exchangeRate,
             syncStatus: syncStatus,
             createdAt: createdAt,
             rowid: rowid,
@@ -17391,6 +17911,7 @@ typedef $$VouchersTableCreateCompanionBuilder = VouchersCompanion Function({
   required String type,
   Value<String?> categoryId,
   required double amount,
+  Value<double?> amountUsd,
   Value<double> exchangeRate,
   Value<String?> description,
   Value<String?> customerId,
@@ -17407,6 +17928,7 @@ typedef $$VouchersTableUpdateCompanionBuilder = VouchersCompanion Function({
   Value<String> type,
   Value<String?> categoryId,
   Value<double> amount,
+  Value<double?> amountUsd,
   Value<double> exchangeRate,
   Value<String?> description,
   Value<String?> customerId,
@@ -17499,6 +18021,9 @@ class $$VouchersTableFilterComposer
 
   ColumnFilters<double> get amount => $composableBuilder(
       column: $table.amount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get amountUsd => $composableBuilder(
+      column: $table.amountUsd, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<double> get exchangeRate => $composableBuilder(
       column: $table.exchangeRate, builder: (column) => ColumnFilters(column));
@@ -17618,6 +18143,9 @@ class $$VouchersTableOrderingComposer
   ColumnOrderings<double> get amount => $composableBuilder(
       column: $table.amount, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<double> get amountUsd => $composableBuilder(
+      column: $table.amountUsd, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<double> get exchangeRate => $composableBuilder(
       column: $table.exchangeRate,
       builder: (column) => ColumnOrderings(column));
@@ -17735,6 +18263,9 @@ class $$VouchersTableAnnotationComposer
 
   GeneratedColumn<double> get amount =>
       $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<double> get amountUsd =>
+      $composableBuilder(column: $table.amountUsd, builder: (column) => column);
 
   GeneratedColumn<double> get exchangeRate => $composableBuilder(
       column: $table.exchangeRate, builder: (column) => column);
@@ -17862,6 +18393,7 @@ class $$VouchersTableTableManager extends RootTableManager<
             Value<String> type = const Value.absent(),
             Value<String?> categoryId = const Value.absent(),
             Value<double> amount = const Value.absent(),
+            Value<double?> amountUsd = const Value.absent(),
             Value<double> exchangeRate = const Value.absent(),
             Value<String?> description = const Value.absent(),
             Value<String?> customerId = const Value.absent(),
@@ -17878,6 +18410,7 @@ class $$VouchersTableTableManager extends RootTableManager<
             type: type,
             categoryId: categoryId,
             amount: amount,
+            amountUsd: amountUsd,
             exchangeRate: exchangeRate,
             description: description,
             customerId: customerId,
@@ -17894,6 +18427,7 @@ class $$VouchersTableTableManager extends RootTableManager<
             required String type,
             Value<String?> categoryId = const Value.absent(),
             required double amount,
+            Value<double?> amountUsd = const Value.absent(),
             Value<double> exchangeRate = const Value.absent(),
             Value<String?> description = const Value.absent(),
             Value<String?> customerId = const Value.absent(),
@@ -17910,6 +18444,7 @@ class $$VouchersTableTableManager extends RootTableManager<
             type: type,
             categoryId: categoryId,
             amount: amount,
+            amountUsd: amountUsd,
             exchangeRate: exchangeRate,
             description: description,
             customerId: customerId,

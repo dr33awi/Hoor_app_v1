@@ -9,6 +9,7 @@ import '../services/connectivity_service.dart';
 import '../services/sync_service.dart';
 import '../services/backup_service.dart';
 import '../services/currency_service.dart';
+import '../services/price_locking_service.dart';
 import '../services/printing/print_settings_service.dart';
 import '../services/accounting_service.dart';
 import '../../data/repositories/product_repository.dart';
@@ -103,8 +104,16 @@ Future<void> configureDependencies() async {
   );
 
   // Currency Service
-  getIt.registerSingleton<CurrencyService>(
-    CurrencyService(getIt<SharedPreferences>()),
+  final currencyService = CurrencyService(getIt<SharedPreferences>());
+  CurrencyService.setInstance(
+      currencyService); // Set static instance for quick access
+  getIt.registerSingleton<CurrencyService>(currencyService);
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Price Locking Service - خدمة تثبيت الأسعار
+  // ═══════════════════════════════════════════════════════════════════════════
+  getIt.registerSingleton<PriceLockingService>(
+    PriceLockingService(getIt<CurrencyService>()),
   );
 
   // Voucher Repository (after CurrencyService)

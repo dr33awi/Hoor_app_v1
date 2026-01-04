@@ -1,128 +1,100 @@
-import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// خدمة إدارة العملة وسعر الصرف
+/// ═══════════════════════════════════════════════════════════════════════════
+/// Currency Service - Production Ready
+/// Single Responsibility: Currency conversion & settings ONLY
+/// ═══════════════════════════════════════════════════════════════════════════
 class CurrencyService extends ChangeNotifier {
-  static const String _exchangeRateKey = 'usd_to_syp_rate';
-  static const String _basePriceInUsdKey = 'base_price_in_usd';
+  static const _exchangeRateKey = 'exchange_rate_usd_syp';
+  static const _baseCurrencyUsdKey = 'base_currency_usd';
+
+  static const double defaultExchangeRate = 14500.0;
+
+  /// Instance singleton للوصول السريع من getIt
+  static CurrencyService? _instance;
+
+  /// الوصول السريع لسعر الصرف الحالي من أي مكان
+  static double get currentRate =>
+      _instance?.exchangeRate ?? defaultExchangeRate;
+
+  /// تعيين الـ instance (يُستدعى من injection)
+  static void setInstance(CurrencyService service) {
+    _instance = service;
+  }
 
   final SharedPreferences _prefs;
 
-  // سعر الصرف الافتراضي (الدولار مقابل الليرة السورية)
-  static const double defaultExchangeRate = 14500.0;
-
-  double _exchangeRate = defaultExchangeRate;
-  bool _basePriceInUsd = true; // هل الأسعار الأساسية بالدولار
-
-  // Stream controller للتغييرات في سعر الصرف
-  final _exchangeRateController = StreamController<double>.broadcast();
+  late double _exchangeRate;
+  late bool _isBaseUsd;
 
   CurrencyService(this._prefs) {
-    _loadSettings();
+    _load();
   }
 
-  /// سعر الصرف الحالي
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Getters
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// سعر الصرف الحالي (دولار → ليرة)
   double get exchangeRate => _exchangeRate;
 
-  /// هل الأسعار المدخلة بالدولار
-  bool get basePriceInUsd => _basePriceInUsd;
+  /// هل العملة الأساسية للأسعار هي الدولار؟
+  bool get isBaseUsd => _isBaseUsd;
 
-  /// Stream للاستماع لتغييرات سعر الصرف
-  Stream<double> get exchangeRateStream => _exchangeRateController.stream;
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Load Settings
+  // ═══════════════════════════════════════════════════════════════════════════
 
-  /// رمز العملة الرئيسية (الليرة السورية)
-  static const String currencySymbol = 'ل.س';
-  static const String currencyCode = 'SYP';
-
-  /// رمز عملة الدولار
-  static const String usdSymbol = '\$';
-  static const String usdCode = 'USD';
-
-  void _loadSettings() {
+  void _load() {
     _exchangeRate = _prefs.getDouble(_exchangeRateKey) ?? defaultExchangeRate;
-    _basePriceInUsd = _prefs.getBool(_basePriceInUsdKey) ?? true;
+    _isBaseUsd = _prefs.getBool(_baseCurrencyUsdKey) ?? true;
   }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Settings
+  // ═══════════════════════════════════════════════════════════════════════════
 
   /// تحديث سعر الصرف
-  Future<void> setExchangeRate(double rate) async {
-    if (rate <= 0) return;
-
-    _exchangeRate = rate;
-    await _prefs.setDouble(_exchangeRateKey, rate);
-    _exchangeRateController.add(rate);
+  Future<void> setExchangeRate(double value) async {
+    if (value <= 0) return;
+    _exchangeRate = value;
+    await _prefs.setDouble(_exchangeRateKey, value);
     notifyListeners();
   }
 
-  /// تحديث خيار العملة الأساسية للأسعار
-  Future<void> setBasePriceInUsd(bool value) async {
-    _basePriceInUsd = value;
-    await _prefs.setBool(_basePriceInUsdKey, value);
+  /// تحديث العملة الأساسية
+  Future<void> setBaseCurrencyUsd(bool value) async {
+    _isBaseUsd = value;
+    await _prefs.setBool(_baseCurrencyUsdKey, value);
     notifyListeners();
   }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Core Conversions
+  // ═══════════════════════════════════════════════════════════════════════════
 
   /// تحويل من دولار إلى ليرة سورية
-  double usdToSyp(double usdAmount) {
-    return usdAmount * _exchangeRate;
-  }
+  double usdToSyp(double usd) => usd * _exchangeRate;
 
   /// تحويل من ليرة سورية إلى دولار
-  double sypToUsd(double sypAmount) {
-    return sypAmount / _exchangeRate;
+  double sypToUsd(double syp) => _exchangeRate == 0 ? 0 : syp / _exchangeRate;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Normalization (للاستخدام في POS و Reports)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// يحوّل القيمة إلى ليرة سورية حسب العملة الأساسية
+  /// إذا كانت الأسعار بالدولار → يحوّل للّيرة
+  /// إذا كانت بالليرة → يُرجعها كما هي
+  double normalizeToSyp(double value) {
+    return _isBaseUsd ? usdToSyp(value) : value;
   }
 
-  /// تنسيق السعر بالليرة السورية
-  String formatSyp(double amount, {bool showSymbol = true}) {
-    final formatted = _formatNumber(amount);
-    return showSymbol ? '$formatted $currencySymbol' : formatted;
-  }
-
-  /// تنسيق السعر بالدولار
-  String formatUsd(double amount, {bool showSymbol = true}) {
-    final formatted = amount.toStringAsFixed(2);
-    return showSymbol ? '$usdSymbol$formatted' : formatted;
-  }
-
-  /// تنسيق السعر مع تحويل من الدولار إذا لزم الأمر
-  String formatPrice(double priceInUsd, {bool showSymbol = true}) {
-    final sypAmount = usdToSyp(priceInUsd);
-    return formatSyp(sypAmount, showSymbol: showSymbol);
-  }
-
-  /// تنسيق الرقم بفواصل الآلاف
-  String _formatNumber(double number) {
-    if (number >= 1000000) {
-      return '${(number / 1000000).toStringAsFixed(2)}M';
-    }
-
-    final parts = number.toStringAsFixed(0).split('');
-    final buffer = StringBuffer();
-    int count = 0;
-
-    for (int i = parts.length - 1; i >= 0; i--) {
-      if (count > 0 && count % 3 == 0) {
-        buffer.write(',');
-      }
-      buffer.write(parts[i]);
-      count++;
-    }
-
-    return buffer.toString().split('').reversed.join();
-  }
-
-  /// الحصول على سعر البيع بالليرة السورية
-  double getSalePriceInSyp(double salePriceInUsd) {
-    return usdToSyp(salePriceInUsd);
-  }
-
-  /// الحصول على سعر الشراء بالليرة السورية
-  double getPurchasePriceInSyp(double purchasePriceInUsd) {
-    return usdToSyp(purchasePriceInUsd);
-  }
-
-  @override
-  void dispose() {
-    _exchangeRateController.close();
-    super.dispose();
+  /// يحوّل القيمة إلى دولار حسب العملة الأساسية
+  /// إذا كانت الأسعار بالدولار → يُرجعها كما هي
+  /// إذا كانت بالليرة → يحوّلها للدولار
+  double normalizeToUsd(double value) {
+    return _isBaseUsd ? value : sypToUsd(value);
   }
 }

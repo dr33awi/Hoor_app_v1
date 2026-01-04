@@ -1,4 +1,4 @@
-// ═══════════════════════════════════════════════════════════════════════════
+﻿// ═══════════════════════════════════════════════════════════════════════════
 // Pro Stats Card - Enterprise Statistics Widgets
 // Professional metrics display for accounting interfaces
 // Hoor Enterprise Design System 2026
@@ -163,7 +163,7 @@ class ProStatCard extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  '${NumberFormat('#,###').format(amount)}${suffix ?? ' ر.س'}',
+                  '${NumberFormat('#,###').format(amount)}${suffix ?? ' ل.س'}',
                   style: AppTypography.titleSmall.copyWith(
                     color: color,
                     fontWeight: FontWeight.w600,
@@ -283,7 +283,7 @@ class ProStatCard extends StatelessWidget {
             ),
           ),
           Text(
-            '${NumberFormat('#,###.00').format(amount.abs())}${suffix ?? ' ر.س'}',
+            '${NumberFormat('#,###.00').format(amount.abs())}${suffix ?? ' ل.س'}',
             style: AppTypography.titleSmall.copyWith(
               color: displayColor,
               fontWeight: FontWeight.w600,

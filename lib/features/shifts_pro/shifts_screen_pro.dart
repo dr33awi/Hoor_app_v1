@@ -1,4 +1,4 @@
-// ═══════════════════════════════════════════════════════════════════════════
+﻿// ═══════════════════════════════════════════════════════════════════════════
 // Shifts Screen Pro - Enterprise Design System
 // Shift Management Interface
 // Hoor Enterprise Design System 2026
@@ -32,6 +32,7 @@ class ShiftsScreenPro extends ConsumerStatefulWidget {
 class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
   DateTimeRange? _dateRange;
   bool _isExporting = false;
+  // ignore: unused_field - Reserved for print state
   bool _isPrinting = false;
 
   List<Shift> _filterShifts(List<Shift> shifts) {
@@ -185,7 +186,7 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
                       ),
                     ),
                     Text(
-                      '${(shift.openingBalance + shift.totalSales - shift.totalExpenses).toStringAsFixed(0)} ر.س',
+                      '${(shift.openingBalance + shift.totalSales - shift.totalExpenses).toStringAsFixed(0)} ل.س',
                       style: AppTypography.labelMedium.copyWith(
                         color: AppColors.success,
                         fontWeight: FontWeight.w600,
@@ -321,22 +322,6 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
     }
   }
 
-  Future<void> _printZReport(Shift shift) async {
-    setState(() => _isPrinting = true);
-    try {
-      final pdfBytes = await PdfExportService.generateZReport(shift: shift);
-      await PdfExportService.sharePdfBytes(
-        pdfBytes,
-        fileName: 'تقرير_Z_وردية_${shift.shiftNumber}',
-        subject: 'تقرير Z - وردية #${shift.shiftNumber}',
-      );
-    } catch (e) {
-      if (mounted) ProSnackbar.error(context, 'حدث خطأ: $e');
-    } finally {
-      if (mounted) setState(() => _isPrinting = false);
-    }
-  }
-
   Widget _buildStatsSummary(List<Shift> shifts) {
     final totalSales = shifts.fold<double>(0.0, (sum, s) => sum + s.totalSales);
     final totalExpenses =
@@ -434,9 +419,9 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
     final confirm = await showProConfirmDialog(
       context: context,
       title: 'إغلاق الوردية',
-      message: 'رصيد الافتتاح: ${shift.openingBalance.toStringAsFixed(0)} ر.س\n'
-          'المبيعات: ${shift.totalSales.toStringAsFixed(0)} ر.س\n'
-          'المصاريف: ${shift.totalExpenses.toStringAsFixed(0)} ر.س\n\n'
+      message: 'رصيد الافتتاح: ${shift.openingBalance.toStringAsFixed(0)} ل.س\n'
+          'المبيعات: ${shift.totalSales.toStringAsFixed(0)} ل.س\n'
+          'المصاريف: ${shift.totalExpenses.toStringAsFixed(0)} ل.س\n\n'
           'هل تريد إغلاق الوردية؟',
       icon: Icons.stop_rounded,
       isDanger: true,
@@ -535,20 +520,20 @@ class _ShiftCard extends StatelessWidget {
               Expanded(
                 child: _InfoItem(
                   label: 'الافتتاح',
-                  value: '${shift.openingBalance.toStringAsFixed(0)} ر.س',
+                  value: '${shift.openingBalance.toStringAsFixed(0)} ل.س',
                 ),
               ),
               Expanded(
                 child: _InfoItem(
                   label: 'المبيعات',
-                  value: '${shift.totalSales.toStringAsFixed(0)} ر.س',
+                  value: '${shift.totalSales.toStringAsFixed(0)} ل.س',
                   color: AppColors.success,
                 ),
               ),
               Expanded(
                 child: _InfoItem(
                   label: 'المصاريف',
-                  value: '${shift.totalExpenses.toStringAsFixed(0)} ر.س',
+                  value: '${shift.totalExpenses.toStringAsFixed(0)} ل.س',
                   color: AppColors.error,
                 ),
               ),
@@ -556,7 +541,7 @@ class _ShiftCard extends StatelessWidget {
                 Expanded(
                   child: _InfoItem(
                     label: 'الإغلاق',
-                    value: '${shift.closingBalance!.toStringAsFixed(0)} ر.س',
+                    value: '${shift.closingBalance!.toStringAsFixed(0)} ل.س',
                   ),
                 ),
             ],

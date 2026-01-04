@@ -13,6 +13,8 @@ import 'package:intl/intl.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/widgets/widgets.dart';
+import '../../core/widgets/dual_price_display.dart';
+import '../../core/services/currency_service.dart';
 import '../../core/services/printing/voucher_pdf_generator.dart';
 import '../../core/services/printing/invoice_pdf_generator.dart';
 import '../../core/services/printing/print_settings_service.dart';
@@ -36,7 +38,6 @@ class VoucherDetailsScreenPro extends ConsumerStatefulWidget {
 class _VoucherDetailsScreenProState
     extends ConsumerState<VoucherDetailsScreenPro> {
   bool _isLoading = true;
-  bool _isDeleting = false;
   Voucher? _voucher;
   Customer? _customer;
   Supplier? _supplier;
@@ -255,12 +256,25 @@ class _VoucherDetailsScreenProState
             ),
           ),
           SizedBox(height: AppSpacing.lg),
-          Text(
-            '${_voucher!.amount.toStringAsFixed(0)} ل.س',
-            style: AppTypography.displayLarge.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
+          Builder(
+            builder: (context) {
+              final exchangeRate =
+                  _voucher!.exchangeRate ?? CurrencyService.currentRate;
+              final amountUsd = _voucher!.amountUsd ??
+                  (exchangeRate > 0 ? _voucher!.amount / exchangeRate : null);
+              return DualPriceDisplay(
+                amountSyp: _voucher!.amount,
+                amountUsd: amountUsd,
+                exchangeRate: exchangeRate,
+                sypStyle: AppTypography.displayLarge.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+                usdStyle: AppTypography.titleMedium.copyWith(
+                  color: Colors.white.withValues(alpha: 0.8),
+                ),
+              );
+            },
           ),
           SizedBox(height: AppSpacing.sm),
           Container(
@@ -411,12 +425,26 @@ class _VoucherDetailsScreenProState
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    '${balance.abs().toStringAsFixed(0)} ل.س',
-                    style: AppTypography.titleSmall.copyWith(
-                      color: balance > 0 ? AppColors.error : AppColors.success,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Builder(
+                    builder: (context) {
+                      final exchangeRate =
+                          _voucher?.exchangeRate ?? CurrencyService.currentRate;
+                      final balanceUsd = exchangeRate > 0
+                          ? balance.abs() / exchangeRate
+                          : null;
+                      return CompactDualPrice(
+                        amountSyp: balance.abs(),
+                        amountUsd: balanceUsd,
+                        sypStyle: AppTypography.titleSmall.copyWith(
+                          color:
+                              balance > 0 ? AppColors.error : AppColors.success,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        usdStyle: AppTypography.labelSmall.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      );
+                    },
                   ),
                   Text(
                     balance > 0 ? 'عليه' : 'له',
@@ -567,8 +595,7 @@ class _VoucherDetailsScreenProState
           await VoucherPdfGenerator.shareVoucher(voucherData, options: options);
           break;
         case PrintType.save:
-          final path = await VoucherPdfGenerator.saveVoucher(voucherData,
-              options: options);
+          await VoucherPdfGenerator.saveVoucher(voucherData, options: options);
           if (mounted) ProSnackbar.success(context, 'تم حفظ الملف بنجاح');
           break;
         case PrintType.preview:
@@ -583,60 +610,6 @@ class _VoucherDetailsScreenProState
     }
   }
 
-  Future<void> _printVoucher() async {
-    try {
-      final printSettingsService = getIt<PrintSettingsService>();
-      final options = await printSettingsService.getVoucherPrintOptions();
-
-      final voucherData = VoucherPrintData(
-        voucherNumber: _voucher!.voucherNumber,
-        type: _voucher!.type,
-        date: _voucher!.voucherDate,
-        amount: _voucher!.amount,
-        exchangeRate: _voucher!.exchangeRate,
-        customerName: _customer?.name,
-        supplierName: _supplier?.name,
-        description: _voucher!.description,
-      );
-
-      await VoucherPdfGenerator.printVoucher(
-        voucherData,
-        options: options,
-      );
-    } catch (e) {
-      if (mounted) {
-        ProSnackbar.error(context, 'حدث خطأ في الطباعة: $e');
-      }
-    }
-  }
-
-  Future<void> _shareVoucher() async {
-    try {
-      final printSettingsService = getIt<PrintSettingsService>();
-      final options = await printSettingsService.getVoucherPrintOptions();
-
-      final voucherData = VoucherPrintData(
-        voucherNumber: _voucher!.voucherNumber,
-        type: _voucher!.type,
-        date: _voucher!.voucherDate,
-        amount: _voucher!.amount,
-        exchangeRate: _voucher!.exchangeRate,
-        customerName: _customer?.name,
-        supplierName: _supplier?.name,
-        description: _voucher!.description,
-      );
-
-      await VoucherPdfGenerator.shareVoucher(
-        voucherData,
-        options: options,
-      );
-    } catch (e) {
-      if (mounted) {
-        ProSnackbar.error(context, 'حدث خطأ في المشاركة: $e');
-      }
-    }
-  }
-
   Future<void> _deleteVoucher() async {
     final confirm = await showProDeleteDialog(
       context: context,
@@ -645,8 +618,6 @@ class _VoucherDetailsScreenProState
     );
 
     if (confirm != true || !mounted) return;
-
-    setState(() => _isDeleting = true);
 
     try {
       final voucherRepo = ref.read(voucherRepositoryProvider);
@@ -660,8 +631,6 @@ class _VoucherDetailsScreenProState
       if (mounted) {
         ProSnackbar.error(context, 'حدث خطأ في الحذف: $e');
       }
-    } finally {
-      if (mounted) setState(() => _isDeleting = false);
     }
   }
 }

@@ -751,13 +751,11 @@ class ReportsExportService {
     _writeExcelHeaders(sheet, headers, headerStyle);
 
     double totalValue = 0;
-    int totalSold = 0;
     for (var i = 0; i < products.length; i++) {
       final product = products[i];
       final stockValue = product.quantity * product.purchasePrice;
       totalValue += stockValue;
       final sold = soldQuantities?[product.id] ?? 0;
-      totalSold += sold;
 
       final row = i + 1;
 
@@ -871,20 +869,6 @@ class ReportsExportService {
   // ══════════════════════════════════════════════════════════════════════════
   // Helper Methods - دوال مساعدة
   // ══════════════════════════════════════════════════════════════════════════
-
-  /// الحصول على نص حالة الفاتورة
-  static String _getStatusText(String status) {
-    switch (status) {
-      case 'completed':
-        return 'مكتملة';
-      case 'pending':
-        return 'معلقة';
-      case 'cancelled':
-        return 'ملغية';
-      default:
-        return status;
-    }
-  }
 
   /// الحصول على نص حالة الدفع (بناءً على المبالغ)
   static String _getPaymentStatusText(double total, double paidAmount) {

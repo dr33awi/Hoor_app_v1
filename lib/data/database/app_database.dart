@@ -34,7 +34,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration {
@@ -97,6 +97,47 @@ class AppDatabase extends _$AppDatabase {
           // إضافة عمود warehouseId للفواتير
           await customStatement(
             "ALTER TABLE invoices ADD COLUMN warehouse_id TEXT",
+          );
+        }
+        // ═══════════════════════════════════════════════════════════════════════
+        // Version 10: سياسة تثبيت السعر (Price Locking Policy)
+        // ═══════════════════════════════════════════════════════════════════════
+        if (from < 10) {
+          // Products - إضافة أعمدة سعر البيع بالدولار وسعر الصرف وقت الإنشاء
+          await customStatement(
+            "ALTER TABLE products ADD COLUMN sale_price_usd REAL",
+          );
+          await customStatement(
+            "ALTER TABLE products ADD COLUMN exchange_rate_at_creation REAL",
+          );
+
+          // Invoices - إضافة أعمدة الإجمالي بالدولار
+          await customStatement(
+            "ALTER TABLE invoices ADD COLUMN total_usd REAL",
+          );
+          await customStatement(
+            "ALTER TABLE invoices ADD COLUMN paid_amount_usd REAL",
+          );
+
+          // InvoiceItems - إضافة أعمدة الأسعار بالدولار
+          await customStatement(
+            "ALTER TABLE invoice_items ADD COLUMN unit_price_usd REAL",
+          );
+          await customStatement(
+            "ALTER TABLE invoice_items ADD COLUMN total_usd REAL",
+          );
+          await customStatement(
+            "ALTER TABLE invoice_items ADD COLUMN exchange_rate REAL",
+          );
+
+          // Vouchers - إضافة عمود المبلغ بالدولار
+          await customStatement(
+            "ALTER TABLE vouchers ADD COLUMN amount_usd REAL",
+          );
+
+          // CashMovements - إضافة عمود المبلغ بالدولار
+          await customStatement(
+            "ALTER TABLE cash_movements ADD COLUMN amount_usd REAL",
           );
         }
       },

@@ -1,4 +1,4 @@
-// ═══════════════════════════════════════════════════════════════════════════
+﻿// ═══════════════════════════════════════════════════════════════════════════
 // Cash Screen Pro - Enterprise Design System
 // Cash Drawer Management Interface
 // Hoor Enterprise Design System 2026
@@ -480,7 +480,7 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
         ),
         SizedBox(height: AppSpacing.xxs),
         Text(
-          '${value.toStringAsFixed(0)} ر.س',
+          '${value.toStringAsFixed(0)} ل.س',
           style: AppTypography.titleSmall.copyWith(
             color: color,
             fontWeight: FontWeight.bold,
@@ -688,7 +688,7 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
           ),
           SizedBox(height: AppSpacing.md),
           Text(
-            '${currentBalance.toStringAsFixed(2)} ر.س',
+            '${currentBalance.toStringAsFixed(2)} ل.س',
             style: AppTypography.displaySmall
                 .copyWith(
                   color: Colors.white,
@@ -858,7 +858,7 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
                 keyboardType: TextInputType.number,
                 decoration: InputDecoration(
                   labelText: 'المبلغ',
-                  suffixText: 'ر.س',
+                  suffixText: 'ل.س',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(AppRadius.md),
                   ),

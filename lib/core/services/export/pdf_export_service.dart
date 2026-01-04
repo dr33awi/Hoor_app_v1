@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
@@ -831,7 +831,7 @@ class PdfExportService {
                           ),
                           pw.SizedBox(height: 4),
                           pw.Text(
-                            'الصافي: ${(totalIncome - totalExpense).toStringAsFixed(2)} ر.س',
+                            'الصافي: ${(totalIncome - totalExpense).toStringAsFixed(2)} ل.س',
                             style: pw.TextStyle(
                               fontWeight: pw.FontWeight.bold,
                               fontSize: 11,
@@ -1152,12 +1152,12 @@ class PdfExportService {
                       _buildZReportRow(
                           'عدد فواتير البيع', '$salesCount فاتورة'),
                       _buildZReportRow('مبيعات نقدية',
-                          '${cashSales.toStringAsFixed(2)} ر.س'),
+                          '${cashSales.toStringAsFixed(2)} ل.س'),
                       _buildZReportRow('مبيعات آجلة',
-                          '${creditSales.toStringAsFixed(2)} ر.س'),
+                          '${creditSales.toStringAsFixed(2)} ل.س'),
                       pw.Divider(color: PdfColors.green200),
                       _buildZReportRow('إجمالي المبيعات',
-                          '${shift.totalSales.toStringAsFixed(2)} ر.س',
+                          '${shift.totalSales.toStringAsFixed(2)} ل.س',
                           isBold: true),
                     ],
                   ),
@@ -1189,7 +1189,7 @@ class PdfExportService {
                       _buildZReportRow('عدد المرتجعات', '$returnsCount فاتورة'),
                       pw.Divider(color: PdfColors.red200),
                       _buildZReportRow('إجمالي المصروفات',
-                          '${shift.totalExpenses.toStringAsFixed(2)} ر.س',
+                          '${shift.totalExpenses.toStringAsFixed(2)} ل.س',
                           isBold: true),
                     ],
                   ),
@@ -1217,16 +1217,16 @@ class PdfExportService {
                       ),
                       pw.SizedBox(height: 12),
                       _buildZReportRow('الرصيد الافتتاحي',
-                          '${shift.openingBalance.toStringAsFixed(2)} ر.س'),
+                          '${shift.openingBalance.toStringAsFixed(2)} ل.س'),
                       _buildZReportRow('+ المبيعات النقدية',
-                          '${shift.totalSales.toStringAsFixed(2)} ر.س',
+                          '${shift.totalSales.toStringAsFixed(2)} ل.س',
                           color: PdfColors.green),
                       _buildZReportRow('- المصروفات',
-                          '${shift.totalExpenses.toStringAsFixed(2)} ر.س',
+                          '${shift.totalExpenses.toStringAsFixed(2)} ل.س',
                           color: PdfColors.red),
                       pw.Divider(color: PdfColors.blue200, thickness: 2),
                       _buildZReportRow('= صافي النقدية المتوقع',
-                          '${netCash.toStringAsFixed(2)} ر.س',
+                          '${netCash.toStringAsFixed(2)} ل.س',
                           isBold: true, fontSize: 14),
                     ],
                   ),

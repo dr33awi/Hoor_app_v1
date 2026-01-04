@@ -17,6 +17,8 @@ import 'package:pdf/widgets.dart' as pw;
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/widgets/widgets.dart';
+import '../../core/widgets/dual_price_display.dart';
+import '../../core/services/currency_service.dart';
 import '../../data/database/app_database.dart';
 
 class ProductDetailsScreenPro extends ConsumerWidget {
@@ -601,42 +603,99 @@ class _ProductDetailsView extends StatelessWidget {
   }
 
   Widget _buildPriceSection() {
+    // حساب قيم الدولار من البيانات المخزنة أو من سعر الصرف الحالي
+    final exchangeRate =
+        product.exchangeRateAtCreation ?? CurrencyService.currentRate;
+    final salePriceUsd = product.salePriceUsd ??
+        (exchangeRate > 0 ? product.salePrice / exchangeRate : null);
+    final purchasePriceUsd = product.purchasePriceUsd ??
+        (exchangeRate > 0 ? product.purchasePrice / exchangeRate : null);
+    final profitUsd = (salePriceUsd != null && purchasePriceUsd != null)
+        ? salePriceUsd - purchasePriceUsd
+        : null;
+
     return _buildCard(
       title: 'التسعير',
       icon: Icons.attach_money_rounded,
       child: Column(
         children: [
-          _buildInfoRow(
+          _buildInfoRowWithDualPrice(
             'سعر البيع',
-            '${product.salePrice.toStringAsFixed(0)} ل.س',
-            valueStyle: AppTypography.titleMedium
-                .copyWith(
-                  color: AppColors.secondary,
-                )
-                .monoBold,
+            product.salePrice,
+            salePriceUsd,
+            exchangeRate,
+            valueColor: AppColors.secondary,
+            isBold: true,
           ),
           Divider(height: AppSpacing.md, color: AppColors.border),
-          _buildInfoRow(
+          _buildInfoRowWithDualPrice(
             'سعر التكلفة',
-            '${product.purchasePrice.toStringAsFixed(0)} ل.س',
-            valueStyle: AppTypography.bodyMedium
-                .copyWith(
-                  color: AppColors.textSecondary,
-                )
-                .mono,
+            product.purchasePrice,
+            purchasePriceUsd,
+            exchangeRate,
+            valueColor: AppColors.textSecondary,
           ),
           SizedBox(height: AppSpacing.xs),
-          _buildInfoRow(
+          _buildInfoRowWithDualPrice(
             'الربح لكل وحدة',
-            '${profit.toStringAsFixed(0)} ل.س (${margin.toStringAsFixed(1)}%)',
-            valueStyle: AppTypography.bodyMedium
-                .copyWith(
-                  color: AppColors.success,
-                )
-                .monoSemibold,
+            profit,
+            profitUsd,
+            exchangeRate,
+            valueColor: AppColors.success,
+            suffix: ' (${margin.toStringAsFixed(1)}%)',
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildInfoRowWithDualPrice(
+    String label,
+    double amountSyp,
+    double? amountUsd,
+    double? exchangeRate, {
+    Color? valueColor,
+    bool isBold = false,
+    String? suffix,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: AppTypography.bodyMedium.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            DualPriceDisplay(
+              amountSyp: amountSyp,
+              amountUsd: amountUsd,
+              exchangeRate: exchangeRate,
+              type: DualPriceDisplayType.horizontal,
+              sypStyle: isBold
+                  ? AppTypography.titleMedium
+                      .copyWith(color: valueColor ?? AppColors.textPrimary)
+                      .monoBold
+                  : AppTypography.bodyMedium
+                      .copyWith(color: valueColor ?? AppColors.textPrimary)
+                      .mono,
+              usdStyle: AppTypography.bodySmall
+                  .copyWith(color: AppColors.textSecondary)
+                  .mono,
+            ),
+            if (suffix != null)
+              Text(
+                suffix,
+                style: AppTypography.bodyMedium
+                    .copyWith(color: valueColor ?? AppColors.textPrimary)
+                    .mono,
+              ),
+          ],
+        ),
+      ],
     );
   }
 

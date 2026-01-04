@@ -36,6 +36,7 @@ class _SupplierDetailsScreenProState
   late TabController _tabController;
   bool _isLoading = true;
   bool _isExporting = false;
+  // ignore: unused_field - Reserved for delete state
   bool _isDeleting = false;
   Supplier? _supplier;
   List<Invoice> _invoices = [];
@@ -777,7 +778,7 @@ class _AccountEntry {
   final double credit;
   final String type;
   final String id;
-  double balance;
+  double balance = 0;
 
   _AccountEntry({
     required this.date,
@@ -786,7 +787,6 @@ class _AccountEntry {
     required this.credit,
     required this.type,
     required this.id,
-    this.balance = 0,
   });
 }
 

@@ -1,4 +1,4 @@
-// ═══════════════════════════════════════════════════════════════════════════
+﻿// ═══════════════════════════════════════════════════════════════════════════
 // Customer Form Screen Pro - Enterprise Accounting Design
 // Add/Edit Customer Form with Professional Touch
 // ═══════════════════════════════════════════════════════════════════════════
@@ -204,7 +204,7 @@ class _CustomerFormScreenProState extends ConsumerState<CustomerFormScreenPro> {
                 hint: '0.00',
                 prefixIcon: Icons.credit_card_outlined,
                 keyboardType: TextInputType.number,
-                suffixText: 'ر.س',
+                suffixText: 'ل.س',
               ),
 
               SizedBox(height: AppSpacing.lg),

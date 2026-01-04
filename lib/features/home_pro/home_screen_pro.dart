@@ -1,4 +1,4 @@
-// ═══════════════════════════════════════════════════════════════════════════
+﻿// ═══════════════════════════════════════════════════════════════════════════
 // Hoor Manager Pro - Home Screen
 // Enterprise accounting dashboard with professional design
 // Hoor Enterprise Design System 2026
@@ -306,7 +306,7 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
                 ),
                 SizedBox(height: 2.h),
                 Text(
-                  '${shift.totalSales.toStringAsFixed(2)} ر.س',
+                  '${shift.totalSales.toStringAsFixed(2)} ل.س',
                   style: AppTypography.displaySmall.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,

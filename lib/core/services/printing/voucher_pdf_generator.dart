@@ -9,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../di/injection.dart';
 import 'pdf_theme.dart';
 import '../currency_service.dart';
+import '../currency_formatter.dart';
 import '../export/export_templates.dart';
 import 'print_settings_service.dart';
 
@@ -495,7 +496,7 @@ class VoucherPdfGenerator {
                           color: voucherType.color),
                     ),
                     pw.Text(
-                      '${ExportFormatters.formatPrice(data.amount, showCurrency: false)} ${CurrencyService.currencySymbol}',
+                      '${ExportFormatters.formatPrice(data.amount, showCurrency: false)} ${CurrencyFormatter.sypSymbol}',
                       style: pw.TextStyle(
                           font: PdfFonts.bold,
                           fontSize: 18,
@@ -519,7 +520,7 @@ class VoucherPdfGenerator {
                             color: PdfColors.grey700),
                       ),
                       pw.Text(
-                        '${ExportFormatters.formatPrice(data.exchangeRate, showCurrency: false)} ${CurrencyService.currencySymbol}/\$',
+                        '${ExportFormatters.formatPrice(data.exchangeRate, showCurrency: false)} ${CurrencyFormatter.sypSymbol}/\$',
                         style: pw.TextStyle(
                             font: PdfFonts.regular,
                             fontSize: 10,
@@ -848,7 +849,7 @@ class VoucherPdfGenerator {
           ),
           child: pw.Center(
             child: pw.Text(
-              '${_formatNumber(data.amount)} ${CurrencyService.currencySymbol}',
+              '${_formatNumber(data.amount)} ${CurrencyFormatter.sypSymbol}',
               style: pw.TextStyle(font: PdfFonts.bold, fontSize: titleSize),
             ),
           ),
@@ -865,7 +866,7 @@ class VoucherPdfGenerator {
                     font: PdfFonts.regular, fontSize: fontSize - 1),
               ),
               pw.Text(
-                '${data.exchangeRate.toStringAsFixed(0)} ${CurrencyService.currencySymbol}/\$',
+                '${data.exchangeRate.toStringAsFixed(0)} ${CurrencyFormatter.sypSymbol}/\$',
                 style: pw.TextStyle(
                     font: PdfFonts.regular, fontSize: fontSize - 1),
               ),

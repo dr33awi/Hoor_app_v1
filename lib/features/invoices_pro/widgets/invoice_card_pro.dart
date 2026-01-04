@@ -1,4 +1,4 @@
-// ═══════════════════════════════════════════════════════════════════════════
+﻿// ═══════════════════════════════════════════════════════════════════════════
 // Invoice Card Pro Widget - Enterprise Accounting Design
 // Clean, minimal invoice list card with status and payment info
 // ═══════════════════════════════════════════════════════════════════════════
@@ -161,7 +161,7 @@ class InvoiceCardPro extends StatelessWidget {
                                   size: 12.sp, color: AppColors.income),
                               SizedBox(width: 4.w),
                               Text(
-                                'مدفوع ${paid.toStringAsFixed(0)} ر.س',
+                                'مدفوع ${paid.toStringAsFixed(0)} ل.س',
                                 style: AppTypography.labelSmall.copyWith(
                                   color: AppColors.income,
                                   fontWeight: FontWeight.w500,
@@ -175,7 +175,7 @@ class InvoiceCardPro extends StatelessWidget {
                                   size: 12.sp, color: AppColors.warning),
                               SizedBox(width: 4.w),
                               Text(
-                                'متبقي ${remaining.toStringAsFixed(0)} ر.س',
+                                'متبقي ${remaining.toStringAsFixed(0)} ل.س',
                                 style: AppTypography.labelSmall.copyWith(
                                   color: AppColors.warning,
                                   fontWeight: FontWeight.w500,
@@ -244,7 +244,7 @@ class InvoiceCardPro extends StatelessWidget {
                       borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
                     child: Text(
-                      '${total.toStringAsFixed(0)} ر.س',
+                      '${total.toStringAsFixed(0)} ل.س',
                       style: AppTypography.titleSmall.copyWith(
                         color: isSales ? AppColors.income : AppColors.purchases,
                         fontWeight: FontWeight.w700,

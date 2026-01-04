@@ -31,46 +31,6 @@ class _CategoriesScreenProState extends ConsumerState<CategoriesScreenPro> {
   bool _isExporting = false;
   bool _isReorderMode = false;
 
-  // أيقونات التصنيفات المتاحة
-  static const List<IconData> _availableIcons = [
-    Icons.category_rounded,
-    Icons.shopping_bag_rounded,
-    Icons.fastfood_rounded,
-    Icons.local_drink_rounded,
-    Icons.local_cafe_rounded,
-    Icons.restaurant_rounded,
-    Icons.icecream_rounded,
-    Icons.cake_rounded,
-    Icons.spa_rounded,
-    Icons.cleaning_services_rounded,
-    Icons.home_rounded,
-    Icons.devices_rounded,
-    Icons.phone_android_rounded,
-    Icons.computer_rounded,
-    Icons.watch_rounded,
-    Icons.checkroom_rounded,
-    Icons.sports_soccer_rounded,
-    Icons.child_care_rounded,
-    Icons.pets_rounded,
-    Icons.local_florist_rounded,
-  ];
-
-  // ألوان التصنيفات المتاحة
-  static const List<Color> _availableColors = [
-    Color(0xFF2196F3), // Blue
-    Color(0xFF4CAF50), // Green
-    Color(0xFFF44336), // Red
-    Color(0xFFFF9800), // Orange
-    Color(0xFF9C27B0), // Purple
-    Color(0xFF00BCD4), // Cyan
-    Color(0xFFE91E63), // Pink
-    Color(0xFF795548), // Brown
-    Color(0xFF607D8B), // Blue Grey
-    Color(0xFF3F51B5), // Indigo
-    Color(0xFF009688), // Teal
-    Color(0xFFFFEB3B), // Yellow
-  ];
-
   @override
   void initState() {
     super.initState();

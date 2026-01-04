@@ -755,7 +755,7 @@ class _AccountEntry {
   final double credit;
   final String type;
   final String id;
-  double balance;
+  double balance = 0;
 
   _AccountEntry({
     required this.date,
@@ -764,7 +764,6 @@ class _AccountEntry {
     required this.credit,
     required this.type,
     required this.id,
-    this.balance = 0,
   });
 }
 

@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 
 import '../database/app_database.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/services/currency_service.dart';
+import '../../core/di/injection.dart';
 import 'base_repository.dart';
 
 class ProductRepository extends BaseRepository<Product, ProductsCompanion> {
@@ -44,6 +46,7 @@ class ProductRepository extends BaseRepository<Product, ProductsCompanion> {
     required double purchasePrice,
     double? purchasePriceUsd,
     required double salePrice,
+    double? salePriceUsd,
     int quantity = 0,
     int minQuantity = 5,
     double? taxRate,
@@ -53,6 +56,18 @@ class ProductRepository extends BaseRepository<Product, ProductsCompanion> {
     final id = generateId();
     final now = DateTime.now();
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // تثبيت السعر: حفظ الأسعار بالدولار وسعر الصرف وقت الإنشاء
+    // ═══════════════════════════════════════════════════════════════════════════
+    final currencyService = getIt<CurrencyService>();
+    final exchangeRate = currencyService.exchangeRate;
+
+    // حساب الأسعار بالدولار إذا لم تُحدد
+    final actualPurchasePriceUsd = purchasePriceUsd ??
+        (exchangeRate > 0 ? purchasePrice / exchangeRate : 0.0);
+    final actualSalePriceUsd =
+        salePriceUsd ?? (exchangeRate > 0 ? salePrice / exchangeRate : 0.0);
+
     await database.insertProduct(ProductsCompanion(
       id: Value(id),
       name: Value(name),
@@ -60,8 +75,10 @@ class ProductRepository extends BaseRepository<Product, ProductsCompanion> {
       barcode: Value(barcode),
       categoryId: Value(categoryId),
       purchasePrice: Value(purchasePrice),
-      purchasePriceUsd: Value(purchasePriceUsd),
+      purchasePriceUsd: Value(actualPurchasePriceUsd),
       salePrice: Value(salePrice),
+      salePriceUsd: Value(actualSalePriceUsd), // سعر البيع بالدولار
+      exchangeRateAtCreation: Value(exchangeRate), // سعر الصرف وقت الإنشاء
       quantity: Value(quantity),
       minQuantity: Value(minQuantity),
       taxRate: Value(taxRate),
@@ -85,6 +102,7 @@ class ProductRepository extends BaseRepository<Product, ProductsCompanion> {
     double? purchasePrice,
     double? purchasePriceUsd,
     double? salePrice,
+    double? salePriceUsd,
     int? quantity,
     int? minQuantity,
     double? taxRate,
@@ -97,6 +115,23 @@ class ProductRepository extends BaseRepository<Product, ProductsCompanion> {
       return;
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // تثبيت السعر: تحديث الأسعار بالدولار وسعر الصرف عند التعديل
+    // ═══════════════════════════════════════════════════════════════════════════
+    final currencyService = getIt<CurrencyService>();
+    final exchangeRate = currencyService.exchangeRate;
+
+    // حساب الأسعار بالدولار إذا تم تغيير السعر بالليرة
+    double? actualPurchasePriceUsd = purchasePriceUsd;
+    if (purchasePrice != null && purchasePriceUsd == null && exchangeRate > 0) {
+      actualPurchasePriceUsd = purchasePrice / exchangeRate;
+    }
+
+    double? actualSalePriceUsd = salePriceUsd;
+    if (salePrice != null && salePriceUsd == null && exchangeRate > 0) {
+      actualSalePriceUsd = salePrice / exchangeRate;
+    }
+
     final updatedProduct = ProductsCompanion(
       id: Value(id),
       name: Value(name ?? existing.name),
@@ -104,8 +139,13 @@ class ProductRepository extends BaseRepository<Product, ProductsCompanion> {
       barcode: Value(barcode ?? existing.barcode),
       categoryId: Value(categoryId ?? existing.categoryId),
       purchasePrice: Value(purchasePrice ?? existing.purchasePrice),
-      purchasePriceUsd: Value(purchasePriceUsd ?? existing.purchasePriceUsd),
+      purchasePriceUsd:
+          Value(actualPurchasePriceUsd ?? existing.purchasePriceUsd),
       salePrice: Value(salePrice ?? existing.salePrice),
+      salePriceUsd: Value(actualSalePriceUsd ?? existing.salePriceUsd),
+      exchangeRateAtCreation: Value((purchasePrice != null || salePrice != null)
+          ? exchangeRate
+          : existing.exchangeRateAtCreation),
       quantity: Value(quantity ?? existing.quantity),
       minQuantity: Value(minQuantity ?? existing.minQuantity),
       taxRate: Value(taxRate ?? existing.taxRate),

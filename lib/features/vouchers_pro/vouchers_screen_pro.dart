@@ -1,4 +1,4 @@
-// ═══════════════════════════════════════════════════════════════════════════
+﻿// ═══════════════════════════════════════════════════════════════════════════
 // Vouchers Screen Pro - Enterprise Design System
 // Voucher Management Interface
 // Hoor Enterprise Design System 2026
@@ -16,6 +16,8 @@ import 'package:intl/intl.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/widgets/widgets.dart';
+import '../../core/widgets/dual_price_display.dart';
+import '../../core/services/currency_service.dart';
 import '../../core/services/export/export_services.dart';
 import '../../core/services/export/export_button.dart';
 import '../../data/database/app_database.dart';
@@ -327,7 +329,7 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
     try {
       switch (type) {
         case ExportType.excel:
-          final filePath = await ExcelExportService.exportVouchers(
+          await ExcelExportService.exportVouchers(
             vouchers: vouchers,
             fileName: fileName,
           );
@@ -577,13 +579,23 @@ class _VoucherCard extends StatelessWidget {
                 ],
               ),
             ),
-            Text(
-              '${voucher.amount.toStringAsFixed(0)} ل.س',
-              style: AppTypography.titleMedium
-                  .copyWith(
-                    color: _typeColor,
-                  )
-                  .monoBold,
+            Builder(
+              builder: (context) {
+                final exchangeRate =
+                    voucher.exchangeRate ?? CurrencyService.currentRate;
+                final amountUsd = voucher.amountUsd ??
+                    (exchangeRate > 0 ? voucher.amount / exchangeRate : null);
+                return CompactDualPrice(
+                  amountSyp: voucher.amount,
+                  amountUsd: amountUsd,
+                  sypStyle: AppTypography.titleMedium
+                      .copyWith(color: _typeColor)
+                      .monoBold,
+                  usdStyle: AppTypography.labelSmall
+                      .copyWith(color: AppColors.textSecondary)
+                      .mono,
+                );
+              },
             ),
             SizedBox(width: AppSpacing.sm),
             Icon(
@@ -629,7 +641,9 @@ class _VoucherFormScreenProState extends ConsumerState<VoucherFormScreenPro> {
   String? _selectedCategoryId;
   DateTime _voucherDate = DateTime.now();
   bool _isSaving = false;
+  // ignore: unused_field - Reserved for edit mode loading state
   bool _isLoading = false;
+  // ignore: unused_field - Reserved for edit mode
   Voucher? _existingVoucher;
 
   // بيانات العملاء والموردين والفئات
@@ -885,7 +899,7 @@ class _VoucherFormScreenProState extends ConsumerState<VoucherFormScreenPro> {
                 color: AppColors.textTertiary,
               ),
               border: InputBorder.none,
-              suffixText: 'ر.س',
+              suffixText: 'ل.س',
               suffixStyle: AppTypography.titleLarge.copyWith(
                 color: AppColors.textSecondary,
               ),
@@ -970,7 +984,7 @@ class _VoucherFormScreenProState extends ConsumerState<VoucherFormScreenPro> {
                     ),
                   ),
                   Text(
-                    '${balance.toStringAsFixed(0)} ل.س',
+                    '${balance.toStringAsFixed(0)}',
                     style: AppTypography.labelSmall.copyWith(
                       color: balance > 0 ? AppColors.error : AppColors.success,
                     ),

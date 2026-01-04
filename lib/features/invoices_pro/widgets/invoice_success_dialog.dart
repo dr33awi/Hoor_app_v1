@@ -1,4 +1,4 @@
-// ═══════════════════════════════════════════════════════════════════════════
+﻿// ═══════════════════════════════════════════════════════════════════════════
 // Invoice Success Dialog - Enterprise Accounting Design
 // حوار نجاح الفاتورة الموحد بتصميم احترافي
 // ═══════════════════════════════════════════════════════════════════════════
@@ -456,7 +456,7 @@ class _InvoiceSuccessDialogState extends State<InvoiceSuccessDialog> {
                         ),
                         SizedBox(width: 4.w),
                         Text(
-                          'ر.س',
+                          'ل.س',
                           style: AppTypography.bodySmall.copyWith(
                             color: widget.data.typeColor,
                           ),
@@ -483,7 +483,7 @@ class _InvoiceSuccessDialogState extends State<InvoiceSuccessDialog> {
                         ),
                       ),
                       Text(
-                        '${invoice.paidAmount.toStringAsFixed(2)} ر.س',
+                        '${invoice.paidAmount.toStringAsFixed(2)} ل.س',
                         style: AppTypography.labelMedium.copyWith(
                           color: AppColors.success,
                           fontFamily: 'JetBrains Mono',
@@ -503,7 +503,7 @@ class _InvoiceSuccessDialogState extends State<InvoiceSuccessDialog> {
                         ),
                       ),
                       Text(
-                        '${widget.data.remaining.toStringAsFixed(2)} ر.س',
+                        '${widget.data.remaining.toStringAsFixed(2)} ل.س',
                         style: AppTypography.labelMedium.copyWith(
                           color: AppColors.error,
                           fontWeight: FontWeight.w600,

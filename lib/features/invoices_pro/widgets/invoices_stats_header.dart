@@ -1,4 +1,4 @@
-// ═══════════════════════════════════════════════════════════════════════════
+﻿// ═══════════════════════════════════════════════════════════════════════════
 // Invoices Stats Header Widget - Enterprise Accounting Design
 // Summary cards showing invoice statistics with ledger precision
 // ═══════════════════════════════════════════════════════════════════════════
@@ -90,7 +90,7 @@ class InvoicesStatsHeader extends StatelessWidget {
 
           // Total Amount
           Text(
-            '${_formatAmount(totalAmount)} ر.س',
+            '${_formatAmount(totalAmount)} ل.س',
             style: AppTypography.displaySmall.copyWith(
               color: Colors.white,
               fontWeight: FontWeight.w700,
@@ -169,7 +169,7 @@ class InvoicesStatsHeader extends StatelessWidget {
             ),
             SizedBox(height: 2.h),
             Text(
-              '${_formatAmount(amount)} ر.س',
+              '${_formatAmount(amount)} ل.س',
               style: AppTypography.bodyMedium.copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,

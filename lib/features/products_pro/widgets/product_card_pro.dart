@@ -8,6 +8,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/theme/design_tokens.dart';
+import '../../../core/widgets/dual_price_display.dart';
+import '../../../core/services/currency_service.dart';
 
 class ProductCardPro extends StatelessWidget {
   final Map<String, dynamic> product;
@@ -238,13 +240,29 @@ class ProductCardPro extends StatelessWidget {
                     SizedBox(height: 4.h),
                     Row(
                       children: [
-                        Text(
-                          '${(product['price'] as double).toStringAsFixed(0)} ل.س',
-                          style: AppTypography.labelMedium
-                              .copyWith(
-                                color: AppColors.secondary,
-                              )
-                              .monoBold,
+                        Builder(
+                          builder: (context) {
+                            final price = product['price'] as double;
+                            final priceUsd = product['priceUsd'] as double?;
+                            final exchangeRate =
+                                product['exchangeRate'] as double? ??
+                                    CurrencyService.currentRate;
+                            final calculatedUsd = priceUsd ??
+                                (exchangeRate > 0
+                                    ? price / exchangeRate
+                                    : null);
+
+                            return CompactDualPrice(
+                              amountSyp: price,
+                              amountUsd: calculatedUsd,
+                              sypStyle: AppTypography.labelMedium
+                                  .copyWith(color: AppColors.secondary)
+                                  .monoBold,
+                              usdStyle: AppTypography.labelSmall
+                                  .copyWith(color: AppColors.textTertiary)
+                                  .mono,
+                            );
+                          },
                         ),
                         SizedBox(width: AppSpacing.sm),
                         Text(

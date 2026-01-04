@@ -206,12 +206,18 @@ class VoucherRepository extends BaseRepository<Voucher, VouchersCompanion> {
     final exchangeRate = currencyService.exchangeRate;
     final now = DateTime.now();
 
+    // ═══════════════════════════════════════════════════════════════════════════
+    // تثبيت السعر: حفظ المبلغ بالدولار وسعر الصرف
+    // ═══════════════════════════════════════════════════════════════════════════
+    final amountUsd = exchangeRate > 0 ? amount / exchangeRate : 0.0;
+
     await database.insertVoucher(VouchersCompanion(
       id: Value(id),
       voucherNumber: Value(voucherNumber),
       type: Value(type.value),
       categoryId: Value(categoryId),
       amount: Value(amount),
+      amountUsd: Value(amountUsd), // المبلغ بالدولار
       exchangeRate: Value(exchangeRate),
       description: Value(description),
       customerId: Value(customerId),

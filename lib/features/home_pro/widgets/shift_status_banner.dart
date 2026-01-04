@@ -1,4 +1,4 @@
-// ═══════════════════════════════════════════════════════════════════════════
+﻿// ═══════════════════════════════════════════════════════════════════════════
 // Shift Status Banner - Enterprise Accounting Design
 // Displays current shift information prominently
 // ═══════════════════════════════════════════════════════════════════════════
@@ -105,7 +105,7 @@ class ShiftStatusBanner extends StatelessWidget {
                           ),
                           SizedBox(width: AppSpacing.xxs.w),
                           Text(
-                            '${_formatAmount(totalSales!)} ر.س',
+                            '${_formatAmount(totalSales!)} ل.س',
                             style: AppTypography.bodySmall.copyWith(
                               color: AppColors.income,
                               fontWeight: FontWeight.w600,
