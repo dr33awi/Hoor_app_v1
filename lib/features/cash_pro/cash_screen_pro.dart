@@ -85,15 +85,6 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
               subtitle: 'إدارة النقدية والحركات',
               onBack: () => context.go('/'),
               actions: [
-                // فلتر
-                Badge(
-                  isLabelVisible: _hasActiveFilters,
-                  child: IconButton(
-                    onPressed: () => _showFilterSheet(),
-                    icon: const Icon(Icons.filter_list_rounded),
-                    tooltip: 'تصفية',
-                  ),
-                ),
                 // الورديات
                 IconButton(
                   onPressed: () => context.push('/shifts'),
@@ -237,47 +228,12 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
                         ),
                     ],
                   ),
-                  Row(
-                    children: [
-                      // زر الرسم البياني
-                      IconButton(
-                        onPressed: () =>
-                            setState(() => _showChart = !_showChart),
-                        icon: Icon(
-                          _showChart
-                              ? Icons.list_rounded
-                              : Icons.pie_chart_rounded,
-                          color: _showChart
-                              ? AppColors.primary
-                              : AppColors.textSecondary,
-                        ),
-                        tooltip:
-                            _showChart ? 'عرض القائمة' : 'عرض الرسم البياني',
-                      ),
-                      // تصدير
-                      ExportMenuButton(
-                        onExport: (type) =>
-                            _handleExport(type, filteredMovements),
-                        isLoading: _isExporting,
-                        icon: Icons.ios_share_rounded,
-                        tooltip: 'تصدير',
-                        enabledOptions: const {
-                          ExportType.excel,
-                          ExportType.pdf,
-                          ExportType.sharePdf,
-                          ExportType.shareExcel,
-                        },
-                      ),
-                    ],
-                  ),
                 ],
               ),
               SizedBox(height: AppSpacing.md),
 
-              // Chart or List
-              if (_showChart && filteredMovements.isNotEmpty)
-                _buildChart(filteredMovements)
-              else if (filteredMovements.isEmpty)
+              // List
+              if (filteredMovements.isEmpty)
                 Container(
                   padding: EdgeInsets.all(AppSpacing.xl),
                   decoration: BoxDecoration(
@@ -295,23 +251,11 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
                         ),
                         SizedBox(height: AppSpacing.md),
                         Text(
-                          _hasActiveFilters ? 'لا توجد نتائج' : 'لا توجد حركات',
+                          'لا توجد حركات',
                           style: AppTypography.titleSmall.copyWith(
                             color: AppColors.textSecondary,
                           ),
                         ),
-                        if (_hasActiveFilters) ...[
-                          SizedBox(height: AppSpacing.sm),
-                          TextButton(
-                            onPressed: () => setState(() {
-                              _filterType = 'all';
-                              _dateRange = null;
-                              _searchQuery = '';
-                              _searchController.clear();
-                            }),
-                            child: const Text('مسح الفلاتر'),
-                          ),
-                        ],
                       ],
                     ),
                   ),
@@ -335,17 +279,24 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
   Widget _buildChart(List<CashMovement> movements) {
     // حساب الإجماليات حسب النوع
     double totalIncome = 0;
+    double totalIncomeUsd = 0;
     double totalExpense = 0;
+    double totalExpenseUsd = 0;
 
     for (final m in movements) {
       final isIncome = m.type == 'income' ||
           m.type == 'sale' ||
           m.type == 'deposit' ||
           m.type == 'opening';
+      // استخدام القيمة المحفوظة بالدولار
+      final amountUsd = m.amountUsd ??
+          (m.amount / (m.exchangeRate ?? CurrencyService.currentRate));
       if (isIncome) {
         totalIncome += m.amount;
+        totalIncomeUsd += amountUsd;
       } else {
         totalExpense += m.amount;
+        totalExpenseUsd += amountUsd;
       }
     }
 
@@ -394,6 +345,7 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
                 child: _buildChartLegend(
                   label: 'الإيرادات',
                   value: totalIncome,
+                  valueUsd: totalIncomeUsd,
                   color: AppColors.success,
                 ),
               ),
@@ -401,6 +353,7 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
                 child: _buildChartLegend(
                   label: 'المصروفات',
                   value: totalExpense,
+                  valueUsd: totalExpenseUsd,
                   color: AppColors.error,
                 ),
               ),
@@ -408,6 +361,7 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
                 child: _buildChartLegend(
                   label: 'الصافي',
                   value: totalIncome - totalExpense,
+                  valueUsd: totalIncomeUsd - totalExpenseUsd,
                   color: totalIncome >= totalExpense
                       ? AppColors.success
                       : AppColors.error,
@@ -456,6 +410,7 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
   Widget _buildChartLegend({
     required String label,
     required double value,
+    required double valueUsd,
     required Color color,
   }) {
     return Column(
@@ -481,12 +436,19 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
           ],
         ),
         SizedBox(height: AppSpacing.xxs),
-        CompactDualPrice(
-          amountSyp: value,
-          exchangeRate: CurrencyService.currentRate,
-          sypStyle: AppTypography.titleSmall.copyWith(
+        // عرض القيمة بالليرة
+        Text(
+          '${value.toStringAsFixed(0)} ل.س',
+          style: AppTypography.titleSmall.copyWith(
             color: color,
             fontWeight: FontWeight.bold,
+          ),
+        ),
+        // عرض القيمة المحفوظة بالدولار
+        Text(
+          '\$${valueUsd.toStringAsFixed(2)}',
+          style: AppTypography.labelSmall.copyWith(
+            color: color.withOpacity(0.7),
           ),
         ),
       ],
@@ -639,9 +601,33 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
 
   Widget _buildBalanceCard(Shift shift) {
     final openingBalance = shift.openingBalance;
+    final totalSales = shift.totalSales;
+    final totalReturns = shift.totalReturns;
     final totalIncome = shift.totalIncome;
     final totalExpenses = shift.totalExpenses;
-    final currentBalance = openingBalance + totalIncome - totalExpenses;
+
+    // الحساب الصحيح للرصيد:
+    // رصيد = افتتاحي + مبيعات + إيرادات - مصروفات - مرتجعات
+    final currentBalance = openingBalance +
+        totalSales +
+        totalIncome -
+        totalExpenses -
+        totalReturns;
+
+    // استخدام القيم المحفوظة بالدولار
+    final openingUsd = shift.openingBalanceUsd ?? 0;
+    final salesUsd = shift.totalSalesUsd;
+    final returnsUsd = shift.totalReturnsUsd;
+    final incomeUsd = shift.totalIncomeUsd;
+    final expensesUsd = shift.totalExpensesUsd;
+    final currentBalanceUsd =
+        openingUsd + salesUsd + incomeUsd - expensesUsd - returnsUsd;
+
+    // إجمالي الداخل والخارج للعرض
+    final totalIn = totalSales + totalIncome;
+    final totalOut = totalExpenses + totalReturns;
+    final totalInUsd = salesUsd + incomeUsd;
+    final totalOutUsd = expensesUsd + returnsUsd;
 
     return Container(
       padding: EdgeInsets.all(AppSpacing.lg),
@@ -701,8 +687,9 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
                     )
                     .monoBold,
               ),
+              // استخدام القيمة المحفوظة بالدولار
               Text(
-                '\$${(currentBalance / CurrencyService.currentRate).toStringAsFixed(2)}',
+                '\$${currentBalanceUsd.toStringAsFixed(2)}',
                 style: AppTypography.titleMedium.copyWith(
                   color: Colors.white.withValues(alpha: 0.8),
                 ),
@@ -714,8 +701,9 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
             children: [
               Expanded(
                 child: _buildBalanceItem(
-                  label: 'الرصيد الافتتاحي',
+                  label: 'الافتتاحي',
                   value: openingBalance,
+                  valueUsd: openingUsd,
                   icon: Icons.account_balance_wallet_outlined,
                 ),
               ),
@@ -726,8 +714,9 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
               ),
               Expanded(
                 child: _buildBalanceItem(
-                  label: 'الإيرادات',
-                  value: totalIncome,
+                  label: 'الداخل',
+                  value: totalIn,
+                  valueUsd: totalInUsd,
                   icon: Icons.arrow_downward_rounded,
                   isPositive: true,
                 ),
@@ -739,22 +728,99 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
               ),
               Expanded(
                 child: _buildBalanceItem(
-                  label: 'المصروفات',
-                  value: totalExpenses,
+                  label: 'الخارج',
+                  value: totalOut,
+                  valueUsd: totalOutUsd,
                   icon: Icons.arrow_upward_rounded,
                   isPositive: false,
                 ),
               ),
             ],
           ),
+          // تفصيل الداخل والخارج
+          SizedBox(height: AppSpacing.sm),
+          Container(
+            padding: EdgeInsets.all(AppSpacing.sm),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildMiniDetail(
+                    'مبيعات',
+                    totalSales,
+                    salesUsd,
+                    AppColors.success,
+                  ),
+                ),
+                Expanded(
+                  child: _buildMiniDetail(
+                    'إيرادات',
+                    totalIncome,
+                    incomeUsd,
+                    AppColors.info,
+                  ),
+                ),
+                Container(width: 1, height: 30.h, color: Colors.white24),
+                Expanded(
+                  child: _buildMiniDetail(
+                    'مصروفات',
+                    totalExpenses,
+                    expensesUsd,
+                    AppColors.warning,
+                  ),
+                ),
+                Expanded(
+                  child: _buildMiniDetail(
+                    'مرتجعات',
+                    totalReturns,
+                    returnsUsd,
+                    AppColors.error,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildMiniDetail(
+      String label, double value, double valueUsd, Color color) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: AppTypography.labelSmall.copyWith(
+            color: Colors.white70,
+            fontSize: 9.sp,
+          ),
+        ),
+        Text(
+          value.toStringAsFixed(0),
+          style: AppTypography.labelMedium.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          '\$${valueUsd.toStringAsFixed(1)}',
+          style: AppTypography.labelSmall.copyWith(
+            color: Colors.white60,
+            fontSize: 8.sp,
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildBalanceItem({
     required String label,
     required double value,
+    double? valueUsd,
     required IconData icon,
     bool? isPositive,
   }) {
@@ -781,6 +847,13 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
               )
               .monoBold,
         ),
+        if (valueUsd != null)
+          Text(
+            '\$${valueUsd.toStringAsFixed(2)}',
+            style: AppTypography.labelSmall.copyWith(
+              color: Colors.white.o70,
+            ),
+          ),
       ],
     );
   }
@@ -1014,6 +1087,11 @@ class _MovementCard extends StatelessWidget {
         movement.type == 'deposit' ||
         movement.type == 'opening';
     final dateFormat = DateFormat('hh:mm a', 'ar');
+    // استخدام القيمة المحفوظة بالدولار أو الحساب من سعر الصرف المحفوظ
+    final amountUsd = movement.amountUsd ??
+        (movement.exchangeRate != null && movement.exchangeRate! > 0
+            ? movement.amount / movement.exchangeRate!
+            : null);
 
     return ProCard(
       margin: EdgeInsets.only(bottom: AppSpacing.sm),
@@ -1045,13 +1123,26 @@ class _MovementCard extends StatelessWidget {
               ],
             ),
           ),
-          Text(
-            '${isIncome ? '+' : '-'}${movement.amount.toStringAsFixed(0)}',
-            style: AppTypography.titleMedium
-                .copyWith(
-                  color: isIncome ? AppColors.success : AppColors.error,
-                )
-                .monoBold,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${isIncome ? '+' : '-'}${movement.amount.toStringAsFixed(0)}',
+                style: AppTypography.titleMedium
+                    .copyWith(
+                      color: isIncome ? AppColors.success : AppColors.error,
+                    )
+                    .monoBold,
+              ),
+              if (amountUsd != null)
+                Text(
+                  '\$${amountUsd.toStringAsFixed(2)}',
+                  style: AppTypography.labelSmall.copyWith(
+                    color: (isIncome ? AppColors.success : AppColors.error)
+                        .withValues(alpha: 0.7),
+                  ),
+                ),
+            ],
           ),
         ],
       ),

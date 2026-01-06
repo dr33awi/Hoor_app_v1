@@ -12,13 +12,13 @@ import 'package:intl/intl.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
-import '../../core/services/currency_service.dart';
 import '../../core/widgets/widgets.dart';
 import '../../core/widgets/dual_price_display.dart';
 import '../../core/mixins/invoice_filter_mixin.dart';
 import '../../core/services/party_name_resolver.dart';
 import '../../data/database/app_database.dart';
 import '../home_pro/widgets/pro_navigation_drawer.dart';
+import '../invoices_pro/widgets/invoices_stats_header.dart';
 
 /// نوع المعاملة
 enum TransactionType {
@@ -171,8 +171,8 @@ class _TransactionsScreenProState extends ConsumerState<TransactionsScreenPro>
 
   Widget _buildStatsLoading() {
     return Container(
-      margin: EdgeInsets.all(AppSpacing.md),
-      height: 80.h,
+      margin: EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding.w),
+      height: 100.h,
       decoration: BoxDecoration(
         color: AppColors.surfaceMuted,
         borderRadius: BorderRadius.circular(AppRadius.xl),
@@ -182,52 +182,35 @@ class _TransactionsScreenProState extends ConsumerState<TransactionsScreenPro>
 
   Widget _buildStatsRow(List<Invoice> invoices) {
     final total = invoices.fold(0.0, (sum, inv) => sum + inv.total);
+    // حساب الدولار من القيم المحفوظة أو من سعر الصرف
+    final totalUsd = invoices.fold(0.0, (sum, inv) {
+      if (inv.totalUsd != null && inv.totalUsd! > 0) {
+        return sum + inv.totalUsd!;
+      } else if (inv.exchangeRate != null && inv.exchangeRate! > 0) {
+        return sum + (inv.total / inv.exchangeRate!);
+      }
+      return sum;
+    });
     final paid = invoices.fold(0.0, (sum, inv) => sum + inv.paidAmount);
+    final paidUsd = invoices.fold(0.0, (sum, inv) {
+      if (inv.paidAmountUsd != null && inv.paidAmountUsd! > 0) {
+        return sum + inv.paidAmountUsd!;
+      } else if (inv.exchangeRate != null && inv.exchangeRate! > 0) {
+        return sum + (inv.paidAmount / inv.exchangeRate!);
+      }
+      return sum;
+    });
     final pending = total - paid;
-    final thisMonth = invoices.where((inv) {
-      final now = DateTime.now();
-      return inv.invoiceDate.month == now.month &&
-          inv.invoiceDate.year == now.year;
-    }).fold(0.0, (sum, inv) => sum + inv.total);
 
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.sm,
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: ProStatCard(
-              label: 'الإجمالي',
-              amount: total,
-              icon: Icons.account_balance_wallet_rounded,
-              color: widget.type.color,
-              compact: true,
-            ),
-          ),
-          SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: ProStatCard(
-              label: 'هذا الشهر',
-              amount: thisMonth,
-              icon: Icons.calendar_month_rounded,
-              color: AppColors.info,
-              compact: true,
-            ),
-          ),
-          SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: ProStatCard(
-              label: isSales ? 'المستحق' : 'المتبقي',
-              amount: pending,
-              icon: Icons.pending_actions_rounded,
-              color: pending > 0 ? AppColors.warning : AppColors.success,
-              compact: true,
-            ),
-          ),
-        ],
-      ),
+    // استخدام InvoicesStatsHeader مثل صفحة المبيعات
+    return InvoicesStatsHeader(
+      totalAmount: total,
+      totalAmountUsd: totalUsd,
+      paidAmount: paid,
+      paidAmountUsd: paidUsd,
+      pendingAmount: pending,
+      overdueAmount: 0,
+      isSales: isSales,
     );
   }
 
@@ -473,9 +456,10 @@ class _InvoiceCard extends StatelessWidget {
                 ),
               ),
               const Spacer(),
+              // استخدام سعر الصرف المحفوظ في الفاتورة (للعرض المحاسبي الصحيح)
               CompactDualPrice(
                 amountSyp: invoice.total,
-                exchangeRate: CurrencyService.currentRate,
+                exchangeRate: invoice.exchangeRate ?? 0,
                 sypStyle: AppTypography.titleMedium
                     .copyWith(
                       color: type.color,

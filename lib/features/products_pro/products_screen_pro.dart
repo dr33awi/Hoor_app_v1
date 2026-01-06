@@ -7,6 +7,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
@@ -18,6 +19,9 @@ import '../../data/database/app_database.dart';
 import 'widgets/product_card_pro.dart';
 import 'widgets/products_filter_bar.dart';
 import 'widgets/category_chips.dart';
+
+// مفتاح حفظ تفضيل العرض
+const String _viewPreferenceKey = 'products_view_is_grid';
 
 class ProductsScreenPro extends ConsumerStatefulWidget {
   const ProductsScreenPro({super.key});
@@ -31,7 +35,7 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
   final _searchController = TextEditingController();
   String _selectedCategoryId = 'all';
   String _sortBy = 'name';
-  bool _isGridView = true;
+  bool _isGridView = false; // العرض الافتراضي List
   bool _isExporting = false;
   bool _isSelectionMode = false;
   final Set<String> _selectedProducts = {};
@@ -42,6 +46,7 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
   @override
   void initState() {
     super.initState();
+    _loadViewPreference();
     _animationController = AnimationController(
       vsync: this,
       duration: AppDurations.medium,
@@ -51,6 +56,28 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
       curve: AppCurves.easeOut,
     );
     _animationController.forward();
+  }
+
+  /// تحميل تفضيل العرض المحفوظ
+  Future<void> _loadViewPreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    final isGrid = prefs.getBool(_viewPreferenceKey) ?? false;
+    if (mounted && isGrid != _isGridView) {
+      setState(() => _isGridView = isGrid);
+    }
+  }
+
+  /// حفظ تفضيل العرض
+  Future<void> _saveViewPreference(bool isGrid) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_viewPreferenceKey, isGrid);
+  }
+
+  void _toggleViewMode() {
+    setState(() {
+      _isGridView = !_isGridView;
+    });
+    _saveViewPreference(_isGridView);
   }
 
   @override
@@ -193,14 +220,6 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
                 title: 'المنتجات',
                 subtitle: '0 منتج',
                 onBack: () => context.go('/'),
-                actions: [
-                  IconButton(
-                    onPressed: () {},
-                    icon: Icon(Icons.qr_code_scanner_rounded,
-                        color: AppColors.textSecondary),
-                    tooltip: 'مسح الباركود',
-                  ),
-                ],
               ),
               error: (_, __) => ProHeader(
                 title: 'المنتجات',
@@ -226,6 +245,18 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
                       : () => context.go('/'),
                   actions: _isSelectionMode
                       ? [
+                          // حذف المحدد
+                          IconButton(
+                            onPressed: _selectedProducts.isEmpty
+                                ? null
+                                : () => _showDeleteConfirmation(products),
+                            icon: Icon(Icons.delete_outline,
+                                color: _selectedProducts.isEmpty
+                                    ? AppColors.textSecondary
+                                        .withValues(alpha: 0.5)
+                                    : AppColors.error),
+                            tooltip: 'حذف المحدد',
+                          ),
                           // تحديث المخزون
                           IconButton(
                             onPressed: _selectedProducts.isEmpty
@@ -294,13 +325,6 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
                                     : 'المنتجات المنخفضة فقط',
                               ),
                             ),
-                          // مسح الباركود
-                          IconButton(
-                            onPressed: () {},
-                            icon: Icon(Icons.qr_code_scanner_rounded,
-                                color: AppColors.textSecondary),
-                            tooltip: 'مسح الباركود',
-                          ),
                           // وضع التحديد
                           IconButton(
                             onPressed: () =>
@@ -333,7 +357,7 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
               searchController: _searchController,
               onSearchChanged: (value) => setState(() {}),
               isGridView: _isGridView,
-              onViewToggle: () => setState(() => _isGridView = !_isGridView),
+              onViewToggle: _toggleViewMode,
               sortBy: _sortBy,
               onSortChanged: (value) =>
                   setState(() => _sortBy = value ?? _sortBy),
@@ -563,6 +587,99 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
         _selectedProducts.add(productId);
       }
     });
+  }
+
+  /// حذف المنتجات المحددة
+  Future<void> _showDeleteConfirmation(List<Product> allProducts) async {
+    final selectedProductsList =
+        allProducts.where((p) => _selectedProducts.contains(p.id)).toList();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: AppColors.error),
+            SizedBox(width: AppSpacing.sm),
+            const Text('تأكيد الحذف'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'هل أنت متأكد من حذف ${selectedProductsList.length} منتج؟',
+              style: AppTypography.bodyMedium,
+            ),
+            SizedBox(height: AppSpacing.md),
+            Container(
+              padding: EdgeInsets.all(AppSpacing.sm),
+              decoration: BoxDecoration(
+                color: AppColors.error.soft,
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: AppColors.error, size: 18),
+                  SizedBox(width: AppSpacing.xs),
+                  Expanded(
+                    child: Text(
+                      'هذا الإجراء لا يمكن التراجع عنه',
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.error,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.error,
+            ),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _deleteSelectedProducts(selectedProductsList);
+    }
+  }
+
+  Future<void> _deleteSelectedProducts(List<Product> products) async {
+    try {
+      final productRepo = ref.read(productRepositoryProvider);
+
+      for (final product in products) {
+        await productRepo.deleteProduct(product.id);
+      }
+
+      if (mounted) {
+        ProSnackbar.success(
+          context,
+          'تم حذف ${products.length} منتج بنجاح',
+        );
+        setState(() {
+          _isSelectionMode = false;
+          _selectedProducts.clear();
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ProSnackbar.error(context, 'حدث خطأ أثناء الحذف: $e');
+      }
+    }
   }
 
   Future<void> _showBulkPriceEditDialog(List<Product> allProducts) async {

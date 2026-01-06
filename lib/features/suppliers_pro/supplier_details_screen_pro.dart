@@ -14,7 +14,6 @@ import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/widgets/widgets.dart';
 import '../../core/widgets/dual_price_display.dart';
-import '../../core/services/currency_service.dart';
 import '../../core/services/export/export_services.dart';
 import '../../core/services/export/export_button.dart';
 import '../../data/database/app_database.dart';
@@ -718,13 +717,23 @@ class _SupplierDetailsScreenProState
           if (mounted) ProSnackbar.success(context, 'تم حفظ الملف بنجاح');
           break;
         case ExportType.pdf:
-          // TODO: Implement PDF export for supplier statement
-          if (mounted) ProSnackbar.info(context, 'سيتم إضافة تصدير PDF قريباً');
+          final pdfBytes = await PdfExportService.generateSupplierStatement(
+            supplier: _supplier!,
+            invoices: _invoices,
+            vouchers: _vouchers,
+          );
+          await PdfExportService.savePdfFile(pdfBytes, fileName);
+          if (mounted) ProSnackbar.success(context, 'تم حفظ الملف بنجاح');
           break;
         case ExportType.sharePdf:
-          // TODO: Implement PDF share for supplier statement
-          if (mounted)
-            ProSnackbar.info(context, 'سيتم إضافة مشاركة PDF قريباً');
+          final pdfBytesShare =
+              await PdfExportService.generateSupplierStatement(
+            supplier: _supplier!,
+            invoices: _invoices,
+            vouchers: _vouchers,
+          );
+          await PdfExportService.sharePdfBytes(pdfBytesShare,
+              fileName: fileName, subject: 'كشف حساب ${_supplier!.name}');
           break;
         case ExportType.shareExcel:
           final filePath = await ExcelExportService.exportSupplierStatement(
@@ -845,8 +854,11 @@ class _PurchaseCard extends StatelessWidget {
             ),
             CompactDualPrice(
               amountSyp: invoice.total,
+              // استخدام القيمة المحفوظة أو الحساب من سعر الصرف المثبت
               amountUsd: invoice.totalUsd ??
-                  invoice.total / CurrencyService.currentRate,
+                  (invoice.exchangeRate != null && invoice.exchangeRate! > 0
+                      ? invoice.total / invoice.exchangeRate!
+                      : 0),
               sypStyle: AppTypography.titleSmall.copyWith(
                 color: AppColors.primary,
                 fontWeight: FontWeight.bold,
@@ -913,8 +925,11 @@ class _PaymentVoucherCard extends StatelessWidget {
             ),
             CompactDualPrice(
               amountSyp: voucher.amount,
+              // استخدام القيمة المحفوظة أو الحساب من سعر الصرف المثبت
               amountUsd: voucher.amountUsd ??
-                  voucher.amount / CurrencyService.currentRate,
+                  (voucher.exchangeRate > 0
+                      ? voucher.amount / voucher.exchangeRate
+                      : 0),
               sypStyle: AppTypography.titleSmall.copyWith(
                 color: AppColors.error,
                 fontWeight: FontWeight.bold,

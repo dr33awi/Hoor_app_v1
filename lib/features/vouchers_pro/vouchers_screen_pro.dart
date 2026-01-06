@@ -35,11 +35,23 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
   final _searchController = TextEditingController();
   DateTimeRange? _dateRange;
   bool _isExporting = false;
+  String? _selectedCategoryId; // فلتر فئة المصاريف
+  List<VoucherCategory> _expenseCategories = [];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    _loadExpenseCategories();
+  }
+
+  Future<void> _loadExpenseCategories() async {
+    final voucherRepo = ref.read(voucherRepositoryProvider);
+    final categories =
+        await voucherRepo.getCategoriesByType(VoucherType.expense);
+    if (mounted) {
+      setState(() => _expenseCategories = categories);
+    }
   }
 
   @override
@@ -54,6 +66,12 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
 
     if (type != null) {
       filtered = filtered.where((v) => v.type == type).toList();
+    }
+
+    // تصفية حسب فئة المصاريف
+    if (type == 'expense' && _selectedCategoryId != null) {
+      filtered =
+          filtered.where((v) => v.categoryId == _selectedCategoryId).toList();
     }
 
     // تصفية حسب نطاق التاريخ
@@ -93,6 +111,31 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
       .where((v) => v.type == 'expense')
       .fold(0.0, (sum, v) => sum + v.amount);
 
+  // حساب المبالغ بالدولار باستخدام سعر الصرف المحفوظ
+  double _totalReceiptsUsd(List<Voucher> vouchers) =>
+      vouchers.where((v) => v.type == 'receipt').fold(
+          0.0,
+          (sum, v) =>
+              sum +
+              (v.amountUsd ??
+                  (v.exchangeRate > 0 ? v.amount / v.exchangeRate : 0)));
+
+  double _totalPaymentsUsd(List<Voucher> vouchers) =>
+      vouchers.where((v) => v.type == 'payment').fold(
+          0.0,
+          (sum, v) =>
+              sum +
+              (v.amountUsd ??
+                  (v.exchangeRate > 0 ? v.amount / v.exchangeRate : 0)));
+
+  double _totalExpensesUsd(List<Voucher> vouchers) =>
+      vouchers.where((v) => v.type == 'expense').fold(
+          0.0,
+          (sum, v) =>
+              sum +
+              (v.amountUsd ??
+                  (v.exchangeRate > 0 ? v.amount / v.exchangeRate : 0)));
+
   @override
   Widget build(BuildContext context) {
     final vouchersAsync = ref.watch(vouchersStreamProvider);
@@ -119,7 +162,7 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
                       _buildVoucherList(_filterVouchers(vouchers, null)),
                       _buildVoucherList(_filterVouchers(vouchers, 'receipt')),
                       _buildVoucherList(_filterVouchers(vouchers, 'payment')),
-                      _buildVoucherList(_filterVouchers(vouchers, 'expense')),
+                      _buildExpenseTab(vouchers),
                     ],
                   ),
                 ),
@@ -177,6 +220,7 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
                   child: _VoucherTypeButton(
                     icon: Icons.arrow_downward_rounded,
                     label: 'سند قبض',
+                    subtitle: 'استلام من عميل',
                     color: AppColors.success,
                     onTap: () {
                       Navigator.pop(context);
@@ -184,11 +228,12 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
                     },
                   ),
                 ),
-                SizedBox(width: AppSpacing.md),
+                SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: _VoucherTypeButton(
                     icon: Icons.arrow_upward_rounded,
                     label: 'سند صرف',
+                    subtitle: 'دفع لمورد',
                     color: AppColors.error,
                     onTap: () {
                       Navigator.pop(context);
@@ -196,9 +241,22 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
                     },
                   ),
                 ),
+                SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: _VoucherTypeButton(
+                    icon: Icons.receipt_long_outlined,
+                    label: 'مصاريف',
+                    subtitle: 'مصاريف عامة',
+                    color: AppColors.warning,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/vouchers/expense/add');
+                    },
+                  ),
+                ),
               ],
             ),
-            SizedBox(height: AppSpacing.xl),
+            SizedBox(height: AppSpacing.lg),
           ],
         ),
       ),
@@ -206,42 +264,75 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
   }
 
   Widget _buildHeader(int totalVouchers, List<Voucher> filteredVouchers) {
-    return ProHeader(
-      title: 'السندات',
-      subtitle: '$totalVouchers سند',
-      onBack: () => context.go('/'),
-      actions: [
-        ExportMenuButton(
-          onExport: (type) => _handleExport(type, filteredVouchers),
-          isLoading: _isExporting,
-          enabledOptions: const {
-            ExportType.excel,
-            ExportType.pdf,
-            ExportType.sharePdf,
-            ExportType.shareExcel,
-          },
-        ),
-        IconButton(
-          onPressed: _selectDateRange,
-          icon: Badge(
-            isLabelVisible: _dateRange != null,
-            child: const Icon(Icons.date_range_rounded),
+    return Padding(
+      padding: EdgeInsets.symmetric(
+          horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => context.go('/'),
+            icon: const Icon(Icons.arrow_back_rounded),
+            style: IconButton.styleFrom(
+              backgroundColor: AppColors.surface,
+            ),
           ),
-          tooltip: 'تصفية حسب التاريخ',
-        ),
-      ],
+          SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'السندات',
+                  style: AppTypography.titleMedium.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  '$totalVouchers سند',
+                  style: AppTypography.labelSmall.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: _selectDateRange,
+            icon: Badge(
+              isLabelVisible: _dateRange != null,
+              child: const Icon(Icons.date_range_rounded, size: 22),
+            ),
+            tooltip: 'تصفية حسب التاريخ',
+          ),
+          ExportMenuButton(
+            onExport: (type) => _handleExport(type, filteredVouchers),
+            isLoading: _isExporting,
+            enabledOptions: const {
+              ExportType.excel,
+              ExportType.pdf,
+              ExportType.sharePdf,
+              ExportType.shareExcel,
+            },
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildStatsSummary(List<Voucher> vouchers) {
+    final receipts = _totalReceipts(vouchers);
+    final payments = _totalPayments(vouchers);
+    final expenses = _totalExpenses(vouchers);
+
     return Container(
-      margin: EdgeInsets.all(AppSpacing.md),
+      margin: EdgeInsets.symmetric(horizontal: AppSpacing.md),
       child: Row(
         children: [
           Expanded(
             child: _StatCard(
               label: 'قبض',
-              amount: _totalReceipts(vouchers),
+              amount: receipts,
+              amountUsd: _totalReceiptsUsd(vouchers),
               icon: Icons.arrow_downward_rounded,
               color: AppColors.success,
             ),
@@ -250,7 +341,8 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
           Expanded(
             child: _StatCard(
               label: 'صرف',
-              amount: _totalPayments(vouchers),
+              amount: payments,
+              amountUsd: _totalPaymentsUsd(vouchers),
               icon: Icons.arrow_upward_rounded,
               color: AppColors.error,
             ),
@@ -259,7 +351,8 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
           Expanded(
             child: _StatCard(
               label: 'مصاريف',
-              amount: _totalExpenses(vouchers),
+              amount: expenses,
+              amountUsd: _totalExpensesUsd(vouchers),
               icon: Icons.receipt_outlined,
               color: AppColors.warning,
             ),
@@ -394,23 +487,22 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
 
   Widget _buildTab(String label, int count) {
     return Tab(
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(label),
-          SizedBox(width: AppSpacing.xs),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
-            decoration: BoxDecoration(
-              color: AppColors.textTertiary.light,
-              borderRadius: BorderRadius.circular(AppRadius.full),
-            ),
-            child: Text(
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(label, style: AppTypography.labelSmall),
+            SizedBox(width: 4.w),
+            Text(
               '$count',
-              style: AppTypography.labelSmall.mono,
+              style: AppTypography.labelSmall.copyWith(
+                color: AppColors.textTertiary,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -450,45 +542,233 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
       },
     );
   }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // تبويب المصاريف الخاص - مع تقسيم حسب الفئات
+  // ═══════════════════════════════════════════════════════════════════════════
+  Widget _buildExpenseTab(List<Voucher> allVouchers) {
+    final expenseVouchers = _filterVouchers(allVouchers, 'expense');
+
+    // تجميع المصاريف حسب الفئة
+    final Map<String?, List<Voucher>> byCategory = {};
+    for (final v in expenseVouchers) {
+      byCategory.putIfAbsent(v.categoryId, () => []).add(v);
+    }
+
+    return Column(
+      children: [
+        // فلتر الفئات
+        _buildCategoryFilter(),
+        // ملخص الفئات (إذا لم يتم اختيار فئة)
+        if (_selectedCategoryId == null && _expenseCategories.isNotEmpty)
+          _buildCategorySummary(byCategory),
+        // قائمة السندات
+        Expanded(
+          child: _buildVoucherList(expenseVouchers),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCategoryFilter() {
+    return Container(
+      height: 40.h,
+      margin: EdgeInsets.symmetric(horizontal: AppSpacing.md),
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          // زر الكل
+          _CategoryChip(
+            label: 'الكل',
+            isSelected: _selectedCategoryId == null,
+            onTap: () => setState(() => _selectedCategoryId = null),
+          ),
+          SizedBox(width: AppSpacing.xs),
+          // الفئات
+          ..._expenseCategories.map((cat) => Padding(
+                padding: EdgeInsets.only(left: AppSpacing.xs),
+                child: _CategoryChip(
+                  label: cat.name,
+                  isSelected: _selectedCategoryId == cat.id,
+                  onTap: () => setState(() => _selectedCategoryId = cat.id),
+                ),
+              )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCategorySummary(Map<String?, List<Voucher>> byCategory) {
+    return Container(
+      height: 85.h,
+      margin: EdgeInsets.only(top: AppSpacing.sm),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
+        itemCount: _expenseCategories.length,
+        itemBuilder: (context, index) {
+          final category = _expenseCategories[index];
+          final vouchers = byCategory[category.id] ?? [];
+          final total = vouchers.fold(0.0, (sum, v) => sum + v.amount);
+          final totalUsd = vouchers.fold(
+              0.0,
+              (sum, v) =>
+                  sum +
+                  (v.amountUsd ??
+                      (v.exchangeRate > 0 ? v.amount / v.exchangeRate : 0)));
+
+          return GestureDetector(
+            onTap: () => setState(() => _selectedCategoryId = category.id),
+            child: Container(
+              width: 100.w,
+              margin: EdgeInsets.only(left: AppSpacing.sm),
+              padding: EdgeInsets.all(AppSpacing.sm),
+              decoration: BoxDecoration(
+                color: AppColors.warning.soft,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(color: AppColors.warning.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    category.name,
+                    style: AppTypography.labelSmall.copyWith(
+                      color: AppColors.warning,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const Spacer(),
+                  Text(
+                    '${(total / 1000).toStringAsFixed(0)}K',
+                    style: AppTypography.labelLarge.copyWith(
+                      color: AppColors.warning,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    '${totalUsd.toStringAsFixed(1)}\$',
+                    style: AppTypography.labelSmall.copyWith(
+                      color: AppColors.textTertiary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Category Chip Widget
+// ═══════════════════════════════════════════════════════════════════════════
+class _CategoryChip extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _CategoryChip({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(
+            horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.warning : AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.full),
+          border: Border.all(
+            color: isSelected ? AppColors.warning : AppColors.border,
+          ),
+        ),
+        child: Text(
+          label,
+          style: AppTypography.labelMedium.copyWith(
+            color: isSelected ? Colors.white : AppColors.textSecondary,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _StatCard extends StatelessWidget {
   final String label;
   final double amount;
+  final double amountUsd;
   final IconData icon;
   final Color color;
 
   const _StatCard({
     required this.label,
     required this.amount,
+    required this.amountUsd,
     required this.icon,
     required this.color,
   });
 
+  String _formatCompact(double value) {
+    if (value >= 1000000) {
+      return '${(value / 1000000).toStringAsFixed(1)}M';
+    } else if (value >= 1000) {
+      return '${(value / 1000).toStringAsFixed(0)}K';
+    }
+    return value.toStringAsFixed(0);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(AppSpacing.sm),
+      padding: EdgeInsets.symmetric(
+          horizontal: AppSpacing.xs, vertical: AppSpacing.sm),
       decoration: BoxDecoration(
         color: color.soft,
         borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(color: color.border),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: color, size: AppIconSize.sm),
-          SizedBox(height: 4.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: color, size: 14.sp),
+              SizedBox(width: 4.w),
+              Text(
+                label,
+                style: AppTypography.labelSmall.copyWith(
+                  color: color,
+                  fontSize: 10.sp,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 2.h),
           Text(
-            label,
-            style: AppTypography.labelSmall.copyWith(color: color),
+            _formatCompact(amount),
+            style: AppTypography.labelMedium
+                .copyWith(color: color, fontWeight: FontWeight.bold),
+            overflow: TextOverflow.ellipsis,
           ),
           Text(
-            amount.toStringAsFixed(0),
-            style: AppTypography.titleSmall
-                .copyWith(
-                  color: color,
-                )
-                .monoBold,
+            '${amountUsd.toStringAsFixed(1)}\$',
+            style: AppTypography.labelSmall.copyWith(
+              color: color.withValues(alpha: 0.7),
+              fontSize: 9.sp,
+            ),
           ),
         ],
       ),
@@ -538,28 +818,33 @@ class _VoucherCard extends StatelessWidget {
         margin: EdgeInsets.only(bottom: AppSpacing.sm),
         child: Row(
           children: [
+            // أيقونة النوع
             ProIconBox(icon: _typeIcon, color: _typeColor),
-            SizedBox(width: AppSpacing.md),
+            SizedBox(width: AppSpacing.sm),
+            // المحتوى الرئيسي
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // رقم السند والنوع
                   Row(
                     children: [
-                      Text(
-                        '#${voucher.voucherNumber}',
-                        style: AppTypography.titleSmall
-                            .copyWith(
-                              color: AppColors.textPrimary,
-                            )
-                            .monoSemibold,
+                      Flexible(
+                        child: Text(
+                          '#${voucher.voucherNumber}',
+                          style: AppTypography.labelMedium
+                              .copyWith(color: AppColors.textPrimary)
+                              .monoSemibold,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      SizedBox(width: AppSpacing.sm),
+                      SizedBox(width: 4.w),
                       ProStatusBadge.fromVoucherType(voucher.type, small: true),
                     ],
                   ),
-                  if (voucher.description != null) ...[
-                    SizedBox(height: 4.h),
+                  if (voucher.description != null &&
+                      voucher.description!.isNotEmpty) ...[
+                    SizedBox(height: 2.h),
                     Text(
                       voucher.description!,
                       style: AppTypography.bodySmall.copyWith(
@@ -569,7 +854,7 @@ class _VoucherCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
-                  SizedBox(height: 4.h),
+                  SizedBox(height: 2.h),
                   Text(
                     dateFormat.format(voucher.voucherDate),
                     style: AppTypography.labelSmall.copyWith(
@@ -579,28 +864,31 @@ class _VoucherCard extends StatelessWidget {
                 ],
               ),
             ),
-            Builder(
-              builder: (context) {
-                final exchangeRate = voucher.exchangeRate;
-                final amountUsd = voucher.amountUsd ??
-                    (exchangeRate > 0 ? voucher.amount / exchangeRate : null);
-                return CompactDualPrice(
-                  amountSyp: voucher.amount,
-                  amountUsd: amountUsd,
-                  sypStyle: AppTypography.titleMedium
-                      .copyWith(color: _typeColor)
-                      .monoBold,
-                  usdStyle: AppTypography.labelSmall
-                      .copyWith(color: AppColors.textSecondary)
-                      .mono,
-                );
-              },
-            ),
             SizedBox(width: AppSpacing.sm),
+            // المبلغ
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${(voucher.amount / 1000).toStringAsFixed(0)}K ل.س',
+                  style: AppTypography.labelLarge
+                      .copyWith(color: _typeColor, fontWeight: FontWeight.bold),
+                ),
+                if (voucher.exchangeRate > 0)
+                  Text(
+                    '(${(voucher.amount / voucher.exchangeRate).toStringAsFixed(2)}\$)',
+                    style: AppTypography.labelSmall.copyWith(
+                      color: AppColors.textTertiary,
+                    ),
+                  ),
+              ],
+            ),
+            SizedBox(width: 4.w),
             Icon(
-              Icons.chevron_right_rounded,
+              Icons.chevron_left_rounded,
               color: AppColors.textTertiary,
-              size: 20.sp,
+              size: 18.sp,
             ),
           ],
         ),
@@ -770,217 +1058,170 @@ class _VoucherFormScreenProState extends ConsumerState<VoucherFormScreenPro> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: ProAppBar.close(
-        title: _title,
-        actions: [
-          TextButton(
-            onPressed: _isSaving ? null : _saveVoucher,
-            child: _isSaving
-                ? SizedBox(
-                    width: 20.w,
-                    height: 20.w,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: _accentColor,
-                    ),
-                  )
-                : Text(
-                    'حفظ',
-                    style: AppTypography.labelLarge.copyWith(
+      appBar: _buildAppBar(),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: EdgeInsets.all(AppSpacing.md),
+          children: [
+            // ═══════════════════════════════════════════════════════════════
+            // 1. المبلغ
+            // ═══════════════════════════════════════════════════════════════
+            const ProSectionTitle('المبلغ'),
+            SizedBox(height: AppSpacing.sm),
+            // سعر الصرف الحالي
+            Container(
+              padding: EdgeInsets.all(AppSpacing.sm),
+              margin: EdgeInsets.only(bottom: AppSpacing.md),
+              decoration: BoxDecoration(
+                color: _accentColor.soft,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(color: _accentColor.border),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(_typeIcon, color: _accentColor, size: 18),
+                  SizedBox(width: AppSpacing.sm),
+                  Text(
+                    '$_title • ',
+                    style: AppTypography.labelMedium.copyWith(
                       color: _accentColor,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-          ),
-          SizedBox(width: AppSpacing.sm),
-        ],
-      ),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(AppSpacing.md),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Type Icon Header
-              _buildTypeHeader(),
-              SizedBox(height: AppSpacing.xl),
-
-              // Amount Section
-              const ProSectionTitle('المبلغ'),
-              SizedBox(height: AppSpacing.md),
-              _buildAmountField(),
-              SizedBox(height: AppSpacing.lg),
-
-              // Party Selection (Customer/Supplier)
-              if (widget.type != 'expense') ...[
-                ProSectionTitle(
-                  widget.type == 'receipt' ? 'العميل' : 'المورد',
-                ),
-                SizedBox(height: AppSpacing.md),
-                _buildPartySelector(),
-                SizedBox(height: AppSpacing.lg),
-              ],
-
-              // Category Selection (for expenses)
-              if (widget.type == 'expense') ...[
-                const ProSectionTitle('فئة المصاريف'),
-                SizedBox(height: AppSpacing.md),
-                _buildCategorySelector(),
-                SizedBox(height: AppSpacing.lg),
-              ],
-
-              // Date Selection
-              const ProSectionTitle('التاريخ'),
-              SizedBox(height: AppSpacing.md),
-              _buildDateSelector(),
-              SizedBox(height: AppSpacing.lg),
-
-              // Description
-              const ProSectionTitle('الوصف'),
-              SizedBox(height: AppSpacing.md),
-              ProTextField(
-                controller: _descriptionController,
-                label: 'وصف السند',
-                hint: 'أدخل وصف أو ملاحظات...',
-                prefixIcon: Icons.notes_rounded,
-                maxLines: 3,
-              ),
-              SizedBox(height: AppSpacing.huge),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTypeHeader() {
-    return Center(
-      child: Container(
-        width: 80.w,
-        height: 80.w,
-        decoration: BoxDecoration(
-          color: _accentColor.withValues(alpha: 0.1),
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: _accentColor.withValues(alpha: 0.3),
-            width: 2,
-          ),
-        ),
-        child: Icon(
-          _typeIcon,
-          color: _accentColor,
-          size: 40.sp,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAmountField() {
-    return Container(
-      padding: EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        children: [
-          // المبلغ بالليرة
-          TextFormField(
-            controller: _amountController,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            textAlign: TextAlign.center,
-            style: AppTypography.displayMedium.copyWith(
-              color: _accentColor,
-              fontWeight: FontWeight.bold,
-            ),
-            decoration: InputDecoration(
-              hintText: '0.00',
-              hintStyle: AppTypography.displayMedium.copyWith(
-                color: AppColors.textTertiary,
-              ),
-              border: InputBorder.none,
-              suffixText: 'ل.س',
-              suffixStyle: AppTypography.titleLarge.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-            onChanged: (value) {
-              // حساب تلقائي بالدولار
-              if (value.isNotEmpty) {
-                final syp = double.tryParse(value);
-                if (syp != null && syp > 0) {
-                  final usd = syp / CurrencyService.currentRate;
-                  _amountUsdController.text = usd.toStringAsFixed(2);
-                }
-              }
-            },
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return 'المبلغ مطلوب';
-              }
-              final amount = double.tryParse(value);
-              if (amount == null || amount <= 0) {
-                return 'أدخل مبلغ صحيح';
-              }
-              return null;
-            },
-          ),
-          Divider(color: AppColors.border),
-          // المبلغ بالدولار
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: _amountUsdController,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  textAlign: TextAlign.center,
-                  style: AppTypography.titleLarge.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: '0.00',
-                    hintStyle: AppTypography.titleLarge.copyWith(
-                      color: AppColors.textTertiary,
-                    ),
-                    border: InputBorder.none,
-                    prefixText: '\$ ',
-                    prefixStyle: AppTypography.titleLarge.copyWith(
-                      color: AppColors.textSecondary,
+                  Icon(Icons.currency_exchange, color: _accentColor, size: 14),
+                  SizedBox(width: 4),
+                  Text(
+                    '1\$ = ${CurrencyService.currentRate.toStringAsFixed(0)} ل.س',
+                    style: AppTypography.labelSmall.copyWith(
+                      color: _accentColor,
                     ),
                   ),
-                  onChanged: (value) {
-                    // حساب تلقائي بالليرة
-                    if (value.isNotEmpty) {
-                      final usd = double.tryParse(value);
-                      if (usd != null && usd > 0) {
-                        final syp = usd * CurrencyService.currentRate;
-                        _amountController.text = syp.toStringAsFixed(0);
+                ],
+              ),
+            ),
+            // حقول المبلغ
+            Row(
+              children: [
+                Expanded(
+                  child: ProNumberField(
+                    controller: _amountController,
+                    label: 'المبلغ (ل.س)',
+                    hint: '0',
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'مطلوب';
                       }
-                    }
-                  },
-                ),
-              ),
-              Container(
-                padding: EdgeInsets.symmetric(
-                    horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceMuted,
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                ),
-                child: Text(
-                  '1\$ = ${CurrencyService.currentRate.toStringAsFixed(0)}',
-                  style: AppTypography.labelSmall.copyWith(
-                    color: AppColors.textTertiary,
+                      final amount = double.tryParse(value);
+                      if (amount == null || amount <= 0) {
+                        return 'مبلغ غير صحيح';
+                      }
+                      return null;
+                    },
+                    onChanged: (value) {
+                      if (value.isNotEmpty) {
+                        final syp = double.tryParse(value);
+                        if (syp != null && syp > 0) {
+                          final usd = syp / CurrencyService.currentRate;
+                          _amountUsdController.text = usd.toStringAsFixed(2);
+                        }
+                      }
+                    },
                   ),
                 ),
+                SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: ProNumberField(
+                    controller: _amountUsdController,
+                    label: 'المبلغ (\$)',
+                    hint: '0.00',
+                    onChanged: (value) {
+                      if (value.isNotEmpty) {
+                        final usd = double.tryParse(value);
+                        if (usd != null && usd > 0) {
+                          final syp = usd * CurrencyService.currentRate;
+                          _amountController.text = syp.toStringAsFixed(0);
+                        }
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: AppSpacing.lg),
+
+            // ═══════════════════════════════════════════════════════════════
+            // 2. العميل/المورد أو فئة المصاريف
+            // ═══════════════════════════════════════════════════════════════
+            if (widget.type != 'expense') ...[
+              ProSectionTitle(
+                widget.type == 'receipt' ? 'العميل' : 'المورد',
               ),
+              SizedBox(height: AppSpacing.sm),
+              _buildPartySelector(),
+              SizedBox(height: AppSpacing.lg),
             ],
-          ),
-        ],
+
+            if (widget.type == 'expense') ...[
+              const ProSectionTitle('فئة المصاريف'),
+              SizedBox(height: AppSpacing.sm),
+              _buildCategorySelector(),
+              SizedBox(height: AppSpacing.lg),
+            ],
+
+            // ═══════════════════════════════════════════════════════════════
+            // 3. التاريخ
+            // ═══════════════════════════════════════════════════════════════
+            const ProSectionTitle('التاريخ'),
+            SizedBox(height: AppSpacing.sm),
+            _buildDateSelector(),
+            SizedBox(height: AppSpacing.lg),
+
+            // ═══════════════════════════════════════════════════════════════
+            // 4. ملاحظات
+            // ═══════════════════════════════════════════════════════════════
+            const ProSectionTitle('ملاحظات (اختياري)'),
+            SizedBox(height: AppSpacing.sm),
+            ProTextField(
+              controller: _descriptionController,
+              label: 'وصف السند',
+              hint: 'أدخل وصف أو ملاحظات...',
+              maxLines: 2,
+            ),
+            SizedBox(height: AppSpacing.xl),
+          ],
+        ),
       ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar() {
+    return ProAppBar.close(
+      title: widget.isEditing ? 'تعديل $_title' : _title,
+      onClose: () => Navigator.of(context).pop(),
+      actions: [
+        TextButton(
+          onPressed: _isSaving ? null : _saveVoucher,
+          child: _isSaving
+              ? SizedBox(
+                  width: 20.w,
+                  height: 20.w,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: _accentColor,
+                  ),
+                )
+              : Text(
+                  'حفظ',
+                  style: AppTypography.labelLarge.copyWith(
+                    color: _accentColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+        ),
+        SizedBox(width: AppSpacing.sm),
+      ],
     );
   }
 
@@ -1072,60 +1313,193 @@ class _VoucherFormScreenProState extends ConsumerState<VoucherFormScreenPro> {
   }
 
   Widget _buildCategorySelector() {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: _selectedCategoryId,
-          isExpanded: true,
-          hint: Row(
-            children: [
-              Icon(
-                Icons.category_outlined,
-                color: AppColors.textTertiary,
-                size: AppIconSize.sm,
-              ),
-              SizedBox(width: AppSpacing.sm),
-              Text(
-                'اختر فئة المصاريف',
-                style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textTertiary,
-                ),
-              ),
-            ],
+    return Column(
+      children: [
+        // قائمة اختيار الفئة
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: AppColors.border),
           ),
-          items: _categories.map((category) {
-            return DropdownMenuItem<String>(
-              value: category.id,
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.category_rounded,
-                    color: AppColors.warning,
-                    size: AppIconSize.sm,
-                  ),
-                  SizedBox(width: AppSpacing.sm),
-                  Text(
-                    category.name,
-                    style: AppTypography.bodyMedium.copyWith(
-                      color: AppColors.textPrimary,
+          child: _categories.isEmpty
+              ? _buildEmptyCategoriesState()
+              : DropdownButtonFormField<String>(
+                  value: _selectedCategoryId,
+                  decoration: InputDecoration(
+                    labelText: 'فئة المصاريف',
+                    hintText: 'اختر فئة',
+                    filled: true,
+                    fillColor: AppColors.surface,
+                    prefixIcon: Icon(
+                      Icons.category_outlined,
+                      color: AppColors.textTertiary,
+                      size: AppIconSize.sm,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      borderSide: BorderSide.none,
                     ),
                   ),
-                ],
-              ),
-            );
-          }).toList(),
-          onChanged: (value) {
-            setState(() => _selectedCategoryId = value);
-          },
+                  items: _categories.map((category) {
+                    return DropdownMenuItem<String>(
+                      value: category.id,
+                      child: Text(
+                        category.name,
+                        style: AppTypography.bodyMedium.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() => _selectedCategoryId = value);
+                  },
+                  icon: Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: AppColors.textSecondary,
+                  ),
+                  dropdownColor: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
         ),
+        SizedBox(height: AppSpacing.sm),
+        // زر إضافة فئة جديدة
+        InkWell(
+          onTap: _showAddCategoryDialog,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          child: Container(
+            padding: EdgeInsets.all(AppSpacing.sm),
+            decoration: BoxDecoration(
+              color: AppColors.warning.soft,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(color: AppColors.warning.border),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.add_rounded, color: AppColors.warning, size: 18),
+                SizedBox(width: AppSpacing.xs),
+                Text(
+                  'إضافة فئة جديدة',
+                  style: AppTypography.labelMedium.copyWith(
+                    color: AppColors.warning,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyCategoriesState() {
+    return Padding(
+      padding: EdgeInsets.all(AppSpacing.md),
+      child: Column(
+        children: [
+          Icon(
+            Icons.category_outlined,
+            color: AppColors.textTertiary,
+            size: 32.sp,
+          ),
+          SizedBox(height: AppSpacing.sm),
+          Text(
+            'لا توجد فئات مصاريف',
+            style: AppTypography.bodyMedium.copyWith(
+              color: AppColors.textSecondary,
+            ),
+          ),
+          Text(
+            'اضغط على "إضافة فئة جديدة" لإنشاء فئة',
+            style: AppTypography.bodySmall.copyWith(
+              color: AppColors.textTertiary,
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  Future<void> _showAddCategoryDialog() async {
+    final nameController = TextEditingController();
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.category_rounded, color: AppColors.warning),
+            SizedBox(width: AppSpacing.sm),
+            const Text('إضافة فئة مصاريف'),
+          ],
+        ),
+        content: ProTextField(
+          controller: nameController,
+          label: 'اسم الفئة',
+          hint: 'مثال: مصاريف إدارية',
+          autofocus: true,
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) {
+              return 'الاسم مطلوب';
+            }
+            return null;
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (nameController.text.trim().isNotEmpty) {
+                Navigator.pop(context, nameController.text.trim());
+              }
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.warning,
+            ),
+            child: const Text('إضافة'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && result.isNotEmpty) {
+      await _createCategory(result);
+    }
+  }
+
+  Future<void> _createCategory(String name) async {
+    try {
+      final voucherRepo = ref.read(voucherRepositoryProvider);
+      final newCategoryId = await voucherRepo.createCategory(
+        name: name,
+        type: VoucherType.expense,
+      );
+
+      // إعادة تحميل الفئات وتحديد الفئة الجديدة
+      final categories =
+          await voucherRepo.getCategoriesByType(VoucherType.expense);
+      if (mounted) {
+        setState(() {
+          _categories = categories;
+          _selectedCategoryId = newCategoryId;
+        });
+        ProSnackbar.success(context, 'تم إضافة الفئة "$name"');
+      }
+    } catch (e) {
+      if (mounted) {
+        ProSnackbar.error(context, 'خطأ في إضافة الفئة: $e');
+      }
+    }
   }
 
   Widget _buildDateSelector() {
@@ -1258,12 +1632,14 @@ class _VoucherFormScreenProState extends ConsumerState<VoucherFormScreenPro> {
 class _VoucherTypeButton extends StatelessWidget {
   final IconData icon;
   final String label;
+  final String? subtitle;
   final Color color;
   final VoidCallback onTap;
 
   const _VoucherTypeButton({
     required this.icon,
     required this.label,
+    this.subtitle,
     required this.color,
     required this.onTap,
   });
@@ -1274,31 +1650,27 @@ class _VoucherTypeButton extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         child: Container(
-          padding: EdgeInsets.all(AppSpacing.lg),
+          padding: EdgeInsets.all(AppSpacing.sm),
           decoration: BoxDecoration(
             color: color.soft,
-            borderRadius: BorderRadius.circular(AppRadius.lg),
+            borderRadius: BorderRadius.circular(AppRadius.md),
             border: Border.all(color: color.border),
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                padding: EdgeInsets.all(AppSpacing.md),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(icon, color: color, size: 28.sp),
-              ),
-              SizedBox(height: AppSpacing.md),
+              Icon(icon, color: color, size: 24.sp),
+              SizedBox(height: 4.h),
               Text(
                 label,
-                style: AppTypography.labelLarge.copyWith(
+                style: AppTypography.labelSmall.copyWith(
                   color: color,
                   fontWeight: FontWeight.w600,
                 ),
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),

@@ -8,7 +8,6 @@ import 'package:share_plus/share_plus.dart';
 import '../../../data/database/app_database.dart' hide Category;
 import '../../../data/database/app_database.dart' as db show Category;
 import '../printing/pdf_theme.dart';
-import '../currency_service.dart';
 import 'export_templates.dart';
 
 // Type alias for clarity
@@ -832,7 +831,8 @@ class PdfExportService {
                           ),
                           pw.SizedBox(height: 4),
                           pw.Text(
-                            'الصافي: ${(totalIncome - totalExpense).toStringAsFixed(2)} ل.س (\$${((totalIncome - totalExpense) / CurrencyService.currentRate).toStringAsFixed(2)})',
+                            // ⚠️ ملاحظة: الوردية لا تحفظ قيم USD - نعرض الليرة فقط
+                            'الصافي: ${(totalIncome - totalExpense).toStringAsFixed(2)} ل.س',
                             style: pw.TextStyle(
                               fontWeight: pw.FontWeight.bold,
                               fontSize: 11,
@@ -1027,6 +1027,385 @@ class PdfExportService {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // كشف حساب العميل PDF
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  static Future<Uint8List> generateCustomerStatement({
+    required Customer customer,
+    required List<Invoice> invoices,
+    required List<Voucher> vouchers,
+  }) async {
+    await _ensureFontsInitialized();
+
+    final doc = pw.Document();
+    final now = DateTime.now();
+
+    // دمج وترتيب البيانات
+    final List<Map<String, dynamic>> entries = [];
+
+    for (final invoice in invoices) {
+      entries.add({
+        'date': invoice.createdAt,
+        'description': 'فاتورة بيع #${invoice.invoiceNumber}',
+        'debit': invoice.total,
+        'credit': 0.0,
+      });
+    }
+
+    for (final voucher in vouchers) {
+      entries.add({
+        'date': voucher.voucherDate,
+        'description': 'سند قبض #${voucher.voucherNumber}',
+        'debit': 0.0,
+        'credit': voucher.amount,
+      });
+    }
+
+    entries.sort(
+        (a, b) => (a['date'] as DateTime).compareTo(b['date'] as DateTime));
+
+    // حساب الرصيد التراكمي
+    double runningBalance = 0;
+    for (final entry in entries) {
+      runningBalance +=
+          (entry['debit'] as double) - (entry['credit'] as double);
+      entry['balance'] = runningBalance;
+    }
+
+    // حساب الإجماليات
+    final totalDebit =
+        entries.fold(0.0, (sum, e) => sum + (e['debit'] as double));
+    final totalCredit =
+        entries.fold(0.0, (sum, e) => sum + (e['credit'] as double));
+
+    final template = PdfReportTemplate(
+      title: 'كشف حساب العميل',
+      subtitle: customer.name,
+      reportDate: now,
+      headerColor: ExportColors.primary,
+    );
+
+    doc.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        textDirection: pw.TextDirection.rtl,
+        theme: PdfTheme.create(),
+        header: (context) => pw.Directionality(
+          textDirection: pw.TextDirection.rtl,
+          child: pw.Column(
+            children: [
+              template.buildHeader(),
+              pw.SizedBox(height: 8),
+              // معلومات العميل
+              pw.Container(
+                width: double.infinity,
+                padding: const pw.EdgeInsets.all(10),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.grey100,
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text(
+                      'الهاتف: ${customer.phone ?? "غير محدد"}',
+                      style: pw.TextStyle(font: PdfFonts.regular, fontSize: 9),
+                    ),
+                    pw.Text(
+                      'الرصيد الحالي: ${customer.balance.toStringAsFixed(0)} ل.س',
+                      style: pw.TextStyle(
+                        font: PdfFonts.bold,
+                        fontSize: 10,
+                        color: customer.balance > 0
+                            ? ExportColors.error
+                            : ExportColors.success,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              pw.SizedBox(height: 12),
+            ],
+          ),
+        ),
+        footer: (context) => pw.Directionality(
+          textDirection: pw.TextDirection.rtl,
+          child: template.buildFooter(
+            pageNumber: context.pageNumber,
+            totalPages: context.pagesCount,
+          ),
+        ),
+        build: (context) => [
+          if (entries.isEmpty)
+            pw.Center(
+              child: pw.Padding(
+                padding: const pw.EdgeInsets.all(40),
+                child: pw.Text(
+                  'لا توجد معاملات',
+                  style: pw.TextStyle(
+                      font: PdfFonts.regular,
+                      fontSize: 14,
+                      color: PdfColors.grey600),
+                ),
+              ),
+            )
+          else ...[
+            // جدول كشف الحساب
+            pw.Directionality(
+              textDirection: pw.TextDirection.rtl,
+              child: template.buildTable(
+                headers: ['الرصيد', 'دائن', 'مدين', 'البيان', 'التاريخ', '#'],
+                data: List.generate(entries.length, (index) {
+                  final entry = entries[index];
+                  return [
+                    (entry['balance'] as double).toStringAsFixed(0),
+                    (entry['credit'] as double) > 0
+                        ? (entry['credit'] as double).toStringAsFixed(0)
+                        : '-',
+                    (entry['debit'] as double) > 0
+                        ? (entry['debit'] as double).toStringAsFixed(0)
+                        : '-',
+                    entry['description'] as String,
+                    ExportFormatters.formatDate(entry['date'] as DateTime),
+                    '${index + 1}',
+                  ];
+                }),
+              ),
+            ),
+            pw.SizedBox(height: 16),
+            // صف الإجماليات
+            pw.Directionality(
+              textDirection: pw.TextDirection.rtl,
+              child: pw.Container(
+                padding: const pw.EdgeInsets.all(10),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.grey200,
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+                  children: [
+                    pw.Text(
+                      'إجمالي المدين: ${totalDebit.toStringAsFixed(0)} ل.س',
+                      style: pw.TextStyle(
+                          font: PdfFonts.bold,
+                          fontSize: 10,
+                          color: ExportColors.error),
+                    ),
+                    pw.Text(
+                      'إجمالي الدائن: ${totalCredit.toStringAsFixed(0)} ل.س',
+                      style: pw.TextStyle(
+                          font: PdfFonts.bold,
+                          fontSize: 10,
+                          color: ExportColors.success),
+                    ),
+                    pw.Text(
+                      'الرصيد: ${(totalDebit - totalCredit).toStringAsFixed(0)} ل.س',
+                      style: pw.TextStyle(font: PdfFonts.bold, fontSize: 10),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+
+    return doc.save();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // كشف حساب المورد PDF
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  static Future<Uint8List> generateSupplierStatement({
+    required Supplier supplier,
+    required List<Invoice> invoices,
+    required List<Voucher> vouchers,
+  }) async {
+    await _ensureFontsInitialized();
+
+    final doc = pw.Document();
+    final now = DateTime.now();
+
+    // دمج وترتيب البيانات
+    final List<Map<String, dynamic>> entries = [];
+
+    for (final invoice in invoices) {
+      entries.add({
+        'date': invoice.createdAt,
+        'description': 'فاتورة مشتريات #${invoice.invoiceNumber}',
+        'debit': invoice.total,
+        'credit': 0.0,
+      });
+    }
+
+    for (final voucher in vouchers) {
+      entries.add({
+        'date': voucher.voucherDate,
+        'description': 'سند صرف #${voucher.voucherNumber}',
+        'debit': 0.0,
+        'credit': voucher.amount,
+      });
+    }
+
+    entries.sort(
+        (a, b) => (a['date'] as DateTime).compareTo(b['date'] as DateTime));
+
+    // حساب الرصيد التراكمي
+    double runningBalance = 0;
+    for (final entry in entries) {
+      runningBalance +=
+          (entry['debit'] as double) - (entry['credit'] as double);
+      entry['balance'] = runningBalance;
+    }
+
+    // حساب الإجماليات
+    final totalDebit =
+        entries.fold(0.0, (sum, e) => sum + (e['debit'] as double));
+    final totalCredit =
+        entries.fold(0.0, (sum, e) => sum + (e['credit'] as double));
+
+    final template = PdfReportTemplate(
+      title: 'كشف حساب المورد',
+      subtitle: supplier.name,
+      reportDate: now,
+      headerColor: ExportColors.purchase,
+    );
+
+    doc.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        textDirection: pw.TextDirection.rtl,
+        theme: PdfTheme.create(),
+        header: (context) => pw.Directionality(
+          textDirection: pw.TextDirection.rtl,
+          child: pw.Column(
+            children: [
+              template.buildHeader(),
+              pw.SizedBox(height: 8),
+              // معلومات المورد
+              pw.Container(
+                width: double.infinity,
+                padding: const pw.EdgeInsets.all(10),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.grey100,
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Text(
+                      'الهاتف: ${supplier.phone ?? "غير محدد"}',
+                      style: pw.TextStyle(font: PdfFonts.regular, fontSize: 9),
+                    ),
+                    pw.Text(
+                      'الرصيد الحالي: ${supplier.balance.toStringAsFixed(0)} ل.س',
+                      style: pw.TextStyle(
+                        font: PdfFonts.bold,
+                        fontSize: 10,
+                        color: supplier.balance > 0
+                            ? ExportColors.error
+                            : ExportColors.success,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              pw.SizedBox(height: 12),
+            ],
+          ),
+        ),
+        footer: (context) => pw.Directionality(
+          textDirection: pw.TextDirection.rtl,
+          child: template.buildFooter(
+            pageNumber: context.pageNumber,
+            totalPages: context.pagesCount,
+          ),
+        ),
+        build: (context) => [
+          if (entries.isEmpty)
+            pw.Center(
+              child: pw.Padding(
+                padding: const pw.EdgeInsets.all(40),
+                child: pw.Text(
+                  'لا توجد معاملات',
+                  style: pw.TextStyle(
+                      font: PdfFonts.regular,
+                      fontSize: 14,
+                      color: PdfColors.grey600),
+                ),
+              ),
+            )
+          else ...[
+            // جدول كشف الحساب
+            pw.Directionality(
+              textDirection: pw.TextDirection.rtl,
+              child: template.buildTable(
+                headers: ['الرصيد', 'دائن', 'مدين', 'البيان', 'التاريخ', '#'],
+                headerBgColor: ExportColors.purchase,
+                data: List.generate(entries.length, (index) {
+                  final entry = entries[index];
+                  return [
+                    (entry['balance'] as double).toStringAsFixed(0),
+                    (entry['credit'] as double) > 0
+                        ? (entry['credit'] as double).toStringAsFixed(0)
+                        : '-',
+                    (entry['debit'] as double) > 0
+                        ? (entry['debit'] as double).toStringAsFixed(0)
+                        : '-',
+                    entry['description'] as String,
+                    ExportFormatters.formatDate(entry['date'] as DateTime),
+                    '${index + 1}',
+                  ];
+                }),
+              ),
+            ),
+            pw.SizedBox(height: 16),
+            // صف الإجماليات
+            pw.Directionality(
+              textDirection: pw.TextDirection.rtl,
+              child: pw.Container(
+                padding: const pw.EdgeInsets.all(10),
+                decoration: pw.BoxDecoration(
+                  color: PdfColors.grey200,
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+                  children: [
+                    pw.Text(
+                      'إجمالي المدين: ${totalDebit.toStringAsFixed(0)} ل.س',
+                      style: pw.TextStyle(
+                          font: PdfFonts.bold,
+                          fontSize: 10,
+                          color: ExportColors.error),
+                    ),
+                    pw.Text(
+                      'إجمالي الدائن: ${totalCredit.toStringAsFixed(0)} ل.س',
+                      style: pw.TextStyle(
+                          font: PdfFonts.bold,
+                          fontSize: 10,
+                          color: ExportColors.success),
+                    ),
+                    pw.Text(
+                      'الرصيد: ${(totalDebit - totalCredit).toStringAsFixed(0)} ل.س',
+                      style: pw.TextStyle(font: PdfFonts.bold, fontSize: 10),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+
+    return doc.save();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // تقرير Z (تقرير إغلاق الوردية)
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -1152,13 +1531,14 @@ class PdfExportService {
                       pw.SizedBox(height: 12),
                       _buildZReportRow(
                           'عدد فواتير البيع', '$salesCount فاتورة'),
+                      // ⚠️ ملاحظة: الوردية لا تحفظ قيم USD - نعرض الليرة فقط
                       _buildZReportRow('مبيعات نقدية',
-                          '${cashSales.toStringAsFixed(2)} ل.س (\$${(cashSales / CurrencyService.currentRate).toStringAsFixed(2)})'),
+                          '${cashSales.toStringAsFixed(2)} ل.س'),
                       _buildZReportRow('مبيعات آجلة',
-                          '${creditSales.toStringAsFixed(2)} ل.س (\$${(creditSales / CurrencyService.currentRate).toStringAsFixed(2)})'),
+                          '${creditSales.toStringAsFixed(2)} ل.س'),
                       pw.Divider(color: PdfColors.green200),
                       _buildZReportRow('إجمالي المبيعات',
-                          '${shift.totalSales.toStringAsFixed(2)} ل.س (\$${(shift.totalSales / CurrencyService.currentRate).toStringAsFixed(2)})',
+                          '${shift.totalSales.toStringAsFixed(2)} ل.س',
                           isBold: true),
                     ],
                   ),
@@ -1189,8 +1569,9 @@ class PdfExportService {
                           'عدد فواتير الشراء', '$purchasesCount فاتورة'),
                       _buildZReportRow('عدد المرتجعات', '$returnsCount فاتورة'),
                       pw.Divider(color: PdfColors.red200),
+                      // ⚠️ ملاحظة: الوردية لا تحفظ قيم USD - نعرض الليرة فقط
                       _buildZReportRow('إجمالي المصروفات',
-                          '${shift.totalExpenses.toStringAsFixed(2)} ل.س (\$${(shift.totalExpenses / CurrencyService.currentRate).toStringAsFixed(2)})',
+                          '${shift.totalExpenses.toStringAsFixed(2)} ل.س',
                           isBold: true),
                     ],
                   ),
@@ -1217,17 +1598,18 @@ class PdfExportService {
                         ),
                       ),
                       pw.SizedBox(height: 12),
+                      // ⚠️ ملاحظة: الوردية لا تحفظ قيم USD - نعرض الليرة فقط
                       _buildZReportRow('الرصيد الافتتاحي',
-                          '${shift.openingBalance.toStringAsFixed(2)} ل.س (\$${(shift.openingBalance / CurrencyService.currentRate).toStringAsFixed(2)})'),
+                          '${shift.openingBalance.toStringAsFixed(2)} ل.س'),
                       _buildZReportRow('+ المبيعات النقدية',
-                          '${shift.totalSales.toStringAsFixed(2)} ل.س (\$${(shift.totalSales / CurrencyService.currentRate).toStringAsFixed(2)})',
+                          '${shift.totalSales.toStringAsFixed(2)} ل.س',
                           color: PdfColors.green),
                       _buildZReportRow('- المصروفات',
-                          '${shift.totalExpenses.toStringAsFixed(2)} ل.س (\$${(shift.totalExpenses / CurrencyService.currentRate).toStringAsFixed(2)})',
+                          '${shift.totalExpenses.toStringAsFixed(2)} ل.س',
                           color: PdfColors.red),
                       pw.Divider(color: PdfColors.blue200, thickness: 2),
                       _buildZReportRow('= صافي النقدية المتوقع',
-                          '${netCash.toStringAsFixed(2)} ل.س (\$${(netCash / CurrencyService.currentRate).toStringAsFixed(2)})',
+                          '${netCash.toStringAsFixed(2)} ل.س',
                           isBold: true, fontSize: 14),
                     ],
                   ),

@@ -34,7 +34,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration {
@@ -138,6 +138,52 @@ class AppDatabase extends _$AppDatabase {
           // CashMovements - إضافة عمود المبلغ بالدولار
           await customStatement(
             "ALTER TABLE cash_movements ADD COLUMN amount_usd REAL",
+          );
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // Version 11: إضافة أعمدة الورديات المفقودة
+        // ═══════════════════════════════════════════════════════════════════════
+        if (from < 11) {
+          // Shifts - إضافة أعمدة الأرصدة بالدولار وسعر الصرف
+          await customStatement(
+            "ALTER TABLE shifts ADD COLUMN opening_balance_usd REAL",
+          );
+          await customStatement(
+            "ALTER TABLE shifts ADD COLUMN closing_balance_usd REAL",
+          );
+          await customStatement(
+            "ALTER TABLE shifts ADD COLUMN expected_balance_usd REAL",
+          );
+          await customStatement(
+            "ALTER TABLE shifts ADD COLUMN exchange_rate REAL",
+          );
+
+          // Shifts - إضافة إجماليات الدولار مع قيمة افتراضية 0
+          await customStatement(
+            "ALTER TABLE shifts ADD COLUMN total_sales_usd REAL NOT NULL DEFAULT 0",
+          );
+          await customStatement(
+            "ALTER TABLE shifts ADD COLUMN total_returns_usd REAL NOT NULL DEFAULT 0",
+          );
+          await customStatement(
+            "ALTER TABLE shifts ADD COLUMN total_expenses_usd REAL NOT NULL DEFAULT 0",
+          );
+          await customStatement(
+            "ALTER TABLE shifts ADD COLUMN total_income_usd REAL NOT NULL DEFAULT 0",
+          );
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // Version 12: إضافة سعر التكلفة المحفوظ وقت البيع
+        // ═══════════════════════════════════════════════════════════════════════
+        if (from < 12) {
+          // InvoiceItems - إضافة سعر التكلفة المحفوظ وقت البيع
+          await customStatement(
+            "ALTER TABLE invoice_items ADD COLUMN cost_price REAL",
+          );
+          await customStatement(
+            "ALTER TABLE invoice_items ADD COLUMN cost_price_usd REAL",
           );
         }
       },
@@ -483,6 +529,528 @@ class AppDatabase extends _$AppDatabase {
       soldQuantities[productId] = totalSold;
     }
     return soldQuantities;
+  }
+
+  /// الحصول على أكثر المنتجات مبيعاً خلال فترة معينة
+  Future<List<Map<String, dynamic>>> getTopSellingProducts({
+    DateTime? startDate,
+    DateTime? endDate,
+    String? shiftId,
+    int limit = 10,
+  }) async {
+    String whereClause = "WHERE i.type = 'sale'";
+
+    if (shiftId != null) {
+      whereClause += " AND i.shift_id = '$shiftId'";
+    }
+    if (startDate != null) {
+      whereClause += " AND i.created_at >= '${startDate.toIso8601String()}'";
+    }
+    if (endDate != null) {
+      whereClause += " AND i.created_at <= '${endDate.toIso8601String()}'";
+    }
+
+    final result = await customSelect(
+      '''
+      SELECT 
+        ii.product_id,
+        p.name as product_name,
+        p.barcode,
+        COALESCE(SUM(ii.quantity), 0) as total_quantity,
+        COALESCE(SUM(ii.total), 0.0) as total_revenue,
+        COALESCE(SUM(ii.total_usd), 0.0) as total_revenue_usd,
+        COALESCE(SUM((ii.unit_price - COALESCE(ii.cost_price, ii.purchase_price, 0)) * ii.quantity), 0.0) as total_profit,
+        COUNT(DISTINCT i.id) as invoice_count
+      FROM invoice_items ii
+      INNER JOIN invoices i ON ii.invoice_id = i.id
+      INNER JOIN products p ON ii.product_id = p.id
+      $whereClause
+      GROUP BY ii.product_id, p.name, p.barcode
+      ORDER BY total_quantity DESC
+      LIMIT $limit
+      ''',
+      readsFrom: {invoiceItems, invoices, products},
+    ).get();
+
+    return result
+        .map((row) => {
+              'productId': row.read<String>('product_id'),
+              'productName': row.read<String>('product_name'),
+              'barcode': row.read<String?>('barcode'),
+              'totalQuantity': (row.read<num?>('total_quantity') ?? 0).toInt(),
+              'totalRevenue': (row.read<num?>('total_revenue') ?? 0).toDouble(),
+              'totalRevenueUsd':
+                  (row.read<num?>('total_revenue_usd') ?? 0).toDouble(),
+              'totalProfit': (row.read<num?>('total_profit') ?? 0).toDouble(),
+              'invoiceCount': (row.read<num?>('invoice_count') ?? 0).toInt(),
+            })
+        .toList();
+  }
+
+  /// الحصول على تقرير الأرباح التفصيلي
+  Future<Map<String, dynamic>> getProfitReport({
+    DateTime? startDate,
+    DateTime? endDate,
+    String? shiftId,
+  }) async {
+    String whereClause = "WHERE i.type = 'sale'";
+
+    if (shiftId != null) {
+      whereClause += " AND i.shift_id = '$shiftId'";
+    }
+    if (startDate != null) {
+      whereClause += " AND i.created_at >= '${startDate.toIso8601String()}'";
+    }
+    if (endDate != null) {
+      whereClause += " AND i.created_at <= '${endDate.toIso8601String()}'";
+    }
+
+    // إجمالي المبيعات والأرباح
+    final salesResult = await customSelect(
+      '''
+      SELECT 
+        COUNT(DISTINCT i.id) as total_invoices,
+        COALESCE(SUM(ii.quantity), 0) as total_items_sold,
+        COALESCE(SUM(ii.total), 0) as total_revenue,
+        COALESCE(SUM(ii.total_usd), 0) as total_revenue_usd,
+        COALESCE(SUM((ii.unit_price - COALESCE(ii.cost_price, ii.purchase_price, 0)) * ii.quantity), 0) as gross_profit
+      FROM invoice_items ii
+      INNER JOIN invoices i ON ii.invoice_id = i.id
+      INNER JOIN products p ON ii.product_id = p.id
+      $whereClause
+      ''',
+      readsFrom: {invoiceItems, invoices, products},
+    ).getSingleOrNull();
+
+    // المصروفات
+    String expenseWhere = "WHERE type = 'expense'";
+    if (shiftId != null) {
+      expenseWhere += " AND shift_id = '$shiftId'";
+    }
+    if (startDate != null) {
+      expenseWhere += " AND created_at >= '${startDate.toIso8601String()}'";
+    }
+    if (endDate != null) {
+      expenseWhere += " AND created_at <= '${endDate.toIso8601String()}'";
+    }
+
+    final expenseResult = await customSelect(
+      '''
+      SELECT 
+        COALESCE(SUM(amount), 0) as total_expenses,
+        COALESCE(SUM(amount_usd), 0) as total_expenses_usd
+      FROM cash_movements
+      $expenseWhere
+      ''',
+      readsFrom: {cashMovements},
+    ).getSingleOrNull();
+
+    // المرتجعات
+    String returnWhere = "WHERE i.type = 'sale_return'";
+    if (shiftId != null) {
+      returnWhere += " AND i.shift_id = '$shiftId'";
+    }
+    if (startDate != null) {
+      returnWhere += " AND i.created_at >= '${startDate.toIso8601String()}'";
+    }
+    if (endDate != null) {
+      returnWhere += " AND i.created_at <= '${endDate.toIso8601String()}'";
+    }
+
+    final returnResult = await customSelect(
+      '''
+      SELECT 
+        COALESCE(SUM(i.total), 0) as total_returns,
+        COALESCE(SUM(i.total_usd), 0) as total_returns_usd
+      FROM invoices i
+      $returnWhere
+      ''',
+      readsFrom: {invoices},
+    ).getSingleOrNull();
+
+    final totalRevenue =
+        (salesResult?.read<num?>('total_revenue') ?? 0).toDouble();
+    final totalRevenueUsd =
+        (salesResult?.read<num?>('total_revenue_usd') ?? 0).toDouble();
+    final grossProfit =
+        (salesResult?.read<num?>('gross_profit') ?? 0).toDouble();
+    final totalExpenses =
+        (expenseResult?.read<num?>('total_expenses') ?? 0).toDouble();
+    final totalExpensesUsd =
+        (expenseResult?.read<num?>('total_expenses_usd') ?? 0).toDouble();
+    final totalReturns =
+        (returnResult?.read<num?>('total_returns') ?? 0).toDouble();
+    final totalReturnsUsd =
+        (returnResult?.read<num?>('total_returns_usd') ?? 0).toDouble();
+
+    final netProfit = grossProfit - totalExpenses - totalReturns;
+    final profitMargin =
+        totalRevenue > 0 ? (netProfit / totalRevenue * 100) : 0.0;
+
+    return {
+      'totalInvoices': (salesResult?.read<num?>('total_invoices') ?? 0).toInt(),
+      'totalItemsSold':
+          (salesResult?.read<num?>('total_items_sold') ?? 0).toInt(),
+      'totalRevenue': totalRevenue,
+      'totalRevenueUsd': totalRevenueUsd,
+      'grossProfit': grossProfit,
+      'totalExpenses': totalExpenses,
+      'totalExpensesUsd': totalExpensesUsd,
+      'totalReturns': totalReturns,
+      'totalReturnsUsd': totalReturnsUsd,
+      'netProfit': netProfit,
+      'profitMargin': profitMargin,
+    };
+  }
+
+  /// الحصول على بيانات المبيعات اليومية للرسوم البيانية
+  Future<List<Map<String, dynamic>>> getDailySalesData({
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    final result = await customSelect(
+      '''
+      SELECT 
+        DATE(i.created_at) as sale_date,
+        COUNT(DISTINCT i.id) as invoice_count,
+        COALESCE(SUM(i.total), 0.0) as total_sales,
+        COALESCE(SUM(i.total_usd), 0.0) as total_sales_usd
+      FROM invoices i
+      WHERE i.type = 'sale'
+        AND i.created_at >= '${startDate.toIso8601String()}'
+        AND i.created_at <= '${endDate.toIso8601String()}'
+      GROUP BY DATE(i.created_at)
+      ORDER BY sale_date ASC
+      ''',
+      readsFrom: {invoices},
+    ).get();
+
+    return result
+        .map((row) => {
+              'date': row.read<String>('sale_date'),
+              'invoiceCount': (row.read<num?>('invoice_count') ?? 0).toInt(),
+              'totalSales': (row.read<num?>('total_sales') ?? 0).toDouble(),
+              'totalSalesUsd':
+                  (row.read<num?>('total_sales_usd') ?? 0).toDouble(),
+            })
+        .toList();
+  }
+
+  /// تقرير الأرباح المحسن (يشمل الخصومات والمرتجعات)
+  Future<Map<String, dynamic>> getEnhancedProfitReport({
+    DateTime? startDate,
+    DateTime? endDate,
+    String? shiftId,
+  }) async {
+    String whereClause = "WHERE i.type = 'sale'";
+    if (shiftId != null) {
+      whereClause += " AND i.shift_id = '$shiftId'";
+    }
+    if (startDate != null) {
+      whereClause += " AND i.created_at >= '${startDate.toIso8601String()}'";
+    }
+    if (endDate != null) {
+      whereClause += " AND i.created_at <= '${endDate.toIso8601String()}'";
+    }
+
+    // إجمالي المبيعات والأرباح (باستخدام cost_price المحفوظ إن وجد)
+    final salesResult = await customSelect(
+      '''
+      SELECT 
+        COUNT(DISTINCT i.id) as total_invoices,
+        COALESCE(SUM(ii.quantity), 0) as total_items_sold,
+        COALESCE(SUM(ii.total), 0) as total_revenue,
+        COALESCE(SUM(ii.total_usd), 0) as total_revenue_usd,
+        COALESCE(SUM(ii.discount_amount), 0) as total_discounts,
+        COALESCE(SUM((ii.unit_price - COALESCE(ii.cost_price, ii.purchase_price, 0)) * ii.quantity), 0) as gross_profit,
+        COALESCE(SUM((COALESCE(ii.unit_price_usd, 0) - COALESCE(ii.cost_price_usd, 0)) * ii.quantity), 0) as gross_profit_usd
+      FROM invoice_items ii
+      INNER JOIN invoices i ON ii.invoice_id = i.id
+      INNER JOIN products p ON ii.product_id = p.id
+      $whereClause
+      ''',
+      readsFrom: {invoiceItems, invoices, products},
+    ).getSingleOrNull();
+
+    // المصروفات
+    String expenseWhere = "WHERE type = 'expense'";
+    if (shiftId != null) expenseWhere += " AND shift_id = '$shiftId'";
+    if (startDate != null)
+      expenseWhere += " AND created_at >= '${startDate.toIso8601String()}'";
+    if (endDate != null)
+      expenseWhere += " AND created_at <= '${endDate.toIso8601String()}'";
+
+    final expenseResult = await customSelect(
+      '''
+      SELECT 
+        COALESCE(SUM(amount), 0) as total_expenses,
+        COALESCE(SUM(amount_usd), 0) as total_expenses_usd
+      FROM cash_movements
+      $expenseWhere
+      ''',
+      readsFrom: {cashMovements},
+    ).getSingleOrNull();
+
+    // مرتجعات المبيعات
+    String saleReturnWhere = "WHERE i.type = 'sale_return'";
+    if (shiftId != null) saleReturnWhere += " AND i.shift_id = '$shiftId'";
+    if (startDate != null)
+      saleReturnWhere +=
+          " AND i.created_at >= '${startDate.toIso8601String()}'";
+    if (endDate != null)
+      saleReturnWhere += " AND i.created_at <= '${endDate.toIso8601String()}'";
+
+    final saleReturnResult = await customSelect(
+      '''
+      SELECT 
+        COALESCE(SUM(i.total), 0) as total_returns,
+        COALESCE(SUM(i.total_usd), 0) as total_returns_usd
+      FROM invoices i
+      $saleReturnWhere
+      ''',
+      readsFrom: {invoices},
+    ).getSingleOrNull();
+
+    // مرتجعات المشتريات (تعتبر ربح)
+    String purchaseReturnWhere = "WHERE i.type = 'purchase_return'";
+    if (shiftId != null) purchaseReturnWhere += " AND i.shift_id = '$shiftId'";
+    if (startDate != null)
+      purchaseReturnWhere +=
+          " AND i.created_at >= '${startDate.toIso8601String()}'";
+    if (endDate != null)
+      purchaseReturnWhere +=
+          " AND i.created_at <= '${endDate.toIso8601String()}'";
+
+    final purchaseReturnResult = await customSelect(
+      '''
+      SELECT 
+        COALESCE(SUM(i.total), 0) as total_returns,
+        COALESCE(SUM(i.total_usd), 0) as total_returns_usd
+      FROM invoices i
+      $purchaseReturnWhere
+      ''',
+      readsFrom: {invoices},
+    ).getSingleOrNull();
+
+    // استخراج القيم
+    final salesData = salesResult?.data ?? {};
+    final expenseData = expenseResult?.data ?? {};
+    final saleReturnData = saleReturnResult?.data ?? {};
+    final purchaseReturnData = purchaseReturnResult?.data ?? {};
+
+    final totalRevenue = ((salesData['total_revenue'] ?? 0) as num).toDouble();
+    final totalRevenueUsd =
+        ((salesData['total_revenue_usd'] ?? 0) as num).toDouble();
+    final totalDiscounts =
+        ((salesData['total_discounts'] ?? 0) as num).toDouble();
+    final grossProfit = ((salesData['gross_profit'] ?? 0) as num).toDouble();
+    final grossProfitUsd =
+        ((salesData['gross_profit_usd'] ?? 0) as num).toDouble();
+    final totalExpenses =
+        ((expenseData['total_expenses'] ?? 0) as num).toDouble();
+    final totalExpensesUsd =
+        ((expenseData['total_expenses_usd'] ?? 0) as num).toDouble();
+    final totalSaleReturns =
+        ((saleReturnData['total_returns'] ?? 0) as num).toDouble();
+    final totalSaleReturnsUsd =
+        ((saleReturnData['total_returns_usd'] ?? 0) as num).toDouble();
+    final totalPurchaseReturns =
+        ((purchaseReturnData['total_returns'] ?? 0) as num).toDouble();
+    final totalPurchaseReturnsUsd =
+        ((purchaseReturnData['total_returns_usd'] ?? 0) as num).toDouble();
+
+    // صافي الربح = إجمالي الربح - المصروفات - مرتجعات المبيعات + مرتجعات المشتريات
+    final netProfit =
+        grossProfit - totalExpenses - totalSaleReturns + totalPurchaseReturns;
+    final netProfitUsd = grossProfitUsd -
+        totalExpensesUsd -
+        totalSaleReturnsUsd +
+        totalPurchaseReturnsUsd;
+    final profitMargin =
+        totalRevenue > 0 ? (netProfit / totalRevenue * 100) : 0.0;
+
+    return {
+      'totalInvoices': ((salesData['total_invoices'] ?? 0) as num).toInt(),
+      'totalItemsSold': ((salesData['total_items_sold'] ?? 0) as num).toInt(),
+      'totalRevenue': totalRevenue,
+      'totalRevenueUsd': totalRevenueUsd,
+      'totalDiscounts': totalDiscounts,
+      'grossProfit': grossProfit,
+      'grossProfitUsd': grossProfitUsd,
+      'totalExpenses': totalExpenses,
+      'totalExpensesUsd': totalExpensesUsd,
+      'totalSaleReturns': totalSaleReturns,
+      'totalSaleReturnsUsd': totalSaleReturnsUsd,
+      'totalPurchaseReturns': totalPurchaseReturns,
+      'totalPurchaseReturnsUsd': totalPurchaseReturnsUsd,
+      'netProfit': netProfit,
+      'netProfitUsd': netProfitUsd,
+      'profitMargin': profitMargin,
+    };
+  }
+
+  /// تقرير الأرباح حسب الفئة
+  Future<List<Map<String, dynamic>>> getProfitByCategory({
+    DateTime? startDate,
+    DateTime? endDate,
+    String? shiftId,
+  }) async {
+    String whereClause = "WHERE i.type = 'sale'";
+    if (shiftId != null) whereClause += " AND i.shift_id = '$shiftId'";
+    if (startDate != null)
+      whereClause += " AND i.created_at >= '${startDate.toIso8601String()}'";
+    if (endDate != null)
+      whereClause += " AND i.created_at <= '${endDate.toIso8601String()}'";
+
+    final result = await customSelect(
+      '''
+      SELECT 
+        COALESCE(c.id, 'uncategorized') as category_id,
+        COALESCE(c.name, 'بدون فئة') as category_name,
+        COUNT(DISTINCT i.id) as invoice_count,
+        COALESCE(SUM(ii.quantity), 0) as total_quantity,
+        COALESCE(SUM(ii.total), 0) as total_revenue,
+        COALESCE(SUM(ii.total_usd), 0) as total_revenue_usd,
+        COALESCE(SUM((ii.unit_price - COALESCE(ii.cost_price, ii.purchase_price, 0)) * ii.quantity), 0) as total_profit
+      FROM invoice_items ii
+      INNER JOIN invoices i ON ii.invoice_id = i.id
+      INNER JOIN products p ON ii.product_id = p.id
+      LEFT JOIN categories c ON p.category_id = c.id
+      $whereClause
+      GROUP BY c.id, c.name
+      ORDER BY total_profit DESC
+      ''',
+      readsFrom: {invoiceItems, invoices, products, categories},
+    ).get();
+
+    return result.map((row) {
+      final data = row.data;
+      return {
+        'categoryId': data['category_id']?.toString() ?? 'uncategorized',
+        'categoryName': data['category_name']?.toString() ?? 'بدون فئة',
+        'invoiceCount': ((data['invoice_count'] ?? 0) as num).toInt(),
+        'totalQuantity': ((data['total_quantity'] ?? 0) as num).toInt(),
+        'totalRevenue': ((data['total_revenue'] ?? 0) as num).toDouble(),
+        'totalRevenueUsd': ((data['total_revenue_usd'] ?? 0) as num).toDouble(),
+        'totalProfit': ((data['total_profit'] ?? 0) as num).toDouble(),
+      };
+    }).toList();
+  }
+
+  /// تقرير الأرباح حسب العميل
+  Future<List<Map<String, dynamic>>> getProfitByCustomer({
+    DateTime? startDate,
+    DateTime? endDate,
+    int limit = 20,
+  }) async {
+    String whereClause = "WHERE i.type = 'sale' AND i.customer_id IS NOT NULL";
+    if (startDate != null)
+      whereClause += " AND i.created_at >= '${startDate.toIso8601String()}'";
+    if (endDate != null)
+      whereClause += " AND i.created_at <= '${endDate.toIso8601String()}'";
+
+    final result = await customSelect(
+      '''
+      SELECT 
+        cu.id as customer_id,
+        cu.name as customer_name,
+        cu.phone as customer_phone,
+        COUNT(DISTINCT i.id) as invoice_count,
+        COALESCE(SUM(ii.quantity), 0) as total_quantity,
+        COALESCE(SUM(ii.total), 0) as total_revenue,
+        COALESCE(SUM(ii.total_usd), 0) as total_revenue_usd,
+        COALESCE(SUM((ii.unit_price - COALESCE(ii.cost_price, ii.purchase_price, 0)) * ii.quantity), 0) as total_profit
+      FROM invoice_items ii
+      INNER JOIN invoices i ON ii.invoice_id = i.id
+      INNER JOIN products p ON ii.product_id = p.id
+      INNER JOIN customers cu ON i.customer_id = cu.id
+      $whereClause
+      GROUP BY cu.id, cu.name, cu.phone
+      ORDER BY total_profit DESC
+      LIMIT $limit
+      ''',
+      readsFrom: {invoiceItems, invoices, products, customers},
+    ).get();
+
+    return result.map((row) {
+      final data = row.data;
+      return {
+        'customerId': data['customer_id']?.toString() ?? '',
+        'customerName': data['customer_name']?.toString() ?? '',
+        'customerPhone': data['customer_phone']?.toString(),
+        'invoiceCount': ((data['invoice_count'] ?? 0) as num).toInt(),
+        'totalQuantity': ((data['total_quantity'] ?? 0) as num).toInt(),
+        'totalRevenue': ((data['total_revenue'] ?? 0) as num).toDouble(),
+        'totalRevenueUsd': ((data['total_revenue_usd'] ?? 0) as num).toDouble(),
+        'totalProfit': ((data['total_profit'] ?? 0) as num).toDouble(),
+      };
+    }).toList();
+  }
+
+  /// بيانات الأرباح اليومية للرسم البياني
+  Future<List<Map<String, dynamic>>> getDailyProfitData({
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    final result = await customSelect(
+      '''
+      SELECT 
+        DATE(i.created_at) as profit_date,
+        COALESCE(SUM(ii.total), 0) as total_revenue,
+        COALESCE(SUM((ii.unit_price - COALESCE(ii.cost_price, ii.purchase_price, 0)) * ii.quantity), 0) as total_profit
+      FROM invoice_items ii
+      INNER JOIN invoices i ON ii.invoice_id = i.id
+      INNER JOIN products p ON ii.product_id = p.id
+      WHERE i.type = 'sale'
+        AND i.created_at >= '${startDate.toIso8601String()}'
+        AND i.created_at <= '${endDate.toIso8601String()}'
+      GROUP BY DATE(i.created_at)
+      ORDER BY profit_date ASC
+      ''',
+      readsFrom: {invoiceItems, invoices, products},
+    ).get();
+
+    return result.map((row) {
+      final data = row.data;
+      return {
+        'date': data['profit_date']?.toString() ?? '',
+        'totalRevenue': ((data['total_revenue'] ?? 0) as num).toDouble(),
+        'totalProfit': ((data['total_profit'] ?? 0) as num).toDouble(),
+      };
+    }).toList();
+  }
+
+  /// بيانات الأرباح الشهرية للرسم البياني
+  Future<List<Map<String, dynamic>>> getMonthlyProfitData({
+    required int year,
+  }) async {
+    final result = await customSelect(
+      '''
+      SELECT 
+        strftime('%m', i.created_at) as month,
+        COALESCE(SUM(ii.total), 0) as total_revenue,
+        COALESCE(SUM(ii.total_usd), 0) as total_revenue_usd,
+        COALESCE(SUM((ii.unit_price - COALESCE(ii.cost_price, ii.purchase_price, 0)) * ii.quantity), 0) as total_profit
+      FROM invoice_items ii
+      INNER JOIN invoices i ON ii.invoice_id = i.id
+      INNER JOIN products p ON ii.product_id = p.id
+      WHERE i.type = 'sale'
+        AND strftime('%Y', i.created_at) = '$year'
+      GROUP BY strftime('%m', i.created_at)
+      ORDER BY month ASC
+      ''',
+      readsFrom: {invoiceItems, invoices, products},
+    ).get();
+
+    return result.map((row) {
+      final data = row.data;
+      return {
+        'month': int.tryParse(data['month']?.toString() ?? '0') ?? 0,
+        'totalRevenue': ((data['total_revenue'] ?? 0) as num).toDouble(),
+        'totalRevenueUsd': ((data['total_revenue_usd'] ?? 0) as num).toDouble(),
+        'totalProfit': ((data['total_profit'] ?? 0) as num).toDouble(),
+      };
+    }).toList();
   }
 
   // ==================== Inventory Movements ====================
@@ -867,75 +1435,6 @@ class AppDatabase extends _$AppDatabase {
         .watch();
   }
 
-  // Watch top selling products - returns stream
-  Stream<List<Map<String, dynamic>>> watchTopSellingProducts(
-      DateTime start, DateTime end, int limit) {
-    return customSelect(
-      '''
-      SELECT 
-        p.id, p.name, p.sku,
-        COALESCE(SUM(ii.quantity), 0) as total_quantity,
-        COALESCE(SUM(ii.total), 0) as total_amount
-      FROM products p
-      LEFT JOIN invoice_items ii ON ii.product_id = p.id
-      LEFT JOIN invoices i ON ii.invoice_id = i.id AND i.type = 'sale' AND i.invoice_date BETWEEN ? AND ?
-      GROUP BY p.id
-      HAVING total_quantity > 0
-      ORDER BY total_quantity DESC
-      LIMIT ?
-      ''',
-      variables: [
-        Variable.withDateTime(start),
-        Variable.withDateTime(end),
-        Variable.withInt(limit),
-      ],
-      readsFrom: {invoiceItems, invoices, products},
-    ).watch().map((rows) => rows
-        .map((row) => {
-              'id': row.read<String>('id'),
-              'name': row.read<String>('name'),
-              'sku': row.readNullable<String>('sku'),
-              'quantity': row.read<int>('total_quantity'),
-              'total': row.read<double>('total_amount'),
-            })
-        .toList());
-  }
-
-  Future<List<Map<String, dynamic>>> getTopSellingProducts(
-      DateTime start, DateTime end, int limit) async {
-    final result = await customSelect(
-      '''
-      SELECT 
-        p.id, p.name, p.sku,
-        SUM(ii.quantity) as total_quantity,
-        SUM(ii.total) as total_amount
-      FROM invoice_items ii
-      JOIN invoices i ON ii.invoice_id = i.id
-      JOIN products p ON ii.product_id = p.id
-      WHERE i.type = 'sale' AND i.invoice_date BETWEEN ? AND ?
-      GROUP BY p.id
-      ORDER BY total_quantity DESC
-      LIMIT ?
-      ''',
-      variables: [
-        Variable.withDateTime(start),
-        Variable.withDateTime(end),
-        Variable.withInt(limit),
-      ],
-      readsFrom: {invoiceItems, invoices, products},
-    ).get();
-
-    return result
-        .map((row) => {
-              'id': row.read<String>('id'),
-              'name': row.read<String>('name'),
-              'sku': row.readNullable<String>('sku'),
-              'totalQuantity': row.read<int>('total_quantity'),
-              'totalAmount': row.read<double>('total_amount'),
-            })
-        .toList();
-  }
-
   // ==================== Voucher Categories ====================
 
   Future<List<VoucherCategory>> getAllVoucherCategories() =>
@@ -1195,6 +1694,16 @@ class AppDatabase extends _$AppDatabase {
   Future<StockTransfer?> getStockTransferById(String id) =>
       (select(stockTransfers)..where((t) => t.id.equals(id))).getSingleOrNull();
 
+  /// ✅ الحصول على عمليات النقل المعلقة لمستودع معين
+  Future<List<StockTransfer>> getPendingTransfersForWarehouse(
+          String warehouseId) =>
+      (select(stockTransfers)
+            ..where((t) =>
+                (t.fromWarehouseId.equals(warehouseId) |
+                    t.toWarehouseId.equals(warehouseId)) &
+                (t.status.equals('pending') | t.status.equals('in_transit'))))
+          .get();
+
   Future<int> insertStockTransfer(StockTransfersCompanion transfer) =>
       into(stockTransfers).insert(transfer);
 
@@ -1326,6 +1835,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   /// الحصول على ملخص المخزون لجميع المستودعات
+  /// ✅ تم إضافة حساب قيمة المخزون (total_value)
   Future<List<Map<String, dynamic>>> getWarehouseStockSummary() async {
     final result = await customSelect(
       '''
@@ -1334,22 +1844,25 @@ class AppDatabase extends _$AppDatabase {
         w.name as warehouse_name,
         COUNT(DISTINCT ws.product_id) as product_count,
         COALESCE(SUM(ws.quantity), 0) as total_quantity,
-        COALESCE(SUM(CASE WHEN ws.quantity <= ws.min_quantity THEN 1 ELSE 0 END), 0) as low_stock_count
+        COALESCE(SUM(CASE WHEN ws.quantity <= ws.min_quantity THEN 1 ELSE 0 END), 0) as low_stock_count,
+        COALESCE(SUM(ws.quantity * COALESCE(p.price, 0)), 0) as total_value
       FROM warehouses w
       LEFT JOIN warehouse_stock ws ON w.id = ws.warehouse_id
+      LEFT JOIN products p ON ws.product_id = p.id
       WHERE w.is_active = 1
       GROUP BY w.id
       ''',
-      readsFrom: {warehouses, warehouseStock},
+      readsFrom: {warehouses, warehouseStock, products},
     ).get();
 
     return result
         .map((row) => {
-              'warehouseId': row.read<String>('warehouse_id'),
-              'warehouseName': row.read<String>('warehouse_name'),
-              'productCount': row.read<int>('product_count'),
-              'totalQuantity': row.read<int>('total_quantity'),
-              'lowStockCount': row.read<int>('low_stock_count'),
+              'warehouse_id': row.read<String>('warehouse_id'),
+              'warehouse_name': row.read<String>('warehouse_name'),
+              'product_count': row.read<int>('product_count'),
+              'total_quantity': row.read<int>('total_quantity'),
+              'low_stock_count': row.read<int>('low_stock_count'),
+              'total_value': row.read<double>('total_value'),
             })
         .toList();
   }
@@ -1919,59 +2432,6 @@ class AppDatabase extends _$AppDatabase {
               'lastPurchase': row.readNullable<DateTime>('last_purchase'),
             })
         .get();
-  }
-
-  /// الحصول على تقرير الأرباح
-  Future<Map<String, dynamic>> getProfitReport(
-      DateTime start, DateTime end) async {
-    final result = await customSelect(
-      '''
-      SELECT 
-        COALESCE(SUM(ii.total), 0) as total_revenue,
-        COALESCE(SUM(ii.quantity * ii.purchase_price), 0) as total_cost,
-        COALESCE(SUM(ii.total) - SUM(ii.quantity * ii.purchase_price), 0) as gross_profit,
-        COUNT(DISTINCT i.id) as invoice_count,
-        SUM(ii.quantity) as total_items_sold
-      FROM invoice_items ii
-      JOIN invoices i ON ii.invoice_id = i.id
-      WHERE i.type = 'sale' AND i.invoice_date BETWEEN ? AND ?
-      ''',
-      variables: [
-        Variable.withDateTime(start),
-        Variable.withDateTime(end),
-      ],
-      readsFrom: {invoiceItems, invoices},
-    ).getSingleOrNull();
-
-    // حساب المصاريف
-    final expenses = await customSelect(
-      '''
-      SELECT COALESCE(SUM(amount), 0) as total
-      FROM vouchers
-      WHERE type = 'expense' AND voucher_date BETWEEN ? AND ?
-      ''',
-      variables: [
-        Variable.withDateTime(start),
-        Variable.withDateTime(end),
-      ],
-      readsFrom: {vouchers},
-    ).getSingleOrNull();
-
-    final totalRevenue = result?.read<double>('total_revenue') ?? 0;
-    final totalCost = result?.read<double>('total_cost') ?? 0;
-    final grossProfit = result?.read<double>('gross_profit') ?? 0;
-    final totalExpenses = expenses?.read<double>('total') ?? 0;
-
-    return {
-      'totalRevenue': totalRevenue,
-      'totalCost': totalCost,
-      'grossProfit': grossProfit,
-      'totalExpenses': totalExpenses,
-      'netProfit': grossProfit - totalExpenses,
-      'profitMargin': totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0,
-      'invoiceCount': result?.read<int>('invoice_count') ?? 0,
-      'totalItemsSold': result?.read<int>('total_items_sold') ?? 0,
-    };
   }
 }
 

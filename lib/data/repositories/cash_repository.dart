@@ -36,19 +36,33 @@ class CashRepository
   }) async {
     final id = generateId();
     final currencyService = getIt<CurrencyService>();
+    final exchangeRate = currencyService.exchangeRate;
+    final amountUsd = amount / exchangeRate;
 
     await database.insertCashMovement(CashMovementsCompanion(
       id: Value(id),
       shiftId: Value(shiftId),
       type: const Value('income'),
       amount: Value(amount),
+      amountUsd: Value(amountUsd),
       description: Value(description),
       category: Value(category),
       paymentMethod: Value(paymentMethod),
-      exchangeRate: Value(currencyService.exchangeRate),
+      exchangeRate: Value(exchangeRate),
       syncStatus: const Value('pending'),
       createdAt: Value(DateTime.now()),
     ));
+
+    // تحديث إجماليات الوردية
+    final shift = await database.getShiftById(shiftId);
+    if (shift != null) {
+      await database.updateShift(ShiftsCompanion(
+        id: Value(shiftId),
+        totalIncome: Value(shift.totalIncome + amount),
+        totalIncomeUsd: Value(shift.totalIncomeUsd + amountUsd),
+        updatedAt: Value(DateTime.now()),
+      ));
+    }
 
     // Sync immediately to Firestore
     _syncCashMovementToFirestore(id);
@@ -66,19 +80,33 @@ class CashRepository
   }) async {
     final id = generateId();
     final currencyService = getIt<CurrencyService>();
+    final exchangeRate = currencyService.exchangeRate;
+    final amountUsd = amount / exchangeRate;
 
     await database.insertCashMovement(CashMovementsCompanion(
       id: Value(id),
       shiftId: Value(shiftId),
       type: const Value('expense'),
       amount: Value(amount),
+      amountUsd: Value(amountUsd),
       description: Value(description),
       category: Value(category),
       paymentMethod: Value(paymentMethod),
-      exchangeRate: Value(currencyService.exchangeRate),
+      exchangeRate: Value(exchangeRate),
       syncStatus: const Value('pending'),
       createdAt: Value(DateTime.now()),
     ));
+
+    // تحديث إجماليات الوردية
+    final shift = await database.getShiftById(shiftId);
+    if (shift != null) {
+      await database.updateShift(ShiftsCompanion(
+        id: Value(shiftId),
+        totalExpenses: Value(shift.totalExpenses + amount),
+        totalExpensesUsd: Value(shift.totalExpensesUsd + amountUsd),
+        updatedAt: Value(DateTime.now()),
+      ));
+    }
 
     // Sync immediately to Firestore
     _syncCashMovementToFirestore(id);
@@ -95,19 +123,35 @@ class CashRepository
   }) async {
     final id = generateId();
     final currencyService = getIt<CurrencyService>();
+    final exchangeRate = currencyService.exchangeRate;
+    final amountUsd = amount / exchangeRate;
+
     await database.insertCashMovement(CashMovementsCompanion(
       id: Value(id),
       shiftId: Value(shiftId),
       type: const Value('sale'),
       amount: Value(amount),
+      amountUsd: Value(amountUsd),
       description: const Value('مبيعات'),
       referenceId: Value(invoiceId),
       referenceType: const Value('invoice'),
       paymentMethod: Value(paymentMethod),
-      exchangeRate: Value(currencyService.exchangeRate),
+      exchangeRate: Value(exchangeRate),
       syncStatus: const Value('pending'),
       createdAt: Value(DateTime.now()),
     ));
+
+    // تحديث إجماليات الوردية
+    final shift = await database.getShiftById(shiftId);
+    if (shift != null) {
+      await database.updateShift(ShiftsCompanion(
+        id: Value(shiftId),
+        totalSales: Value(shift.totalSales + amount),
+        totalSalesUsd: Value(shift.totalSalesUsd + amountUsd),
+        transactionCount: Value(shift.transactionCount + 1),
+        updatedAt: Value(DateTime.now()),
+      ));
+    }
 
     // Sync immediately to Firestore
     _syncCashMovementToFirestore(id);
@@ -122,19 +166,35 @@ class CashRepository
   }) async {
     final id = generateId();
     final currencyService = getIt<CurrencyService>();
+    final exchangeRate = currencyService.exchangeRate;
+    final amountUsd = amount / exchangeRate;
+
     await database.insertCashMovement(CashMovementsCompanion(
       id: Value(id),
       shiftId: Value(shiftId),
       type: const Value('purchase'),
       amount: Value(amount),
+      amountUsd: Value(amountUsd),
       description: const Value('مشتريات'),
       referenceId: Value(invoiceId),
       referenceType: const Value('invoice'),
       paymentMethod: Value(paymentMethod),
-      exchangeRate: Value(currencyService.exchangeRate),
+      exchangeRate: Value(exchangeRate),
       syncStatus: const Value('pending'),
       createdAt: Value(DateTime.now()),
     ));
+
+    // تحديث إجماليات الوردية (المشتريات تُحسب كمصروفات)
+    final shift = await database.getShiftById(shiftId);
+    if (shift != null) {
+      await database.updateShift(ShiftsCompanion(
+        id: Value(shiftId),
+        totalExpenses: Value(shift.totalExpenses + amount),
+        totalExpensesUsd: Value(shift.totalExpensesUsd + amountUsd),
+        transactionCount: Value(shift.transactionCount + 1),
+        updatedAt: Value(DateTime.now()),
+      ));
+    }
 
     // Sync immediately to Firestore
     _syncCashMovementToFirestore(id);
@@ -150,19 +210,35 @@ class CashRepository
   }) async {
     final id = generateId();
     final currencyService = getIt<CurrencyService>();
+    final exchangeRate = currencyService.exchangeRate;
+    final amountUsd = amount / exchangeRate;
+
     await database.insertCashMovement(CashMovementsCompanion(
       id: Value(id),
       shiftId: Value(shiftId),
       type: const Value('sale_return'), // نوع مخصص للمرتجعات
       amount: Value(amount),
+      amountUsd: Value(amountUsd),
       description: Value('مرتجع مبيعات - فاتورة: $invoiceNumber'),
       referenceId: Value(invoiceId),
       referenceType: const Value('invoice'),
       paymentMethod: Value(paymentMethod),
-      exchangeRate: Value(currencyService.exchangeRate),
+      exchangeRate: Value(exchangeRate),
       syncStatus: const Value('pending'),
       createdAt: Value(DateTime.now()),
     ));
+
+    // تحديث إجماليات الوردية (مرتجع المبيعات يُحسب كمرتجعات)
+    final shift = await database.getShiftById(shiftId);
+    if (shift != null) {
+      await database.updateShift(ShiftsCompanion(
+        id: Value(shiftId),
+        totalReturns: Value(shift.totalReturns + amount),
+        totalReturnsUsd: Value(shift.totalReturnsUsd + amountUsd),
+        transactionCount: Value(shift.transactionCount + 1),
+        updatedAt: Value(DateTime.now()),
+      ));
+    }
 
     // Sync immediately to Firestore
     _syncCashMovementToFirestore(id);
@@ -178,19 +254,35 @@ class CashRepository
   }) async {
     final id = generateId();
     final currencyService = getIt<CurrencyService>();
+    final exchangeRate = currencyService.exchangeRate;
+    final amountUsd = amount / exchangeRate;
+
     await database.insertCashMovement(CashMovementsCompanion(
       id: Value(id),
       shiftId: Value(shiftId),
       type: const Value('purchase_return'), // نوع مخصص للمرتجعات
       amount: Value(amount),
+      amountUsd: Value(amountUsd),
       description: Value('مرتجع مشتريات - فاتورة: $invoiceNumber'),
       referenceId: Value(invoiceId),
       referenceType: const Value('invoice'),
       paymentMethod: Value(paymentMethod),
-      exchangeRate: Value(currencyService.exchangeRate),
+      exchangeRate: Value(exchangeRate),
       syncStatus: const Value('pending'),
       createdAt: Value(DateTime.now()),
     ));
+
+    // تحديث إجماليات الوردية (مرتجع المشتريات يُحسب كإيراد)
+    final shift = await database.getShiftById(shiftId);
+    if (shift != null) {
+      await database.updateShift(ShiftsCompanion(
+        id: Value(shiftId),
+        totalIncome: Value(shift.totalIncome + amount),
+        totalIncomeUsd: Value(shift.totalIncomeUsd + amountUsd),
+        transactionCount: Value(shift.transactionCount + 1),
+        updatedAt: Value(DateTime.now()),
+      ));
+    }
 
     // Sync immediately to Firestore
     _syncCashMovementToFirestore(id);

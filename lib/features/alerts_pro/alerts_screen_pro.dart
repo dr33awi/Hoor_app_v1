@@ -1,103 +1,25 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // Alerts Screen Pro - Enterprise Accounting Design
 // System Alerts and Notifications with Professional Touch
+// Uses UNIFIED ALERTS SYSTEM
 // ═══════════════════════════════════════════════════════════════════════════
 
-import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/widgets/widgets.dart';
-import '../../core/providers/app_providers.dart';
+import '../../core/providers/alerts_provider.dart';
 
-class AlertsScreenPro extends ConsumerStatefulWidget {
+class AlertsScreenPro extends ConsumerWidget {
   const AlertsScreenPro({super.key});
 
   @override
-  ConsumerState<AlertsScreenPro> createState() => _AlertsScreenProState();
-}
-
-class _AlertsScreenProState extends ConsumerState<AlertsScreenPro> {
-  final List<Map<String, dynamic>> _systemAlerts = [];
-  bool _isLoading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadAlerts();
-  }
-
-  Future<void> _loadAlerts() async {
-    setState(() => _isLoading = true);
-
-    try {
-      final alerts = <Map<String, dynamic>>[];
-
-      // Check for low stock products
-      final productsAsync = ref.read(activeProductsStreamProvider);
-      productsAsync.whenData((products) {
-        final lowStock =
-            products.where((p) => p.quantity <= p.minQuantity).toList();
-        if (lowStock.isNotEmpty) {
-          alerts.add({
-            'id': 'low_stock',
-            'type': 'low_stock',
-            'title': 'مخزون منخفض',
-            'message': '${lowStock.length} منتجات وصلت للحد الأدنى',
-            'time': 'تحديث تلقائي',
-            'isRead': false,
-            'priority': 'high',
-            'items': lowStock,
-          });
-        }
-      });
-
-      // Check for unpaid invoices older than 30 days
-      final invoicesAsync = ref.read(salesInvoicesProvider);
-      invoicesAsync.whenData((invoices) {
-        final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
-        final overdue = invoices.where((inv) {
-          if (inv.status == 'paid' || inv.status == 'completed') return false;
-          return inv.invoiceDate.isBefore(thirtyDaysAgo);
-        }).toList();
-        if (overdue.isNotEmpty) {
-          alerts.add({
-            'id': 'overdue',
-            'type': 'overdue',
-            'title': 'فواتير متأخرة',
-            'message': '${overdue.length} فواتير لم تسدد منذ أكثر من 30 يوم',
-            'time': 'تحديث تلقائي',
-            'isRead': false,
-            'priority': 'high',
-            'items': overdue,
-          });
-        }
-      });
-
-      if (mounted) {
-        setState(() {
-          _systemAlerts.clear();
-          _systemAlerts.addAll(alerts);
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Listen to changes
-    ref.listen(activeProductsStreamProvider, (_, __) => _loadAlerts());
-    ref.listen(salesInvoicesProvider, (_, __) => _loadAlerts());
-
-    final unreadCount = _systemAlerts.where((a) => !a['isRead']).length;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final alertsAsync = ref.watch(alertsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -105,222 +27,211 @@ class _AlertsScreenProState extends ConsumerState<AlertsScreenPro> {
         title: 'التنبيهات',
         onBack: () => context.go('/'),
         actions: [
-          if (unreadCount > 0)
-            Container(
-              margin: EdgeInsets.only(left: AppSpacing.sm),
-              padding: EdgeInsets.symmetric(
-                horizontal: AppSpacing.sm,
-                vertical: 2.h,
-              ),
-              decoration: BoxDecoration(
-                color: AppColors.error,
-                borderRadius: BorderRadius.circular(AppRadius.full),
-              ),
-              child: Text(
-                '$unreadCount',
-                style: AppTypography.labelSmall
-                    .copyWith(
-                      color: Colors.white,
-                    )
-                    .mono,
-              ),
-            ),
+          // Badge showing alert count
+          alertsAsync.whenOrNull(
+                data: (alerts) => alerts.isNotEmpty
+                    ? Container(
+                        margin: EdgeInsets.only(left: AppSpacing.sm),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: AppSpacing.sm,
+                          vertical: 2.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.error,
+                          borderRadius: BorderRadius.circular(AppRadius.full),
+                        ),
+                        child: Text(
+                          '${alerts.length}',
+                          style: AppTypography.labelSmall
+                              .copyWith(
+                                color: Colors.white,
+                              )
+                              .mono,
+                        ),
+                      )
+                    : null,
+              ) ??
+              const SizedBox.shrink(),
+          // Refresh button
           IconButton(
-            onPressed: _loadAlerts,
+            onPressed: () => ref.invalidate(alertsProvider),
             icon: Icon(Icons.refresh_rounded, color: AppColors.textSecondary),
           ),
-          if (unreadCount > 0)
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  for (var alert in _systemAlerts) {
-                    alert['isRead'] = true;
-                  }
-                });
-              },
-              child: Text(
-                'قراءة الكل',
-                style: AppTypography.labelMedium.copyWith(
-                  color: AppColors.secondary,
-                ),
-              ),
-            ),
         ],
       ),
-      body: _isLoading
-          ? ProLoadingState.list()
-          : _systemAlerts.isEmpty
-              ? const ProEmptyState(
-                  icon: Icons.notifications_none_rounded,
-                  title: 'لا توجد تنبيهات',
-                  message: 'ستظهر التنبيهات الجديدة هنا',
-                )
-              : ListView.builder(
-                  padding: EdgeInsets.all(AppSpacing.md),
-                  itemCount: _systemAlerts.length,
-                  itemBuilder: (context, index) {
-                    final alert = _systemAlerts[index];
-                    return _AlertCard(
-                      alert: alert,
-                      onTap: () {
-                        setState(() => alert['isRead'] = true);
-                        _handleAlertTap(alert);
-                      },
-                      onDismiss: () {
-                        setState(() => _systemAlerts.removeAt(index));
-                      },
-                    );
-                  },
-                ),
-    );
-  }
+      body: alertsAsync.when(
+        loading: () => ProLoadingState.list(),
+        error: (error, _) => ProEmptyState.error(error: 'خطأ في تحميل التنبيهات: $error'),
+        data: (alerts) {
+          if (alerts.isEmpty) {
+            return const ProEmptyState(
+              icon: Icons.notifications_none_rounded,
+              title: 'لا توجد تنبيهات',
+              message: 'ستظهر التنبيهات الجديدة هنا عند وجود:\n• منتجات منخفضة المخزون\n• ذمم مدينة أو دائنة\n• وردية غير مفتوحة',
+            );
+          }
 
-  void _handleAlertTap(Map<String, dynamic> alert) {
-    final type = alert['type'] as String;
-    switch (type) {
-      case 'low_stock':
-        context.push('/products');
-        break;
-      case 'overdue':
-        context.push('/invoices');
-        break;
-    }
+          return RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(alertsProvider);
+              await ref.read(alertsProvider.future);
+            },
+            child: ListView.builder(
+              padding: EdgeInsets.all(AppSpacing.md),
+              itemCount: alerts.length,
+              itemBuilder: (context, index) {
+                final alert = alerts[index];
+                return _AlertCard(
+                  alert: alert,
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    if (alert.route != null) {
+                      context.push(alert.route!);
+                    }
+                  },
+                );
+              },
+            ),
+          );
+        },
+      ),
+    );
   }
 }
 
 class _AlertCard extends StatelessWidget {
-  final Map<String, dynamic> alert;
+  final AlertItem alert;
   final VoidCallback onTap;
-  final VoidCallback onDismiss;
 
   const _AlertCard({
     required this.alert,
     required this.onTap,
-    required this.onDismiss,
   });
 
   @override
   Widget build(BuildContext context) {
-    final type = alert['type'] as String;
-    final isRead = alert['isRead'] as bool;
-    // ignore: unused_local_variable
-    final priority = alert['priority'] as String;
-
     IconData icon;
     Color color;
 
-    switch (type) {
-      case 'low_stock':
-        icon = Icons.inventory_2_outlined;
-        color = AppColors.warning;
-        break;
-      case 'overdue':
-        icon = Icons.warning_amber_rounded;
+    switch (alert.severity) {
+      case AlertSeverity.critical:
+        icon = Icons.error_outline_rounded;
         color = AppColors.error;
         break;
-      case 'payment':
-        icon = Icons.payments_outlined;
-        color = AppColors.success;
+      case AlertSeverity.warning:
+        icon = Icons.warning_amber_rounded;
+        color = AppColors.warning;
         break;
-      case 'backup':
-        icon = Icons.cloud_done_outlined;
+      case AlertSeverity.info:
+        icon = Icons.info_outline_rounded;
         color = AppColors.secondary;
         break;
-      default:
-        icon = Icons.sync_rounded;
-        color = AppColors.textSecondary;
+      case AlertSeverity.success:
+        icon = Icons.check_circle_outline_rounded;
+        color = AppColors.success;
+        break;
     }
 
-    return Dismissible(
-      key: Key(alert['id']),
-      direction: DismissDirection.endToStart,
-      onDismissed: (_) => onDismiss(),
-      background: Container(
-        margin: EdgeInsets.only(bottom: AppSpacing.sm),
-        alignment: Alignment.centerLeft,
-        padding: EdgeInsets.only(left: AppSpacing.lg),
-        decoration: BoxDecoration(
-          color: AppColors.error,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-        ),
-        child: Icon(
-          Icons.delete_outline_rounded,
-          color: Colors.white,
-        ),
+    // Special icons based on alert ID
+    switch (alert.id) {
+      case 'low_stock':
+        icon = Icons.inventory_2_outlined;
+        break;
+      case 'zero_stock':
+        icon = Icons.remove_shopping_cart_outlined;
+        break;
+      case 'receivables':
+        icon = Icons.account_balance_wallet_outlined;
+        break;
+      case 'payables':
+        icon = Icons.payment_outlined;
+        break;
+      case 'no_shift':
+        icon = Icons.access_time_rounded;
+        break;
+    }
+
+    return Card(
+      margin: EdgeInsets.only(bottom: AppSpacing.sm),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        side: BorderSide(color: color.border),
       ),
-      child: Card(
-        margin: EdgeInsets.only(bottom: AppSpacing.sm),
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          side: BorderSide(
-            color: isRead ? AppColors.border : color.border,
-          ),
-        ),
-        color: isRead ? AppColors.surface : color.subtle,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          child: Padding(
-            padding: EdgeInsets.all(AppSpacing.md),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: EdgeInsets.all(AppSpacing.sm),
-                  decoration: BoxDecoration(
-                    color: color.soft,
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                  ),
-                  child: Icon(icon, color: color, size: AppIconSize.md),
+      color: color.subtle,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        child: Padding(
+          padding: EdgeInsets.all(AppSpacing.md),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: EdgeInsets.all(AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: color.soft,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
-                SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              alert['title'],
-                              style: AppTypography.titleSmall.copyWith(
-                                color: AppColors.textPrimary,
-                                fontWeight:
-                                    isRead ? FontWeight.w500 : FontWeight.w600,
-                              ),
+                child: Icon(icon, color: color, size: AppIconSize.md),
+              ),
+              SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            alert.title,
+                            style: AppTypography.titleSmall.copyWith(
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                          if (!isRead)
-                            Container(
-                              width: 8.w,
-                              height: 8.w,
-                              decoration: BoxDecoration(
-                                color: color,
-                                shape: BoxShape.circle,
-                              ),
+                        ),
+                        Container(
+                          width: 8.w,
+                          height: 8.w,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 4.h),
+                    Text(
+                      alert.message,
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    if (alert.actionLabel != null) ...[
+                      SizedBox(height: AppSpacing.sm),
+                      Row(
+                        children: [
+                          Text(
+                            alert.actionLabel!,
+                            style: AppTypography.labelMedium.copyWith(
+                              color: color,
+                              fontWeight: FontWeight.w600,
                             ),
+                          ),
+                          SizedBox(width: 4.w),
+                          Icon(
+                            Icons.arrow_forward_rounded,
+                            color: color,
+                            size: 16.sp,
+                          ),
                         ],
                       ),
-                      SizedBox(height: 4.h),
-                      Text(
-                        alert['message'],
-                        style: AppTypography.bodyMedium.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      SizedBox(height: AppSpacing.xs),
-                      Text(
-                        alert['time'],
-                        style: AppTypography.labelSmall.copyWith(
-                          color: AppColors.textTertiary,
-                        ),
-                      ),
                     ],
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

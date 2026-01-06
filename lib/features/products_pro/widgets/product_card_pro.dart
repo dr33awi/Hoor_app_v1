@@ -104,24 +104,35 @@ class ProductCardPro extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
 
-                      // Price & Stock
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              (product['price'] as double).toStringAsFixed(0),
-                              style: AppTypography.labelMedium
-                                  .copyWith(
-                                    color: AppColors.secondary,
-                                  )
-                                  .monoBold,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          _buildStockBadge(),
-                        ],
+                      // Price (SYP + USD)
+                      Builder(
+                        builder: (context) {
+                          final price = product['price'] as double;
+                          final priceUsd = product['priceUsd'] as double?;
+                          final exchangeRate =
+                              product['exchangeRate'] as double? ??
+                                  CurrencyService.currentRate;
+                          final calculatedUsd = priceUsd ??
+                              (exchangeRate > 0 ? price / exchangeRate : null);
+
+                          return CompactDualPrice(
+                            amountSyp: price,
+                            amountUsd: calculatedUsd,
+                            sypStyle: AppTypography.labelSmall
+                                .copyWith(color: AppColors.secondary)
+                                .monoBold,
+                            usdStyle: AppTypography.labelSmall
+                                .copyWith(
+                                  color: AppColors.textTertiary,
+                                  fontSize: 9.sp,
+                                )
+                                .mono,
+                          );
+                        },
                       ),
+
+                      // Stock with progress bar
+                      _buildStockIndicator(),
                     ],
                   ),
                 ),
@@ -335,6 +346,65 @@ class ProductCardPro extends StatelessWidget {
             )
             .monoSemibold,
       ),
+    );
+  }
+
+  /// مؤشر المخزون مع شريط التقدم
+  Widget _buildStockIndicator() {
+    final stock = product['stock'] as int;
+    final minStock = product['minStock'] as int;
+
+    // حساب نسبة المخزون (الحد الأقصى 2x الحد الأدنى أو 100 قطعة)
+    final maxStock = (minStock * 2).clamp(10, 100);
+    final percentage = (stock / maxStock).clamp(0.0, 1.0);
+
+    Color color;
+    String statusText;
+
+    if (stock == 0) {
+      color = AppColors.error;
+      statusText = 'نفد';
+    } else if (stock <= minStock) {
+      color = AppColors.warning;
+      statusText = '$stock قطعة';
+    } else {
+      color = AppColors.success;
+      statusText = '$stock قطعة';
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              statusText,
+              style: AppTypography.labelSmall.copyWith(
+                color: color,
+                fontSize: 9.sp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (stock <= minStock && stock > 0)
+              Icon(
+                Icons.warning_amber_rounded,
+                color: color,
+                size: 10.sp,
+              ),
+          ],
+        ),
+        SizedBox(height: 2.h),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(2),
+          child: LinearProgressIndicator(
+            value: percentage,
+            backgroundColor: AppColors.surfaceMuted,
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+            minHeight: 3.h,
+          ),
+        ),
+      ],
     );
   }
 

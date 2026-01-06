@@ -9,7 +9,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/theme/design_tokens.dart';
-import '../../../core/services/currency_service.dart';
 
 class ShiftStatusBanner extends StatelessWidget {
   const ShiftStatusBanner({
@@ -17,12 +16,14 @@ class ShiftStatusBanner extends StatelessWidget {
     required this.isOpen,
     this.startTime,
     this.totalSales,
+    this.totalSalesUsd,
     this.onTap,
   });
 
   final bool isOpen;
   final String? startTime;
   final double? totalSales;
+  final double? totalSalesUsd; // المبيعات بالدولار (محفوظة)
   final VoidCallback? onTap;
 
   @override
@@ -106,7 +107,7 @@ class ShiftStatusBanner extends StatelessWidget {
                           ),
                           SizedBox(width: AppSpacing.xxs.w),
                           Text(
-                            '${_formatAmount(totalSales!)} ل.س (\$${(totalSales! / CurrencyService.currentRate).toStringAsFixed(2)})',
+                            '${_formatAmount(totalSales!)} ل.س${totalSalesUsd != null ? ' (\$${totalSalesUsd!.toStringAsFixed(2)})' : ''}',
                             style: AppTypography.bodySmall.copyWith(
                               color: AppColors.income,
                               fontWeight: FontWeight.w600,

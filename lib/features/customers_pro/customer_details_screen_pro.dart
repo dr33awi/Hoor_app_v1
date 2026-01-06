@@ -699,13 +699,23 @@ class _CustomerDetailsScreenProState
           if (mounted) ProSnackbar.success(context, 'تم حفظ الملف بنجاح');
           break;
         case ExportType.pdf:
-          // TODO: Implement PDF export for customer statement
-          if (mounted) ProSnackbar.info(context, 'سيتم إضافة تصدير PDF قريباً');
+          final pdfBytes = await PdfExportService.generateCustomerStatement(
+            customer: _customer!,
+            invoices: _invoices,
+            vouchers: _vouchers,
+          );
+          await PdfExportService.savePdfFile(pdfBytes, fileName);
+          if (mounted) ProSnackbar.success(context, 'تم حفظ الملف بنجاح');
           break;
         case ExportType.sharePdf:
-          // TODO: Implement PDF share for customer statement
-          if (mounted)
-            ProSnackbar.info(context, 'سيتم إضافة مشاركة PDF قريباً');
+          final pdfBytesShare =
+              await PdfExportService.generateCustomerStatement(
+            customer: _customer!,
+            invoices: _invoices,
+            vouchers: _vouchers,
+          );
+          await PdfExportService.sharePdfBytes(pdfBytesShare,
+              fileName: fileName, subject: 'كشف حساب ${_customer!.name}');
           break;
         case ExportType.shareExcel:
           final filePath = await ExcelExportService.exportCustomerStatement(
@@ -822,8 +832,11 @@ class _InvoiceCard extends StatelessWidget {
             ),
             CompactDualPrice(
               amountSyp: invoice.total,
+              // استخدام القيمة المحفوظة أو الحساب من سعر الصرف المثبت
               amountUsd: invoice.totalUsd ??
-                  invoice.total / CurrencyService.currentRate,
+                  (invoice.exchangeRate != null && invoice.exchangeRate! > 0
+                      ? invoice.total / invoice.exchangeRate!
+                      : 0),
               sypStyle: AppTypography.titleSmall.copyWith(
                 color: AppColors.secondary,
                 fontWeight: FontWeight.bold,
@@ -890,8 +903,11 @@ class _VoucherMiniCard extends StatelessWidget {
             ),
             CompactDualPrice(
               amountSyp: voucher.amount,
+              // استخدام القيمة المحفوظة أو الحساب من سعر الصرف المثبت
               amountUsd: voucher.amountUsd ??
-                  voucher.amount / CurrencyService.currentRate,
+                  (voucher.exchangeRate > 0
+                      ? voucher.amount / voucher.exchangeRate
+                      : 0),
               sypStyle: AppTypography.titleSmall.copyWith(
                 color: AppColors.success,
                 fontWeight: FontWeight.bold,

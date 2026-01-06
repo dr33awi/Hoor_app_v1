@@ -96,6 +96,25 @@ class ProNavigationDrawer extends StatelessWidget {
                     ],
                   ),
                   _NavSection(
+                    title: 'المرتجعات',
+                    children: [
+                      _NavItem(
+                        icon: Icons.assignment_return_outlined,
+                        activeIcon: Icons.assignment_return,
+                        label: 'مرتجعات المبيعات',
+                        route: '/returns/sales',
+                        currentRoute: currentRoute,
+                      ),
+                      _NavItem(
+                        icon: Icons.keyboard_return_outlined,
+                        activeIcon: Icons.keyboard_return,
+                        label: 'مرتجعات المشتريات',
+                        route: '/returns/purchases',
+                        currentRoute: currentRoute,
+                      ),
+                    ],
+                  ),
+                  _NavSection(
                     title: 'المخزون',
                     children: [
                       _NavItem(

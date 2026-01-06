@@ -13,7 +13,6 @@ import 'package:intl/intl.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/widgets/widgets.dart';
 import '../../core/providers/app_providers.dart';
-import '../../core/services/currency_service.dart';
 import '../../data/database/app_database.dart';
 
 /// نوع الطرف (عميل/مورد)
@@ -350,6 +349,11 @@ class _PartyCard extends StatelessWidget {
   double get _balance =>
       party is Customer ? party.balance : (party as Supplier).balance;
 
+  // الرصيد بالدولار المحفوظ (nullable)
+  double get _balanceUsd => party is Customer
+      ? (party.balanceUsd ?? 0)
+      : ((party as Supplier).balanceUsd ?? 0);
+
   @override
   Widget build(BuildContext context) {
     final hasPositiveBalance = _balance > 0;
@@ -424,7 +428,7 @@ class _PartyCard extends StatelessWidget {
                 ),
               ),
 
-              // Balance
+              // Balance - استخدام القيم المحفوظة
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -436,7 +440,8 @@ class _PartyCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '\$${(_balance.abs() / CurrencyService.currentRate).toStringAsFixed(2)}',
+                    // استخدام balanceUsd المحفوظ
+                    '\$${(_balanceUsd.abs()).toStringAsFixed(2)}',
                     style: AppTypography.labelSmall.copyWith(
                       color: balanceColor.withValues(alpha: 0.8),
                     ),

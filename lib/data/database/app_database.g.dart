@@ -2503,6 +2503,30 @@ class $ShiftsTable extends Shifts with TableInfo<$ShiftsTable, Shift> {
   late final GeneratedColumn<double> difference = GeneratedColumn<double>(
       'difference', aliasedName, true,
       type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _openingBalanceUsdMeta =
+      const VerificationMeta('openingBalanceUsd');
+  @override
+  late final GeneratedColumn<double> openingBalanceUsd =
+      GeneratedColumn<double>('opening_balance_usd', aliasedName, true,
+          type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _closingBalanceUsdMeta =
+      const VerificationMeta('closingBalanceUsd');
+  @override
+  late final GeneratedColumn<double> closingBalanceUsd =
+      GeneratedColumn<double>('closing_balance_usd', aliasedName, true,
+          type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _expectedBalanceUsdMeta =
+      const VerificationMeta('expectedBalanceUsd');
+  @override
+  late final GeneratedColumn<double> expectedBalanceUsd =
+      GeneratedColumn<double>('expected_balance_usd', aliasedName, true,
+          type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _exchangeRateMeta =
+      const VerificationMeta('exchangeRate');
+  @override
+  late final GeneratedColumn<double> exchangeRate = GeneratedColumn<double>(
+      'exchange_rate', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
   static const VerificationMeta _totalSalesMeta =
       const VerificationMeta('totalSales');
   @override
@@ -2532,6 +2556,38 @@ class $ShiftsTable extends Shifts with TableInfo<$ShiftsTable, Shift> {
   @override
   late final GeneratedColumn<double> totalIncome = GeneratedColumn<double>(
       'total_income', aliasedName, false,
+      type: DriftSqlType.double,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _totalSalesUsdMeta =
+      const VerificationMeta('totalSalesUsd');
+  @override
+  late final GeneratedColumn<double> totalSalesUsd = GeneratedColumn<double>(
+      'total_sales_usd', aliasedName, false,
+      type: DriftSqlType.double,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _totalReturnsUsdMeta =
+      const VerificationMeta('totalReturnsUsd');
+  @override
+  late final GeneratedColumn<double> totalReturnsUsd = GeneratedColumn<double>(
+      'total_returns_usd', aliasedName, false,
+      type: DriftSqlType.double,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _totalExpensesUsdMeta =
+      const VerificationMeta('totalExpensesUsd');
+  @override
+  late final GeneratedColumn<double> totalExpensesUsd = GeneratedColumn<double>(
+      'total_expenses_usd', aliasedName, false,
+      type: DriftSqlType.double,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _totalIncomeUsdMeta =
+      const VerificationMeta('totalIncomeUsd');
+  @override
+  late final GeneratedColumn<double> totalIncomeUsd = GeneratedColumn<double>(
+      'total_income_usd', aliasedName, false,
       type: DriftSqlType.double,
       requiredDuringInsert: false,
       defaultValue: const Constant(0));
@@ -2601,10 +2657,18 @@ class $ShiftsTable extends Shifts with TableInfo<$ShiftsTable, Shift> {
         closingBalance,
         expectedBalance,
         difference,
+        openingBalanceUsd,
+        closingBalanceUsd,
+        expectedBalanceUsd,
+        exchangeRate,
         totalSales,
         totalReturns,
         totalExpenses,
         totalIncome,
+        totalSalesUsd,
+        totalReturnsUsd,
+        totalExpensesUsd,
+        totalIncomeUsd,
         transactionCount,
         status,
         notes,
@@ -2663,6 +2727,30 @@ class $ShiftsTable extends Shifts with TableInfo<$ShiftsTable, Shift> {
           difference.isAcceptableOrUnknown(
               data['difference']!, _differenceMeta));
     }
+    if (data.containsKey('opening_balance_usd')) {
+      context.handle(
+          _openingBalanceUsdMeta,
+          openingBalanceUsd.isAcceptableOrUnknown(
+              data['opening_balance_usd']!, _openingBalanceUsdMeta));
+    }
+    if (data.containsKey('closing_balance_usd')) {
+      context.handle(
+          _closingBalanceUsdMeta,
+          closingBalanceUsd.isAcceptableOrUnknown(
+              data['closing_balance_usd']!, _closingBalanceUsdMeta));
+    }
+    if (data.containsKey('expected_balance_usd')) {
+      context.handle(
+          _expectedBalanceUsdMeta,
+          expectedBalanceUsd.isAcceptableOrUnknown(
+              data['expected_balance_usd']!, _expectedBalanceUsdMeta));
+    }
+    if (data.containsKey('exchange_rate')) {
+      context.handle(
+          _exchangeRateMeta,
+          exchangeRate.isAcceptableOrUnknown(
+              data['exchange_rate']!, _exchangeRateMeta));
+    }
     if (data.containsKey('total_sales')) {
       context.handle(
           _totalSalesMeta,
@@ -2686,6 +2774,30 @@ class $ShiftsTable extends Shifts with TableInfo<$ShiftsTable, Shift> {
           _totalIncomeMeta,
           totalIncome.isAcceptableOrUnknown(
               data['total_income']!, _totalIncomeMeta));
+    }
+    if (data.containsKey('total_sales_usd')) {
+      context.handle(
+          _totalSalesUsdMeta,
+          totalSalesUsd.isAcceptableOrUnknown(
+              data['total_sales_usd']!, _totalSalesUsdMeta));
+    }
+    if (data.containsKey('total_returns_usd')) {
+      context.handle(
+          _totalReturnsUsdMeta,
+          totalReturnsUsd.isAcceptableOrUnknown(
+              data['total_returns_usd']!, _totalReturnsUsdMeta));
+    }
+    if (data.containsKey('total_expenses_usd')) {
+      context.handle(
+          _totalExpensesUsdMeta,
+          totalExpensesUsd.isAcceptableOrUnknown(
+              data['total_expenses_usd']!, _totalExpensesUsdMeta));
+    }
+    if (data.containsKey('total_income_usd')) {
+      context.handle(
+          _totalIncomeUsdMeta,
+          totalIncomeUsd.isAcceptableOrUnknown(
+              data['total_income_usd']!, _totalIncomeUsdMeta));
     }
     if (data.containsKey('transaction_count')) {
       context.handle(
@@ -2744,6 +2856,14 @@ class $ShiftsTable extends Shifts with TableInfo<$ShiftsTable, Shift> {
           DriftSqlType.double, data['${effectivePrefix}expected_balance']),
       difference: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}difference']),
+      openingBalanceUsd: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}opening_balance_usd']),
+      closingBalanceUsd: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}closing_balance_usd']),
+      expectedBalanceUsd: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}expected_balance_usd']),
+      exchangeRate: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}exchange_rate']),
       totalSales: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}total_sales'])!,
       totalReturns: attachedDatabase.typeMapping
@@ -2752,6 +2872,14 @@ class $ShiftsTable extends Shifts with TableInfo<$ShiftsTable, Shift> {
           .read(DriftSqlType.double, data['${effectivePrefix}total_expenses'])!,
       totalIncome: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}total_income'])!,
+      totalSalesUsd: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}total_sales_usd'])!,
+      totalReturnsUsd: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}total_returns_usd'])!,
+      totalExpensesUsd: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}total_expenses_usd'])!,
+      totalIncomeUsd: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}total_income_usd'])!,
       transactionCount: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}transaction_count'])!,
       status: attachedDatabase.typeMapping
@@ -2784,10 +2912,18 @@ class Shift extends DataClass implements Insertable<Shift> {
   final double? closingBalance;
   final double? expectedBalance;
   final double? difference;
+  final double? openingBalanceUsd;
+  final double? closingBalanceUsd;
+  final double? expectedBalanceUsd;
+  final double? exchangeRate;
   final double totalSales;
   final double totalReturns;
   final double totalExpenses;
   final double totalIncome;
+  final double totalSalesUsd;
+  final double totalReturnsUsd;
+  final double totalExpensesUsd;
+  final double totalIncomeUsd;
   final int transactionCount;
   final String status;
   final String? notes;
@@ -2803,10 +2939,18 @@ class Shift extends DataClass implements Insertable<Shift> {
       this.closingBalance,
       this.expectedBalance,
       this.difference,
+      this.openingBalanceUsd,
+      this.closingBalanceUsd,
+      this.expectedBalanceUsd,
+      this.exchangeRate,
       required this.totalSales,
       required this.totalReturns,
       required this.totalExpenses,
       required this.totalIncome,
+      required this.totalSalesUsd,
+      required this.totalReturnsUsd,
+      required this.totalExpensesUsd,
+      required this.totalIncomeUsd,
       required this.transactionCount,
       required this.status,
       this.notes,
@@ -2830,10 +2974,26 @@ class Shift extends DataClass implements Insertable<Shift> {
     if (!nullToAbsent || difference != null) {
       map['difference'] = Variable<double>(difference);
     }
+    if (!nullToAbsent || openingBalanceUsd != null) {
+      map['opening_balance_usd'] = Variable<double>(openingBalanceUsd);
+    }
+    if (!nullToAbsent || closingBalanceUsd != null) {
+      map['closing_balance_usd'] = Variable<double>(closingBalanceUsd);
+    }
+    if (!nullToAbsent || expectedBalanceUsd != null) {
+      map['expected_balance_usd'] = Variable<double>(expectedBalanceUsd);
+    }
+    if (!nullToAbsent || exchangeRate != null) {
+      map['exchange_rate'] = Variable<double>(exchangeRate);
+    }
     map['total_sales'] = Variable<double>(totalSales);
     map['total_returns'] = Variable<double>(totalReturns);
     map['total_expenses'] = Variable<double>(totalExpenses);
     map['total_income'] = Variable<double>(totalIncome);
+    map['total_sales_usd'] = Variable<double>(totalSalesUsd);
+    map['total_returns_usd'] = Variable<double>(totalReturnsUsd);
+    map['total_expenses_usd'] = Variable<double>(totalExpensesUsd);
+    map['total_income_usd'] = Variable<double>(totalIncomeUsd);
     map['transaction_count'] = Variable<int>(transactionCount);
     map['status'] = Variable<String>(status);
     if (!nullToAbsent || notes != null) {
@@ -2863,10 +3023,26 @@ class Shift extends DataClass implements Insertable<Shift> {
       difference: difference == null && nullToAbsent
           ? const Value.absent()
           : Value(difference),
+      openingBalanceUsd: openingBalanceUsd == null && nullToAbsent
+          ? const Value.absent()
+          : Value(openingBalanceUsd),
+      closingBalanceUsd: closingBalanceUsd == null && nullToAbsent
+          ? const Value.absent()
+          : Value(closingBalanceUsd),
+      expectedBalanceUsd: expectedBalanceUsd == null && nullToAbsent
+          ? const Value.absent()
+          : Value(expectedBalanceUsd),
+      exchangeRate: exchangeRate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(exchangeRate),
       totalSales: Value(totalSales),
       totalReturns: Value(totalReturns),
       totalExpenses: Value(totalExpenses),
       totalIncome: Value(totalIncome),
+      totalSalesUsd: Value(totalSalesUsd),
+      totalReturnsUsd: Value(totalReturnsUsd),
+      totalExpensesUsd: Value(totalExpensesUsd),
+      totalIncomeUsd: Value(totalIncomeUsd),
       transactionCount: Value(transactionCount),
       status: Value(status),
       notes:
@@ -2891,10 +3067,21 @@ class Shift extends DataClass implements Insertable<Shift> {
       closingBalance: serializer.fromJson<double?>(json['closingBalance']),
       expectedBalance: serializer.fromJson<double?>(json['expectedBalance']),
       difference: serializer.fromJson<double?>(json['difference']),
+      openingBalanceUsd:
+          serializer.fromJson<double?>(json['openingBalanceUsd']),
+      closingBalanceUsd:
+          serializer.fromJson<double?>(json['closingBalanceUsd']),
+      expectedBalanceUsd:
+          serializer.fromJson<double?>(json['expectedBalanceUsd']),
+      exchangeRate: serializer.fromJson<double?>(json['exchangeRate']),
       totalSales: serializer.fromJson<double>(json['totalSales']),
       totalReturns: serializer.fromJson<double>(json['totalReturns']),
       totalExpenses: serializer.fromJson<double>(json['totalExpenses']),
       totalIncome: serializer.fromJson<double>(json['totalIncome']),
+      totalSalesUsd: serializer.fromJson<double>(json['totalSalesUsd']),
+      totalReturnsUsd: serializer.fromJson<double>(json['totalReturnsUsd']),
+      totalExpensesUsd: serializer.fromJson<double>(json['totalExpensesUsd']),
+      totalIncomeUsd: serializer.fromJson<double>(json['totalIncomeUsd']),
       transactionCount: serializer.fromJson<int>(json['transactionCount']),
       status: serializer.fromJson<String>(json['status']),
       notes: serializer.fromJson<String?>(json['notes']),
@@ -2915,10 +3102,18 @@ class Shift extends DataClass implements Insertable<Shift> {
       'closingBalance': serializer.toJson<double?>(closingBalance),
       'expectedBalance': serializer.toJson<double?>(expectedBalance),
       'difference': serializer.toJson<double?>(difference),
+      'openingBalanceUsd': serializer.toJson<double?>(openingBalanceUsd),
+      'closingBalanceUsd': serializer.toJson<double?>(closingBalanceUsd),
+      'expectedBalanceUsd': serializer.toJson<double?>(expectedBalanceUsd),
+      'exchangeRate': serializer.toJson<double?>(exchangeRate),
       'totalSales': serializer.toJson<double>(totalSales),
       'totalReturns': serializer.toJson<double>(totalReturns),
       'totalExpenses': serializer.toJson<double>(totalExpenses),
       'totalIncome': serializer.toJson<double>(totalIncome),
+      'totalSalesUsd': serializer.toJson<double>(totalSalesUsd),
+      'totalReturnsUsd': serializer.toJson<double>(totalReturnsUsd),
+      'totalExpensesUsd': serializer.toJson<double>(totalExpensesUsd),
+      'totalIncomeUsd': serializer.toJson<double>(totalIncomeUsd),
       'transactionCount': serializer.toJson<int>(transactionCount),
       'status': serializer.toJson<String>(status),
       'notes': serializer.toJson<String?>(notes),
@@ -2937,10 +3132,18 @@ class Shift extends DataClass implements Insertable<Shift> {
           Value<double?> closingBalance = const Value.absent(),
           Value<double?> expectedBalance = const Value.absent(),
           Value<double?> difference = const Value.absent(),
+          Value<double?> openingBalanceUsd = const Value.absent(),
+          Value<double?> closingBalanceUsd = const Value.absent(),
+          Value<double?> expectedBalanceUsd = const Value.absent(),
+          Value<double?> exchangeRate = const Value.absent(),
           double? totalSales,
           double? totalReturns,
           double? totalExpenses,
           double? totalIncome,
+          double? totalSalesUsd,
+          double? totalReturnsUsd,
+          double? totalExpensesUsd,
+          double? totalIncomeUsd,
           int? transactionCount,
           String? status,
           Value<String?> notes = const Value.absent(),
@@ -2959,10 +3162,25 @@ class Shift extends DataClass implements Insertable<Shift> {
             ? expectedBalance.value
             : this.expectedBalance,
         difference: difference.present ? difference.value : this.difference,
+        openingBalanceUsd: openingBalanceUsd.present
+            ? openingBalanceUsd.value
+            : this.openingBalanceUsd,
+        closingBalanceUsd: closingBalanceUsd.present
+            ? closingBalanceUsd.value
+            : this.closingBalanceUsd,
+        expectedBalanceUsd: expectedBalanceUsd.present
+            ? expectedBalanceUsd.value
+            : this.expectedBalanceUsd,
+        exchangeRate:
+            exchangeRate.present ? exchangeRate.value : this.exchangeRate,
         totalSales: totalSales ?? this.totalSales,
         totalReturns: totalReturns ?? this.totalReturns,
         totalExpenses: totalExpenses ?? this.totalExpenses,
         totalIncome: totalIncome ?? this.totalIncome,
+        totalSalesUsd: totalSalesUsd ?? this.totalSalesUsd,
+        totalReturnsUsd: totalReturnsUsd ?? this.totalReturnsUsd,
+        totalExpensesUsd: totalExpensesUsd ?? this.totalExpensesUsd,
+        totalIncomeUsd: totalIncomeUsd ?? this.totalIncomeUsd,
         transactionCount: transactionCount ?? this.transactionCount,
         status: status ?? this.status,
         notes: notes.present ? notes.value : this.notes,
@@ -2988,6 +3206,18 @@ class Shift extends DataClass implements Insertable<Shift> {
           : this.expectedBalance,
       difference:
           data.difference.present ? data.difference.value : this.difference,
+      openingBalanceUsd: data.openingBalanceUsd.present
+          ? data.openingBalanceUsd.value
+          : this.openingBalanceUsd,
+      closingBalanceUsd: data.closingBalanceUsd.present
+          ? data.closingBalanceUsd.value
+          : this.closingBalanceUsd,
+      expectedBalanceUsd: data.expectedBalanceUsd.present
+          ? data.expectedBalanceUsd.value
+          : this.expectedBalanceUsd,
+      exchangeRate: data.exchangeRate.present
+          ? data.exchangeRate.value
+          : this.exchangeRate,
       totalSales:
           data.totalSales.present ? data.totalSales.value : this.totalSales,
       totalReturns: data.totalReturns.present
@@ -2998,6 +3228,18 @@ class Shift extends DataClass implements Insertable<Shift> {
           : this.totalExpenses,
       totalIncome:
           data.totalIncome.present ? data.totalIncome.value : this.totalIncome,
+      totalSalesUsd: data.totalSalesUsd.present
+          ? data.totalSalesUsd.value
+          : this.totalSalesUsd,
+      totalReturnsUsd: data.totalReturnsUsd.present
+          ? data.totalReturnsUsd.value
+          : this.totalReturnsUsd,
+      totalExpensesUsd: data.totalExpensesUsd.present
+          ? data.totalExpensesUsd.value
+          : this.totalExpensesUsd,
+      totalIncomeUsd: data.totalIncomeUsd.present
+          ? data.totalIncomeUsd.value
+          : this.totalIncomeUsd,
       transactionCount: data.transactionCount.present
           ? data.transactionCount.value
           : this.transactionCount,
@@ -3021,10 +3263,18 @@ class Shift extends DataClass implements Insertable<Shift> {
           ..write('closingBalance: $closingBalance, ')
           ..write('expectedBalance: $expectedBalance, ')
           ..write('difference: $difference, ')
+          ..write('openingBalanceUsd: $openingBalanceUsd, ')
+          ..write('closingBalanceUsd: $closingBalanceUsd, ')
+          ..write('expectedBalanceUsd: $expectedBalanceUsd, ')
+          ..write('exchangeRate: $exchangeRate, ')
           ..write('totalSales: $totalSales, ')
           ..write('totalReturns: $totalReturns, ')
           ..write('totalExpenses: $totalExpenses, ')
           ..write('totalIncome: $totalIncome, ')
+          ..write('totalSalesUsd: $totalSalesUsd, ')
+          ..write('totalReturnsUsd: $totalReturnsUsd, ')
+          ..write('totalExpensesUsd: $totalExpensesUsd, ')
+          ..write('totalIncomeUsd: $totalIncomeUsd, ')
           ..write('transactionCount: $transactionCount, ')
           ..write('status: $status, ')
           ..write('notes: $notes, ')
@@ -3038,25 +3288,34 @@ class Shift extends DataClass implements Insertable<Shift> {
   }
 
   @override
-  int get hashCode => Object.hash(
-      id,
-      shiftNumber,
-      openingBalance,
-      closingBalance,
-      expectedBalance,
-      difference,
-      totalSales,
-      totalReturns,
-      totalExpenses,
-      totalIncome,
-      transactionCount,
-      status,
-      notes,
-      syncStatus,
-      openedAt,
-      closedAt,
-      createdAt,
-      updatedAt);
+  int get hashCode => Object.hashAll([
+        id,
+        shiftNumber,
+        openingBalance,
+        closingBalance,
+        expectedBalance,
+        difference,
+        openingBalanceUsd,
+        closingBalanceUsd,
+        expectedBalanceUsd,
+        exchangeRate,
+        totalSales,
+        totalReturns,
+        totalExpenses,
+        totalIncome,
+        totalSalesUsd,
+        totalReturnsUsd,
+        totalExpensesUsd,
+        totalIncomeUsd,
+        transactionCount,
+        status,
+        notes,
+        syncStatus,
+        openedAt,
+        closedAt,
+        createdAt,
+        updatedAt
+      ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3067,10 +3326,18 @@ class Shift extends DataClass implements Insertable<Shift> {
           other.closingBalance == this.closingBalance &&
           other.expectedBalance == this.expectedBalance &&
           other.difference == this.difference &&
+          other.openingBalanceUsd == this.openingBalanceUsd &&
+          other.closingBalanceUsd == this.closingBalanceUsd &&
+          other.expectedBalanceUsd == this.expectedBalanceUsd &&
+          other.exchangeRate == this.exchangeRate &&
           other.totalSales == this.totalSales &&
           other.totalReturns == this.totalReturns &&
           other.totalExpenses == this.totalExpenses &&
           other.totalIncome == this.totalIncome &&
+          other.totalSalesUsd == this.totalSalesUsd &&
+          other.totalReturnsUsd == this.totalReturnsUsd &&
+          other.totalExpensesUsd == this.totalExpensesUsd &&
+          other.totalIncomeUsd == this.totalIncomeUsd &&
           other.transactionCount == this.transactionCount &&
           other.status == this.status &&
           other.notes == this.notes &&
@@ -3088,10 +3355,18 @@ class ShiftsCompanion extends UpdateCompanion<Shift> {
   final Value<double?> closingBalance;
   final Value<double?> expectedBalance;
   final Value<double?> difference;
+  final Value<double?> openingBalanceUsd;
+  final Value<double?> closingBalanceUsd;
+  final Value<double?> expectedBalanceUsd;
+  final Value<double?> exchangeRate;
   final Value<double> totalSales;
   final Value<double> totalReturns;
   final Value<double> totalExpenses;
   final Value<double> totalIncome;
+  final Value<double> totalSalesUsd;
+  final Value<double> totalReturnsUsd;
+  final Value<double> totalExpensesUsd;
+  final Value<double> totalIncomeUsd;
   final Value<int> transactionCount;
   final Value<String> status;
   final Value<String?> notes;
@@ -3108,10 +3383,18 @@ class ShiftsCompanion extends UpdateCompanion<Shift> {
     this.closingBalance = const Value.absent(),
     this.expectedBalance = const Value.absent(),
     this.difference = const Value.absent(),
+    this.openingBalanceUsd = const Value.absent(),
+    this.closingBalanceUsd = const Value.absent(),
+    this.expectedBalanceUsd = const Value.absent(),
+    this.exchangeRate = const Value.absent(),
     this.totalSales = const Value.absent(),
     this.totalReturns = const Value.absent(),
     this.totalExpenses = const Value.absent(),
     this.totalIncome = const Value.absent(),
+    this.totalSalesUsd = const Value.absent(),
+    this.totalReturnsUsd = const Value.absent(),
+    this.totalExpensesUsd = const Value.absent(),
+    this.totalIncomeUsd = const Value.absent(),
     this.transactionCount = const Value.absent(),
     this.status = const Value.absent(),
     this.notes = const Value.absent(),
@@ -3129,10 +3412,18 @@ class ShiftsCompanion extends UpdateCompanion<Shift> {
     this.closingBalance = const Value.absent(),
     this.expectedBalance = const Value.absent(),
     this.difference = const Value.absent(),
+    this.openingBalanceUsd = const Value.absent(),
+    this.closingBalanceUsd = const Value.absent(),
+    this.expectedBalanceUsd = const Value.absent(),
+    this.exchangeRate = const Value.absent(),
     this.totalSales = const Value.absent(),
     this.totalReturns = const Value.absent(),
     this.totalExpenses = const Value.absent(),
     this.totalIncome = const Value.absent(),
+    this.totalSalesUsd = const Value.absent(),
+    this.totalReturnsUsd = const Value.absent(),
+    this.totalExpensesUsd = const Value.absent(),
+    this.totalIncomeUsd = const Value.absent(),
     this.transactionCount = const Value.absent(),
     this.status = const Value.absent(),
     this.notes = const Value.absent(),
@@ -3152,10 +3443,18 @@ class ShiftsCompanion extends UpdateCompanion<Shift> {
     Expression<double>? closingBalance,
     Expression<double>? expectedBalance,
     Expression<double>? difference,
+    Expression<double>? openingBalanceUsd,
+    Expression<double>? closingBalanceUsd,
+    Expression<double>? expectedBalanceUsd,
+    Expression<double>? exchangeRate,
     Expression<double>? totalSales,
     Expression<double>? totalReturns,
     Expression<double>? totalExpenses,
     Expression<double>? totalIncome,
+    Expression<double>? totalSalesUsd,
+    Expression<double>? totalReturnsUsd,
+    Expression<double>? totalExpensesUsd,
+    Expression<double>? totalIncomeUsd,
     Expression<int>? transactionCount,
     Expression<String>? status,
     Expression<String>? notes,
@@ -3173,10 +3472,19 @@ class ShiftsCompanion extends UpdateCompanion<Shift> {
       if (closingBalance != null) 'closing_balance': closingBalance,
       if (expectedBalance != null) 'expected_balance': expectedBalance,
       if (difference != null) 'difference': difference,
+      if (openingBalanceUsd != null) 'opening_balance_usd': openingBalanceUsd,
+      if (closingBalanceUsd != null) 'closing_balance_usd': closingBalanceUsd,
+      if (expectedBalanceUsd != null)
+        'expected_balance_usd': expectedBalanceUsd,
+      if (exchangeRate != null) 'exchange_rate': exchangeRate,
       if (totalSales != null) 'total_sales': totalSales,
       if (totalReturns != null) 'total_returns': totalReturns,
       if (totalExpenses != null) 'total_expenses': totalExpenses,
       if (totalIncome != null) 'total_income': totalIncome,
+      if (totalSalesUsd != null) 'total_sales_usd': totalSalesUsd,
+      if (totalReturnsUsd != null) 'total_returns_usd': totalReturnsUsd,
+      if (totalExpensesUsd != null) 'total_expenses_usd': totalExpensesUsd,
+      if (totalIncomeUsd != null) 'total_income_usd': totalIncomeUsd,
       if (transactionCount != null) 'transaction_count': transactionCount,
       if (status != null) 'status': status,
       if (notes != null) 'notes': notes,
@@ -3196,10 +3504,18 @@ class ShiftsCompanion extends UpdateCompanion<Shift> {
       Value<double?>? closingBalance,
       Value<double?>? expectedBalance,
       Value<double?>? difference,
+      Value<double?>? openingBalanceUsd,
+      Value<double?>? closingBalanceUsd,
+      Value<double?>? expectedBalanceUsd,
+      Value<double?>? exchangeRate,
       Value<double>? totalSales,
       Value<double>? totalReturns,
       Value<double>? totalExpenses,
       Value<double>? totalIncome,
+      Value<double>? totalSalesUsd,
+      Value<double>? totalReturnsUsd,
+      Value<double>? totalExpensesUsd,
+      Value<double>? totalIncomeUsd,
       Value<int>? transactionCount,
       Value<String>? status,
       Value<String?>? notes,
@@ -3216,10 +3532,18 @@ class ShiftsCompanion extends UpdateCompanion<Shift> {
       closingBalance: closingBalance ?? this.closingBalance,
       expectedBalance: expectedBalance ?? this.expectedBalance,
       difference: difference ?? this.difference,
+      openingBalanceUsd: openingBalanceUsd ?? this.openingBalanceUsd,
+      closingBalanceUsd: closingBalanceUsd ?? this.closingBalanceUsd,
+      expectedBalanceUsd: expectedBalanceUsd ?? this.expectedBalanceUsd,
+      exchangeRate: exchangeRate ?? this.exchangeRate,
       totalSales: totalSales ?? this.totalSales,
       totalReturns: totalReturns ?? this.totalReturns,
       totalExpenses: totalExpenses ?? this.totalExpenses,
       totalIncome: totalIncome ?? this.totalIncome,
+      totalSalesUsd: totalSalesUsd ?? this.totalSalesUsd,
+      totalReturnsUsd: totalReturnsUsd ?? this.totalReturnsUsd,
+      totalExpensesUsd: totalExpensesUsd ?? this.totalExpensesUsd,
+      totalIncomeUsd: totalIncomeUsd ?? this.totalIncomeUsd,
       transactionCount: transactionCount ?? this.transactionCount,
       status: status ?? this.status,
       notes: notes ?? this.notes,
@@ -3253,6 +3577,18 @@ class ShiftsCompanion extends UpdateCompanion<Shift> {
     if (difference.present) {
       map['difference'] = Variable<double>(difference.value);
     }
+    if (openingBalanceUsd.present) {
+      map['opening_balance_usd'] = Variable<double>(openingBalanceUsd.value);
+    }
+    if (closingBalanceUsd.present) {
+      map['closing_balance_usd'] = Variable<double>(closingBalanceUsd.value);
+    }
+    if (expectedBalanceUsd.present) {
+      map['expected_balance_usd'] = Variable<double>(expectedBalanceUsd.value);
+    }
+    if (exchangeRate.present) {
+      map['exchange_rate'] = Variable<double>(exchangeRate.value);
+    }
     if (totalSales.present) {
       map['total_sales'] = Variable<double>(totalSales.value);
     }
@@ -3264,6 +3600,18 @@ class ShiftsCompanion extends UpdateCompanion<Shift> {
     }
     if (totalIncome.present) {
       map['total_income'] = Variable<double>(totalIncome.value);
+    }
+    if (totalSalesUsd.present) {
+      map['total_sales_usd'] = Variable<double>(totalSalesUsd.value);
+    }
+    if (totalReturnsUsd.present) {
+      map['total_returns_usd'] = Variable<double>(totalReturnsUsd.value);
+    }
+    if (totalExpensesUsd.present) {
+      map['total_expenses_usd'] = Variable<double>(totalExpensesUsd.value);
+    }
+    if (totalIncomeUsd.present) {
+      map['total_income_usd'] = Variable<double>(totalIncomeUsd.value);
     }
     if (transactionCount.present) {
       map['transaction_count'] = Variable<int>(transactionCount.value);
@@ -3304,10 +3652,18 @@ class ShiftsCompanion extends UpdateCompanion<Shift> {
           ..write('closingBalance: $closingBalance, ')
           ..write('expectedBalance: $expectedBalance, ')
           ..write('difference: $difference, ')
+          ..write('openingBalanceUsd: $openingBalanceUsd, ')
+          ..write('closingBalanceUsd: $closingBalanceUsd, ')
+          ..write('expectedBalanceUsd: $expectedBalanceUsd, ')
+          ..write('exchangeRate: $exchangeRate, ')
           ..write('totalSales: $totalSales, ')
           ..write('totalReturns: $totalReturns, ')
           ..write('totalExpenses: $totalExpenses, ')
           ..write('totalIncome: $totalIncome, ')
+          ..write('totalSalesUsd: $totalSalesUsd, ')
+          ..write('totalReturnsUsd: $totalReturnsUsd, ')
+          ..write('totalExpensesUsd: $totalExpensesUsd, ')
+          ..write('totalIncomeUsd: $totalIncomeUsd, ')
           ..write('transactionCount: $transactionCount, ')
           ..write('status: $status, ')
           ..write('notes: $notes, ')
@@ -4400,6 +4756,18 @@ class $InvoiceItemsTable extends InvoiceItems
   late final GeneratedColumn<double> purchasePrice = GeneratedColumn<double>(
       'purchase_price', aliasedName, false,
       type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _costPriceMeta =
+      const VerificationMeta('costPrice');
+  @override
+  late final GeneratedColumn<double> costPrice = GeneratedColumn<double>(
+      'cost_price', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _costPriceUsdMeta =
+      const VerificationMeta('costPriceUsd');
+  @override
+  late final GeneratedColumn<double> costPriceUsd = GeneratedColumn<double>(
+      'cost_price_usd', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
   static const VerificationMeta _discountAmountMeta =
       const VerificationMeta('discountAmount');
   @override
@@ -4464,6 +4832,8 @@ class $InvoiceItemsTable extends InvoiceItems
         quantity,
         unitPrice,
         purchasePrice,
+        costPrice,
+        costPriceUsd,
         discountAmount,
         taxAmount,
         total,
@@ -4527,6 +4897,16 @@ class $InvoiceItemsTable extends InvoiceItems
               data['purchase_price']!, _purchasePriceMeta));
     } else if (isInserting) {
       context.missing(_purchasePriceMeta);
+    }
+    if (data.containsKey('cost_price')) {
+      context.handle(_costPriceMeta,
+          costPrice.isAcceptableOrUnknown(data['cost_price']!, _costPriceMeta));
+    }
+    if (data.containsKey('cost_price_usd')) {
+      context.handle(
+          _costPriceUsdMeta,
+          costPriceUsd.isAcceptableOrUnknown(
+              data['cost_price_usd']!, _costPriceUsdMeta));
     }
     if (data.containsKey('discount_amount')) {
       context.handle(
@@ -4593,6 +4973,10 @@ class $InvoiceItemsTable extends InvoiceItems
           .read(DriftSqlType.double, data['${effectivePrefix}unit_price'])!,
       purchasePrice: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}purchase_price'])!,
+      costPrice: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}cost_price']),
+      costPriceUsd: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}cost_price_usd']),
       discountAmount: attachedDatabase.typeMapping.read(
           DriftSqlType.double, data['${effectivePrefix}discount_amount'])!,
       taxAmount: attachedDatabase.typeMapping
@@ -4626,6 +5010,8 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
   final int quantity;
   final double unitPrice;
   final double purchasePrice;
+  final double? costPrice;
+  final double? costPriceUsd;
   final double discountAmount;
   final double taxAmount;
   final double total;
@@ -4642,6 +5028,8 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
       required this.quantity,
       required this.unitPrice,
       required this.purchasePrice,
+      this.costPrice,
+      this.costPriceUsd,
       required this.discountAmount,
       required this.taxAmount,
       required this.total,
@@ -4660,6 +5048,12 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
     map['quantity'] = Variable<int>(quantity);
     map['unit_price'] = Variable<double>(unitPrice);
     map['purchase_price'] = Variable<double>(purchasePrice);
+    if (!nullToAbsent || costPrice != null) {
+      map['cost_price'] = Variable<double>(costPrice);
+    }
+    if (!nullToAbsent || costPriceUsd != null) {
+      map['cost_price_usd'] = Variable<double>(costPriceUsd);
+    }
     map['discount_amount'] = Variable<double>(discountAmount);
     map['tax_amount'] = Variable<double>(taxAmount);
     map['total'] = Variable<double>(total);
@@ -4686,6 +5080,12 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
       quantity: Value(quantity),
       unitPrice: Value(unitPrice),
       purchasePrice: Value(purchasePrice),
+      costPrice: costPrice == null && nullToAbsent
+          ? const Value.absent()
+          : Value(costPrice),
+      costPriceUsd: costPriceUsd == null && nullToAbsent
+          ? const Value.absent()
+          : Value(costPriceUsd),
       discountAmount: Value(discountAmount),
       taxAmount: Value(taxAmount),
       total: Value(total),
@@ -4714,6 +5114,8 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
       quantity: serializer.fromJson<int>(json['quantity']),
       unitPrice: serializer.fromJson<double>(json['unitPrice']),
       purchasePrice: serializer.fromJson<double>(json['purchasePrice']),
+      costPrice: serializer.fromJson<double?>(json['costPrice']),
+      costPriceUsd: serializer.fromJson<double?>(json['costPriceUsd']),
       discountAmount: serializer.fromJson<double>(json['discountAmount']),
       taxAmount: serializer.fromJson<double>(json['taxAmount']),
       total: serializer.fromJson<double>(json['total']),
@@ -4735,6 +5137,8 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
       'quantity': serializer.toJson<int>(quantity),
       'unitPrice': serializer.toJson<double>(unitPrice),
       'purchasePrice': serializer.toJson<double>(purchasePrice),
+      'costPrice': serializer.toJson<double?>(costPrice),
+      'costPriceUsd': serializer.toJson<double?>(costPriceUsd),
       'discountAmount': serializer.toJson<double>(discountAmount),
       'taxAmount': serializer.toJson<double>(taxAmount),
       'total': serializer.toJson<double>(total),
@@ -4754,6 +5158,8 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
           int? quantity,
           double? unitPrice,
           double? purchasePrice,
+          Value<double?> costPrice = const Value.absent(),
+          Value<double?> costPriceUsd = const Value.absent(),
           double? discountAmount,
           double? taxAmount,
           double? total,
@@ -4770,6 +5176,9 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
         quantity: quantity ?? this.quantity,
         unitPrice: unitPrice ?? this.unitPrice,
         purchasePrice: purchasePrice ?? this.purchasePrice,
+        costPrice: costPrice.present ? costPrice.value : this.costPrice,
+        costPriceUsd:
+            costPriceUsd.present ? costPriceUsd.value : this.costPriceUsd,
         discountAmount: discountAmount ?? this.discountAmount,
         taxAmount: taxAmount ?? this.taxAmount,
         total: total ?? this.total,
@@ -4793,6 +5202,10 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
       purchasePrice: data.purchasePrice.present
           ? data.purchasePrice.value
           : this.purchasePrice,
+      costPrice: data.costPrice.present ? data.costPrice.value : this.costPrice,
+      costPriceUsd: data.costPriceUsd.present
+          ? data.costPriceUsd.value
+          : this.costPriceUsd,
       discountAmount: data.discountAmount.present
           ? data.discountAmount.value
           : this.discountAmount,
@@ -4821,6 +5234,8 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
           ..write('quantity: $quantity, ')
           ..write('unitPrice: $unitPrice, ')
           ..write('purchasePrice: $purchasePrice, ')
+          ..write('costPrice: $costPrice, ')
+          ..write('costPriceUsd: $costPriceUsd, ')
           ..write('discountAmount: $discountAmount, ')
           ..write('taxAmount: $taxAmount, ')
           ..write('total: $total, ')
@@ -4842,6 +5257,8 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
       quantity,
       unitPrice,
       purchasePrice,
+      costPrice,
+      costPriceUsd,
       discountAmount,
       taxAmount,
       total,
@@ -4861,6 +5278,8 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
           other.quantity == this.quantity &&
           other.unitPrice == this.unitPrice &&
           other.purchasePrice == this.purchasePrice &&
+          other.costPrice == this.costPrice &&
+          other.costPriceUsd == this.costPriceUsd &&
           other.discountAmount == this.discountAmount &&
           other.taxAmount == this.taxAmount &&
           other.total == this.total &&
@@ -4879,6 +5298,8 @@ class InvoiceItemsCompanion extends UpdateCompanion<InvoiceItem> {
   final Value<int> quantity;
   final Value<double> unitPrice;
   final Value<double> purchasePrice;
+  final Value<double?> costPrice;
+  final Value<double?> costPriceUsd;
   final Value<double> discountAmount;
   final Value<double> taxAmount;
   final Value<double> total;
@@ -4896,6 +5317,8 @@ class InvoiceItemsCompanion extends UpdateCompanion<InvoiceItem> {
     this.quantity = const Value.absent(),
     this.unitPrice = const Value.absent(),
     this.purchasePrice = const Value.absent(),
+    this.costPrice = const Value.absent(),
+    this.costPriceUsd = const Value.absent(),
     this.discountAmount = const Value.absent(),
     this.taxAmount = const Value.absent(),
     this.total = const Value.absent(),
@@ -4914,6 +5337,8 @@ class InvoiceItemsCompanion extends UpdateCompanion<InvoiceItem> {
     required int quantity,
     required double unitPrice,
     required double purchasePrice,
+    this.costPrice = const Value.absent(),
+    this.costPriceUsd = const Value.absent(),
     this.discountAmount = const Value.absent(),
     this.taxAmount = const Value.absent(),
     required double total,
@@ -4939,6 +5364,8 @@ class InvoiceItemsCompanion extends UpdateCompanion<InvoiceItem> {
     Expression<int>? quantity,
     Expression<double>? unitPrice,
     Expression<double>? purchasePrice,
+    Expression<double>? costPrice,
+    Expression<double>? costPriceUsd,
     Expression<double>? discountAmount,
     Expression<double>? taxAmount,
     Expression<double>? total,
@@ -4957,6 +5384,8 @@ class InvoiceItemsCompanion extends UpdateCompanion<InvoiceItem> {
       if (quantity != null) 'quantity': quantity,
       if (unitPrice != null) 'unit_price': unitPrice,
       if (purchasePrice != null) 'purchase_price': purchasePrice,
+      if (costPrice != null) 'cost_price': costPrice,
+      if (costPriceUsd != null) 'cost_price_usd': costPriceUsd,
       if (discountAmount != null) 'discount_amount': discountAmount,
       if (taxAmount != null) 'tax_amount': taxAmount,
       if (total != null) 'total': total,
@@ -4977,6 +5406,8 @@ class InvoiceItemsCompanion extends UpdateCompanion<InvoiceItem> {
       Value<int>? quantity,
       Value<double>? unitPrice,
       Value<double>? purchasePrice,
+      Value<double?>? costPrice,
+      Value<double?>? costPriceUsd,
       Value<double>? discountAmount,
       Value<double>? taxAmount,
       Value<double>? total,
@@ -4994,6 +5425,8 @@ class InvoiceItemsCompanion extends UpdateCompanion<InvoiceItem> {
       quantity: quantity ?? this.quantity,
       unitPrice: unitPrice ?? this.unitPrice,
       purchasePrice: purchasePrice ?? this.purchasePrice,
+      costPrice: costPrice ?? this.costPrice,
+      costPriceUsd: costPriceUsd ?? this.costPriceUsd,
       discountAmount: discountAmount ?? this.discountAmount,
       taxAmount: taxAmount ?? this.taxAmount,
       total: total ?? this.total,
@@ -5029,6 +5462,12 @@ class InvoiceItemsCompanion extends UpdateCompanion<InvoiceItem> {
     }
     if (purchasePrice.present) {
       map['purchase_price'] = Variable<double>(purchasePrice.value);
+    }
+    if (costPrice.present) {
+      map['cost_price'] = Variable<double>(costPrice.value);
+    }
+    if (costPriceUsd.present) {
+      map['cost_price_usd'] = Variable<double>(costPriceUsd.value);
     }
     if (discountAmount.present) {
       map['discount_amount'] = Variable<double>(discountAmount.value);
@@ -5070,6 +5509,8 @@ class InvoiceItemsCompanion extends UpdateCompanion<InvoiceItem> {
           ..write('quantity: $quantity, ')
           ..write('unitPrice: $unitPrice, ')
           ..write('purchasePrice: $purchasePrice, ')
+          ..write('costPrice: $costPrice, ')
+          ..write('costPriceUsd: $costPriceUsd, ')
           ..write('discountAmount: $discountAmount, ')
           ..write('taxAmount: $taxAmount, ')
           ..write('total: $total, ')
@@ -14972,10 +15413,18 @@ typedef $$ShiftsTableCreateCompanionBuilder = ShiftsCompanion Function({
   Value<double?> closingBalance,
   Value<double?> expectedBalance,
   Value<double?> difference,
+  Value<double?> openingBalanceUsd,
+  Value<double?> closingBalanceUsd,
+  Value<double?> expectedBalanceUsd,
+  Value<double?> exchangeRate,
   Value<double> totalSales,
   Value<double> totalReturns,
   Value<double> totalExpenses,
   Value<double> totalIncome,
+  Value<double> totalSalesUsd,
+  Value<double> totalReturnsUsd,
+  Value<double> totalExpensesUsd,
+  Value<double> totalIncomeUsd,
   Value<int> transactionCount,
   Value<String> status,
   Value<String?> notes,
@@ -14993,10 +15442,18 @@ typedef $$ShiftsTableUpdateCompanionBuilder = ShiftsCompanion Function({
   Value<double?> closingBalance,
   Value<double?> expectedBalance,
   Value<double?> difference,
+  Value<double?> openingBalanceUsd,
+  Value<double?> closingBalanceUsd,
+  Value<double?> expectedBalanceUsd,
+  Value<double?> exchangeRate,
   Value<double> totalSales,
   Value<double> totalReturns,
   Value<double> totalExpenses,
   Value<double> totalIncome,
+  Value<double> totalSalesUsd,
+  Value<double> totalReturnsUsd,
+  Value<double> totalExpensesUsd,
+  Value<double> totalIncomeUsd,
   Value<int> transactionCount,
   Value<String> status,
   Value<String?> notes,
@@ -15086,6 +15543,21 @@ class $$ShiftsTableFilterComposer
   ColumnFilters<double> get difference => $composableBuilder(
       column: $table.difference, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<double> get openingBalanceUsd => $composableBuilder(
+      column: $table.openingBalanceUsd,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get closingBalanceUsd => $composableBuilder(
+      column: $table.closingBalanceUsd,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get expectedBalanceUsd => $composableBuilder(
+      column: $table.expectedBalanceUsd,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get exchangeRate => $composableBuilder(
+      column: $table.exchangeRate, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<double> get totalSales => $composableBuilder(
       column: $table.totalSales, builder: (column) => ColumnFilters(column));
 
@@ -15097,6 +15569,21 @@ class $$ShiftsTableFilterComposer
 
   ColumnFilters<double> get totalIncome => $composableBuilder(
       column: $table.totalIncome, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get totalSalesUsd => $composableBuilder(
+      column: $table.totalSalesUsd, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get totalReturnsUsd => $composableBuilder(
+      column: $table.totalReturnsUsd,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get totalExpensesUsd => $composableBuilder(
+      column: $table.totalExpensesUsd,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get totalIncomeUsd => $composableBuilder(
+      column: $table.totalIncomeUsd,
+      builder: (column) => ColumnFilters(column));
 
   ColumnFilters<int> get transactionCount => $composableBuilder(
       column: $table.transactionCount,
@@ -15217,6 +15704,22 @@ class $$ShiftsTableOrderingComposer
   ColumnOrderings<double> get difference => $composableBuilder(
       column: $table.difference, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<double> get openingBalanceUsd => $composableBuilder(
+      column: $table.openingBalanceUsd,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get closingBalanceUsd => $composableBuilder(
+      column: $table.closingBalanceUsd,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get expectedBalanceUsd => $composableBuilder(
+      column: $table.expectedBalanceUsd,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get exchangeRate => $composableBuilder(
+      column: $table.exchangeRate,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<double> get totalSales => $composableBuilder(
       column: $table.totalSales, builder: (column) => ColumnOrderings(column));
 
@@ -15230,6 +15733,22 @@ class $$ShiftsTableOrderingComposer
 
   ColumnOrderings<double> get totalIncome => $composableBuilder(
       column: $table.totalIncome, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get totalSalesUsd => $composableBuilder(
+      column: $table.totalSalesUsd,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get totalReturnsUsd => $composableBuilder(
+      column: $table.totalReturnsUsd,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get totalExpensesUsd => $composableBuilder(
+      column: $table.totalExpensesUsd,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get totalIncomeUsd => $composableBuilder(
+      column: $table.totalIncomeUsd,
+      builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<int> get transactionCount => $composableBuilder(
       column: $table.transactionCount,
@@ -15284,6 +15803,18 @@ class $$ShiftsTableAnnotationComposer
   GeneratedColumn<double> get difference => $composableBuilder(
       column: $table.difference, builder: (column) => column);
 
+  GeneratedColumn<double> get openingBalanceUsd => $composableBuilder(
+      column: $table.openingBalanceUsd, builder: (column) => column);
+
+  GeneratedColumn<double> get closingBalanceUsd => $composableBuilder(
+      column: $table.closingBalanceUsd, builder: (column) => column);
+
+  GeneratedColumn<double> get expectedBalanceUsd => $composableBuilder(
+      column: $table.expectedBalanceUsd, builder: (column) => column);
+
+  GeneratedColumn<double> get exchangeRate => $composableBuilder(
+      column: $table.exchangeRate, builder: (column) => column);
+
   GeneratedColumn<double> get totalSales => $composableBuilder(
       column: $table.totalSales, builder: (column) => column);
 
@@ -15295,6 +15826,18 @@ class $$ShiftsTableAnnotationComposer
 
   GeneratedColumn<double> get totalIncome => $composableBuilder(
       column: $table.totalIncome, builder: (column) => column);
+
+  GeneratedColumn<double> get totalSalesUsd => $composableBuilder(
+      column: $table.totalSalesUsd, builder: (column) => column);
+
+  GeneratedColumn<double> get totalReturnsUsd => $composableBuilder(
+      column: $table.totalReturnsUsd, builder: (column) => column);
+
+  GeneratedColumn<double> get totalExpensesUsd => $composableBuilder(
+      column: $table.totalExpensesUsd, builder: (column) => column);
+
+  GeneratedColumn<double> get totalIncomeUsd => $composableBuilder(
+      column: $table.totalIncomeUsd, builder: (column) => column);
 
   GeneratedColumn<int> get transactionCount => $composableBuilder(
       column: $table.transactionCount, builder: (column) => column);
@@ -15414,10 +15957,18 @@ class $$ShiftsTableTableManager extends RootTableManager<
             Value<double?> closingBalance = const Value.absent(),
             Value<double?> expectedBalance = const Value.absent(),
             Value<double?> difference = const Value.absent(),
+            Value<double?> openingBalanceUsd = const Value.absent(),
+            Value<double?> closingBalanceUsd = const Value.absent(),
+            Value<double?> expectedBalanceUsd = const Value.absent(),
+            Value<double?> exchangeRate = const Value.absent(),
             Value<double> totalSales = const Value.absent(),
             Value<double> totalReturns = const Value.absent(),
             Value<double> totalExpenses = const Value.absent(),
             Value<double> totalIncome = const Value.absent(),
+            Value<double> totalSalesUsd = const Value.absent(),
+            Value<double> totalReturnsUsd = const Value.absent(),
+            Value<double> totalExpensesUsd = const Value.absent(),
+            Value<double> totalIncomeUsd = const Value.absent(),
             Value<int> transactionCount = const Value.absent(),
             Value<String> status = const Value.absent(),
             Value<String?> notes = const Value.absent(),
@@ -15435,10 +15986,18 @@ class $$ShiftsTableTableManager extends RootTableManager<
             closingBalance: closingBalance,
             expectedBalance: expectedBalance,
             difference: difference,
+            openingBalanceUsd: openingBalanceUsd,
+            closingBalanceUsd: closingBalanceUsd,
+            expectedBalanceUsd: expectedBalanceUsd,
+            exchangeRate: exchangeRate,
             totalSales: totalSales,
             totalReturns: totalReturns,
             totalExpenses: totalExpenses,
             totalIncome: totalIncome,
+            totalSalesUsd: totalSalesUsd,
+            totalReturnsUsd: totalReturnsUsd,
+            totalExpensesUsd: totalExpensesUsd,
+            totalIncomeUsd: totalIncomeUsd,
             transactionCount: transactionCount,
             status: status,
             notes: notes,
@@ -15456,10 +16015,18 @@ class $$ShiftsTableTableManager extends RootTableManager<
             Value<double?> closingBalance = const Value.absent(),
             Value<double?> expectedBalance = const Value.absent(),
             Value<double?> difference = const Value.absent(),
+            Value<double?> openingBalanceUsd = const Value.absent(),
+            Value<double?> closingBalanceUsd = const Value.absent(),
+            Value<double?> expectedBalanceUsd = const Value.absent(),
+            Value<double?> exchangeRate = const Value.absent(),
             Value<double> totalSales = const Value.absent(),
             Value<double> totalReturns = const Value.absent(),
             Value<double> totalExpenses = const Value.absent(),
             Value<double> totalIncome = const Value.absent(),
+            Value<double> totalSalesUsd = const Value.absent(),
+            Value<double> totalReturnsUsd = const Value.absent(),
+            Value<double> totalExpensesUsd = const Value.absent(),
+            Value<double> totalIncomeUsd = const Value.absent(),
             Value<int> transactionCount = const Value.absent(),
             Value<String> status = const Value.absent(),
             Value<String?> notes = const Value.absent(),
@@ -15477,10 +16044,18 @@ class $$ShiftsTableTableManager extends RootTableManager<
             closingBalance: closingBalance,
             expectedBalance: expectedBalance,
             difference: difference,
+            openingBalanceUsd: openingBalanceUsd,
+            closingBalanceUsd: closingBalanceUsd,
+            expectedBalanceUsd: expectedBalanceUsd,
+            exchangeRate: exchangeRate,
             totalSales: totalSales,
             totalReturns: totalReturns,
             totalExpenses: totalExpenses,
             totalIncome: totalIncome,
+            totalSalesUsd: totalSalesUsd,
+            totalReturnsUsd: totalReturnsUsd,
+            totalExpensesUsd: totalExpensesUsd,
+            totalIncomeUsd: totalIncomeUsd,
             transactionCount: transactionCount,
             status: status,
             notes: notes,
@@ -16334,6 +16909,8 @@ typedef $$InvoiceItemsTableCreateCompanionBuilder = InvoiceItemsCompanion
   required int quantity,
   required double unitPrice,
   required double purchasePrice,
+  Value<double?> costPrice,
+  Value<double?> costPriceUsd,
   Value<double> discountAmount,
   Value<double> taxAmount,
   required double total,
@@ -16353,6 +16930,8 @@ typedef $$InvoiceItemsTableUpdateCompanionBuilder = InvoiceItemsCompanion
   Value<int> quantity,
   Value<double> unitPrice,
   Value<double> purchasePrice,
+  Value<double?> costPrice,
+  Value<double?> costPriceUsd,
   Value<double> discountAmount,
   Value<double> taxAmount,
   Value<double> total,
@@ -16420,6 +16999,12 @@ class $$InvoiceItemsTableFilterComposer
 
   ColumnFilters<double> get purchasePrice => $composableBuilder(
       column: $table.purchasePrice, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get costPrice => $composableBuilder(
+      column: $table.costPrice, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get costPriceUsd => $composableBuilder(
+      column: $table.costPriceUsd, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<double> get discountAmount => $composableBuilder(
       column: $table.discountAmount,
@@ -16510,6 +17095,13 @@ class $$InvoiceItemsTableOrderingComposer
 
   ColumnOrderings<double> get purchasePrice => $composableBuilder(
       column: $table.purchasePrice,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get costPrice => $composableBuilder(
+      column: $table.costPrice, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get costPriceUsd => $composableBuilder(
+      column: $table.costPriceUsd,
       builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<double> get discountAmount => $composableBuilder(
@@ -16603,6 +17195,12 @@ class $$InvoiceItemsTableAnnotationComposer
 
   GeneratedColumn<double> get purchasePrice => $composableBuilder(
       column: $table.purchasePrice, builder: (column) => column);
+
+  GeneratedColumn<double> get costPrice =>
+      $composableBuilder(column: $table.costPrice, builder: (column) => column);
+
+  GeneratedColumn<double> get costPriceUsd => $composableBuilder(
+      column: $table.costPriceUsd, builder: (column) => column);
 
   GeneratedColumn<double> get discountAmount => $composableBuilder(
       column: $table.discountAmount, builder: (column) => column);
@@ -16699,6 +17297,8 @@ class $$InvoiceItemsTableTableManager extends RootTableManager<
             Value<int> quantity = const Value.absent(),
             Value<double> unitPrice = const Value.absent(),
             Value<double> purchasePrice = const Value.absent(),
+            Value<double?> costPrice = const Value.absent(),
+            Value<double?> costPriceUsd = const Value.absent(),
             Value<double> discountAmount = const Value.absent(),
             Value<double> taxAmount = const Value.absent(),
             Value<double> total = const Value.absent(),
@@ -16717,6 +17317,8 @@ class $$InvoiceItemsTableTableManager extends RootTableManager<
             quantity: quantity,
             unitPrice: unitPrice,
             purchasePrice: purchasePrice,
+            costPrice: costPrice,
+            costPriceUsd: costPriceUsd,
             discountAmount: discountAmount,
             taxAmount: taxAmount,
             total: total,
@@ -16735,6 +17337,8 @@ class $$InvoiceItemsTableTableManager extends RootTableManager<
             required int quantity,
             required double unitPrice,
             required double purchasePrice,
+            Value<double?> costPrice = const Value.absent(),
+            Value<double?> costPriceUsd = const Value.absent(),
             Value<double> discountAmount = const Value.absent(),
             Value<double> taxAmount = const Value.absent(),
             required double total,
@@ -16753,6 +17357,8 @@ class $$InvoiceItemsTableTableManager extends RootTableManager<
             quantity: quantity,
             unitPrice: unitPrice,
             purchasePrice: purchasePrice,
+            costPrice: costPrice,
+            costPriceUsd: costPriceUsd,
             discountAmount: discountAmount,
             taxAmount: taxAmount,
             total: total,

@@ -11,7 +11,6 @@ import 'package:go_router/go_router.dart';
 import 'package:hoor_manager/core/di/injection.dart';
 import 'package:hoor_manager/core/services/printing/print_settings_service.dart';
 import 'package:hoor_manager/core/services/printing/invoice_pdf_generator.dart';
-import 'package:hoor_manager/core/services/currency_service.dart';
 import 'package:hoor_manager/core/theme/design_tokens.dart';
 import 'package:hoor_manager/core/widgets/widgets.dart';
 import 'package:printing/printing.dart';
@@ -90,6 +89,19 @@ class InvoiceDialogData {
   bool get isPartiallyPaid =>
       invoice.paidAmount > 0 && invoice.paidAmount < invoice.total;
   double get remaining => invoice.total - invoice.paidAmount;
+
+  // المتبقي بالدولار (من القيم المحفوظة)
+  double get remainingUsd {
+    final totalUsd = invoice.totalUsd ??
+        (invoice.exchangeRate != null && invoice.exchangeRate! > 0
+            ? invoice.total / invoice.exchangeRate!
+            : 0);
+    final paidUsd = invoice.paidAmountUsd ??
+        (invoice.exchangeRate != null && invoice.exchangeRate! > 0
+            ? invoice.paidAmount / invoice.exchangeRate!
+            : 0);
+    return totalUsd - paidUsd;
+  }
 }
 
 /// حوار نجاح الفاتورة الموحد
@@ -468,7 +480,8 @@ class _InvoiceSuccessDialogState extends State<InvoiceSuccessDialog> {
                           ],
                         ),
                         Text(
-                          '\$${(invoice.total / CurrencyService.currentRate).toStringAsFixed(2)}',
+                          // استخدام القيمة المحفوظة
+                          '\$${(invoice.totalUsd ?? (invoice.exchangeRate != null && invoice.exchangeRate! > 0 ? invoice.total / invoice.exchangeRate! : 0)).toStringAsFixed(2)}',
                           style: AppTypography.bodySmall.copyWith(
                             color: widget.data.typeColor.withValues(alpha: 0.8),
                           ),
@@ -495,7 +508,8 @@ class _InvoiceSuccessDialogState extends State<InvoiceSuccessDialog> {
                         ),
                       ),
                       Text(
-                        '${invoice.paidAmount.toStringAsFixed(2)} ل.س (\$${(invoice.paidAmount / CurrencyService.currentRate).toStringAsFixed(2)})',
+                        // استخدام القيمة المحفوظة
+                        '${invoice.paidAmount.toStringAsFixed(2)} ل.س (\$${(invoice.paidAmountUsd ?? (invoice.exchangeRate != null && invoice.exchangeRate! > 0 ? invoice.paidAmount / invoice.exchangeRate! : 0)).toStringAsFixed(2)})',
                         style: AppTypography.labelMedium.copyWith(
                           color: AppColors.success,
                           fontFamily: 'JetBrains Mono',
@@ -515,7 +529,8 @@ class _InvoiceSuccessDialogState extends State<InvoiceSuccessDialog> {
                         ),
                       ),
                       Text(
-                        '${widget.data.remaining.toStringAsFixed(2)} ل.س (\$${(widget.data.remaining / CurrencyService.currentRate).toStringAsFixed(2)})',
+                        // حساب المتبقي من القيم المحفوظة
+                        '${widget.data.remaining.toStringAsFixed(2)} ل.س (\$${widget.data.remainingUsd.toStringAsFixed(2)})',
                         style: AppTypography.labelMedium.copyWith(
                           color: AppColors.error,
                           fontWeight: FontWeight.w600,

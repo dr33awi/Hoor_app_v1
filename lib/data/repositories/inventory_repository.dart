@@ -137,6 +137,7 @@ class InventoryRepository
 
   /// Update stock for a transaction (sale, purchase, return)
   /// Handles both global product quantity and warehouse stock
+  /// ✅ يستخدم transaction لضمان التزامن والتحقق من المخزون السالب
   Future<void> updateStockForTransaction({
     required String productId,
     required int quantity,
@@ -146,81 +147,105 @@ class InventoryRepository
     String? referenceId, // invoiceId
     String? referenceNumber, // invoiceNumber
   }) async {
-    final product = await database.getProductById(productId);
-    if (product == null) return;
+    await database.transaction(() async {
+      final product = await database.getProductById(productId);
+      if (product == null) {
+        throw Exception('المنتج غير موجود: $productId');
+      }
 
-    int adjustment;
-    String movementType;
-    String reason;
+      int adjustment;
+      String movementType;
+      String reason;
 
-    switch (transactionType) {
-      case 'sale':
-        adjustment = -quantity;
-        movementType = 'sale';
-        reason = 'Invoice Sale: ${referenceNumber ?? ""}';
-        break;
-      case 'purchase':
-        adjustment = quantity;
-        movementType = 'purchase';
-        reason = 'Invoice Purchase: ${referenceNumber ?? ""}';
-        break;
-      case 'sale_return':
-        adjustment = quantity;
-        movementType = 'return';
-        reason = 'Sale Return: ${referenceNumber ?? ""}';
-        break;
-      case 'purchase_return':
-        adjustment = -quantity;
-        movementType = 'return';
-        reason = 'Purchase Return: ${referenceNumber ?? ""}';
-        break;
-      default:
-        return;
-    }
+      switch (transactionType) {
+        case 'sale':
+          adjustment = -quantity;
+          movementType = 'sale';
+          reason = 'فاتورة بيع: ${referenceNumber ?? ""}';
+          break;
+        case 'purchase':
+          adjustment = quantity;
+          movementType = 'purchase';
+          reason = 'فاتورة شراء: ${referenceNumber ?? ""}';
+          break;
+        case 'sale_return':
+          adjustment = quantity;
+          movementType = 'return';
+          reason = 'مرتجع بيع: ${referenceNumber ?? ""}';
+          break;
+        case 'purchase_return':
+          adjustment = -quantity;
+          movementType = 'return';
+          reason = 'مرتجع شراء: ${referenceNumber ?? ""}';
+          break;
+        default:
+          return;
+      }
 
-    final newQuantity = product.quantity + adjustment;
+      final newQuantity = product.quantity + adjustment;
 
-    // 1. Update global product quantity
-    await database.updateProductQuantity(productId, newQuantity);
+      // ✅ التحقق من المخزون السالب قبل خصم الكمية
+      if (newQuantity < 0) {
+        throw NegativeStockException(
+          productId: productId,
+          productName: product.name,
+          currentQuantity: product.quantity,
+          requestedWithdraw: quantity,
+        );
+      }
 
-    // 2. Update warehouse stock if warehouseId is provided
-    if (warehouseId != null) {
-      try {
-        final warehouseStock =
-            await database.getWarehouseStockByProductAndWarehouse(
+      // التحقق من مخزون المستودع أيضاً
+      int? newWarehouseQty;
+      WarehouseStockData? warehouseStock;
+      if (warehouseId != null) {
+        warehouseStock = await database.getWarehouseStockByProductAndWarehouse(
           productId,
           warehouseId,
         );
 
         if (warehouseStock != null) {
-          final newWarehouseQty = warehouseStock.quantity + adjustment;
-          await database.updateWarehouseStock(WarehouseStockCompanion(
-            id: Value(warehouseStock.id),
-            quantity: Value(newWarehouseQty),
-            syncStatus: const Value('pending'),
-            updatedAt: Value(DateTime.now()),
-          ));
+          newWarehouseQty = warehouseStock.quantity + adjustment;
+          // ✅ التحقق من مخزون المستودع السالب
+          if (newWarehouseQty < 0) {
+            throw NegativeStockException(
+              productId: productId,
+              productName: product.name,
+              currentQuantity: warehouseStock.quantity,
+              requestedWithdraw: quantity,
+            );
+          }
         }
-      } catch (e) {
-        debugPrint('Error updating warehouse stock: $e');
       }
-    }
 
-    // 3. Record inventory movement
-    await database.insertInventoryMovement(InventoryMovementsCompanion(
-      id: Value(generateId()),
-      productId: Value(productId),
-      warehouseId: Value(warehouseId),
-      type: Value(movementType),
-      quantity: Value(quantity),
-      previousQuantity: Value(product.quantity),
-      newQuantity: Value(newQuantity),
-      reason: Value(reason),
-      referenceId: Value(referenceId),
-      referenceType: const Value('invoice'),
-      syncStatus: const Value('pending'),
-      createdAt: Value(DateTime.now()),
-    ));
+      // 1. تحديث كمية المنتج الإجمالية
+      await database.updateProductQuantity(productId, newQuantity);
+
+      // 2. تحديث مخزون المستودع (داخل نفس الـ transaction)
+      if (warehouseId != null && warehouseStock != null && newWarehouseQty != null) {
+        await database.updateWarehouseStock(WarehouseStockCompanion(
+          id: Value(warehouseStock.id),
+          quantity: Value(newWarehouseQty),
+          syncStatus: const Value('pending'),
+          updatedAt: Value(DateTime.now()),
+        ));
+      }
+
+      // 3. تسجيل حركة المخزون
+      await database.insertInventoryMovement(InventoryMovementsCompanion(
+        id: Value(generateId()),
+        productId: Value(productId),
+        warehouseId: Value(warehouseId),
+        type: Value(movementType),
+        quantity: Value(quantity),
+        previousQuantity: Value(product.quantity),
+        newQuantity: Value(newQuantity),
+        reason: Value(reason),
+        referenceId: Value(referenceId),
+        referenceType: const Value('invoice'),
+        syncStatus: const Value('pending'),
+        createdAt: Value(DateTime.now()),
+      ));
+    });
   }
 
   // ==================== Cloud Sync ====================

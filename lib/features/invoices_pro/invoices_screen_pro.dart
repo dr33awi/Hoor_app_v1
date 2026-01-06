@@ -118,13 +118,32 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
                     : invoices;
                 final totalAmount =
                     filtered.fold(0.0, (sum, i) => sum + i.total);
+                // جمع قيم USD المحفوظة مع fallback لحساب من سعر الصرف
+                final totalAmountUsd = filtered.fold(0.0, (sum, i) {
+                  if (i.totalUsd != null && i.totalUsd! > 0) {
+                    return sum + i.totalUsd!;
+                  } else if (i.exchangeRate != null && i.exchangeRate! > 0) {
+                    return sum + (i.total / i.exchangeRate!);
+                  }
+                  return sum;
+                });
                 final paidAmount =
                     filtered.fold(0.0, (sum, i) => sum + i.paidAmount);
+                final paidAmountUsd = filtered.fold(0.0, (sum, i) {
+                  if (i.paidAmountUsd != null && i.paidAmountUsd! > 0) {
+                    return sum + i.paidAmountUsd!;
+                  } else if (i.exchangeRate != null && i.exchangeRate! > 0) {
+                    return sum + (i.paidAmount / i.exchangeRate!);
+                  }
+                  return sum;
+                });
                 final pendingAmount = totalAmount - paidAmount;
 
                 return InvoicesStatsHeader(
                   totalAmount: totalAmount,
+                  totalAmountUsd: totalAmountUsd,
                   paidAmount: paidAmount,
+                  paidAmountUsd: paidAmountUsd,
                   pendingAmount: pendingAmount,
                   overdueAmount: 0, // TODO: Calculate overdue
                   isSales: isSales,

@@ -124,7 +124,9 @@ class InvoiceData {
   final double discount;
   final double tax;
   final double total;
+  final double? totalUsd; // الإجمالي بالدولار (محفوظ من الفاتورة)
   final double? paidAmount;
+  final double? paidAmountUsd; // المدفوع بالدولار (محفوظ من الفاتورة)
   final double? remainingAmount;
   final String? paymentMethod; // cash, credit, deferred
   final String? notes;
@@ -143,7 +145,9 @@ class InvoiceData {
     this.discount = 0,
     this.tax = 0,
     required this.total,
+    this.totalUsd,
     this.paidAmount,
+    this.paidAmountUsd,
     this.remainingAmount,
     this.paymentMethod,
     this.notes,
@@ -209,6 +213,10 @@ class InvoicePdfGenerator {
   }
 
   /// تحويل بيانات الفاتورة من الـ Database models إلى InvoiceData
+  ///
+  /// ⚠️ السياسة المحاسبية:
+  /// - نستخدم القيم المحفوظة (totalUsd, paidAmountUsd, exchangeRate)
+  /// - لا نحسب القيم بالدولار باستخدام سعر الصرف الحالي
   static InvoiceData _createInvoiceData(
     dynamic invoice,
     List<dynamic> items,
@@ -217,8 +225,13 @@ class InvoicePdfGenerator {
   ) {
     // الحصول على سعر الصرف من الفاتورة إن وجد
     double exchangeRate = 0;
+    double? totalUsd;
+    double? paidAmountUsd;
+
     try {
       exchangeRate = invoice.exchangeRate ?? 0;
+      totalUsd = invoice.totalUsd;
+      paidAmountUsd = invoice.paidAmountUsd;
     } catch (_) {
       exchangeRate = 0;
     }
@@ -244,7 +257,9 @@ class InvoicePdfGenerator {
       subtotal: invoice.subtotal,
       discount: invoice.discountAmount,
       total: invoice.total,
+      totalUsd: totalUsd,
       paidAmount: invoice.paidAmount,
+      paidAmountUsd: paidAmountUsd,
       remainingAmount: invoice.total - (invoice.paidAmount ?? 0.0),
       paymentMethod: invoice.paymentMethod,
       notes: invoice.notes,
@@ -902,7 +917,7 @@ class InvoicePdfGenerator {
                     ],
                   ),
                 ],
-                // سعر الصرف والإجمالي بالدولار
+                // سعر الصرف والإجمالي بالدولار (من القيم المحفوظة)
                 if (options.showExchangeRate && invoice.exchangeRate > 0) ...[
                   pw.SizedBox(height: 8),
                   pw.Divider(color: PdfColors.grey300, thickness: 0.5),
@@ -933,7 +948,8 @@ class InvoicePdfGenerator {
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
                       pw.Text(
-                        '\$${(invoice.total / invoice.exchangeRate).toStringAsFixed(2)}',
+                        // ✅ استخدام القيمة المحفوظة أو الحساب باستخدام سعر الصرف المثبت
+                        '\$${(invoice.totalUsd ?? (invoice.total / invoice.exchangeRate)).toStringAsFixed(2)}',
                         style: pw.TextStyle(
                             font: PdfFonts.bold,
                             fontSize: 12,
@@ -1315,7 +1331,7 @@ class InvoicePdfGenerator {
             ],
           ),
         ),
-        // سعر الصرف والإجمالي بالدولار للطابعة الحرارية
+        // سعر الصرف والإجمالي بالدولار للطابعة الحرارية (من القيم المحفوظة)
         if (options.showExchangeRate && invoice.exchangeRate > 0) ...[
           pw.SizedBox(height: 4),
           _thermalTotalRow('سعر الصرف', invoice.exchangeRate,
@@ -1326,7 +1342,8 @@ class InvoicePdfGenerator {
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
                 pw.Text(
-                  '\$${(invoice.total / invoice.exchangeRate).toStringAsFixed(2)}',
+                  // ✅ استخدام القيمة المحفوظة أو الحساب باستخدام سعر الصرف المثبت
+                  '\$${(invoice.totalUsd ?? (invoice.total / invoice.exchangeRate)).toStringAsFixed(2)}',
                   style: pw.TextStyle(
                       font: PdfFonts.bold,
                       fontSize: 10,

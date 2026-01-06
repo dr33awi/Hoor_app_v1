@@ -131,6 +131,10 @@ class InvoiceItems extends Table {
   // ═══════════════════════════════════════════════════════════════════════════
   RealColumn get unitPrice => real()(); // سعر الوحدة بالليرة
   RealColumn get purchasePrice => real()(); // سعر الشراء بالليرة
+  RealColumn get costPrice =>
+      real().nullable()(); // سعر التكلفة وقت البيع (للدقة المحاسبية)
+  RealColumn get costPriceUsd =>
+      real().nullable()(); // سعر التكلفة بالدولار وقت البيع
   RealColumn get discountAmount => real().withDefault(const Constant(0))();
   RealColumn get taxAmount => real().withDefault(const Constant(0))();
   RealColumn get total => real()(); // الإجمالي بالليرة
@@ -178,17 +182,48 @@ class InventoryMovements extends Table {
 }
 
 /// Shifts table
+/// ═══════════════════════════════════════════════════════════════════════════
+/// سياسة تثبيت السعر: الوردية تحتفظ بسعر الصرف والأرصدة بالدولار
+/// ═══════════════════════════════════════════════════════════════════════════
 class Shifts extends Table {
   TextColumn get id => text()();
   TextColumn get shiftNumber => text()();
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // الأرصدة بالليرة
+  // ═══════════════════════════════════════════════════════════════════════════
   RealColumn get openingBalance => real()();
   RealColumn get closingBalance => real().nullable()();
   RealColumn get expectedBalance => real().nullable()();
   RealColumn get difference => real().nullable()();
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // الأرصدة بالدولار (مع تثبيت السعر)
+  // ═══════════════════════════════════════════════════════════════════════════
+  RealColumn get openingBalanceUsd =>
+      real().nullable()(); // الرصيد الافتتاحي بالدولار
+  RealColumn get closingBalanceUsd =>
+      real().nullable()(); // الرصيد الختامي بالدولار
+  RealColumn get expectedBalanceUsd => real().nullable()(); // المتوقع بالدولار
+  RealColumn get exchangeRate =>
+      real().nullable()(); // سعر الصرف وقت فتح الوردية
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // إجماليات الوردية بالليرة
+  // ═══════════════════════════════════════════════════════════════════════════
   RealColumn get totalSales => real().withDefault(const Constant(0))();
   RealColumn get totalReturns => real().withDefault(const Constant(0))();
   RealColumn get totalExpenses => real().withDefault(const Constant(0))();
   RealColumn get totalIncome => real().withDefault(const Constant(0))();
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // إجماليات الوردية بالدولار
+  // ═══════════════════════════════════════════════════════════════════════════
+  RealColumn get totalSalesUsd => real().withDefault(const Constant(0))();
+  RealColumn get totalReturnsUsd => real().withDefault(const Constant(0))();
+  RealColumn get totalExpensesUsd => real().withDefault(const Constant(0))();
+  RealColumn get totalIncomeUsd => real().withDefault(const Constant(0))();
+
   IntColumn get transactionCount => integer().withDefault(const Constant(0))();
   TextColumn get status =>
       text().withDefault(const Constant('open'))(); // open, closed

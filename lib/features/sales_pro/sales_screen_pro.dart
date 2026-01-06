@@ -1268,7 +1268,8 @@ class _SalesScreenProState extends ConsumerState<SalesScreenPro> {
                               ),
                               title: Text(customer.name),
                               subtitle: Text(
-                                'الرصيد: ${customer.balance.toStringAsFixed(0)} (\$${(customer.balance / CurrencyService.currentRate).toStringAsFixed(1)}) ل.س',
+                                // استخدام balanceUsd المحفوظ
+                                'الرصيد: ${customer.balance.toStringAsFixed(0)} (\$${(customer.balanceUsd ?? 0).toStringAsFixed(1)}) ل.س',
                                 style: AppTypography.bodySmall.copyWith(
                                   color: AppColors.textTertiary,
                                 ),

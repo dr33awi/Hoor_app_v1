@@ -3,6 +3,14 @@
 // Reports Hub with Professional Business Analytics
 // Hoor Enterprise Design System 2026
 // ═══════════════════════════════════════════════════════════════════════════
+//
+// ⚠️ السياسة المحاسبية الصارمة - STRICT ACCOUNTING POLICY ⚠️
+// ─────────────────────────────────────────────────────────────────────────────
+// ❌ ممنوع: استخدام CurrencyService.currentRate في حسابات التقارير
+// ❌ ممنوع: تحويل العملات (syp / currentRate) في التقارير
+// ✅ مطلوب: استخدام القيم المحفوظة (invoice.total, invoice.totalUsd)
+// ✅ مطلوب: جمع القيم مباشرة بدون تحويل
+// ─────────────────────────────────────────────────────────────────────────────
 
 import 'dart:ui';
 
@@ -16,7 +24,6 @@ import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/widgets/widgets.dart';
 import '../../core/widgets/dual_price_display.dart';
-import '../../core/services/currency_service.dart';
 import '../../core/mixins/invoice_filter_mixin.dart';
 import '../../core/services/export/export_button.dart';
 import '../../core/services/export/reports_export_service.dart';
@@ -468,7 +475,13 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro>
       error: (error, _) => ProEmptyState.error(error: error.toString()),
       data: (invoices) {
         final filtered = _filterByDate(invoices);
-        final total = filtered.fold<double>(0, (sum, inv) => sum + inv.total);
+        // ═══════════════════════════════════════════════════════════════════
+        // ⚠️ السياسة المحاسبية: جمع القيم المحفوظة مباشرة - بدون تحويل
+        // ═══════════════════════════════════════════════════════════════════
+        final totalSyp =
+            filtered.fold<double>(0, (sum, inv) => sum + inv.total);
+        final totalUsd =
+            filtered.fold<double>(0, (sum, inv) => sum + (inv.totalUsd ?? 0));
         final count = filtered.length;
 
         return SingleChildScrollView(
@@ -478,8 +491,9 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro>
             children: [
               _buildDateRangeChip(),
               SizedBox(height: AppSpacing.md),
-              _buildSummaryCards(
-                total: total,
+              _buildSummaryCardsWithLockedPrice(
+                totalSyp: totalSyp,
+                totalUsd: totalUsd,
                 count: count,
                 label: 'إجمالي المبيعات',
                 color: AppColors.success,
@@ -501,7 +515,13 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro>
       error: (error, _) => ProEmptyState.error(error: error.toString()),
       data: (invoices) {
         final filtered = _filterByDate(invoices);
-        final total = filtered.fold<double>(0, (sum, inv) => sum + inv.total);
+        // ═══════════════════════════════════════════════════════════════════
+        // ⚠️ السياسة المحاسبية: جمع القيم المحفوظة مباشرة - بدون تحويل
+        // ═══════════════════════════════════════════════════════════════════
+        final totalSyp =
+            filtered.fold<double>(0, (sum, inv) => sum + inv.total);
+        final totalUsd =
+            filtered.fold<double>(0, (sum, inv) => sum + (inv.totalUsd ?? 0));
         final count = filtered.length;
 
         return SingleChildScrollView(
@@ -511,8 +531,9 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro>
             children: [
               _buildDateRangeChip(),
               SizedBox(height: AppSpacing.md),
-              _buildSummaryCards(
-                total: total,
+              _buildSummaryCardsWithLockedPrice(
+                totalSyp: totalSyp,
+                totalUsd: totalUsd,
                 count: count,
                 label: 'إجمالي المشتريات',
                 color: AppColors.secondary,
@@ -541,11 +562,21 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro>
             final filteredSales = _filterByDate(sales);
             final filteredPurchases = _filterByDate(purchases);
 
-            final totalSales =
+            // ═══════════════════════════════════════════════════════════════
+            // ⚠️ السياسة المحاسبية: جمع القيم المحفوظة مباشرة - بدون تحويل
+            // ═══════════════════════════════════════════════════════════════
+            final totalSalesSyp =
                 filteredSales.fold<double>(0, (sum, inv) => sum + inv.total);
-            final totalPurchases = filteredPurchases.fold<double>(
+            final totalSalesUsd = filteredSales.fold<double>(
+                0, (sum, inv) => sum + (inv.totalUsd ?? 0));
+            final totalPurchasesSyp = filteredPurchases.fold<double>(
                 0, (sum, inv) => sum + inv.total);
-            final profit = totalSales - totalPurchases;
+            final totalPurchasesUsd = filteredPurchases.fold<double>(
+                0, (sum, inv) => sum + (inv.totalUsd ?? 0));
+
+            // الربح = المبيعات - المشتريات (بدون تحويل عملات)
+            final profitSyp = totalSalesSyp - totalPurchasesSyp;
+            final profitUsd = totalSalesUsd - totalPurchasesUsd;
 
             return SingleChildScrollView(
               padding: EdgeInsets.all(AppSpacing.md),
@@ -554,10 +585,13 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro>
                 children: [
                   _buildDateRangeChip(),
                   SizedBox(height: AppSpacing.md),
-                  _buildProfitCards(
-                    sales: totalSales,
-                    purchases: totalPurchases,
-                    profit: profit,
+                  _buildProfitCardsWithLockedPrice(
+                    salesSyp: totalSalesSyp,
+                    salesUsd: totalSalesUsd,
+                    purchasesSyp: totalPurchasesSyp,
+                    purchasesUsd: totalPurchasesUsd,
+                    profitSyp: profitSyp,
+                    profitUsd: profitUsd,
                   ),
                 ],
               ),
@@ -578,16 +612,24 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro>
         final unpaid = invoices
             .where((inv) => inv.status == 'unpaid' || inv.status == 'partial')
             .toList();
-        final total = unpaid.fold<double>(
+        // ═══════════════════════════════════════════════════════════════════
+        // ⚠️ السياسة المحاسبية: استخدام القيم المحفوظة
+        // ═══════════════════════════════════════════════════════════════════
+        final totalSyp = unpaid.fold<double>(
             0, (sum, inv) => sum + (inv.total - inv.paidAmount));
+        final totalUsd = unpaid.fold<double>(
+            0,
+            (sum, inv) =>
+                sum + ((inv.totalUsd ?? 0) - (inv.paidAmountUsd ?? 0)));
 
         return SingleChildScrollView(
           padding: EdgeInsets.all(AppSpacing.md),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildSummaryCards(
-                total: total,
+              _buildSummaryCardsWithLockedPrice(
+                totalSyp: totalSyp,
+                totalUsd: totalUsd,
                 count: unpaid.length,
                 label: 'إجمالي المستحقات',
                 color: AppColors.error,
@@ -609,15 +651,22 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro>
       error: (error, _) => ProEmptyState.error(error: error.toString()),
       data: (suppliers) {
         final withBalance = suppliers.where((s) => s.balance > 0).toList();
-        final total = withBalance.fold<double>(0, (sum, s) => sum + s.balance);
+        // ═══════════════════════════════════════════════════════════════════
+        // ⚠️ السياسة المحاسبية: استخدام القيم المحفوظة (balanceUsd)
+        // ═══════════════════════════════════════════════════════════════════
+        final totalSyp =
+            withBalance.fold<double>(0, (sum, s) => sum + s.balance);
+        final totalUsd =
+            withBalance.fold<double>(0, (sum, s) => sum + (s.balanceUsd ?? 0));
 
         return SingleChildScrollView(
           padding: EdgeInsets.all(AppSpacing.md),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildSummaryCards(
-                total: total,
+              _buildSummaryCardsWithLockedPrice(
+                totalSyp: totalSyp,
+                totalUsd: totalUsd,
                 count: withBalance.length,
                 label: 'إجمالي المستحقات للموردين',
                 color: AppColors.warning,
@@ -666,10 +715,10 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro>
                               ],
                             ),
                           ),
+                          // ⚠️ استخدام القيم المحفوظة
                           CompactDualPrice(
                             amountSyp: supplier.balance,
-                            amountUsd:
-                                supplier.balance / CurrencyService.currentRate,
+                            amountUsd: supplier.balanceUsd ?? 0,
                             sypStyle: AppTypography.titleSmall.copyWith(
                               color: AppColors.warning,
                               fontWeight: FontWeight.bold,
@@ -695,8 +744,14 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro>
       error: (error, _) => ProEmptyState.error(error: error.toString()),
       data: (products) {
         final totalItems = products.fold<int>(0, (sum, p) => sum + p.quantity);
-        final totalValue = products.fold<double>(
+        // ═══════════════════════════════════════════════════════════════════
+        // ⚠️ السياسة المحاسبية: استخدام القيم المحفوظة
+        // قيمة المخزون = الكمية × سعر الشراء المحفوظ (بدون تحويل)
+        // ═══════════════════════════════════════════════════════════════════
+        final totalValueSyp = products.fold<double>(
             0, (sum, p) => sum + (p.quantity * p.purchasePrice));
+        final totalValueUsd = products.fold<double>(
+            0, (sum, p) => sum + (p.quantity * (p.purchasePriceUsd ?? 0)));
         final lowStock =
             products.where((p) => p.quantity <= p.minQuantity).length;
         final outOfStock = products.where((p) => p.quantity <= 0).length;
@@ -732,10 +787,10 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro>
               Row(
                 children: [
                   Expanded(
-                    child: _SummaryCard(
+                    child: _LockedPriceSummaryCard(
                       title: 'قيمة المخزون',
-                      value:
-                          '${NumberFormat('#,###').format(totalValue)} (\$${NumberFormat('#,###').format(totalValue / CurrencyService.currentRate)}) ل.س',
+                      amountSyp: totalValueSyp,
+                      amountUsd: totalValueUsd,
                       icon: Icons.attach_money_rounded,
                       color: AppColors.success,
                     ),
@@ -846,11 +901,11 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro>
                             ],
                           ),
                         ),
+                        // ⚠️ استخدام القيم المحفوظة
                         CompactDualPrice(
                           amountSyp: product.quantity * product.purchasePrice,
-                          amountUsd:
-                              (product.quantity * product.purchasePrice) /
-                                  CurrencyService.currentRate,
+                          amountUsd: product.quantity *
+                              (product.purchasePriceUsd ?? 0),
                           sypStyle: AppTypography.labelMedium.copyWith(
                             color: AppColors.textSecondary,
                           ),
@@ -923,8 +978,14 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro>
     );
   }
 
-  Widget _buildSummaryCards({
-    required double total,
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ⚠️ بطاقات الملخص - تستخدم القيم المحفوظة (LockedPrice)
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// بطاقة ملخص مع قيم مثبتة (السياسة المحاسبية الصارمة)
+  Widget _buildSummaryCardsWithLockedPrice({
+    required double totalSyp,
+    required double totalUsd,
     required int count,
     required String label,
     required Color color,
@@ -932,10 +993,10 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro>
     return Row(
       children: [
         Expanded(
-          child: _SummaryCard(
+          child: _LockedPriceSummaryCard(
             title: label,
-            value:
-                '${NumberFormat('#,###').format(total)} (\$${NumberFormat('#,###').format(total / CurrencyService.currentRate)}) ل.س',
+            amountSyp: totalSyp,
+            amountUsd: totalUsd,
             icon: Icons.attach_money_rounded,
             color: color,
           ),
@@ -953,30 +1014,34 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro>
     );
   }
 
-  Widget _buildProfitCards({
-    required double sales,
-    required double purchases,
-    required double profit,
+  /// بطاقات الأرباح مع قيم مثبتة (السياسة المحاسبية الصارمة)
+  Widget _buildProfitCardsWithLockedPrice({
+    required double salesSyp,
+    required double salesUsd,
+    required double purchasesSyp,
+    required double purchasesUsd,
+    required double profitSyp,
+    required double profitUsd,
   }) {
     return Column(
       children: [
         Row(
           children: [
             Expanded(
-              child: _SummaryCard(
+              child: _LockedPriceSummaryCard(
                 title: 'المبيعات',
-                value:
-                    '${NumberFormat('#,###').format(sales)} (\$${NumberFormat('#,###').format(sales / CurrencyService.currentRate)}) ل.س',
+                amountSyp: salesSyp,
+                amountUsd: salesUsd,
                 icon: Icons.trending_up_rounded,
                 color: AppColors.success,
               ),
             ),
             SizedBox(width: AppSpacing.md),
             Expanded(
-              child: _SummaryCard(
+              child: _LockedPriceSummaryCard(
                 title: 'المشتريات',
-                value:
-                    '${NumberFormat('#,###').format(purchases)} (\$${NumberFormat('#,###').format(purchases / CurrencyService.currentRate)}) ل.س',
+                amountSyp: purchasesSyp,
+                amountUsd: purchasesUsd,
                 icon: Icons.trending_down_rounded,
                 color: AppColors.error,
               ),
@@ -984,14 +1049,14 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro>
           ],
         ),
         SizedBox(height: AppSpacing.md),
-        _SummaryCard(
+        _LockedPriceSummaryCard(
           title: 'صافي الربح',
-          value:
-              '${NumberFormat('#,###').format(profit)} (\$${NumberFormat('#,###').format(profit / CurrencyService.currentRate)}) ل.س',
-          icon: profit >= 0
+          amountSyp: profitSyp,
+          amountUsd: profitUsd,
+          icon: profitSyp >= 0
               ? Icons.trending_up_rounded
               : Icons.trending_down_rounded,
-          color: profit >= 0 ? AppColors.success : AppColors.error,
+          color: profitSyp >= 0 ? AppColors.success : AppColors.error,
           isLarge: true,
         ),
       ],
@@ -1433,6 +1498,90 @@ class _SummaryCard extends StatelessWidget {
   }
 }
 
+/// ═══════════════════════════════════════════════════════════════════════════
+/// بطاقة ملخص مع قيم مثبتة (LockedPrice)
+/// ═══════════════════════════════════════════════════════════════════════════
+///
+/// ⚠️ السياسة المحاسبية:
+/// - تعرض القيم المحفوظة مباشرة (amountSyp, amountUsd)
+/// - لا تقوم بأي تحويل عملات
+/// ═══════════════════════════════════════════════════════════════════════════
+class _LockedPriceSummaryCard extends StatelessWidget {
+  final String title;
+  final double amountSyp;
+  final double amountUsd;
+  final IconData icon;
+  final Color color;
+  final bool isLarge;
+
+  const _LockedPriceSummaryCard({
+    required this.title,
+    required this.amountSyp,
+    required this.amountUsd,
+    required this.icon,
+    required this.color,
+    this.isLarge = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final numberFormat = NumberFormat('#,###');
+
+    return ProCard(
+      padding: EdgeInsets.all(isLarge ? AppSpacing.lg : AppSpacing.md),
+      borderColor: color.border,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: color.soft,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: Icon(icon, color: color, size: isLarge ? 24.sp : 20.sp),
+              ),
+              SizedBox(width: AppSpacing.sm),
+              Text(
+                title,
+                style: AppTypography.labelMedium.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: AppSpacing.md),
+          // ⚠️ عرض مزدوج للعملة - القيم المحفوظة
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${numberFormat.format(amountSyp)} ل.س',
+                style: (isLarge
+                        ? AppTypography.headlineMedium
+                        : AppTypography.titleLarge)
+                    .copyWith(
+                  color: color,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 2.h),
+              Text(
+                '\$${numberFormat.format(amountUsd)}',
+                style: AppTypography.labelMedium.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _InvoiceListItem extends StatelessWidget {
   final Invoice invoice;
 
@@ -1468,10 +1617,10 @@ class _InvoiceListItem extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
+              // ⚠️ السياسة المحاسبية: استخدام القيم المحفوظة (totalUsd)
               CompactDualPrice(
                 amountSyp: invoice.total,
-                amountUsd: invoice.totalUsd ??
-                    invoice.total / CurrencyService.currentRate,
+                amountUsd: invoice.totalUsd ?? 0,
                 sypStyle: AppTypography.titleSmall.copyWith(
                   fontWeight: FontWeight.bold,
                   color: AppColors.success,

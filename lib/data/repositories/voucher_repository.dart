@@ -472,16 +472,46 @@ class VoucherRepository extends BaseRepository<Voucher, VouchersCompanion> {
 
     final noteText = description ?? type.arabicName;
     final exchangeRate = currencyService.exchangeRate;
+    final amountUsd = amount / exchangeRate;
 
     await database.insertCashMovement(CashMovementsCompanion(
       id: Value(_uuid.v4()),
       shiftId: Value(shiftId),
       type: Value(movementType),
       amount: Value(amount),
+      amountUsd: Value(amountUsd),
       exchangeRate: Value(exchangeRate),
       description: Value('$noteText - رقم السند: $voucherNumber'),
       createdAt: Value(DateTime.now()),
     ));
+
+    // تحديث إجماليات الوردية
+    final shift = await database.getShiftById(shiftId);
+    if (shift != null) {
+      switch (type) {
+        case VoucherType.receipt:
+          // سند قبض = إيراد
+          await database.updateShift(ShiftsCompanion(
+            id: Value(shiftId),
+            totalIncome: Value(shift.totalIncome + amount),
+            totalIncomeUsd: Value(shift.totalIncomeUsd + amountUsd),
+            transactionCount: Value(shift.transactionCount + 1),
+            updatedAt: Value(DateTime.now()),
+          ));
+          break;
+        case VoucherType.payment:
+        case VoucherType.expense:
+          // سند دفع أو مصاريف = مصروف
+          await database.updateShift(ShiftsCompanion(
+            id: Value(shiftId),
+            totalExpenses: Value(shift.totalExpenses + amount),
+            totalExpensesUsd: Value(shift.totalExpensesUsd + amountUsd),
+            transactionCount: Value(shift.transactionCount + 1),
+            updatedAt: Value(DateTime.now()),
+          ));
+          break;
+      }
+    }
   }
 
   /// إضافة تصنيفات افتراضية

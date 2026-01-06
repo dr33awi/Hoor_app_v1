@@ -37,7 +37,6 @@ class _SupplierFormScreenProState extends ConsumerState<SupplierFormScreenPro> {
   final _addressController = TextEditingController();
   final _notesController = TextEditingController();
   final _contactPersonController = TextEditingController();
-  final _bankAccountController = TextEditingController();
 
   String _supplierType = 'company';
   bool _isActive = true;
@@ -85,7 +84,6 @@ class _SupplierFormScreenProState extends ConsumerState<SupplierFormScreenPro> {
     _addressController.dispose();
     _notesController.dispose();
     _contactPersonController.dispose();
-    _bankAccountController.dispose();
     super.dispose();
   }
 
@@ -197,13 +195,6 @@ class _SupplierFormScreenProState extends ConsumerState<SupplierFormScreenPro> {
                   label: 'شخص التواصل',
                   hint: 'اسم الشخص المسؤول',
                   prefixIcon: Icons.person_pin_outlined,
-                ),
-                SizedBox(height: AppSpacing.md),
-                ProTextField(
-                  controller: _bankAccountController,
-                  label: 'رقم الحساب البنكي',
-                  hint: 'أدخل رقم الحساب',
-                  prefixIcon: Icons.account_balance_outlined,
                 ),
               ],
 

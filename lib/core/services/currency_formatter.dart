@@ -40,13 +40,18 @@ class CurrencyFormatter {
   }
 
   /// تنسيق الليرة السورية بشكل مختصر للمبالغ الكبيرة
-  /// مثال: 1.5M ل.س أو 150K ل.س
+  /// مثال: 1.5M ل.س أو 14.5K ل.س
   static String formatSypCompact(double value, {bool withSymbol = true}) {
     String formatted;
     if (value >= 1000000) {
       formatted = '${(value / 1000000).toStringAsFixed(1)}M';
     } else if (value >= 1000) {
-      formatted = '${(value / 1000).toStringAsFixed(0)}K';
+      // استخدام منزلة عشرية واحدة لدقة أفضل
+      final kValue = value / 1000;
+      // إذا كانت القيمة صحيحة (مثل 15.0)، لا نعرض المنزلة العشرية
+      formatted = kValue == kValue.truncate()
+          ? '${kValue.toStringAsFixed(0)}K'
+          : '${kValue.toStringAsFixed(1)}K';
     } else {
       formatted = value.toStringAsFixed(0);
     }

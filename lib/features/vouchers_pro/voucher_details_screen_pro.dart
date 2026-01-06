@@ -146,50 +146,36 @@ class _VoucherDetailsScreenProState
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.all(AppSpacing.md),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildAmountCard(),
-                    SizedBox(height: AppSpacing.lg),
-                    _buildDetailsCard(),
-                    if (_customer != null || _supplier != null) ...[
-                      SizedBox(height: AppSpacing.lg),
-                      _buildPartyCard(),
-                    ],
-                    if (_category != null) ...[
-                      SizedBox(height: AppSpacing.lg),
-                      _buildCategoryCard(),
-                    ],
-                    if (_voucher?.description != null &&
-                        _voucher!.description!.isNotEmpty) ...[
-                      SizedBox(height: AppSpacing.lg),
-                      _buildDescriptionCard(),
-                    ],
-                    SizedBox(height: AppSpacing.xxl),
-                  ],
-                ),
-              ),
-            ),
+      appBar: _buildAppBar(),
+      body: ListView(
+        padding: EdgeInsets.all(AppSpacing.md),
+        children: [
+          _buildAmountSection(),
+          SizedBox(height: AppSpacing.lg),
+          _buildDetailsCard(),
+          if (_customer != null || _supplier != null) ...[
+            SizedBox(height: AppSpacing.lg),
+            _buildPartyCard(),
           ],
-        ),
+          if (_category != null) ...[
+            SizedBox(height: AppSpacing.lg),
+            _buildCategoryCard(),
+          ],
+          if (_voucher?.description != null &&
+              _voucher!.description!.isNotEmpty) ...[
+            SizedBox(height: AppSpacing.lg),
+            _buildDescriptionCard(),
+          ],
+          SizedBox(height: AppSpacing.xxl),
+        ],
       ),
     );
   }
 
-  Widget _buildHeader() {
-    return ProHeader(
-      title: _typeLabel,
-      subtitle: '#${_voucher!.voucherNumber}',
-      onBack: () => context.pop(),
+  PreferredSizeWidget _buildAppBar() {
+    return ProAppBar.simple(
+      title: '$_typeLabel #${_voucher!.voucherNumber}',
       actions: [
-        // زر الطباعة الموحد
         PrintMenuButton(
           onPrint: _handlePrint,
           showSizeSelector: true,
@@ -199,99 +185,110 @@ class _VoucherDetailsScreenProState
             PrintType.save,
             PrintType.preview,
           },
-          tooltip: 'خيارات الطباعة',
+          tooltip: 'طباعة',
           color: AppColors.textSecondary,
         ),
         IconButton(
           onPressed: () => context.push(
             '/vouchers/${_voucher!.type}/edit/${_voucher!.id}',
           ),
-          icon: const Icon(Icons.edit_rounded),
+          icon: const Icon(Icons.edit_outlined),
           color: AppColors.textSecondary,
           tooltip: 'تعديل',
         ),
         IconButton(
           onPressed: _deleteVoucher,
-          icon: Icon(Icons.delete_outline_rounded, color: AppColors.error),
+          icon: const Icon(Icons.delete_outline_rounded),
+          color: AppColors.error,
           tooltip: 'حذف',
         ),
       ],
     );
   }
 
-  Widget _buildAmountCard() {
+  Widget _buildAmountSection() {
+    final exchangeRate = _voucher!.exchangeRate;
+    final amountUsd = _voucher!.amountUsd ??
+        (exchangeRate > 0 ? _voucher!.amount / exchangeRate : null);
+
     return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(AppSpacing.xl),
+      padding: EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            _typeColor,
-            _typeColor.withValues(alpha: 0.8),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(AppRadius.xl),
-        boxShadow: [
-          BoxShadow(
-            color: _typeColor.withValues(alpha: 0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
+        color: _typeColor.soft,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: _typeColor.border),
       ),
-      child: Column(
+      child: Row(
         children: [
+          // أيقونة النوع
           Container(
-            padding: EdgeInsets.all(AppSpacing.md),
+            padding: EdgeInsets.all(AppSpacing.sm),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
+              color: _typeColor,
+              borderRadius: BorderRadius.circular(AppRadius.md),
             ),
             child: Icon(
               _typeIcon,
               color: Colors.white,
-              size: 40.sp,
+              size: 24.sp,
             ),
           ),
-          SizedBox(height: AppSpacing.lg),
-          Builder(
-            builder: (context) {
-              final exchangeRate = _voucher!.exchangeRate;
-              final amountUsd = _voucher!.amountUsd ??
-                  (exchangeRate > 0 ? _voucher!.amount / exchangeRate : null);
-              return DualPriceDisplay(
-                amountSyp: _voucher!.amount,
-                amountUsd: amountUsd,
-                exchangeRate: exchangeRate,
-                sypStyle: AppTypography.displayLarge.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+          SizedBox(width: AppSpacing.md),
+          // المبلغ
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _typeLabel,
+                  style: AppTypography.labelSmall.copyWith(
+                    color: _typeColor,
+                  ),
                 ),
-                usdStyle: AppTypography.titleMedium.copyWith(
-                  color: Colors.white.withValues(alpha: 0.8),
+                DualPriceDisplay(
+                  amountSyp: _voucher!.amount,
+                  amountUsd: amountUsd,
+                  exchangeRate: exchangeRate,
+                  sypStyle: AppTypography.headlineMedium.copyWith(
+                    color: _typeColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  usdStyle: AppTypography.bodyMedium.copyWith(
+                    color: _typeColor.withValues(alpha: 0.7),
+                  ),
                 ),
-              );
-            },
+              ],
+            ),
           ),
-          SizedBox(height: AppSpacing.sm),
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.xs,
-            ),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(AppRadius.full),
-            ),
-            child: Text(
-              _typeLabel,
-              style: AppTypography.labelLarge.copyWith(
-                color: Colors.white,
+          // سعر الصرف
+          if (exchangeRate > 0)
+            Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm,
+                vertical: AppSpacing.xs,
+              ),
+              decoration: BoxDecoration(
+                color: _typeColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.currency_exchange,
+                    color: _typeColor,
+                    size: 12.sp,
+                  ),
+                  SizedBox(width: 4),
+                  Text(
+                    '${exchangeRate.toStringAsFixed(0)}',
+                    style: AppTypography.labelSmall.copyWith(
+                      color: _typeColor,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
         ],
       ),
     );

@@ -14,7 +14,6 @@ import 'package:intl/intl.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/widgets/widgets.dart';
 import '../../core/providers/app_providers.dart';
-import '../../core/services/currency_service.dart';
 import '../../data/database/app_database.dart';
 import '../../core/widgets/dual_price_display.dart';
 
@@ -134,11 +133,15 @@ class _ReturnsScreenProState extends ConsumerState<ReturnsScreenPro> {
         },
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showNewReturnSheet(),
+        onPressed: () => context.push(
+          widget.type == ReturnType.sales
+              ? '/returns/sales/add'
+              : '/returns/purchases/add',
+        ),
         backgroundColor: widget.type.accentColor,
-        icon: const Icon(Icons.assignment_return_rounded, color: Colors.white),
+        icon: const Icon(Icons.add, color: Colors.white),
         label: Text(
-          'مرتجع جديد',
+          widget.type == ReturnType.sales ? 'مرتجع بيع' : 'مرتجع شراء',
           style: AppTypography.labelLarge.copyWith(color: Colors.white),
         ),
       ),
@@ -155,11 +158,31 @@ class _ReturnsScreenProState extends ConsumerState<ReturnsScreenPro> {
           loading: () => const SizedBox.shrink(),
           error: (_, __) => const SizedBox.shrink(),
           data: (returns) {
-            final total = returns.fold<double>(0, (sum, r) => sum + r.total);
-            return ProStatsChip(
-              count: returns.length,
-              total: total,
-              color: widget.type.accentColor,
+            // ═══════════════════════════════════════════════════════════════
+            // ⚠️ السياسة المحاسبية: جمع القيم المحفوظة
+            // ═══════════════════════════════════════════════════════════════
+            final totalSyp = returns.fold<double>(0, (sum, r) => sum + r.total);
+            final totalUsd =
+                returns.fold<double>(0, (sum, r) => sum + (r.totalUsd ?? 0));
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${returns.length} مرتجع',
+                  style: AppTypography.labelSmall.copyWith(
+                    color: widget.type.accentColor,
+                  ),
+                ),
+                CompactDualPrice(
+                  amountSyp: totalSyp,
+                  amountUsd: totalUsd,
+                  sypStyle: AppTypography.titleSmall.copyWith(
+                    color: widget.type.accentColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             );
           },
         ),
@@ -306,7 +329,8 @@ class _ReturnsScreenProState extends ConsumerState<ReturnsScreenPro> {
                               .map((i) => DropdownMenuItem(
                                     value: i,
                                     child: Text(
-                                      '${i.invoiceNumber} - ${NumberFormat('#,###').format(i.total)} ل.س (\$${(i.totalUsd ?? (i.exchangeRate != null && i.exchangeRate! > 0 ? i.total / i.exchangeRate! : i.total / CurrencyService.currentRate)).toStringAsFixed(2)})',
+                                      // استخدام القيم المحفوظة فقط
+                                      '${i.invoiceNumber} - ${NumberFormat('#,###').format(i.total)} ل.س (\$${(i.totalUsd ?? (i.exchangeRate != null && i.exchangeRate! > 0 ? i.total / i.exchangeRate! : 0)).toStringAsFixed(2)})',
                                     ),
                                   ))
                               .toList(),
@@ -389,6 +413,9 @@ class _ReturnsScreenProState extends ConsumerState<ReturnsScreenPro> {
       // Get original invoice items
       final items = await invoiceRepo.getInvoiceItems(invoice.id);
 
+      // ═══════════════════════════════════════════════════════════════════
+      // ⚠️ السياسة المحاسبية: استخدام سعر الصرف من الفاتورة الأصلية
+      // ═══════════════════════════════════════════════════════════════════
       final Map<String, dynamic> invoiceData = {
         'type': widget.type.invoiceType,
         'items': items
@@ -398,9 +425,16 @@ class _ReturnsScreenProState extends ConsumerState<ReturnsScreenPro> {
                   'quantity': item.quantity,
                   'unitPrice': item.unitPrice,
                   'purchasePrice': item.purchasePrice,
+                  // ⚠️ تمرير خصم العنصر من الفاتورة الأصلية
+                  'discount': item.discountAmount,
+                  // حفظ القيم المحفوظة من الفاتورة الأصلية
+                  'unitPriceUsd': item.unitPriceUsd,
+                  'exchangeRate': item.exchangeRate ?? invoice.exchangeRate,
                 })
             .toList(),
         'paymentMethod': invoice.paymentMethod,
+        // ⚠️ تمرير خصم الفاتورة من الفاتورة الأصلية
+        'discountAmount': invoice.discountAmount,
         'notes': reason.isEmpty
             ? 'مرتجع ${widget.type == ReturnType.sales ? "مبيعات" : "مشتريات"} - فاتورة رقم: ${invoice.invoiceNumber}'
             : reason,
@@ -413,13 +447,19 @@ class _ReturnsScreenProState extends ConsumerState<ReturnsScreenPro> {
         invoiceData['supplierId'] = invoice.supplierId;
       }
 
+      // ═══════════════════════════════════════════════════════════════════
+      // ⚠️ السياسة المحاسبية: تمرير سعر الصرف والخصم من الفاتورة الأصلية
+      // ═══════════════════════════════════════════════════════════════════
       await invoiceRepo.createInvoice(
         type: invoiceData['type'],
         customerId: invoiceData['customerId'],
         supplierId: invoiceData['supplierId'],
         items: invoiceData['items'],
+        discountAmount: invoice.discountAmount, // خصم الفاتورة الأصلية
         paymentMethod: invoiceData['paymentMethod'],
         notes: invoiceData['notes'],
+        originalExchangeRate:
+            invoice.exchangeRate, // سعر الصرف من الفاتورة الأصلية
       );
 
       if (mounted) {
@@ -500,7 +540,12 @@ class _ReturnCard extends StatelessWidget {
               ),
               CompactDualPrice(
                 amountSyp: returnInvoice.total,
-                exchangeRate: CurrencyService.currentRate,
+                // استخدام سعر الصرف المحفوظ مع الفاتورة
+                amountUsd: returnInvoice.totalUsd ??
+                    (returnInvoice.exchangeRate != null &&
+                            returnInvoice.exchangeRate! > 0
+                        ? returnInvoice.total / returnInvoice.exchangeRate!
+                        : 0),
                 sypStyle: AppTypography.titleMedium.copyWith(
                   color: type.accentColor,
                   fontWeight: FontWeight.bold,

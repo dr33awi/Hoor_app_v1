@@ -114,7 +114,35 @@ class WarehouseRepository
   }
 
   /// حذف مستودع (تعطيل فقط)
+  /// ✅ يتحقق من عدم وجود مخزون قبل الحذف
   Future<void> deleteWarehouse(String id) async {
+    // التحقق من أن المستودع ليس افتراضي
+    final warehouse = await database.getWarehouseById(id);
+    if (warehouse == null) return;
+    
+    if (warehouse.isDefault) {
+      throw Exception('لا يمكن حذف المستودع الافتراضي. عيّن مستودعاً آخر كافتراضي أولاً.');
+    }
+    
+    // التحقق من عدم وجود مخزون في المستودع
+    final stock = await database.getWarehouseStockByWarehouse(id);
+    final totalQty = stock.fold<int>(0, (sum, s) => sum + s.quantity);
+    
+    if (totalQty > 0) {
+      throw Exception(
+        'لا يمكن حذف المستودع لأنه يحتوي على مخزون ($totalQty وحدة). '
+        'انقل المخزون إلى مستودع آخر أولاً.',
+      );
+    }
+    
+    // التحقق من عدم وجود عمليات نقل معلقة
+    final pendingTransfers = await database.getPendingTransfersForWarehouse(id);
+    if (pendingTransfers.isNotEmpty) {
+      throw Exception(
+        'لا يمكن حذف المستودع لأنه يوجد ${pendingTransfers.length} عملية نقل معلقة.',
+      );
+    }
+    
     await updateWarehouse(id: id, isActive: false);
   }
 
@@ -207,12 +235,50 @@ class WarehouseRepository
       database.getStockTransferItems(transferId);
 
   /// إنشاء عملية نقل جديدة
+  /// ✅ يتحقق من كفاية المخزون قبل النقل
   Future<String> createTransfer({
     required String fromWarehouseId,
     required String toWarehouseId,
     required List<Map<String, dynamic>> items,
     String? notes,
   }) async {
+    // ✅ التحقق من صحة المستودعات
+    final fromWarehouse = await database.getWarehouseById(fromWarehouseId);
+    if (fromWarehouse == null) {
+      throw Exception('المستودع المصدر غير موجود');
+    }
+    if (!fromWarehouse.isActive) {
+      throw Exception('المستودع المصدر غير نشط');
+    }
+    
+    final toWarehouse = await database.getWarehouseById(toWarehouseId);
+    if (toWarehouse == null) {
+      throw Exception('المستودع الهدف غير موجود');
+    }
+    if (!toWarehouse.isActive) {
+      throw Exception('المستودع الهدف غير نشط');
+    }
+
+    // ✅ التحقق من كفاية المخزون لكل منتج
+    for (final item in items) {
+      final productId = item['productId'] as String;
+      final requestedQty = item['quantity'] as int;
+      
+      final stock = await database.getWarehouseStockByProductAndWarehouse(
+        productId,
+        fromWarehouseId,
+      );
+      
+      final availableQty = stock?.quantity ?? 0;
+      if (availableQty < requestedQty) {
+        final product = await database.getProductById(productId);
+        throw Exception(
+          'الكمية المطلوبة ($requestedQty) للمنتج "${product?.name ?? productId}" '
+          'أكبر من المتاح ($availableQty) في المستودع المصدر',
+        );
+      }
+    }
+
     final transferId = generateId();
     final transferNumber = 'TR${DateTime.now().millisecondsSinceEpoch}';
     final now = DateTime.now();

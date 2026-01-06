@@ -369,8 +369,10 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
       child: ListView(
         padding: EdgeInsets.all(AppSpacing.md),
         children: [
-          // Product Name
-          const ProSectionTitle('معلومات المنتج'),
+          // ═══════════════════════════════════════════════════════════════
+          // 1. المعلومات الأساسية
+          // ═══════════════════════════════════════════════════════════════
+          const ProSectionTitle('المعلومات الأساسية'),
           SizedBox(height: AppSpacing.sm),
           ProTextField(
             controller: _nameController,
@@ -384,50 +386,42 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
             },
           ),
           SizedBox(height: AppSpacing.md),
-
-          // Barcode with Generate & Print buttons
-          _buildBarcodeField(),
-          SizedBox(height: AppSpacing.md),
-
-          // Description
-          ProTextField(
-            controller: _descriptionController,
-            label: 'الوصف',
-            hint: 'أدخل وصف المنتج (اختياري)',
-            maxLines: 3,
-          ),
+          _buildCategorySelector(),
           SizedBox(height: AppSpacing.lg),
 
-          // Pricing Section
+          // ═══════════════════════════════════════════════════════════════
+          // 2. التسعير
+          // ═══════════════════════════════════════════════════════════════
           const ProSectionTitle('التسعير'),
           SizedBox(height: AppSpacing.sm),
+          // سعر الصرف الحالي
+          Container(
+            padding: EdgeInsets.all(AppSpacing.sm),
+            margin: EdgeInsets.only(bottom: AppSpacing.md),
+            decoration: BoxDecoration(
+              color: AppColors.primary.soft,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(color: AppColors.primary.border),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.currency_exchange,
+                    color: AppColors.primary, size: 18),
+                SizedBox(width: AppSpacing.sm),
+                Text(
+                  'سعر الصرف: 1\$ = ${CurrencyService.currentRate.toStringAsFixed(0)} ل.س',
+                  style: AppTypography.labelMedium.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // سعر التكلفة
           Row(
             children: [
-              Expanded(
-                child: ProNumberField(
-                  controller: _costPriceController,
-                  label: 'سعر التكلفة (ل.س)',
-                  hint: '0.00',
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'الرجاء إدخال سعر التكلفة';
-                    }
-                    return null;
-                  },
-                  onChanged: (value) {
-                    // حساب تلقائي للدولار إذا كان فارغاً
-                    if (_costPriceUsdController.text.isEmpty &&
-                        value.isNotEmpty) {
-                      final syp = double.tryParse(value);
-                      if (syp != null && syp > 0) {
-                        final usd = syp / CurrencyService.currentRate;
-                        _costPriceUsdController.text = usd.toStringAsFixed(2);
-                      }
-                    }
-                  },
-                ),
-              ),
-              SizedBox(width: AppSpacing.md),
               Expanded(
                 child: ProNumberField(
                   controller: _costPriceUsdController,
@@ -445,59 +439,51 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
                   },
                 ),
               ),
+              SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: ProNumberField(
+                  controller: _costPriceController,
+                  label: 'سعر التكلفة (ل.س)',
+                  hint: '0',
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'مطلوب';
+                    }
+                    return null;
+                  },
+                  onChanged: (value) {
+                    // حساب تلقائي للدولار إذا كان فارغاً
+                    if (_costPriceUsdController.text.isEmpty &&
+                        value.isNotEmpty) {
+                      final syp = double.tryParse(value);
+                      if (syp != null && syp > 0) {
+                        final usd = syp / CurrencyService.currentRate;
+                        _costPriceUsdController.text = usd.toStringAsFixed(2);
+                      }
+                    }
+                  },
+                ),
+              ),
             ],
           ),
           SizedBox(height: AppSpacing.md),
-          Row(
-            children: [
-              Expanded(
-                child: ProNumberField(
-                  controller: _salePriceController,
-                  label: 'سعر البيع (اختياري)',
-                  hint: '0.00',
-                ),
-              ),
-              SizedBox(width: AppSpacing.md),
-              // معلومة سعر الصرف
-              Expanded(
-                child: Container(
-                  padding: EdgeInsets.all(AppSpacing.sm),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceMuted,
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'سعر الصرف الحالي',
-                        style: AppTypography.labelSmall.copyWith(
-                          color: AppColors.textTertiary,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        '1\$ = ${CurrencyService.currentRate.toStringAsFixed(0)} ل.س',
-                        style: AppTypography.labelMedium.copyWith(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+          // سعر البيع
+          ProNumberField(
+            controller: _salePriceController,
+            label: 'سعر البيع (ل.س)',
+            hint: 'اختياري - اتركه فارغاً لحسابه تلقائياً',
           ),
           SizedBox(height: AppSpacing.lg),
 
-          // Stock Section
+          // ═══════════════════════════════════════════════════════════════
+          // 3. المخزون
+          // ═══════════════════════════════════════════════════════════════
           const ProSectionTitle('المخزون'),
           SizedBox(height: AppSpacing.sm),
           Row(
             children: [
               Expanded(
+                flex: 2,
                 child: ProNumberField(
                   controller: _stockController,
                   label: 'الكمية الحالية',
@@ -505,7 +491,7 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
                   allowDecimal: false,
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'الرجاء إدخال الكمية';
+                      return 'مطلوب';
                     }
                     return null;
                   },
@@ -524,10 +510,19 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
           ),
           SizedBox(height: AppSpacing.lg),
 
-          // Category Section
-          const ProSectionTitle('التصنيف'),
+          // ═══════════════════════════════════════════════════════════════
+          // 4. معلومات إضافية
+          // ═══════════════════════════════════════════════════════════════
+          const ProSectionTitle('معلومات إضافية'),
           SizedBox(height: AppSpacing.sm),
-          _buildCategorySelector(),
+          _buildBarcodeField(),
+          SizedBox(height: AppSpacing.md),
+          ProTextField(
+            controller: _descriptionController,
+            label: 'الوصف',
+            hint: 'أدخل وصف المنتج (اختياري)',
+            maxLines: 2,
+          ),
           SizedBox(height: AppSpacing.xl),
         ],
       ),

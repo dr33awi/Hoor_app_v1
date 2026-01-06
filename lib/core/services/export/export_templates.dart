@@ -492,9 +492,42 @@ class ExportFormatters {
     return showCurrency ? '$formatted ل.س' : formatted;
   }
 
-  /// تنسيق السعر مع الدولار (مزدوج)
-  /// يعرض السعر بالليرة السورية + المقابل بالدولار
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ⚠️ السياسة المحاسبية: دوال العرض المزدوج
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// تنسيق السعر مع الدولار (مزدوج) - باستخدام القيم المحفوظة
+  ///
+  /// ⚠️ السياسة المحاسبية:
+  /// - يجب تمرير قيمة الدولار المحفوظة مباشرة
+  /// - لا نستخدم سعر الصرف الحالي للتحويل
+  ///
+  /// مثال صحيح:
+  /// ```dart
+  /// formatDualPriceFromLocked(invoice.total, invoice.totalUsd ?? 0)
+  /// ```
+  static String formatDualPriceFromLocked(
+    double priceSyp,
+    double priceUsd, {
+    bool showCurrency = true,
+  }) {
+    final sypFormatted = formatPrice(priceSyp, showCurrency: false);
+    final usdFormatted = priceUsd.toStringAsFixed(2);
+
+    if (showCurrency) {
+      return '$sypFormatted ل.س (\$$usdFormatted)';
+    }
+    return '$sypFormatted (\$$usdFormatted)';
+  }
+
+  /// تنسيق السعر مع الدولار (مزدوج) - للعرض التحليلي فقط
+  ///
+  /// ⚠️ تحذير: هذه الدالة تستخدم سعر الصرف الحالي
+  /// ❌ لا تستخدمها للتقارير المحاسبية
+  /// ✅ استخدمها فقط لـ: عرض المنتجات، التقارير التحليلية
+  @Deprecated('استخدم formatDualPriceFromLocked للتقارير المحاسبية')
   static String formatDualPrice(double priceSyp, {bool showCurrency = true}) {
+    // ⚠️ تحويل باستخدام سعر الصرف الحالي - للعرض التحليلي فقط
     final priceUsd = priceSyp / CurrencyService.currentRate;
     final sypFormatted = formatPrice(priceSyp, showCurrency: false);
     final usdFormatted = priceUsd.toStringAsFixed(2);

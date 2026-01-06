@@ -12,7 +12,6 @@ import 'package:intl/intl.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
-import '../../core/services/currency_service.dart';
 import '../../core/widgets/widgets.dart';
 import '../../core/widgets/dual_price_display.dart';
 import '../../core/services/printing/printing_services.dart';
@@ -435,11 +434,17 @@ class _InvoiceDetailsScreenProState
                 ),
                 Builder(
                   builder: (context) {
-                    final rate =
-                        _invoice!.exchangeRate ?? CurrencyService.currentRate;
-                    final paidUsd =
-                        rate > 0 ? _invoice!.paidAmount / rate : null;
-                    final totalUsd = rate > 0 ? _invoice!.total / rate : null;
+                    // استخدام القيم المحفوظة فقط
+                    final paidUsd = _invoice!.paidAmountUsd ??
+                        (_invoice!.exchangeRate != null &&
+                                _invoice!.exchangeRate! > 0
+                            ? _invoice!.paidAmount / _invoice!.exchangeRate!
+                            : null);
+                    final totalUsd = _invoice!.totalUsd ??
+                        (_invoice!.exchangeRate != null &&
+                                _invoice!.exchangeRate! > 0
+                            ? _invoice!.total / _invoice!.exchangeRate!
+                            : null);
                     return Text.rich(
                       TextSpan(children: [
                         TextSpan(
@@ -582,9 +587,10 @@ class _InvoiceDetailsScreenProState
                           ),
                           Builder(
                             builder: (context) {
+                              // استخدام القيم المحفوظة فقط
                               final rate = item.exchangeRate ??
                                   _invoice?.exchangeRate ??
-                                  CurrencyService.currentRate;
+                                  0;
                               final unitPriceUsd = item.unitPriceUsd ??
                                   (rate > 0 ? item.unitPrice / rate : null);
                               return Row(
@@ -612,9 +618,9 @@ class _InvoiceDetailsScreenProState
                     ),
                     Builder(
                       builder: (context) {
-                        final rate = item.exchangeRate ??
-                            _invoice?.exchangeRate ??
-                            CurrencyService.currentRate;
+                        // استخدام القيم المحفوظة فقط
+                        final rate =
+                            item.exchangeRate ?? _invoice?.exchangeRate ?? 0;
                         final itemTotalUsd = item.totalUsd ??
                             (rate > 0 ? item.total / rate : null);
                         return CompactDualPrice(
@@ -783,9 +789,14 @@ class _InvoiceDetailsScreenProState
           icon: const Icon(Icons.payments_outlined),
           label: Builder(
             builder: (context) {
-              final rate =
-                  _invoice?.exchangeRate ?? CurrencyService.currentRate;
-              final remainingUsd = rate > 0 ? remaining / rate : null;
+              // استخدام القيم المحفوظة فقط
+              final remainingUsd =
+                  _invoice?.totalUsd != null && _invoice?.paidAmountUsd != null
+                      ? (_invoice!.totalUsd! - _invoice!.paidAmountUsd!)
+                      : (_invoice?.exchangeRate != null &&
+                              _invoice!.exchangeRate! > 0
+                          ? remaining / _invoice!.exchangeRate!
+                          : null);
               return Text(
                 'تسجيل دفعة (${remaining.toStringAsFixed(0)}${remainingUsd != null ? " / \$${remainingUsd.toStringAsFixed(0)}" : ""} ل.س)',
                 style: AppTypography.labelLarge.copyWith(

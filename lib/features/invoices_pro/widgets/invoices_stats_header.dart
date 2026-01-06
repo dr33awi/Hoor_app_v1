@@ -8,12 +8,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/theme/design_tokens.dart';
-import '../../../core/services/currency_service.dart';
 
 class InvoicesStatsHeader extends StatelessWidget {
   final bool isSales;
   final double totalAmount;
+  final double totalAmountUsd; // القيمة المحفوظة بالدولار
   final double paidAmount;
+  final double paidAmountUsd; // المدفوع بالدولار (محفوظ)
   final double pendingAmount;
   final double overdueAmount;
 
@@ -21,7 +22,9 @@ class InvoicesStatsHeader extends StatelessWidget {
     super.key,
     required this.isSales,
     required this.totalAmount,
+    this.totalAmountUsd = 0,
     required this.paidAmount,
+    this.paidAmountUsd = 0,
     required this.pendingAmount,
     required this.overdueAmount,
   });
@@ -99,7 +102,8 @@ class InvoicesStatsHeader extends StatelessWidget {
             ),
           ),
           Text(
-            '\$${(totalAmount / CurrencyService.currentRate).toStringAsFixed(2)}',
+            // استخدام القيمة المحفوظة بالدولار
+            '\$${totalAmountUsd.toStringAsFixed(2)}',
             style: AppTypography.titleSmall.copyWith(
               color: Colors.white.withValues(alpha: 0.8),
             ),
@@ -113,12 +117,14 @@ class InvoicesStatsHeader extends StatelessWidget {
               _buildStatPill(
                 label: 'محصّل',
                 amount: paidAmount,
+                amountUsd: paidAmountUsd,
                 color: AppColors.income,
               ),
               SizedBox(width: AppSpacing.sm.w),
               _buildStatPill(
                 label: 'معلق',
                 amount: pendingAmount,
+                amountUsd: totalAmountUsd - paidAmountUsd,
                 color: AppColors.warning,
               ),
               if (overdueAmount > 0) ...[
@@ -139,6 +145,7 @@ class InvoicesStatsHeader extends StatelessWidget {
   Widget _buildStatPill({
     required String label,
     required double amount,
+    double amountUsd = 0,
     required Color color,
   }) {
     return Expanded(
@@ -176,7 +183,8 @@ class InvoicesStatsHeader extends StatelessWidget {
             ),
             SizedBox(height: 2.h),
             Text(
-              '${_formatAmount(amount)} ل.س (\$${(amount / CurrencyService.currentRate).toStringAsFixed(1)})',
+              // استخدام القيمة المحفوظة بالدولار
+              '${_formatAmount(amount)} ل.س (\$${amountUsd.toStringAsFixed(1)})',
               style: AppTypography.bodyMedium.copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,

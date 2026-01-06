@@ -4,9 +4,13 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -32,6 +36,9 @@ class _PrintSettingsScreenProState
   final _companyAddressController = TextEditingController();
   final _companyPhoneController = TextEditingController();
   final _footerMessageController = TextEditingController();
+
+  final ImagePicker _imagePicker = ImagePicker();
+  Uint8List? _logoBytes;
 
   PrintSettings? _settings;
   bool _isLoading = true;
@@ -70,6 +77,14 @@ class _PrintSettingsScreenProState
         _companyAddressController.text = settings.companyAddress ?? '';
         _companyPhoneController.text = settings.companyPhone ?? '';
         _footerMessageController.text = settings.footerMessage ?? '';
+        // تحميل الشعار إذا كان موجوداً
+        if (settings.logoBase64 != null && settings.logoBase64!.isNotEmpty) {
+          try {
+            _logoBytes = base64Decode(settings.logoBase64!);
+          } catch (_) {
+            _logoBytes = null;
+          }
+        }
       });
     } finally {
       setState(() => _isLoading = false);
@@ -82,6 +97,12 @@ class _PrintSettingsScreenProState
     setState(() => _isSaving = true);
     try {
       final printSettingsService = ref.read(printSettingsServiceProvider);
+      // تحويل الشعار إلى Base64
+      String? logoBase64;
+      if (_logoBytes != null) {
+        logoBase64 = base64Encode(_logoBytes!);
+      }
+
       final updatedSettings = _settings!.copyWith(
         companyName: _companyNameController.text.trim().isEmpty
             ? null
@@ -95,6 +116,7 @@ class _PrintSettingsScreenProState
         footerMessage: _footerMessageController.text.trim().isEmpty
             ? null
             : _footerMessageController.text.trim(),
+        logoBase64: logoBase64,
       );
 
       await printSettingsService.saveSettings(updatedSettings);
@@ -136,6 +158,8 @@ class _PrintSettingsScreenProState
                       child: ListView(
                         padding: EdgeInsets.all(AppSpacing.md),
                         children: [
+                          _buildLogoCard(),
+                          SizedBox(height: AppSpacing.md),
                           _buildCompanyInfoCard(),
                           SizedBox(height: AppSpacing.md),
                           _buildPaperSettingsCard(),
@@ -185,6 +209,184 @@ class _PrintSettingsScreenProState
           ),
       ],
     );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Logo Card - كارت شعار الشركة
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  Widget _buildLogoCard() {
+    return _buildSectionCard(
+      title: 'شعار الشركة',
+      icon: Icons.image_rounded,
+      iconColor: AppColors.primary,
+      children: [
+        Padding(
+          padding: EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            children: [
+              // عرض الشعار الحالي أو placeholder
+              Container(
+                width: 150.w,
+                height: 150.w,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceMuted,
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  border: Border.all(color: AppColors.border, width: 2),
+                ),
+                child: _logoBytes != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(AppRadius.lg - 2),
+                        child: Image.memory(
+                          _logoBytes!,
+                          fit: BoxFit.contain,
+                        ),
+                      )
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.add_photo_alternate_outlined,
+                            size: 48.sp,
+                            color: AppColors.textSecondary,
+                          ),
+                          SizedBox(height: AppSpacing.sm),
+                          Text(
+                            'لا يوجد شعار',
+                            style: AppTypography.labelMedium.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+              SizedBox(height: AppSpacing.md),
+              // أزرار التحكم
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // زر اختيار صورة
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _pickLogo,
+                      icon: Icon(Icons.photo_library_outlined, size: 20.sp),
+                      label: const Text('اختيار صورة'),
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                        side: BorderSide(color: AppColors.primary),
+                        foregroundColor: AppColors.primary,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: AppSpacing.sm),
+                  // زر التقاط صورة
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _takePicture,
+                      icon: Icon(Icons.camera_alt_outlined, size: 20.sp),
+                      label: const Text('التقاط صورة'),
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                        side: BorderSide(color: AppColors.info),
+                        foregroundColor: AppColors.info,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (_logoBytes != null) ...[
+                SizedBox(height: AppSpacing.sm),
+                // زر حذف الشعار
+                TextButton.icon(
+                  onPressed: _removeLogo,
+                  icon: Icon(Icons.delete_outline, size: 20.sp, color: AppColors.error),
+                  label: Text(
+                    'حذف الشعار',
+                    style: AppTypography.labelMedium.copyWith(color: AppColors.error),
+                  ),
+                ),
+              ],
+              SizedBox(height: AppSpacing.sm),
+              // ملاحظة
+              Container(
+                padding: EdgeInsets.all(AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: AppColors.info.soft,
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, size: 16.sp, color: AppColors.info),
+                    SizedBox(width: AppSpacing.xs),
+                    Expanded(
+                      child: Text(
+                        'يُفضل استخدام صورة بخلفية شفافة (PNG) بأبعاد 200x200',
+                        style: AppTypography.labelSmall.copyWith(
+                          color: AppColors.info,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// اختيار شعار من المعرض
+  Future<void> _pickLogo() async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        final bytes = await image.readAsBytes();
+        setState(() {
+          _logoBytes = bytes;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ProSnackbar.error(context, 'فشل في اختيار الصورة: $e');
+      }
+    }
+  }
+
+  /// التقاط صورة بالكاميرا
+  Future<void> _takePicture() async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        final bytes = await image.readAsBytes();
+        setState(() {
+          _logoBytes = bytes;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ProSnackbar.error(context, 'فشل في التقاط الصورة: $e');
+      }
+    }
+  }
+
+  /// حذف الشعار
+  void _removeLogo() {
+    setState(() {
+      _logoBytes = null;
+    });
   }
 
   Widget _buildPaperSettingsCard() {
@@ -558,6 +760,7 @@ class _PrintSettingsScreenProState
       _companyAddressController.clear();
       _companyPhoneController.clear();
       _footerMessageController.clear();
+      _logoBytes = null;
     });
 
     await _saveSettings();

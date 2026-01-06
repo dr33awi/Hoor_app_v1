@@ -1,147 +1,20 @@
 ﻿// ═══════════════════════════════════════════════════════════════════════════
 // Alerts Widget Component - Enterprise Accounting Design
-// Displays important notifications and warnings FROM REAL DATABASE
+// Displays important notifications and warnings FROM UNIFIED ALERTS SYSTEM
 // ═══════════════════════════════════════════════════════════════════════════
 
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 
 import '../../../core/theme/design_tokens.dart';
-import '../../../core/providers/app_providers.dart';
-import '../../../core/services/currency_service.dart';
+import '../../../core/providers/alerts_provider.dart';
 import '../../../core/widgets/widgets.dart';
 
-/// Alert severity levels
-enum AlertSeverity {
-  critical,
-  warning,
-  info,
-  success,
-}
-
-/// Alert data model
-class AlertItem {
-  const AlertItem({
-    required this.id,
-    required this.severity,
-    required this.title,
-    required this.message,
-    this.actionLabel,
-    this.onAction,
-    this.route,
-    this.timestamp,
-  });
-
-  final String id;
-  final AlertSeverity severity;
-  final String title;
-  final String message;
-  final String? actionLabel;
-  final VoidCallback? onAction;
-  final String? route;
-  final DateTime? timestamp;
-}
-
-/// Provider for dashboard alerts (from real data)
-final dashboardAlertsProvider = FutureProvider<List<AlertItem>>((ref) async {
-  final List<AlertItem> alerts = [];
-
-  // 1. Check for low stock products
-  final lowStockProducts = await ref.watch(lowStockProductsProvider.future);
-  if (lowStockProducts.isNotEmpty) {
-    alerts.add(AlertItem(
-      id: 'low_stock',
-      severity: AlertSeverity.warning,
-      title: 'منتجات وصلت للحد الأدنى',
-      message:
-          '${lowStockProducts.length} منتج${lowStockProducts.length > 1 ? "ات" : ""} تحتاج لإعادة طلب',
-      actionLabel: 'عرض المنتجات',
-      route: '/products?filter=low_stock',
-    ));
-  }
-
-  // 2. Check for customers with high balances (receivables)
-  final customers = await ref.watch(customersStreamProvider.future);
-  final customersWithBalance = customers.where((c) => c.balance > 0).toList();
-  if (customersWithBalance.isNotEmpty) {
-    final totalReceivables =
-        customersWithBalance.fold<double>(0, (sum, c) => sum + c.balance);
-    final formatter = NumberFormat('#,##0', 'ar');
-    alerts.add(AlertItem(
-      id: 'receivables',
-      severity: AlertSeverity.info,
-      title: 'ذمم مدينة مستحقة',
-      message:
-          '${customersWithBalance.length} عميل بإجمالي ${formatter.format(totalReceivables)} ل.س (\$${(totalReceivables / CurrencyService.currentRate).toStringAsFixed(2)})',
-      actionLabel: 'عرض العملاء',
-      route: '/customers',
-    ));
-  }
-
-  // 3. Check for suppliers with balance (payables)
-  final suppliers = await ref.watch(suppliersStreamProvider.future);
-  final suppliersWithBalance = suppliers.where((s) => s.balance > 0).toList();
-  if (suppliersWithBalance.isNotEmpty) {
-    final totalPayables =
-        suppliersWithBalance.fold<double>(0, (sum, s) => sum + s.balance);
-    final formatter = NumberFormat('#,##0', 'ar');
-    alerts.add(AlertItem(
-      id: 'payables',
-      severity: AlertSeverity.info,
-      title: 'ذمم دائنة مستحقة',
-      message:
-          '${suppliersWithBalance.length} مورد بإجمالي ${formatter.format(totalPayables)} ل.س (\$${(totalPayables / CurrencyService.currentRate).toStringAsFixed(2)})',
-      actionLabel: 'عرض الموردين',
-      route: '/suppliers',
-    ));
-  }
-
-  // 4. Check if no shift is open
-  final openShift = await ref.watch(openShiftStreamProvider.future);
-  if (openShift == null) {
-    alerts.add(AlertItem(
-      id: 'no_shift',
-      severity: AlertSeverity.warning,
-      title: 'لا توجد وردية مفتوحة',
-      message: 'افتح وردية جديدة لتسجيل المعاملات',
-      actionLabel: 'فتح وردية',
-      route: '/shifts',
-    ));
-  }
-
-  // 5. Check for products with zero stock
-  final products = await ref.watch(activeProductsStreamProvider.future);
-  final zeroStockProducts = products.where((p) => p.quantity == 0).toList();
-  if (zeroStockProducts.isNotEmpty) {
-    alerts.add(AlertItem(
-      id: 'zero_stock',
-      severity: AlertSeverity.critical,
-      title: 'منتجات نفدت من المخزون',
-      message:
-          '${zeroStockProducts.length} منتج${zeroStockProducts.length > 1 ? "ات" : ""} بدون مخزون',
-      actionLabel: 'عرض المنتجات',
-      route: '/products?filter=zero_stock',
-    ));
-  }
-
-  // Sort by severity (critical first)
-  alerts.sort((a, b) {
-    final severityOrder = {
-      AlertSeverity.critical: 0,
-      AlertSeverity.warning: 1,
-      AlertSeverity.info: 2,
-      AlertSeverity.success: 3,
-    };
-    return severityOrder[a.severity]!.compareTo(severityOrder[b.severity]!);
-  });
-
-  return alerts;
-});
+// Re-export for backward compatibility
+export '../../../core/providers/alerts_provider.dart';
 
 class AlertsWidget extends ConsumerWidget {
   const AlertsWidget({
@@ -153,7 +26,7 @@ class AlertsWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final alertsAsync = ref.watch(dashboardAlertsProvider);
+    final alertsAsync = ref.watch(alertsProvider);
 
     return alertsAsync.when(
       loading: () => _buildAlertLoadingCard(),

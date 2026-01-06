@@ -88,6 +88,7 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
     String? shiftId,
     DateTime? invoiceDate,
     bool validateStock = true, // للتحقق من المخزون
+    double? originalExchangeRate, // سعر الصرف من الفاتورة الأصلية (للمرتجعات)
   }) async {
     // ═══════════════════════════════════════════════════════════════════════════
     // التحقق من كفاية المخزون قبل البيع
@@ -109,20 +110,29 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
       final quantity = item['quantity'] as int;
       final unitPrice = item['unitPrice'] as double;
       final purchasePrice = item['purchasePrice'] as double? ?? 0;
+      final costPrice = item['costPrice'] as double? ?? purchasePrice;
       final itemDiscount = item['discount'] as double? ?? 0;
 
       final itemSubtotal = quantity * unitPrice;
       final itemTotal = itemSubtotal - itemDiscount;
 
-      subtotal += itemSubtotal;
+      // ⚠️ إضافة إجمالي العنصر (بعد الخصم) إلى المجموع الفرعي
+      subtotal += itemTotal;
 
       // ═══════════════════════════════════════════════════════════════════════
-      // تثبيت السعر: حفظ السعر بالدولار وسعر الصرف لكل عنصر
+      // تثبيت السعر: استخدام القيم المحفوظة إذا توفرت، وإلا حساب من السعر الحالي
       // ═══════════════════════════════════════════════════════════════════════
       final priceLockingService = getIt<PriceLockingService>();
-      final exchangeRate = priceLockingService.currentExchangeRate;
-      final unitPriceUsd = exchangeRate > 0 ? unitPrice / exchangeRate : 0.0;
+      // استخدام سعر الصرف المُمرر (للمرتجعات) أو الحالي (للفواتير الجديدة)
+      final exchangeRate = item['exchangeRate'] as double? ??
+          priceLockingService.currentExchangeRate;
+      // استخدام سعر الوحدة بالدولار المُمرر أو حسابه
+      final unitPriceUsd = item['unitPriceUsd'] as double? ??
+          (exchangeRate > 0 ? unitPrice / exchangeRate : 0.0);
       final totalUsd = exchangeRate > 0 ? itemTotal / exchangeRate : 0.0;
+      // سعر التكلفة بالدولار
+      final costPriceUsd = item['costPriceUsd'] as double? ??
+          (exchangeRate > 0 ? costPrice / exchangeRate : 0.0);
 
       invoiceItems.add(InvoiceItemsCompanion(
         id: Value(generateId()),
@@ -133,6 +143,8 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
         unitPrice: Value(unitPrice),
         unitPriceUsd: Value(unitPriceUsd), // سعر الوحدة بالدولار
         purchasePrice: Value(purchasePrice),
+        costPrice: Value(costPrice), // سعر التكلفة وقت البيع
+        costPriceUsd: Value(costPriceUsd), // سعر التكلفة بالدولار
         discountAmount: Value(itemDiscount),
         taxAmount: const Value(0),
         total: Value(itemTotal),
@@ -146,10 +158,11 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
     final total = subtotal - discountAmount;
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // تثبيت السعر: حفظ الإجمالي بالدولار وسعر الصرف
+    // تثبيت السعر: استخدام سعر الصرف الأصلي (للمرتجعات) أو الحالي (للفواتير الجديدة)
     // ═══════════════════════════════════════════════════════════════════════════
     final currencyService = getIt<CurrencyService>();
-    final exchangeRate = currencyService.exchangeRate;
+    // للمرتجعات: استخدام سعر الصرف من الفاتورة الأصلية
+    final exchangeRate = originalExchangeRate ?? currencyService.exchangeRate;
     final totalUsd = exchangeRate > 0 ? total / exchangeRate : 0.0;
     final paidAmountUsd = exchangeRate > 0 ? paidAmount / exchangeRate : 0.0;
 

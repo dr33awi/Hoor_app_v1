@@ -17,6 +17,7 @@ import '../../features/invoices_pro/invoice_details_screen_pro.dart';
 import '../../features/customers_pro/customer_form_screen_pro.dart';
 import '../../features/customers_pro/customer_details_screen_pro.dart';
 import '../../features/reports_pro/reports_screen_pro.dart';
+import '../../features/reports_pro/profit_report_screen.dart';
 import '../../features/settings_pro/settings_screen_pro.dart';
 import '../../features/settings_pro/print_settings_screen_pro.dart';
 import '../../features/shifts_pro/shifts_screen_pro.dart';
@@ -33,6 +34,7 @@ import '../../features/backup_pro/backup_screen_pro.dart';
 import '../../features/shifts_pro/shift_details_screen_pro.dart';
 // Unified Screens (New)
 import '../../features/returns_pro/returns_screen_pro.dart';
+import '../../features/returns_pro/add_return_screen_pro.dart';
 import '../../features/parties_pro/party_list_screen.dart';
 import '../../features/transactions_pro/transactions_screen_pro.dart';
 
@@ -399,6 +401,16 @@ final appRouterProProvider = Provider<GoRouter>((ref) {
           state,
           const ReturnsScreenPro(type: ReturnType.sales),
         ),
+        routes: [
+          GoRoute(
+            path: 'add',
+            name: 'sales-returns-add',
+            pageBuilder: (context, state) => _buildSlideUpTransition(
+              state,
+              const AddReturnScreenPro(type: ReturnType.sales),
+            ),
+          ),
+        ],
       ),
 
       // ═══════════════════════════════════════════════════════════════════
@@ -411,6 +423,16 @@ final appRouterProProvider = Provider<GoRouter>((ref) {
           state,
           const ReturnsScreenPro(type: ReturnType.purchase),
         ),
+        routes: [
+          GoRoute(
+            path: 'add',
+            name: 'purchase-returns-add',
+            pageBuilder: (context, state) => _buildSlideUpTransition(
+              state,
+              const AddReturnScreenPro(type: ReturnType.purchase),
+            ),
+          ),
+        ],
       ),
 
       // ═══════════════════════════════════════════════════════════════════
@@ -445,7 +467,7 @@ final appRouterProProvider = Provider<GoRouter>((ref) {
             name: 'profit-report',
             pageBuilder: (context, state) => _buildSlideTransition(
               state,
-              const ReportDetailScreenPro(reportType: 'profit'),
+              const ProfitReportScreen(),
             ),
           ),
           GoRoute(

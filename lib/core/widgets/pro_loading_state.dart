@@ -58,6 +58,8 @@ class ProLoadingState extends StatelessWidget {
   /// حالة تحميل للقوائم - shimmer effect
   static Widget list({int itemCount = 5}) {
     return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       padding: EdgeInsets.all(AppSpacing.md),
       itemCount: itemCount,
       separatorBuilder: (_, __) => SizedBox(height: AppSpacing.md),
@@ -70,6 +72,8 @@ class ProLoadingState extends StatelessWidget {
   /// حالة تحميل للشبكة - shimmer effect
   static Widget grid({int itemCount = 6, int crossAxisCount = 2}) {
     return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       padding: EdgeInsets.all(AppSpacing.md),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: crossAxisCount,

@@ -11,6 +11,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hoor_manager/core/providers/alerts_provider.dart';
+import 'package:hoor_manager/core/services/shift_guard_service.dart';
 import 'package:hoor_manager/features/home_pro/widgets/alerts_widget.dart';
 
 import '../../core/theme/design_tokens.dart';
@@ -30,11 +32,37 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  bool _hasCheckedOverdueShift = false;
 
   @override
   void initState() {
     super.initState();
     _setupAnimations();
+    // التحقق من الورديات المتأخرة بعد بناء الواجهة
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkOverdueShift();
+    });
+  }
+
+  Future<void> _checkOverdueShift() async {
+    if (_hasCheckedOverdueShift) return;
+    _hasCheckedOverdueShift = true;
+
+    final shiftRepo = ref.read(shiftRepositoryProvider);
+    final shiftGuard = ShiftGuardService(shiftRepo);
+    final overdueShift = await shiftGuard.checkOverdueShift();
+
+    if (overdueShift != null && mounted) {
+      final action = await ShiftGuardService.showOverdueShiftDialog(
+        context,
+        overdueShift,
+      );
+
+      if (action == ShiftGuardAction.closeNow && mounted) {
+        // الانتقال لصفحة الورديات لإغلاق الوردية
+        context.push('/shifts/${overdueShift.id}');
+      }
+    }
   }
 
   void _setupAnimations() {
@@ -105,10 +133,21 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
                     ),
                   ),
 
+                  // 2.5. Sales Chart Section
+                  SliverPadding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: AppSpacing.screenPadding.w,
+                      vertical: AppSpacing.md.h,
+                    ),
+                    sliver: SliverToBoxAdapter(
+                      child: _buildSalesChartSection(),
+                    ),
+                  ),
+
                   // 3. Quick Actions
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: EdgeInsets.only(top: AppSpacing.xl.h),
+                      padding: EdgeInsets.only(top: AppSpacing.sm.h),
                       child: _buildQuickActionsSection(),
                     ),
                   ),
@@ -159,7 +198,7 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
   // ═══════════════════════════════════════════════════════════════════════════
 
   Widget _buildModernHeader() {
-    final alertsAsync = ref.watch(dashboardAlertsProvider);
+    final alertsAsync = ref.watch(alertsProvider);
     final alertsCount =
         alertsAsync.whenOrNull(data: (alerts) => alerts.length) ?? 0;
 
@@ -315,8 +354,9 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
                     fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
+                // استخدام القيمة المحفوظة بالدولار
                 Text(
-                  '\$${(shift.totalSales / CurrencyService.currentRate).toStringAsFixed(2)}',
+                  '\$${shift.totalSalesUsd.toStringAsFixed(2)}',
                   style: AppTypography.titleSmall.copyWith(
                     color: Colors.white.withValues(alpha: 0.8),
                   ),
@@ -389,6 +429,169 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // SALES CHART SECTION - Enterprise Dashboard
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  Widget _buildSalesChartSection() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _loadWeeklySalesData(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        final salesData = snapshot.data!;
+        final maxSales = salesData.fold<double>(
+          0,
+          (max, item) => (item['totalSales'] as double) > max
+              ? (item['totalSales'] as double)
+              : max,
+        );
+
+        return Container(
+          padding: EdgeInsets.all(AppSpacing.md.w),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(color: AppColors.border),
+            boxShadow: AppShadows.xs,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(AppSpacing.xs.w),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.soft,
+                      borderRadius: BorderRadius.circular(AppRadius.xs),
+                    ),
+                    child: Icon(
+                      Icons.show_chart_rounded,
+                      color: AppColors.primary,
+                      size: 18.sp,
+                    ),
+                  ),
+                  SizedBox(width: AppSpacing.sm.w),
+                  Text(
+                    'المبيعات - آخر 7 أيام',
+                    style: AppTypography.titleSmall.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '\$${_calculateTotalWeekSales(salesData).toStringAsFixed(0)}',
+                    style: AppTypography.titleSmall.copyWith(
+                      color: AppColors.success,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: AppSpacing.md.h),
+
+              // رسم بياني شريطي بسيط
+              SizedBox(
+                height: 100.h,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: salesData.map((item) {
+                    final sales = item['totalSales'] as double;
+                    final date = item['date'] as String;
+                    final heightRatio = maxSales > 0 ? sales / maxSales : 0.0;
+                    final dayName = _getDayName(date);
+
+                    return Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 2.w),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            if (sales > 0)
+                              Text(
+                                '\$${(item['totalSalesUsd'] as double).toStringAsFixed(0)}',
+                                style: AppTypography.labelSmall.copyWith(
+                                  color: AppColors.primary,
+                                  fontSize: 8.sp,
+                                ),
+                              ),
+                            SizedBox(height: 2.h),
+                            Flexible(
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 500),
+                                width: double.infinity,
+                                height: (heightRatio * 60.h).clamp(4.0, 60.h),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      AppColors.primary,
+                                      AppColors.primary.withOpacity(0.6),
+                                    ],
+                                  ),
+                                  borderRadius:
+                                      BorderRadius.circular(AppRadius.xs),
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 4.h),
+                            Text(
+                              dayName,
+                              style: AppTypography.labelSmall.copyWith(
+                                color: AppColors.textSecondary,
+                                fontSize: 9.sp,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> _loadWeeklySalesData() async {
+    try {
+      final shiftRepo = ref.read(shiftRepositoryProvider);
+      final endDate = DateTime.now();
+      final startDate = endDate.subtract(const Duration(days: 6));
+      return await shiftRepo.getDailySalesData(
+        startDate: startDate,
+        endDate: endDate,
+      );
+    } catch (e) {
+      return [];
+    }
+  }
+
+  double _calculateTotalWeekSales(List<Map<String, dynamic>> data) {
+    return data.fold<double>(
+      0,
+      (sum, item) => sum + (item['totalSalesUsd'] as double? ?? 0),
+    );
+  }
+
+  String _getDayName(String dateStr) {
+    try {
+      final date = DateTime.parse(dateStr);
+      const days = ['أحد', 'اثن', 'ثلا', 'أرب', 'خمي', 'جمع', 'سبت'];
+      return days[date.weekday % 7];
+    } catch (e) {
+      return '';
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // QUICK ACTIONS - Enterprise Style
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -399,18 +602,6 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
         scrollDirection: Axis.horizontal,
         padding: EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding.w),
         children: [
-          _QuickActionItem(
-            icon: Icons.add_shopping_cart_rounded,
-            label: 'بيع جديد',
-            color: AppColors.sales,
-            onTap: () => context.push('/sales/add'),
-          ),
-          _QuickActionItem(
-            icon: Icons.inventory_2_rounded,
-            label: 'شراء جديد',
-            color: AppColors.purchases,
-            onTap: () => context.push('/purchases/add'),
-          ),
           _QuickActionItem(
             icon: Icons.add_box_rounded,
             label: 'إضافة منتج',
@@ -442,34 +633,320 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
       childAspectRatio: 1.6,
       children: [
         _ModernMenuCard(
-          title: 'فواتير البيع',
-          subtitle: 'إدارة المبيعات',
+          title: 'الفواتير',
+          subtitle: 'عرض جميع الفواتير',
           icon: Icons.receipt_long_rounded,
-          color: AppColors.sales,
-          onTap: () => context.push('/invoices'),
+          color: AppColors.primary,
+          onTap: () => _showAllInvoicesOptions(),
         ),
         _ModernMenuCard(
-          title: 'المشتريات',
-          subtitle: 'فواتير الشراء',
-          icon: Icons.shopping_bag_outlined,
-          color: AppColors.purchases,
-          onTap: () => context.push('/purchases'),
+          title: 'إنشاء فاتورة',
+          subtitle: 'فاتورة جديدة',
+          icon: Icons.add_circle_outline_rounded,
+          color: AppColors.success,
+          onTap: () => _showCreateInvoiceOptions(),
         ),
         _ModernMenuCard(
-          title: 'المنتجات',
-          subtitle: 'المخزون والأسعار',
-          icon: Icons.qr_code_rounded,
+          title: 'الأطراف',
+          subtitle: 'العملاء والموردين',
+          icon: Icons.groups_rounded,
+          color: AppColors.customers,
+          onTap: () => _showPartiesOptions(),
+        ),
+        _ModernMenuCard(
+          title: 'السندات',
+          subtitle: 'القبض والصرف',
+          icon: Icons.receipt_rounded,
+          color: AppColors.secondary,
+          onTap: () => _showVouchersOptions(),
+        ),
+        _ModernMenuCard(
+          title: 'المنتجات والمخزون',
+          subtitle: 'المنتجات والأقسام والمخازن',
+          icon: Icons.inventory_2_rounded,
           color: AppColors.inventory,
-          onTap: () => context.push('/products'),
+          onTap: () => _showInventoryOptions(),
         ),
         _ModernMenuCard(
-          title: 'المرتجعات',
-          subtitle: 'مبيعات ومشتريات',
-          icon: Icons.assignment_return_outlined,
-          color: AppColors.error,
-          onTap: () => context.push('/returns/sales'),
+          title: 'الصندوق والورديات',
+          subtitle: 'إدارة الصندوق والورديات',
+          icon: Icons.account_balance_wallet_rounded,
+          color: AppColors.success,
+          onTap: () => _showCashAndShiftsOptions(),
         ),
       ],
+    );
+  }
+
+  void _showAllInvoicesOptions() {
+    _showOptionsSheet(
+      title: 'الفواتير',
+      color: AppColors.primary,
+      options: [
+        _OptionItem(
+          icon: Icons.receipt_long,
+          title: 'فواتير البيع',
+          subtitle: 'عرض جميع فواتير المبيعات',
+          route: '/invoices',
+          color: AppColors.sales,
+        ),
+        _OptionItem(
+          icon: Icons.shopping_bag,
+          title: 'فواتير الشراء',
+          subtitle: 'عرض جميع فواتير المشتريات',
+          route: '/purchases',
+          color: AppColors.purchases,
+        ),
+        _OptionItem(
+          icon: Icons.assignment_return,
+          title: 'مرتجعات البيع',
+          subtitle: 'عرض مرتجعات فواتير البيع',
+          route: '/returns/sales',
+          color: AppColors.warning,
+        ),
+        _OptionItem(
+          icon: Icons.assignment_return,
+          title: 'مرتجعات الشراء',
+          subtitle: 'عرض مرتجعات فواتير الشراء',
+          route: '/returns/purchases',
+          color: AppColors.error,
+        ),
+      ],
+    );
+  }
+
+  void _showCreateInvoiceOptions() {
+    _showOptionsSheet(
+      title: 'إنشاء فاتورة',
+      color: AppColors.success,
+      options: [
+        _OptionItem(
+          icon: Icons.add_shopping_cart,
+          title: 'فاتورة مبيعات',
+          subtitle: 'إنشاء فاتورة بيع جديدة',
+          route: '/sales/add',
+          color: AppColors.sales,
+        ),
+        _OptionItem(
+          icon: Icons.add_business,
+          title: 'فاتورة مشتريات',
+          subtitle: 'إنشاء فاتورة شراء جديدة',
+          route: '/purchases/add',
+          color: AppColors.purchases,
+        ),
+        _OptionItem(
+          icon: Icons.remove_shopping_cart,
+          title: 'مرتجع مبيعات',
+          subtitle: 'إنشاء فاتورة مرتجع بيع',
+          route: '/returns/sales/add',
+          color: AppColors.warning,
+        ),
+        _OptionItem(
+          icon: Icons.assignment_return,
+          title: 'مرتجع مشتريات',
+          subtitle: 'إنشاء فاتورة مرتجع شراء',
+          route: '/returns/purchases/add',
+          color: AppColors.error,
+        ),
+      ],
+    );
+  }
+
+  void _showVouchersOptions() {
+    _showOptionsSheet(
+      title: 'السندات',
+      color: AppColors.secondary,
+      options: [
+        _OptionItem(
+          icon: Icons.list_alt,
+          title: 'عرض السندات',
+          subtitle: 'جميع سندات القبض والصرف',
+          route: '/vouchers',
+          color: AppColors.secondary,
+        ),
+        _OptionItem(
+          icon: Icons.add_card,
+          title: 'سند قبض',
+          subtitle: 'إنشاء سند قبض جديد',
+          route: '/vouchers/receipt/add',
+          color: AppColors.success,
+        ),
+        _OptionItem(
+          icon: Icons.credit_card_off,
+          title: 'سند صرف',
+          subtitle: 'إنشاء سند صرف جديد',
+          route: '/vouchers/payment/add',
+          color: AppColors.error,
+        ),
+        _OptionItem(
+          icon: Icons.receipt_long_outlined,
+          title: 'مصاريف',
+          subtitle: 'إنشاء سند مصاريف جديد',
+          route: '/vouchers/expense/add',
+          color: AppColors.warning,
+        ),
+      ],
+    );
+  }
+
+  void _showPartiesOptions() {
+    _showOptionsSheet(
+      title: 'الأطراف',
+      color: AppColors.customers,
+      options: [
+        _OptionItem(
+          icon: Icons.people_alt,
+          title: 'العملاء',
+          subtitle: 'عرض وإدارة العملاء',
+          route: '/customers',
+          color: AppColors.customers,
+        ),
+        _OptionItem(
+          icon: Icons.person_add,
+          title: 'إضافة عميل',
+          subtitle: 'إنشاء عميل جديد',
+          route: '/customers/add',
+          color: AppColors.success,
+        ),
+        _OptionItem(
+          icon: Icons.local_shipping,
+          title: 'الموردين',
+          subtitle: 'عرض وإدارة الموردين',
+          route: '/suppliers',
+          color: AppColors.suppliers,
+        ),
+        _OptionItem(
+          icon: Icons.person_add_alt_1,
+          title: 'إضافة مورد',
+          subtitle: 'إنشاء مورد جديد',
+          route: '/suppliers/add',
+          color: AppColors.success,
+        ),
+      ],
+    );
+  }
+
+  void _showInventoryOptions() {
+    _showOptionsSheet(
+      title: 'المنتجات والمخزون',
+      color: AppColors.inventory,
+      options: [
+        _OptionItem(
+          icon: Icons.qr_code_rounded,
+          title: 'المنتجات',
+          subtitle: 'عرض وإدارة المنتجات',
+          route: '/products',
+          color: AppColors.inventory,
+        ),
+        _OptionItem(
+          icon: Icons.add_box_rounded,
+          title: 'إضافة منتج',
+          subtitle: 'إنشاء منتج جديد',
+          route: '/products/add',
+          color: AppColors.success,
+        ),
+        _OptionItem(
+          icon: Icons.category_rounded,
+          title: 'الأقسام',
+          subtitle: 'إدارة أقسام المنتجات',
+          route: '/categories',
+          color: AppColors.primary,
+        ),
+        _OptionItem(
+          icon: Icons.warehouse_rounded,
+          title: 'المخازن',
+          subtitle: 'إدارة المخزون والمستودعات',
+          route: '/inventory',
+          color: AppColors.secondary,
+        ),
+      ],
+    );
+  }
+
+  void _showCashAndShiftsOptions() {
+    _showOptionsSheet(
+      title: 'الصندوق والورديات',
+      color: AppColors.success,
+      options: [
+        _OptionItem(
+          icon: Icons.account_balance_wallet_rounded,
+          title: 'الصندوق',
+          subtitle: 'عرض رصيد الصندوق',
+          route: '/cash',
+          color: AppColors.success,
+        ),
+        _OptionItem(
+          icon: Icons.schedule_rounded,
+          title: 'الورديات',
+          subtitle: 'عرض جميع الورديات',
+          route: '/shifts',
+          color: AppColors.secondary,
+        ),
+      ],
+    );
+  }
+
+  void _showOptionsSheet({
+    required String title,
+    required Color color,
+    required List<_OptionItem> options,
+  }) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        padding: EdgeInsets.all(AppSpacing.md.w),
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.7,
+        ),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40.w,
+                height: 4.h,
+                margin: EdgeInsets.only(bottom: AppSpacing.md.h),
+                decoration: BoxDecoration(
+                  color: Colors.grey[400],
+                  borderRadius: BorderRadius.circular(2.r),
+                ),
+              ),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: AppSpacing.md.h),
+              ...options.map((option) => ListTile(
+                    leading: Container(
+                      padding: EdgeInsets.all(8.w),
+                      decoration: BoxDecoration(
+                        color: (option.color ?? color).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      child: Icon(option.icon, color: option.color ?? color),
+                    ),
+                    title: Text(option.title),
+                    subtitle: Text(option.subtitle),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push(option.route);
+                    },
+                  )),
+              SizedBox(height: AppSpacing.md.h),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -481,58 +958,16 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 4,
+      crossAxisCount: 3,
       mainAxisSpacing: AppSpacing.xs.h,
       crossAxisSpacing: AppSpacing.xs.w,
-      childAspectRatio: 0.85,
+      childAspectRatio: 1.1,
       children: [
-        _SmallMenuCard(
-          icon: Icons.people_alt_rounded,
-          label: 'العملاء',
-          color: AppColors.customers,
-          onTap: () => context.push('/customers'),
-        ),
-        _SmallMenuCard(
-          icon: Icons.local_shipping_rounded,
-          label: 'الموردين',
-          color: AppColors.suppliers,
-          onTap: () => context.push('/suppliers'),
-        ),
-        _SmallMenuCard(
-          icon: Icons.warehouse_rounded,
-          label: 'المخازن',
-          color: AppColors.inventory,
-          onTap: () => context.push('/inventory'),
-        ),
-        _SmallMenuCard(
-          icon: Icons.category_rounded,
-          label: 'الأقسام',
-          color: AppColors.inventory,
-          onTap: () => context.push('/categories'),
-        ),
         _SmallMenuCard(
           icon: Icons.bar_chart_rounded,
           label: 'التقارير',
           color: AppColors.primary,
           onTap: () => context.push('/reports'),
-        ),
-        _SmallMenuCard(
-          icon: Icons.account_balance_wallet_rounded,
-          label: 'الصندوق',
-          color: AppColors.success,
-          onTap: () => context.push('/cash'),
-        ),
-        _SmallMenuCard(
-          icon: Icons.receipt_rounded,
-          label: 'السندات',
-          color: AppColors.secondary,
-          onTap: () => context.push('/vouchers'),
-        ),
-        _SmallMenuCard(
-          icon: Icons.settings_rounded,
-          label: 'الإعدادات',
-          color: AppColors.neutral,
-          onTap: () => context.push('/settings'),
         ),
       ],
     );
@@ -771,4 +1206,20 @@ class _SmallMenuCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _OptionItem {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final String route;
+  final Color? color;
+
+  const _OptionItem({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.route,
+    this.color,
+  });
 }

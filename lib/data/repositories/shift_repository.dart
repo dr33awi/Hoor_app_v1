@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 
 import '../database/app_database.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/services/currency_service.dart';
 import 'base_repository.dart';
 
 class ShiftRepository extends BaseRepository<Shift, ShiftsCompanion> {
@@ -36,6 +37,8 @@ class ShiftRepository extends BaseRepository<Shift, ShiftsCompanion> {
   /// Open a new shift
   Future<String> openShift({
     required double openingBalance,
+    double? openingBalanceUsd,
+    double? exchangeRate,
     String? notes,
   }) async {
     // Check if there's already an open shift
@@ -48,10 +51,16 @@ class ShiftRepository extends BaseRepository<Shift, ShiftsCompanion> {
     final now = DateTime.now();
     final shiftNumber = await _generateShiftNumber();
 
+    // تثبيت سعر الصرف وقت فتح الوردية
+    final rate = exchangeRate ?? CurrencyService.currentRate;
+    final balanceUsd = openingBalanceUsd ?? (openingBalance / rate);
+
     await database.insertShift(ShiftsCompanion(
       id: Value(id),
       shiftNumber: Value(shiftNumber),
       openingBalance: Value(openingBalance),
+      openingBalanceUsd: Value(balanceUsd),
+      exchangeRate: Value(rate),
       status: const Value('open'),
       notes: Value(notes),
       syncStatus: const Value('pending'),
@@ -66,6 +75,8 @@ class ShiftRepository extends BaseRepository<Shift, ShiftsCompanion> {
       shiftId: Value(id),
       type: const Value('opening'),
       amount: Value(openingBalance),
+      amountUsd: Value(balanceUsd),
+      exchangeRate: Value(rate),
       description: const Value('رصيد افتتاحي'),
       paymentMethod: const Value('cash'),
       syncStatus: const Value('pending'),
@@ -82,6 +93,7 @@ class ShiftRepository extends BaseRepository<Shift, ShiftsCompanion> {
   Future<void> closeShift({
     required String shiftId,
     required double closingBalance,
+    double? closingBalanceUsd,
     String? notes,
   }) async {
     final shift = await database.getShiftById(shiftId);
@@ -92,13 +104,22 @@ class ShiftRepository extends BaseRepository<Shift, ShiftsCompanion> {
       throw Exception('الوردية مغلقة بالفعل');
     }
 
+    // استخدام سعر الصرف المحفوظ مع الوردية
+    final rate = shift.exchangeRate ?? CurrencyService.currentRate;
+
     // Calculate expected balance (يشمل جميع أنواع الحركات)
     final movements = await database.getCashMovementsByShift(shiftId);
     double expectedBalance = shift.openingBalance;
+    double expectedBalanceUsd =
+        shift.openingBalanceUsd ?? (shift.openingBalance / rate);
     double totalSales = 0;
+    double totalSalesUsd = 0;
     double totalReturns = 0;
+    double totalReturnsUsd = 0;
     double totalExpenses = 0;
+    double totalExpensesUsd = 0;
     double totalIncome = 0;
+    double totalIncomeUsd = 0;
     // ignore: unused_local_variable
     double totalVoucherReceipts = 0;
     // ignore: unused_local_variable
@@ -107,28 +128,41 @@ class ShiftRepository extends BaseRepository<Shift, ShiftsCompanion> {
     double totalPurchases = 0;
 
     for (final movement in movements) {
+      // حساب المبلغ بالدولار من الحركة أو من سعر الصرف
+      final movementRate = movement.exchangeRate ?? rate;
+      final movementUsd =
+          movement.amountUsd ?? (movement.amount / movementRate);
+
       switch (movement.type) {
         // ═══════════════════════════════════════════════════════════════════════════
         // الإيرادات (تضاف للرصيد)
         // ═══════════════════════════════════════════════════════════════════════════
         case 'sale':
           expectedBalance += movement.amount;
+          expectedBalanceUsd += movementUsd;
           totalSales += movement.amount;
+          totalSalesUsd += movementUsd;
           break;
         case 'income':
           expectedBalance += movement.amount;
+          expectedBalanceUsd += movementUsd;
           totalIncome += movement.amount;
+          totalIncomeUsd += movementUsd;
           break;
         case 'voucher_receipt':
           // سند قبض = إيراد (يضاف للصندوق)
           expectedBalance += movement.amount;
+          expectedBalanceUsd += movementUsd;
           totalVoucherReceipts += movement.amount;
           totalIncome += movement.amount;
+          totalIncomeUsd += movementUsd;
           break;
         case 'purchase_return':
           // مرتجع مشتريات = إيراد (يعود للصندوق)
           expectedBalance += movement.amount;
+          expectedBalanceUsd += movementUsd;
           totalIncome += movement.amount;
+          totalIncomeUsd += movementUsd;
           break;
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -136,24 +170,32 @@ class ShiftRepository extends BaseRepository<Shift, ShiftsCompanion> {
         // ═══════════════════════════════════════════════════════════════════════════
         case 'purchase':
           expectedBalance -= movement.amount;
+          expectedBalanceUsd -= movementUsd;
           totalPurchases += movement.amount;
           totalExpenses += movement.amount;
+          totalExpensesUsd += movementUsd;
           break;
         case 'expense':
           expectedBalance -= movement.amount;
+          expectedBalanceUsd -= movementUsd;
           totalExpenses += movement.amount;
+          totalExpensesUsd += movementUsd;
           break;
         case 'voucher_payment':
           // سند دفع = مصروف (يخصم من الصندوق)
           expectedBalance -= movement.amount;
+          expectedBalanceUsd -= movementUsd;
           totalVoucherPayments += movement.amount;
           totalExpenses += movement.amount;
+          totalExpensesUsd += movementUsd;
           break;
         case 'sale_return':
         case 'return':
           // مرتجع مبيعات = مصروف (يرد للعميل)
           expectedBalance -= movement.amount;
+          expectedBalanceUsd -= movementUsd;
           totalReturns += movement.amount;
+          totalReturnsUsd += movementUsd;
           break;
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -167,26 +209,37 @@ class ShiftRepository extends BaseRepository<Shift, ShiftsCompanion> {
           // أي نوع غير معروف - نفترض أنه مصروف للأمان
           if (movement.amount > 0) {
             expectedBalance -= movement.amount;
+            expectedBalanceUsd -= movementUsd;
             totalExpenses += movement.amount;
+            totalExpensesUsd += movementUsd;
           }
           break;
       }
     }
 
     final difference = closingBalance - expectedBalance;
+    final closingUsd = closingBalanceUsd ?? (closingBalance / rate);
     final now = DateTime.now();
 
     await database.updateShift(ShiftsCompanion(
       id: Value(shiftId),
       shiftNumber: Value(shift.shiftNumber),
       openingBalance: Value(shift.openingBalance),
+      openingBalanceUsd: Value(shift.openingBalanceUsd),
+      exchangeRate: Value(shift.exchangeRate),
       closingBalance: Value(closingBalance),
+      closingBalanceUsd: Value(closingUsd),
       expectedBalance: Value(expectedBalance),
+      expectedBalanceUsd: Value(expectedBalanceUsd),
       difference: Value(difference),
       totalSales: Value(totalSales),
+      totalSalesUsd: Value(totalSalesUsd),
       totalReturns: Value(totalReturns),
+      totalReturnsUsd: Value(totalReturnsUsd),
       totalExpenses: Value(totalExpenses),
+      totalExpensesUsd: Value(totalExpensesUsd),
       totalIncome: Value(totalIncome),
+      totalIncomeUsd: Value(totalIncomeUsd),
       transactionCount: Value(movements.length),
       status: const Value('closed'),
       notes: Value(notes ?? shift.notes),
@@ -203,6 +256,8 @@ class ShiftRepository extends BaseRepository<Shift, ShiftsCompanion> {
       shiftId: Value(shiftId),
       type: const Value('closing'),
       amount: Value(closingBalance),
+      amountUsd: Value(closingUsd),
+      exchangeRate: Value(rate),
       description: const Value('رصيد إغلاق'),
       paymentMethod: const Value('cash'),
       syncStatus: const Value('pending'),
@@ -229,7 +284,7 @@ class ShiftRepository extends BaseRepository<Shift, ShiftsCompanion> {
     return 'SH-$dateStr-${(todayShifts + 1).toString().padLeft(2, '0')}';
   }
 
-  /// Get shift summary
+  /// Get shift summary with detailed breakdown
   Future<Map<String, dynamic>> getShiftSummary(String shiftId) async {
     final shift = await database.getShiftById(shiftId);
     if (shift == null) {
@@ -238,14 +293,230 @@ class ShiftRepository extends BaseRepository<Shift, ShiftsCompanion> {
 
     final movements = await database.getCashMovementsByShift(shiftId);
     final invoices = await database.getInvoicesByShift(shiftId);
+    final vouchers = await database.getVouchersByShift(shiftId);
+
+    // تصنيف الفواتير
+    final sales = invoices.where((i) => i.type == 'sale').toList();
+    final purchases = invoices.where((i) => i.type == 'purchase').toList();
+    final saleReturns = invoices.where((i) => i.type == 'sale_return').toList();
+    final purchaseReturns =
+        invoices.where((i) => i.type == 'purchase_return').toList();
+
+    // تصنيف السندات
+    final receipts = vouchers.where((v) => v.type == 'receipt').toList();
+    final payments = vouchers.where((v) => v.type == 'payment').toList();
+    final expenses = vouchers.where((v) => v.type == 'expense').toList();
+
+    // إجماليات الفواتير
+    double totalSalesAmount = 0;
+    double totalSalesUsd = 0;
+    double totalPurchasesAmount = 0;
+    double totalPurchasesUsd = 0;
+    double totalSaleReturnsAmount = 0;
+    double totalSaleReturnsUsd = 0;
+    double totalPurchaseReturnsAmount = 0;
+    double totalPurchaseReturnsUsd = 0;
+
+    for (final inv in sales) {
+      totalSalesAmount += inv.paidAmount;
+      totalSalesUsd += inv.paidAmountUsd ??
+          (inv.paidAmount / (inv.exchangeRate ?? CurrencyService.currentRate));
+    }
+    for (final inv in purchases) {
+      totalPurchasesAmount += inv.paidAmount;
+      totalPurchasesUsd += inv.paidAmountUsd ??
+          (inv.paidAmount / (inv.exchangeRate ?? CurrencyService.currentRate));
+    }
+    for (final inv in saleReturns) {
+      totalSaleReturnsAmount += inv.total;
+      totalSaleReturnsUsd += inv.totalUsd ??
+          (inv.total / (inv.exchangeRate ?? CurrencyService.currentRate));
+    }
+    for (final inv in purchaseReturns) {
+      totalPurchaseReturnsAmount += inv.total;
+      totalPurchaseReturnsUsd += inv.totalUsd ??
+          (inv.total / (inv.exchangeRate ?? CurrencyService.currentRate));
+    }
+
+    // إجماليات السندات
+    double totalReceiptsAmount = 0;
+    double totalReceiptsUsd = 0;
+    double totalPaymentsAmount = 0;
+    double totalPaymentsUsd = 0;
+    double totalExpensesAmount = 0;
+    double totalExpensesUsd = 0;
+
+    for (final v in receipts) {
+      totalReceiptsAmount += v.amount;
+      totalReceiptsUsd += v.amountUsd ??
+          (v.amount / (v.exchangeRate ?? CurrencyService.currentRate));
+    }
+    for (final v in payments) {
+      totalPaymentsAmount += v.amount;
+      totalPaymentsUsd += v.amountUsd ??
+          (v.amount / (v.exchangeRate ?? CurrencyService.currentRate));
+    }
+    for (final v in expenses) {
+      totalExpensesAmount += v.amount;
+      totalExpensesUsd += v.amountUsd ??
+          (v.amount / (v.exchangeRate ?? CurrencyService.currentRate));
+    }
 
     return {
       'shift': shift,
       'movements': movements,
       'invoices': invoices,
-      'salesCount': invoices.where((i) => i.type == 'sale').length,
-      'returnsCount': invoices.where((i) => i.type == 'sale_return').length,
+      'vouchers': vouchers,
+      // تفاصيل الفواتير
+      'sales': sales,
+      'salesCount': sales.length,
+      'totalSalesAmount': totalSalesAmount,
+      'totalSalesUsd': totalSalesUsd,
+      'purchases': purchases,
+      'purchasesCount': purchases.length,
+      'totalPurchasesAmount': totalPurchasesAmount,
+      'totalPurchasesUsd': totalPurchasesUsd,
+      'saleReturns': saleReturns,
+      'returnsCount': saleReturns.length,
+      'totalSaleReturnsAmount': totalSaleReturnsAmount,
+      'totalSaleReturnsUsd': totalSaleReturnsUsd,
+      'purchaseReturns': purchaseReturns,
+      'purchaseReturnsCount': purchaseReturns.length,
+      'totalPurchaseReturnsAmount': totalPurchaseReturnsAmount,
+      'totalPurchaseReturnsUsd': totalPurchaseReturnsUsd,
+      // تفاصيل السندات
+      'receipts': receipts,
+      'receiptsCount': receipts.length,
+      'totalReceiptsAmount': totalReceiptsAmount,
+      'totalReceiptsUsd': totalReceiptsUsd,
+      'payments': payments,
+      'paymentsCount': payments.length,
+      'totalPaymentsAmount': totalPaymentsAmount,
+      'totalPaymentsUsd': totalPaymentsUsd,
+      'expenses': expenses,
+      'expensesCount': expenses.length,
+      'totalExpensesAmount': totalExpensesAmount,
+      'totalExpensesUsd': totalExpensesUsd,
+      // تحليل المبيعات حسب طريقة الدفع
+      'paymentMethodAnalysis': _analyzePaymentMethods(sales),
+      // تحليل المبيعات حسب الساعة
+      'hourlyAnalysis': _analyzeHourlySales(sales, shift),
     };
+  }
+
+  /// تحليل المبيعات حسب طريقة الدفع
+  Map<String, dynamic> _analyzePaymentMethods(List<Invoice> sales) {
+    double cashTotal = 0;
+    double cashTotalUsd = 0;
+    int cashCount = 0;
+    double creditTotal = 0;
+    double creditTotalUsd = 0;
+    int creditCount = 0;
+
+    for (final inv in sales) {
+      final amountUsd = inv.paidAmountUsd ??
+          (inv.paidAmount / (inv.exchangeRate ?? CurrencyService.currentRate));
+
+      // التحقق من طريقة الدفع: cash = نقدي، credit = آجل
+      if (inv.paymentMethod == 'cash') {
+        cashTotal += inv.paidAmount;
+        cashTotalUsd += amountUsd;
+        cashCount++;
+      } else {
+        creditTotal += inv.paidAmount;
+        creditTotalUsd += amountUsd;
+        creditCount++;
+      }
+    }
+
+    final total = cashTotal + creditTotal;
+    return {
+      'cashTotal': cashTotal,
+      'cashTotalUsd': cashTotalUsd,
+      'cashCount': cashCount,
+      'cashPercentage': total > 0 ? (cashTotal / total * 100) : 0,
+      'creditTotal': creditTotal,
+      'creditTotalUsd': creditTotalUsd,
+      'creditCount': creditCount,
+      'creditPercentage': total > 0 ? (creditTotal / total * 100) : 0,
+    };
+  }
+
+  /// تحليل المبيعات حسب الساعة
+  Map<int, Map<String, dynamic>> _analyzeHourlySales(
+      List<Invoice> sales, Shift shift) {
+    final hourlyData = <int, Map<String, dynamic>>{};
+
+    // تحديد نطاق الساعات للوردية
+    final startHour = shift.openedAt.hour;
+    final endHour = shift.closedAt?.hour ?? DateTime.now().hour;
+
+    // تهيئة البيانات لكل ساعة
+    for (int h = startHour; h <= endHour; h++) {
+      hourlyData[h] = {
+        'count': 0,
+        'total': 0.0,
+        'totalUsd': 0.0,
+      };
+    }
+
+    // تجميع المبيعات حسب الساعة
+    for (final inv in sales) {
+      final hour = inv.createdAt.hour;
+      if (hourlyData.containsKey(hour)) {
+        hourlyData[hour]!['count'] = (hourlyData[hour]!['count'] as int) + 1;
+        hourlyData[hour]!['total'] =
+            (hourlyData[hour]!['total'] as double) + inv.paidAmount;
+        hourlyData[hour]!['totalUsd'] =
+            (hourlyData[hour]!['totalUsd'] as double) +
+                (inv.paidAmountUsd ??
+                    (inv.paidAmount /
+                        (inv.exchangeRate ?? CurrencyService.currentRate)));
+      }
+    }
+
+    return hourlyData;
+  }
+
+  // ==================== Analytics & Reports ====================
+
+  /// الحصول على أكثر المنتجات مبيعاً خلال الوردية
+  Future<List<Map<String, dynamic>>> getTopSellingProducts({
+    String? shiftId,
+    DateTime? startDate,
+    DateTime? endDate,
+    int limit = 10,
+  }) async {
+    return database.getTopSellingProducts(
+      shiftId: shiftId,
+      startDate: startDate,
+      endDate: endDate,
+      limit: limit,
+    );
+  }
+
+  /// الحصول على تقرير الأرباح
+  Future<Map<String, dynamic>> getProfitReport({
+    String? shiftId,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    return database.getProfitReport(
+      shiftId: shiftId,
+      startDate: startDate,
+      endDate: endDate,
+    );
+  }
+
+  /// الحصول على بيانات المبيعات اليومية للرسوم البيانية
+  Future<List<Map<String, dynamic>>> getDailySalesData({
+    required DateTime startDate,
+    required DateTime endDate,
+  }) async {
+    return database.getDailySalesData(
+      startDate: startDate,
+      endDate: endDate,
+    );
   }
 
   // ==================== Cloud Sync ====================
@@ -262,13 +533,21 @@ class ShiftRepository extends BaseRepository<Shift, ShiftsCompanion> {
         id: Value(shift.id),
         shiftNumber: Value(shift.shiftNumber),
         openingBalance: Value(shift.openingBalance),
+        openingBalanceUsd: Value(shift.openingBalanceUsd),
+        exchangeRate: Value(shift.exchangeRate),
         closingBalance: Value(shift.closingBalance),
+        closingBalanceUsd: Value(shift.closingBalanceUsd),
         expectedBalance: Value(shift.expectedBalance),
+        expectedBalanceUsd: Value(shift.expectedBalanceUsd),
         difference: Value(shift.difference),
         totalSales: Value(shift.totalSales),
+        totalSalesUsd: Value(shift.totalSalesUsd),
         totalReturns: Value(shift.totalReturns),
+        totalReturnsUsd: Value(shift.totalReturnsUsd),
         totalExpenses: Value(shift.totalExpenses),
+        totalExpensesUsd: Value(shift.totalExpensesUsd),
         totalIncome: Value(shift.totalIncome),
+        totalIncomeUsd: Value(shift.totalIncomeUsd),
         transactionCount: Value(shift.transactionCount),
         status: Value(shift.status),
         notes: Value(shift.notes),
@@ -297,13 +576,21 @@ class ShiftRepository extends BaseRepository<Shift, ShiftsCompanion> {
           id: Value(shift.id),
           shiftNumber: Value(shift.shiftNumber),
           openingBalance: Value(shift.openingBalance),
+          openingBalanceUsd: Value(shift.openingBalanceUsd),
+          exchangeRate: Value(shift.exchangeRate),
           closingBalance: Value(shift.closingBalance),
+          closingBalanceUsd: Value(shift.closingBalanceUsd),
           expectedBalance: Value(shift.expectedBalance),
+          expectedBalanceUsd: Value(shift.expectedBalanceUsd),
           difference: Value(shift.difference),
           totalSales: Value(shift.totalSales),
+          totalSalesUsd: Value(shift.totalSalesUsd),
           totalReturns: Value(shift.totalReturns),
+          totalReturnsUsd: Value(shift.totalReturnsUsd),
           totalExpenses: Value(shift.totalExpenses),
+          totalExpensesUsd: Value(shift.totalExpensesUsd),
           totalIncome: Value(shift.totalIncome),
+          totalIncomeUsd: Value(shift.totalIncomeUsd),
           transactionCount: Value(shift.transactionCount),
           status: Value(shift.status),
           notes: Value(shift.notes),
@@ -346,13 +633,21 @@ class ShiftRepository extends BaseRepository<Shift, ShiftsCompanion> {
     return {
       'shiftNumber': entity.shiftNumber,
       'openingBalance': entity.openingBalance,
+      'openingBalanceUsd': entity.openingBalanceUsd,
+      'exchangeRate': entity.exchangeRate,
       'closingBalance': entity.closingBalance,
+      'closingBalanceUsd': entity.closingBalanceUsd,
       'expectedBalance': entity.expectedBalance,
+      'expectedBalanceUsd': entity.expectedBalanceUsd,
       'difference': entity.difference,
       'totalSales': entity.totalSales,
+      'totalSalesUsd': entity.totalSalesUsd,
       'totalReturns': entity.totalReturns,
+      'totalReturnsUsd': entity.totalReturnsUsd,
       'totalExpenses': entity.totalExpenses,
+      'totalExpensesUsd': entity.totalExpensesUsd,
       'totalIncome': entity.totalIncome,
+      'totalIncomeUsd': entity.totalIncomeUsd,
       'transactionCount': entity.transactionCount,
       'status': entity.status,
       'notes': entity.notes,
@@ -370,13 +665,24 @@ class ShiftRepository extends BaseRepository<Shift, ShiftsCompanion> {
       id: Value(id),
       shiftNumber: Value(data['shiftNumber'] as String),
       openingBalance: Value((data['openingBalance'] as num).toDouble()),
+      openingBalanceUsd: Value((data['openingBalanceUsd'] as num?)?.toDouble()),
+      exchangeRate: Value((data['exchangeRate'] as num?)?.toDouble()),
       closingBalance: Value((data['closingBalance'] as num?)?.toDouble()),
+      closingBalanceUsd: Value((data['closingBalanceUsd'] as num?)?.toDouble()),
       expectedBalance: Value((data['expectedBalance'] as num?)?.toDouble()),
+      expectedBalanceUsd:
+          Value((data['expectedBalanceUsd'] as num?)?.toDouble()),
       difference: Value((data['difference'] as num?)?.toDouble()),
       totalSales: Value((data['totalSales'] as num?)?.toDouble() ?? 0),
+      totalSalesUsd: Value((data['totalSalesUsd'] as num?)?.toDouble() ?? 0),
       totalReturns: Value((data['totalReturns'] as num?)?.toDouble() ?? 0),
+      totalReturnsUsd:
+          Value((data['totalReturnsUsd'] as num?)?.toDouble() ?? 0),
       totalExpenses: Value((data['totalExpenses'] as num?)?.toDouble() ?? 0),
+      totalExpensesUsd:
+          Value((data['totalExpensesUsd'] as num?)?.toDouble() ?? 0),
       totalIncome: Value((data['totalIncome'] as num?)?.toDouble() ?? 0),
+      totalIncomeUsd: Value((data['totalIncomeUsd'] as num?)?.toDouble() ?? 0),
       transactionCount: Value(data['transactionCount'] as int? ?? 0),
       status: Value(data['status'] as String),
       notes: Value(data['notes'] as String?),

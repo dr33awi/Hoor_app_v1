@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../../core/theme/design_tokens.dart';
-import '../../../core/services/currency_service.dart';
 
 class InvoiceCardPro extends StatelessWidget {
   final Map<String, dynamic> invoice;
@@ -31,9 +30,8 @@ class InvoiceCardPro extends StatelessWidget {
     final paymentProgress = total > 0 ? paid / total : 0.0;
     final isPartial = status == 'جزئي' || (paid > 0 && paid < total);
 
-    // استخدام سعر الصرف المحفوظ أو السعر الحالي كاحتياط
-    final exchangeRate =
-        (invoice['exchangeRate'] as double?) ?? CurrencyService.currentRate;
+    // استخدام سعر الصرف المحفوظ فقط (بدون fallback للسعر الحالي)
+    final exchangeRate = (invoice['exchangeRate'] as double?) ?? 0;
     // استخدام السعر بالدولار المحفوظ أو حسابه من سعر الصرف المحفوظ
     final totalUsd = (invoice['totalUsd'] as double?) ??
         (exchangeRate > 0 ? total / exchangeRate : 0.0);
@@ -243,41 +241,83 @@ class InvoiceCardPro extends StatelessWidget {
                   else
                     const SizedBox.shrink(),
 
-                  // Total Amount
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md.w,
-                      vertical: AppSpacing.xs.h,
-                    ),
-                    decoration: BoxDecoration(
-                      color: (isSales ? AppColors.income : AppColors.purchases)
-                          .withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Text(
-                          '${total.toStringAsFixed(0)} ل.س',
-                          style: AppTypography.titleSmall.copyWith(
-                            color: isSales
-                                ? AppColors.income
-                                : AppColors.purchases,
-                            fontWeight: FontWeight.w700,
-                            fontFamily: 'JetBrains Mono',
+                  // Total Amount with Exchange Rate
+                  Row(
+                    children: [
+                      // Exchange Rate Badge (سعر الصرف وقت البيع)
+                      if (exchangeRate > 0)
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: AppSpacing.sm.w,
+                            vertical: AppSpacing.xs.h,
+                          ),
+                          margin: EdgeInsets.only(left: AppSpacing.xs.w),
+                          decoration: BoxDecoration(
+                            color: AppColors.background,
+                            borderRadius: BorderRadius.circular(AppRadius.sm),
+                            border: Border.all(
+                              color: AppColors.border,
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.currency_exchange,
+                                size: 12.sp,
+                                color: AppColors.textTertiary,
+                              ),
+                              SizedBox(width: 4.w),
+                              Text(
+                                '${exchangeRate.toStringAsFixed(0)}',
+                                style: AppTypography.labelSmall.copyWith(
+                                  color: AppColors.textSecondary,
+                                  fontWeight: FontWeight.w500,
+                                  fontFamily: 'JetBrains Mono',
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        Text(
-                          '\$${totalUsd.toStringAsFixed(2)}',
-                          style: AppTypography.labelSmall.copyWith(
-                            color: (isSales
+                      // Total Amount
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md.w,
+                          vertical: AppSpacing.xs.h,
+                        ),
+                        decoration: BoxDecoration(
+                          color:
+                              (isSales ? AppColors.income : AppColors.purchases)
+                                  .withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(
+                              '${total.toStringAsFixed(0)} ل.س',
+                              style: AppTypography.titleSmall.copyWith(
+                                color: isSales
                                     ? AppColors.income
-                                    : AppColors.purchases)
-                                .withValues(alpha: 0.8),
-                          ),
+                                    : AppColors.purchases,
+                                fontWeight: FontWeight.w700,
+                                fontFamily: 'JetBrains Mono',
+                              ),
+                            ),
+                            Text(
+                              '\$${totalUsd.toStringAsFixed(2)}',
+                              style: AppTypography.labelSmall.copyWith(
+                                color: (isSales
+                                        ? AppColors.income
+                                        : AppColors.purchases)
+                                    .withValues(alpha: 0.8),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ],
               ),

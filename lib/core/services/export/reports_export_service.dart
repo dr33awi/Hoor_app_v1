@@ -53,37 +53,53 @@ class ReportsExportService {
     ];
     _writeExcelHeaders(sheet, headers, headerStyle);
 
-    double totalSales = 0;
-    double totalPaid = 0;
+    // ═══════════════════════════════════════════════════════════════════════
+    // السياسة المحاسبية: استخدام القيم المحفوظة (SYP + USD) بدون تحويل
+    // ═══════════════════════════════════════════════════════════════════════
+    double totalSalesSyp = 0;
+    double totalSalesUsd = 0;
+    double totalPaidSyp = 0;
+    double totalPaidUsd = 0;
 
     for (var i = 0; i < invoices.length; i++) {
       final inv = invoices[i];
-      totalSales += inv.total;
-      totalPaid += inv.paidAmount;
+      totalSalesSyp += inv.total;
+      totalSalesUsd += inv.totalUsd ?? 0;
+      totalPaidSyp += inv.paidAmount;
+      totalPaidUsd += inv.paidAmountUsd ?? 0;
 
       _writeExcelRow(sheet, i + 1, [
         (i + 1).toString(),
         inv.invoiceNumber,
         ExportFormatters.formatDate(inv.invoiceDate),
         inv.customerId ?? 'نقدي',
-        ExportFormatters.formatDualPrice(inv.total, showCurrency: false),
-        ExportFormatters.formatDualPrice(inv.paidAmount, showCurrency: false),
-        ExportFormatters.formatDualPrice(inv.total - inv.paidAmount,
+        // استخدام القيم المحفوظة مباشرة
+        ExportFormatters.formatDualPriceFromLocked(inv.total, inv.totalUsd ?? 0,
+            showCurrency: false),
+        ExportFormatters.formatDualPriceFromLocked(
+            inv.paidAmount, inv.paidAmountUsd ?? 0,
+            showCurrency: false),
+        ExportFormatters.formatDualPriceFromLocked(inv.total - inv.paidAmount,
+            (inv.totalUsd ?? 0) - (inv.paidAmountUsd ?? 0),
             showCurrency: false),
         _getPaymentStatusText(inv.total, inv.paidAmount),
       ]);
     }
 
-    // Summary row
+    // Summary row - استخدام القيم المحفوظة
     _writeExcelSummary(
         sheet,
         invoices.length + 2,
         3,
         'الإجمالي:',
         [
-          ExportFormatters.formatDualPrice(totalSales, showCurrency: false),
-          ExportFormatters.formatDualPrice(totalPaid, showCurrency: false),
-          ExportFormatters.formatDualPrice(totalSales - totalPaid,
+          ExportFormatters.formatDualPriceFromLocked(
+              totalSalesSyp, totalSalesUsd,
+              showCurrency: false),
+          ExportFormatters.formatDualPriceFromLocked(totalPaidSyp, totalPaidUsd,
+              showCurrency: false),
+          ExportFormatters.formatDualPriceFromLocked(
+              totalSalesSyp - totalPaidSyp, totalSalesUsd - totalPaidUsd,
               showCurrency: false),
         ],
         ExcelStyles.successColor);
@@ -109,8 +125,16 @@ class ReportsExportService {
       headerColor: ExportColors.success,
     );
 
-    double totalSales = invoices.fold(0, (sum, inv) => sum + inv.total);
-    double totalPaid = invoices.fold(0, (sum, inv) => sum + inv.paidAmount);
+    // ═══════════════════════════════════════════════════════════════════════
+    // السياسة المحاسبية: استخدام القيم المحفوظة (SYP + USD) بدون تحويل
+    // ═══════════════════════════════════════════════════════════════════════
+    double totalSalesSyp = invoices.fold(0.0, (sum, inv) => sum + inv.total);
+    double totalSalesUsd =
+        invoices.fold(0.0, (sum, inv) => sum + (inv.totalUsd ?? 0));
+    double totalPaidSyp =
+        invoices.fold(0.0, (sum, inv) => sum + inv.paidAmount);
+    double totalPaidUsd =
+        invoices.fold(0.0, (sum, inv) => sum + (inv.paidAmountUsd ?? 0));
 
     final pdf = pw.Document();
 
@@ -126,21 +150,24 @@ class ReportsExportService {
         ),
         build: (context) => [
           pw.SizedBox(height: 20),
-          // Statistics Box
+          // Statistics Box - استخدام القيم المحفوظة
           template.buildStatsBox([
             StatItem(
               label: 'إجمالي المبيعات',
-              value: ExportFormatters.formatDualPrice(totalSales),
+              value: ExportFormatters.formatDualPriceFromLocked(
+                  totalSalesSyp, totalSalesUsd),
               color: ExportColors.success,
             ),
             StatItem(
               label: 'المدفوع',
-              value: ExportFormatters.formatDualPrice(totalPaid),
+              value: ExportFormatters.formatDualPriceFromLocked(
+                  totalPaidSyp, totalPaidUsd),
               color: ExportColors.info,
             ),
             StatItem(
               label: 'المتبقي',
-              value: ExportFormatters.formatDualPrice(totalSales - totalPaid),
+              value: ExportFormatters.formatDualPriceFromLocked(
+                  totalSalesSyp - totalPaidSyp, totalSalesUsd - totalPaidUsd),
               color: ExportColors.warning,
             ),
             StatItem(
@@ -150,7 +177,7 @@ class ReportsExportService {
           ]),
           pw.SizedBox(height: 20),
 
-          // Table
+          // Table - استخدام القيم المحفوظة
           template.buildTable(
             headers: ['#', 'رقم الفاتورة', 'التاريخ', 'الإجمالي', 'حالة الدفع'],
             data: List.generate(invoices.length, (i) {
@@ -159,7 +186,8 @@ class ReportsExportService {
                 '${i + 1}',
                 inv.invoiceNumber,
                 ExportFormatters.formatDate(inv.invoiceDate),
-                ExportFormatters.formatDualPrice(inv.total),
+                ExportFormatters.formatDualPriceFromLocked(
+                    inv.total, inv.totalUsd ?? 0),
                 _getPaymentStatusText(inv.total, inv.paidAmount),
               ];
             }),
@@ -207,22 +235,33 @@ class ReportsExportService {
     ];
     _writeExcelHeaders(sheet, headers, headerStyle);
 
-    double totalPurchases = 0;
-    double totalPaid = 0;
+    // ═══════════════════════════════════════════════════════════════════════
+    // السياسة المحاسبية: استخدام القيم المحفوظة (SYP + USD) بدون تحويل
+    // ═══════════════════════════════════════════════════════════════════════
+    double totalPurchasesSyp = 0;
+    double totalPurchasesUsd = 0;
+    double totalPaidSyp = 0;
+    double totalPaidUsd = 0;
 
     for (var i = 0; i < invoices.length; i++) {
       final inv = invoices[i];
-      totalPurchases += inv.total;
-      totalPaid += inv.paidAmount;
+      totalPurchasesSyp += inv.total;
+      totalPurchasesUsd += inv.totalUsd ?? 0;
+      totalPaidSyp += inv.paidAmount;
+      totalPaidUsd += inv.paidAmountUsd ?? 0;
 
       _writeExcelRow(sheet, i + 1, [
         (i + 1).toString(),
         inv.invoiceNumber,
         ExportFormatters.formatDate(inv.invoiceDate),
         inv.supplierId ?? '-',
-        ExportFormatters.formatDualPrice(inv.total, showCurrency: false),
-        ExportFormatters.formatDualPrice(inv.paidAmount, showCurrency: false),
-        ExportFormatters.formatDualPrice(inv.total - inv.paidAmount,
+        ExportFormatters.formatDualPriceFromLocked(inv.total, inv.totalUsd ?? 0,
+            showCurrency: false),
+        ExportFormatters.formatDualPriceFromLocked(
+            inv.paidAmount, inv.paidAmountUsd ?? 0,
+            showCurrency: false),
+        ExportFormatters.formatDualPriceFromLocked(inv.total - inv.paidAmount,
+            (inv.totalUsd ?? 0) - (inv.paidAmountUsd ?? 0),
             showCurrency: false),
         _getPaymentStatusText(inv.total, inv.paidAmount),
       ]);
@@ -234,9 +273,14 @@ class ReportsExportService {
         3,
         'الإجمالي:',
         [
-          ExportFormatters.formatDualPrice(totalPurchases, showCurrency: false),
-          ExportFormatters.formatDualPrice(totalPaid, showCurrency: false),
-          ExportFormatters.formatDualPrice(totalPurchases - totalPaid,
+          ExportFormatters.formatDualPriceFromLocked(
+              totalPurchasesSyp, totalPurchasesUsd,
+              showCurrency: false),
+          ExportFormatters.formatDualPriceFromLocked(totalPaidSyp, totalPaidUsd,
+              showCurrency: false),
+          ExportFormatters.formatDualPriceFromLocked(
+              totalPurchasesSyp - totalPaidSyp,
+              totalPurchasesUsd - totalPaidUsd,
               showCurrency: false),
         ],
         ExcelStyles.purchaseColor);
@@ -262,8 +306,17 @@ class ReportsExportService {
       headerColor: ExportColors.purchase,
     );
 
-    double totalPurchases = invoices.fold(0, (sum, inv) => sum + inv.total);
-    double totalPaid = invoices.fold(0, (sum, inv) => sum + inv.paidAmount);
+    // ═══════════════════════════════════════════════════════════════════════
+    // السياسة المحاسبية: استخدام القيم المحفوظة (SYP + USD) بدون تحويل
+    // ═══════════════════════════════════════════════════════════════════════
+    double totalPurchasesSyp =
+        invoices.fold(0.0, (sum, inv) => sum + inv.total);
+    double totalPurchasesUsd =
+        invoices.fold(0.0, (sum, inv) => sum + (inv.totalUsd ?? 0));
+    double totalPaidSyp =
+        invoices.fold(0.0, (sum, inv) => sum + inv.paidAmount);
+    double totalPaidUsd =
+        invoices.fold(0.0, (sum, inv) => sum + (inv.paidAmountUsd ?? 0));
 
     final pdf = pw.Document();
 
@@ -282,12 +335,14 @@ class ReportsExportService {
           template.buildStatsBox([
             StatItem(
               label: 'إجمالي المشتريات',
-              value: ExportFormatters.formatDualPrice(totalPurchases),
+              value: ExportFormatters.formatDualPriceFromLocked(
+                  totalPurchasesSyp, totalPurchasesUsd),
               color: ExportColors.purchase,
             ),
             StatItem(
               label: 'المدفوع',
-              value: ExportFormatters.formatDualPrice(totalPaid),
+              value: ExportFormatters.formatDualPriceFromLocked(
+                  totalPaidSyp, totalPaidUsd),
               color: ExportColors.success,
             ),
             StatItem(
@@ -304,7 +359,8 @@ class ReportsExportService {
                 '${i + 1}',
                 inv.invoiceNumber,
                 ExportFormatters.formatDate(inv.invoiceDate),
-                ExportFormatters.formatDualPrice(inv.total),
+                ExportFormatters.formatDualPriceFromLocked(
+                    inv.total, inv.totalUsd ?? 0),
                 _getPaymentStatusText(inv.total, inv.paidAmount),
               ];
             }),
@@ -390,9 +446,18 @@ class ReportsExportService {
   }) async {
     await PdfFonts.init();
 
-    double totalSales = sales.fold(0, (sum, inv) => sum + inv.total);
-    double totalPurchases = purchases.fold(0, (sum, inv) => sum + inv.total);
-    double profit = totalSales - totalPurchases;
+    // ═══════════════════════════════════════════════════════════════════════
+    // السياسة المحاسبية: استخدام القيم المحفوظة (SYP + USD) بدون تحويل
+    // ═══════════════════════════════════════════════════════════════════════
+    double totalSalesSyp = sales.fold(0.0, (sum, inv) => sum + inv.total);
+    double totalSalesUsd =
+        sales.fold(0.0, (sum, inv) => sum + (inv.totalUsd ?? 0));
+    double totalPurchasesSyp =
+        purchases.fold(0.0, (sum, inv) => sum + inv.total);
+    double totalPurchasesUsd =
+        purchases.fold(0.0, (sum, inv) => sum + (inv.totalUsd ?? 0));
+    double profitSyp = totalSalesSyp - totalPurchasesSyp;
+    double profitUsd = totalSalesUsd - totalPurchasesUsd;
 
     final template = PdfReportTemplate(
       title: 'تقرير الأرباح والخسائر',
@@ -400,7 +465,7 @@ class ReportsExportService {
           ? ExportFormatters.formatDateRange(dateRange.start, dateRange.end)
           : null,
       reportDate: DateTime.now(),
-      headerColor: profit >= 0 ? ExportColors.success : ExportColors.error,
+      headerColor: profitSyp >= 0 ? ExportColors.success : ExportColors.error,
     );
 
     final pdf = pw.Document();
@@ -415,19 +480,21 @@ class ReportsExportService {
             template.buildHeader(),
             pw.SizedBox(height: 40),
 
-            // Sales Card
+            // Sales Card - استخدام القيم المحفوظة
             _buildProfitCard(
               title: 'إجمالي المبيعات',
-              value: ExportFormatters.formatDualPrice(totalSales),
+              value: ExportFormatters.formatDualPriceFromLocked(
+                  totalSalesSyp, totalSalesUsd),
               subtitle: '${sales.length} فاتورة',
               color: ExportColors.success,
             ),
             pw.SizedBox(height: 16),
 
-            // Purchases Card
+            // Purchases Card - استخدام القيم المحفوظة
             _buildProfitCard(
               title: 'إجمالي المشتريات',
-              value: ExportFormatters.formatDualPrice(totalPurchases),
+              value: ExportFormatters.formatDualPriceFromLocked(
+                  totalPurchasesSyp, totalPurchasesUsd),
               subtitle: '${purchases.length} فاتورة',
               color: ExportColors.purchase,
             ),
@@ -438,13 +505,14 @@ class ReportsExportService {
               width: double.infinity,
               padding: const pw.EdgeInsets.all(24),
               decoration: pw.BoxDecoration(
-                color: profit >= 0
+                color: profitSyp >= 0
                     ? const PdfColor.fromInt(0xFFE8F5E9)
                     : const PdfColor.fromInt(0xFFFFEBEE),
                 borderRadius: pw.BorderRadius.circular(12),
                 border: pw.Border.all(
-                  color:
-                      profit >= 0 ? ExportColors.success : ExportColors.error,
+                  color: profitSyp >= 0
+                      ? ExportColors.success
+                      : ExportColors.error,
                   width: 2,
                 ),
               ),
@@ -456,12 +524,14 @@ class ReportsExportService {
                     textDirection: pw.TextDirection.rtl,
                   ),
                   pw.SizedBox(height: 8),
+                  // استخدام القيم المحفوظة
                   pw.Text(
-                    ExportFormatters.formatDualPrice(profit),
+                    ExportFormatters.formatDualPriceFromLocked(
+                        profitSyp, profitUsd),
                     style: pw.TextStyle(
                       font: PdfFonts.bold,
                       fontSize: 32,
-                      color: profit >= 0
+                      color: profitSyp >= 0
                           ? ExportColors.success
                           : ExportColors.error,
                     ),

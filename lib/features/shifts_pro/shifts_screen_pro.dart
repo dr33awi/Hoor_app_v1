@@ -178,7 +178,7 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
                     color: AppColors.textSecondary,
                   ),
                 ),
-                // عرض الرصيد الحالي والفرق
+                // عرض الرصيد الحالي والفرق - باستخدام سعر الصرف المحفوظ
                 Row(
                   children: [
                     Text(
@@ -191,7 +191,9 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
                       amountSyp: shift.openingBalance +
                           shift.totalSales -
                           shift.totalExpenses,
-                      exchangeRate: CurrencyService.currentRate,
+                      // استخدام سعر الصرف المحفوظ مع الوردية
+                      exchangeRate:
+                          shift.exchangeRate ?? CurrencyService.currentRate,
                       sypStyle: AppTypography.labelMedium.copyWith(
                         color: AppColors.success,
                         fontWeight: FontWeight.w600,
@@ -328,29 +330,172 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
   }
 
   Widget _buildStatsSummary(List<Shift> shifts) {
+    // إجماليات بالليرة
     final totalSales = shifts.fold<double>(0.0, (sum, s) => sum + s.totalSales);
+    final totalIncome =
+        shifts.fold<double>(0.0, (sum, s) => sum + s.totalIncome);
     final totalExpenses =
         shifts.fold<double>(0.0, (sum, s) => sum + s.totalExpenses);
+    final totalReturns =
+        shifts.fold<double>(0.0, (sum, s) => sum + s.totalReturns);
+
+    // صافي الربح = المبيعات + الإيرادات - المصروفات - المرتجعات
+    final netProfit = totalSales + totalIncome - totalExpenses - totalReturns;
+
+    // إجماليات بالدولار
+    final totalSalesUsd = shifts.fold<double>(0.0, (sum, s) {
+      if (s.totalSalesUsd > 0) return sum + s.totalSalesUsd;
+      if (s.exchangeRate != null && s.exchangeRate! > 0) {
+        return sum + (s.totalSales / s.exchangeRate!);
+      }
+      return sum;
+    });
+
+    final totalIncomeUsd = shifts.fold<double>(0.0, (sum, s) {
+      if (s.totalIncomeUsd > 0) return sum + s.totalIncomeUsd;
+      if (s.exchangeRate != null && s.exchangeRate! > 0) {
+        return sum + (s.totalIncome / s.exchangeRate!);
+      }
+      return sum;
+    });
+
+    final totalExpensesUsd = shifts.fold<double>(0.0, (sum, s) {
+      if (s.totalExpensesUsd > 0) return sum + s.totalExpensesUsd;
+      if (s.exchangeRate != null && s.exchangeRate! > 0) {
+        return sum + (s.totalExpenses / s.exchangeRate!);
+      }
+      return sum;
+    });
+
+    final totalReturnsUsd = shifts.fold<double>(0.0, (sum, s) {
+      if (s.totalReturnsUsd > 0) return sum + s.totalReturnsUsd;
+      if (s.exchangeRate != null && s.exchangeRate! > 0) {
+        return sum + (s.totalReturns / s.exchangeRate!);
+      }
+      return sum;
+    });
+
+    final netProfitUsd =
+        totalSalesUsd + totalIncomeUsd - totalExpensesUsd - totalReturnsUsd;
 
     return Container(
       margin: EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: ProStatCard.horizontal(
-              label: 'إجمالي المبيعات',
-              amount: totalSales,
-              icon: Icons.trending_up_rounded,
-              color: AppColors.success,
-            ),
+          // الصف الأول: المبيعات والإيرادات
+          Row(
+            children: [
+              Expanded(
+                child: ProStatCard.horizontal(
+                  label: 'المبيعات',
+                  amount: totalSales,
+                  amountUsd: totalSalesUsd > 0 ? totalSalesUsd : null,
+                  icon: Icons.point_of_sale_rounded,
+                  color: AppColors.success,
+                ),
+              ),
+              SizedBox(width: AppSpacing.xs),
+              Expanded(
+                child: ProStatCard.horizontal(
+                  label: 'الإيرادات',
+                  amount: totalIncome,
+                  amountUsd: totalIncomeUsd > 0 ? totalIncomeUsd : null,
+                  icon: Icons.arrow_downward_rounded,
+                  color: AppColors.info,
+                ),
+              ),
+            ],
           ),
-          SizedBox(width: AppSpacing.xs),
-          Expanded(
-            child: ProStatCard.horizontal(
-              label: 'إجمالي المصاريف',
-              amount: totalExpenses,
-              icon: Icons.trending_down_rounded,
-              color: AppColors.error,
+          SizedBox(height: AppSpacing.xs),
+          // الصف الثاني: المصروفات والمرتجعات
+          Row(
+            children: [
+              Expanded(
+                child: ProStatCard.horizontal(
+                  label: 'المصروفات',
+                  amount: totalExpenses,
+                  amountUsd: totalExpensesUsd > 0 ? totalExpensesUsd : null,
+                  icon: Icons.arrow_upward_rounded,
+                  color: AppColors.warning,
+                ),
+              ),
+              SizedBox(width: AppSpacing.xs),
+              Expanded(
+                child: ProStatCard.horizontal(
+                  label: 'المرتجعات',
+                  amount: totalReturns,
+                  amountUsd: totalReturnsUsd > 0 ? totalReturnsUsd : null,
+                  icon: Icons.undo_rounded,
+                  color: AppColors.error,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: AppSpacing.xs),
+          // صافي الربح
+          Container(
+            padding: EdgeInsets.symmetric(
+                horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+            decoration: BoxDecoration(
+              color: netProfit >= 0
+                  ? AppColors.success.soft
+                  : AppColors.error.soft,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(
+                color: netProfit >= 0
+                    ? AppColors.success.withValues(alpha: 0.3)
+                    : AppColors.error.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      netProfit >= 0
+                          ? Icons.trending_up_rounded
+                          : Icons.trending_down_rounded,
+                      color:
+                          netProfit >= 0 ? AppColors.success : AppColors.error,
+                      size: 20.sp,
+                    ),
+                    SizedBox(width: AppSpacing.sm),
+                    Text(
+                      'صافي الربح',
+                      style: AppTypography.titleSmall.copyWith(
+                        color: netProfit >= 0
+                            ? AppColors.success
+                            : AppColors.error,
+                      ),
+                    ),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '${netProfit.toStringAsFixed(0)} ل.س',
+                      style: AppTypography.titleMedium.copyWith(
+                        color: netProfit >= 0
+                            ? AppColors.success
+                            : AppColors.error,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (netProfitUsd != 0)
+                      Text(
+                        '\$${netProfitUsd.toStringAsFixed(2)}',
+                        style: AppTypography.labelSmall.copyWith(
+                          color: (netProfit >= 0
+                                  ? AppColors.success
+                                  : AppColors.error)
+                              .withValues(alpha: 0.7),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
             ),
           ),
         ],
@@ -396,19 +541,110 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
   }
 
   void _openNewShift(BuildContext context, WidgetRef ref) async {
-    final confirm = await showProConfirmDialog(
-      context: context,
-      title: 'فتح وردية جديدة',
-      message: 'هل تريد فتح وردية جديدة؟',
-      icon: Icons.play_arrow_rounded,
-      iconColor: AppColors.success,
-      confirmText: 'فتح',
+    // الحصول على الرصيد الافتتاحي الافتراضي من آخر وردية مغلقة
+    final shiftRepo = ref.read(shiftRepositoryProvider);
+    final shifts = await shiftRepo.getAllShifts();
+    final closedShifts = shifts.where((s) => s.status == 'closed').toList()
+      ..sort((a, b) =>
+          (b.closedAt ?? b.openedAt).compareTo(a.closedAt ?? a.openedAt));
+    final lastClosingBalance = closedShifts.isNotEmpty
+        ? (closedShifts.first.closingBalance ?? 0)
+        : 0.0;
+
+    // إظهار ديالوغ إدخال الرصيد الافتتاحي
+    if (!context.mounted) return;
+
+    final balanceController = TextEditingController(
+      text: lastClosingBalance > 0 ? lastClosingBalance.toStringAsFixed(0) : '',
     );
 
-    if (confirm == true && context.mounted) {
+    final result = await showDialog<double>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(AppSpacing.sm),
+              decoration: BoxDecoration(
+                color: AppColors.success.soft,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+              child: Icon(Icons.play_arrow_rounded, color: AppColors.success),
+            ),
+            SizedBox(width: AppSpacing.sm),
+            const Text('فتح وردية جديدة'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (lastClosingBalance > 0) ...[
+              Container(
+                padding: EdgeInsets.all(AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: AppColors.info.soft,
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  border: Border.all(color: AppColors.info.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline,
+                        color: AppColors.info, size: 18.sp),
+                    SizedBox(width: AppSpacing.xs),
+                    Expanded(
+                      child: Text(
+                        'رصيد إغلاق الوردية السابقة: ${lastClosingBalance.toStringAsFixed(0)} ل.س',
+                        style: AppTypography.bodySmall.copyWith(
+                          color: AppColors.info,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: AppSpacing.md),
+            ],
+            TextField(
+              controller: balanceController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                labelText: 'الرصيد الافتتاحي',
+                hintText: 'أدخل الرصيد الافتتاحي',
+                suffixText: 'ل.س',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+              ),
+              autofocus: true,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final balance = double.tryParse(balanceController.text) ?? 0;
+              Navigator.pop(context, balance);
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.success,
+            ),
+            child: const Text('فتح الوردية'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && context.mounted) {
       try {
-        final shiftRepo = ref.read(shiftRepositoryProvider);
-        await shiftRepo.openShift(openingBalance: 0);
+        await shiftRepo.openShift(openingBalance: result);
         if (context.mounted) {
           ProSnackbar.success(context, 'تم فتح الوردية بنجاح');
         }
@@ -421,13 +657,20 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
   }
 
   void _closeShift(BuildContext context, WidgetRef ref, Shift shift) async {
+    // استخدام القيم المحفوظة بالدولار
+    final openingUsd = shift.openingBalanceUsd ??
+        (shift.openingBalance /
+            (shift.exchangeRate ?? CurrencyService.currentRate));
+    final salesUsd = shift.totalSalesUsd;
+    final expensesUsd = shift.totalExpensesUsd;
+
     final confirm = await showProConfirmDialog(
       context: context,
       title: 'إغلاق الوردية',
       message:
-          'رصيد الافتتاح: ${shift.openingBalance.toStringAsFixed(0)} ل.س (\$${(shift.openingBalance / CurrencyService.currentRate).toStringAsFixed(2)})\n'
-          'المبيعات: ${shift.totalSales.toStringAsFixed(0)} ل.س (\$${(shift.totalSales / CurrencyService.currentRate).toStringAsFixed(2)})\n'
-          'المصاريف: ${shift.totalExpenses.toStringAsFixed(0)} ل.س (\$${(shift.totalExpenses / CurrencyService.currentRate).toStringAsFixed(2)})\n\n'
+          'رصيد الافتتاح: ${shift.openingBalance.toStringAsFixed(0)} ل.س (\$${openingUsd.toStringAsFixed(2)})\n'
+          'المبيعات: ${shift.totalSales.toStringAsFixed(0)} ل.س (\$${salesUsd.toStringAsFixed(2)})\n'
+          'المصاريف: ${shift.totalExpenses.toStringAsFixed(0)} ل.س (\$${expensesUsd.toStringAsFixed(2)})\n\n'
           'هل تريد إغلاق الوردية؟',
       icon: Icons.stop_rounded,
       isDanger: true,
@@ -460,11 +703,211 @@ class _ShiftCard extends StatelessWidget {
 
   const _ShiftCard({required this.shift});
 
+  String _formatDuration(Duration duration) {
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    if (hours > 0) {
+      return '$hours س $minutes د';
+    }
+    return '$minutes دقيقة';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dateFormat = DateFormat('MM/dd HH:mm', 'ar');
+    final isOpen = shift.status == 'open';
+    final statusColor = isOpen ? AppColors.success : AppColors.textSecondary;
+    // استخدام سعر الصرف المحفوظ مع الوردية أو الحالي كـ fallback
+    final rate = shift.exchangeRate ?? CurrencyService.currentRate;
+
+    // حساب مدة الوردية
+    final endTime = shift.closedAt ?? DateTime.now();
+    final duration = endTime.difference(shift.openedAt);
+
+    // حساب صافي الوردية
+    final netBalance = shift.totalSales +
+        shift.totalIncome -
+        shift.totalExpenses -
+        shift.totalReturns;
+    final netBalanceUsd = shift.totalSalesUsd +
+        shift.totalIncomeUsd -
+        shift.totalExpensesUsd -
+        shift.totalReturnsUsd;
+
+    return ProCard(
+      onTap: () => context.push('/shifts/${shift.id}'),
+      margin: EdgeInsets.only(bottom: AppSpacing.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40.w,
+                height: 40.h,
+                decoration: BoxDecoration(
+                  color: statusColor.soft,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: Icon(
+                  isOpen
+                      ? Icons.access_time_rounded
+                      : Icons.check_circle_rounded,
+                  color: statusColor,
+                  size: AppIconSize.sm,
+                ),
+              ),
+              SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          '#${shift.shiftNumber}',
+                          style: AppTypography.titleSmall
+                              .copyWith(
+                                color: AppColors.textPrimary,
+                              )
+                              .monoSemibold,
+                        ),
+                        SizedBox(width: AppSpacing.sm),
+                        ProStatusBadge.fromShiftStatus(shift.status,
+                            small: true),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        Text(
+                          dateFormat.format(shift.openedAt),
+                          style: AppTypography.bodySmall.copyWith(
+                            color: AppColors.textTertiary,
+                          ),
+                        ),
+                        SizedBox(width: AppSpacing.sm),
+                        Icon(Icons.schedule,
+                            size: 12.sp, color: AppColors.textTertiary),
+                        SizedBox(width: 2.w),
+                        Text(
+                          _formatDuration(duration),
+                          style: AppTypography.labelSmall.copyWith(
+                            color: AppColors.textTertiary,
+                          ),
+                        ),
+                        if (shift.transactionCount > 0) ...[
+                          SizedBox(width: AppSpacing.sm),
+                          Icon(Icons.receipt_long,
+                              size: 12.sp, color: AppColors.textTertiary),
+                          SizedBox(width: 2.w),
+                          Text(
+                            '${shift.transactionCount}',
+                            style: AppTypography.labelSmall.copyWith(
+                              color: AppColors.textTertiary,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              // صافي الوردية
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    '${netBalance >= 0 ? "+" : ""}${netBalance.toStringAsFixed(0)}',
+                    style: AppTypography.titleSmall.copyWith(
+                      color:
+                          netBalance >= 0 ? AppColors.success : AppColors.error,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    '\$${netBalanceUsd.toStringAsFixed(1)}',
+                    style: AppTypography.labelSmall.copyWith(
+                      color: (netBalance >= 0
+                              ? AppColors.success
+                              : AppColors.error)
+                          .withValues(alpha: 0.7),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          SizedBox(height: AppSpacing.sm),
+          // شريط تفصيلي مختصر
+          Container(
+            padding: EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+            ),
+            child: Row(
+              children: [
+                _MiniStat('افتتاح', shift.openingBalance, null),
+                _MiniStat('مبيعات', shift.totalSales, AppColors.success),
+                _MiniStat('إيرادات', shift.totalIncome, AppColors.info),
+                _MiniStat('مصروفات', shift.totalExpenses, AppColors.warning),
+                _MiniStat('مرتجعات', shift.totalReturns, AppColors.error),
+                if (!isOpen && shift.closingBalance != null)
+                  _MiniStat('إغلاق', shift.closingBalance!, null),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniStat extends StatelessWidget {
+  final String label;
+  final double value;
+  final Color? color;
+
+  const _MiniStat(this.label, this.value, this.color);
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(
+            label,
+            style: AppTypography.labelSmall.copyWith(
+              color: AppColors.textTertiary,
+              fontSize: 8.sp,
+            ),
+          ),
+          Text(
+            value.toStringAsFixed(0),
+            style: AppTypography.labelSmall.copyWith(
+              color: color ?? AppColors.textPrimary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShiftCardOld extends StatelessWidget {
+  final Shift shift;
+
+  const _ShiftCardOld({required this.shift});
+
   @override
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('yyyy/MM/dd HH:mm', 'ar');
     final isOpen = shift.status == 'open';
     final statusColor = isOpen ? AppColors.success : AppColors.textSecondary;
+    // استخدام سعر الصرف المحفوظ مع الوردية أو الحالي كـ fallback
+    final rate = shift.exchangeRate ?? CurrencyService.currentRate;
 
     return ProCard(
       onTap: () => context.push('/shifts/${shift.id}'),
@@ -527,16 +970,18 @@ class _ShiftCard extends StatelessWidget {
                 child: _InfoItem(
                   label: 'الافتتاح',
                   value: '${shift.openingBalance.toStringAsFixed(0)} ل.س',
-                  usdValue:
-                      '\$${(shift.openingBalance / CurrencyService.currentRate).toStringAsFixed(2)}',
+                  usdValue: shift.openingBalanceUsd != null
+                      ? '\$${shift.openingBalanceUsd!.toStringAsFixed(2)}'
+                      : '\$${(shift.openingBalance / rate).toStringAsFixed(2)}',
                 ),
               ),
               Expanded(
                 child: _InfoItem(
                   label: 'المبيعات',
                   value: '${shift.totalSales.toStringAsFixed(0)} ل.س',
-                  usdValue:
-                      '\$${(shift.totalSales / CurrencyService.currentRate).toStringAsFixed(2)}',
+                  usdValue: shift.totalSalesUsd > 0
+                      ? '\$${shift.totalSalesUsd.toStringAsFixed(2)}'
+                      : '\$${(shift.totalSales / rate).toStringAsFixed(2)}',
                   color: AppColors.success,
                 ),
               ),
@@ -544,8 +989,9 @@ class _ShiftCard extends StatelessWidget {
                 child: _InfoItem(
                   label: 'المصاريف',
                   value: '${shift.totalExpenses.toStringAsFixed(0)} ل.س',
-                  usdValue:
-                      '\$${(shift.totalExpenses / CurrencyService.currentRate).toStringAsFixed(2)}',
+                  usdValue: shift.totalExpensesUsd > 0
+                      ? '\$${shift.totalExpensesUsd.toStringAsFixed(2)}'
+                      : '\$${(shift.totalExpenses / rate).toStringAsFixed(2)}',
                   color: AppColors.error,
                 ),
               ),
@@ -554,8 +1000,9 @@ class _ShiftCard extends StatelessWidget {
                   child: _InfoItem(
                     label: 'الإغلاق',
                     value: '${shift.closingBalance!.toStringAsFixed(0)} ل.س',
-                    usdValue:
-                        '\$${(shift.closingBalance! / CurrencyService.currentRate).toStringAsFixed(2)}',
+                    usdValue: shift.closingBalanceUsd != null
+                        ? '\$${shift.closingBalanceUsd!.toStringAsFixed(2)}'
+                        : '\$${(shift.closingBalance! / rate).toStringAsFixed(2)}',
                   ),
                 ),
             ],

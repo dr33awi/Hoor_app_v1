@@ -14,6 +14,7 @@ import '../theme/design_tokens.dart';
 class ProStatCard extends StatelessWidget {
   final String label;
   final double amount;
+  final double? amountUsd; // السعر بالدولار (اختياري)
   final IconData icon;
   final Color color;
   final String? suffix;
@@ -24,6 +25,7 @@ class ProStatCard extends StatelessWidget {
     super.key,
     required this.label,
     required this.amount,
+    this.amountUsd,
     required this.icon,
     required this.color,
     this.suffix,
@@ -36,6 +38,7 @@ class ProStatCard extends StatelessWidget {
     super.key,
     required this.label,
     required this.amount,
+    this.amountUsd,
     required this.icon,
     required this.color,
     this.suffix,
@@ -47,6 +50,7 @@ class ProStatCard extends StatelessWidget {
     super.key,
     required this.label,
     required this.amount,
+    this.amountUsd,
     required this.icon,
     required this.color,
     this.suffix,
@@ -58,6 +62,7 @@ class ProStatCard extends StatelessWidget {
     super.key,
     required this.label,
     required this.amount,
+    this.amountUsd,
     required this.icon,
     required this.color,
     this.suffix,
@@ -126,6 +131,15 @@ class ProStatCard extends StatelessWidget {
               fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
+          // عرض السعر بالدولار إذا كان متوفراً
+          if (amountUsd != null && amountUsd! > 0)
+            Text(
+              '\$${amountUsd!.toStringAsFixed(1)}',
+              style: AppTypography.labelSmall.copyWith(
+                color: AppColors.textTertiary,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
         ],
       ),
     );
@@ -170,6 +184,15 @@ class ProStatCard extends StatelessWidget {
                     fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
+                // عرض السعر بالدولار إذا كان متوفراً
+                if (amountUsd != null && amountUsd! > 0)
+                  Text(
+                    '\$${amountUsd!.toStringAsFixed(1)}',
+                    style: AppTypography.labelSmall.copyWith(
+                      color: AppColors.textTertiary,
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
               ],
             ),
           ),

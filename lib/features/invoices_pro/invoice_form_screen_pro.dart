@@ -1425,8 +1425,9 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
                               style: TextStyle(color: AppColors.secondary)),
                         ),
                         title: Text(item['name']),
+                        // استخدام balanceUsd المحفوظ
                         subtitle: Text(
-                            'الرصيد: ${(item['balance'] as double).toStringAsFixed(0)} (\$${((item['balance'] as double) / CurrencyService.currentRate).toStringAsFixed(1)}) ل.س'),
+                            'الرصيد: ${(item['balance'] as double).toStringAsFixed(0)} (\$${(item['balanceUsd'] as double? ?? 0).toStringAsFixed(1)}) ل.س'),
                         onTap: () => onSelect(item),
                       );
                     },
