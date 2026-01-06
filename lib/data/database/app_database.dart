@@ -34,7 +34,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration {
@@ -184,6 +184,23 @@ class AppDatabase extends _$AppDatabase {
           );
           await customStatement(
             "ALTER TABLE invoice_items ADD COLUMN cost_price_usd REAL",
+          );
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // Version 13: إضافة قيمة تسويات الجرد بالدولار
+        // ═══════════════════════════════════════════════════════════════════════
+        if (from < 13) {
+          // InventoryAdjustments - إضافة قيمة التسوية بالدولار
+          await customStatement(
+            "ALTER TABLE inventory_adjustments ADD COLUMN total_value_usd REAL DEFAULT 0",
+          );
+          // InventoryAdjustmentItems - إضافة تكلفة الوحدة بالدولار وقيمة التسوية بالدولار
+          await customStatement(
+            "ALTER TABLE inventory_adjustment_items ADD COLUMN unit_cost_usd REAL",
+          );
+          await customStatement(
+            "ALTER TABLE inventory_adjustment_items ADD COLUMN adjustment_value_usd REAL",
           );
         }
       },
@@ -989,7 +1006,14 @@ class AppDatabase extends _$AppDatabase {
           WHEN ia.type = 'correction' THEN 
             CASE WHEN ia.total_value >= 0 THEN ia.total_value ELSE ia.total_value END
           ELSE 0 
-        END), 0) as inventory_adj_value
+        END), 0) as inventory_adj_value,
+        COALESCE(SUM(CASE 
+          WHEN ia.type = 'increase' THEN COALESCE(ia.total_value_usd, 0)
+          WHEN ia.type IN ('decrease', 'write_off') THEN -COALESCE(ia.total_value_usd, 0)
+          WHEN ia.type = 'correction' THEN 
+            CASE WHEN COALESCE(ia.total_value_usd, 0) >= 0 THEN COALESCE(ia.total_value_usd, 0) ELSE COALESCE(ia.total_value_usd, 0) END
+          ELSE 0 
+        END), 0) as inventory_adj_value_usd
       FROM inventory_adjustments ia
       $inventoryAdjWhere
       ''',
@@ -1104,8 +1128,9 @@ class AppDatabase extends _$AppDatabase {
     // فروقات الجرد (مكاسب/خسائر المخزون)
     final totalInventoryAdj =
         ((inventoryAdjData['inventory_adj_value'] ?? 0) as num).toDouble();
-    // ملاحظة: فروقات الجرد بالدولار غير متوفرة حالياً في جدول التسويات
-    final totalInventoryAdjUsd = 0.0;
+    // ✅ فروقات الجرد بالدولار متوفرة الآن
+    final totalInventoryAdjUsd =
+        ((inventoryAdjData['inventory_adj_value_usd'] ?? 0) as num).toDouble();
 
     // ═══════════════════════════════════════════════════════════════════════════
     // صافي الربح = إجمالي الربح - المصروفات - مرتجعات المبيعات + مرتجعات المشتريات + فروقات الجرد

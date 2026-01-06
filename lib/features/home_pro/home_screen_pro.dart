@@ -133,26 +133,7 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
                     ),
                   ),
 
-                  // 2.5. Sales Chart Section
-                  SliverPadding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: AppSpacing.screenPadding.w,
-                      vertical: AppSpacing.md.h,
-                    ),
-                    sliver: SliverToBoxAdapter(
-                      child: _buildSalesChartSection(),
-                    ),
-                  ),
-
-                  // 3. Quick Actions
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.only(top: AppSpacing.sm.h),
-                      child: _buildQuickActionsSection(),
-                    ),
-                  ),
-
-                  // 4. Main Operations Grid
+                  // 3. Main Operations Grid
                   SliverPadding(
                     padding: EdgeInsets.all(AppSpacing.screenPadding.w),
                     sliver: SliverToBoxAdapter(
@@ -167,22 +148,9 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
                     ),
                   ),
 
-                  // 5. Management & Reports
-                  SliverPadding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: AppSpacing.screenPadding.w,
-                    ),
-                    sliver: SliverToBoxAdapter(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildSectionTitle('الإدارة والتقارير'),
-                          SizedBox(height: AppSpacing.md.h),
-                          _buildManagementGrid(),
-                          SizedBox(height: AppSpacing.huge.h),
-                        ],
-                      ),
-                    ),
+                  // Spacing at bottom
+                  SliverToBoxAdapter(
+                    child: SizedBox(height: AppSpacing.huge.h),
                   ),
                 ],
               ),
@@ -429,197 +397,6 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // SALES CHART SECTION - Enterprise Dashboard
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  Widget _buildSalesChartSection() {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: _loadWeeklySalesData(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const SizedBox.shrink();
-        }
-
-        final salesData = snapshot.data!;
-        final maxSales = salesData.fold<double>(
-          0,
-          (max, item) => (item['totalSales'] as double) > max
-              ? (item['totalSales'] as double)
-              : max,
-        );
-
-        return Container(
-          padding: EdgeInsets.all(AppSpacing.md.w),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            border: Border.all(color: AppColors.border),
-            boxShadow: AppShadows.xs,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(AppSpacing.xs.w),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.soft,
-                      borderRadius: BorderRadius.circular(AppRadius.xs),
-                    ),
-                    child: Icon(
-                      Icons.show_chart_rounded,
-                      color: AppColors.primary,
-                      size: 18.sp,
-                    ),
-                  ),
-                  SizedBox(width: AppSpacing.sm.w),
-                  Text(
-                    'المبيعات - آخر 7 أيام',
-                    style: AppTypography.titleSmall.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    '\$${_calculateTotalWeekSales(salesData).toStringAsFixed(0)}',
-                    style: AppTypography.titleSmall.copyWith(
-                      color: AppColors.success,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: AppSpacing.md.h),
-
-              // رسم بياني شريطي بسيط
-              SizedBox(
-                height: 100.h,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: salesData.map((item) {
-                    final sales = item['totalSales'] as double;
-                    final date = item['date'] as String;
-                    final heightRatio = maxSales > 0 ? sales / maxSales : 0.0;
-                    final dayName = _getDayName(date);
-
-                    return Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 2.w),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            if (sales > 0)
-                              Text(
-                                '\$${(item['totalSalesUsd'] as double).toStringAsFixed(0)}',
-                                style: AppTypography.labelSmall.copyWith(
-                                  color: AppColors.primary,
-                                  fontSize: 8.sp,
-                                ),
-                              ),
-                            SizedBox(height: 2.h),
-                            Flexible(
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 500),
-                                width: double.infinity,
-                                height: (heightRatio * 60.h).clamp(4.0, 60.h),
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      AppColors.primary,
-                                      AppColors.primary.withOpacity(0.6),
-                                    ],
-                                  ),
-                                  borderRadius:
-                                      BorderRadius.circular(AppRadius.xs),
-                                ),
-                              ),
-                            ),
-                            SizedBox(height: 4.h),
-                            Text(
-                              dayName,
-                              style: AppTypography.labelSmall.copyWith(
-                                color: AppColors.textSecondary,
-                                fontSize: 9.sp,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Future<List<Map<String, dynamic>>> _loadWeeklySalesData() async {
-    try {
-      final shiftRepo = ref.read(shiftRepositoryProvider);
-      final endDate = DateTime.now();
-      final startDate = endDate.subtract(const Duration(days: 6));
-      return await shiftRepo.getDailySalesData(
-        startDate: startDate,
-        endDate: endDate,
-      );
-    } catch (e) {
-      return [];
-    }
-  }
-
-  double _calculateTotalWeekSales(List<Map<String, dynamic>> data) {
-    return data.fold<double>(
-      0,
-      (sum, item) => sum + (item['totalSalesUsd'] as double? ?? 0),
-    );
-  }
-
-  String _getDayName(String dateStr) {
-    try {
-      final date = DateTime.parse(dateStr);
-      const days = ['أحد', 'اثن', 'ثلا', 'أرب', 'خمي', 'جمع', 'سبت'];
-      return days[date.weekday % 7];
-    } catch (e) {
-      return '';
-    }
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // QUICK ACTIONS - Enterprise Style
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  Widget _buildQuickActionsSection() {
-    return SizedBox(
-      height: 88.h,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding.w),
-        children: [
-          _QuickActionItem(
-            icon: Icons.add_box_rounded,
-            label: 'إضافة منتج',
-            color: AppColors.inventory,
-            onTap: () => context.push('/products/add'),
-          ),
-          _QuickActionItem(
-            icon: Icons.person_add_rounded,
-            label: 'عميل جديد',
-            color: AppColors.customers,
-            onTap: () => context.push('/customers/add'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
   // OPERATIONS GRID - Enterprise Style
   // ═══════════════════════════════════════════════════════════════════════════
 
@@ -680,6 +457,13 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
           icon: Icons.account_balance_wallet_rounded,
           color: AppColors.success,
           onTap: () => _showCashAndShiftsOptions(),
+        ),
+        _ModernMenuCard(
+          title: 'التقارير',
+          subtitle: 'تقارير المبيعات والأرباح',
+          icon: Icons.bar_chart_rounded,
+          color: AppColors.primary,
+          onTap: () => context.push('/reports'),
         ),
       ],
     );
@@ -1041,56 +825,6 @@ class _HeaderActionButton extends StatelessWidget {
                   ),
                 ),
               ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _QuickActionItem extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _QuickActionItem({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        onTap();
-      },
-      child: Container(
-        margin: EdgeInsets.only(left: AppSpacing.sm.w),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 52.w,
-              height: 52.w,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-                border: Border.all(color: color.withValues(alpha: 0.15)),
-              ),
-              child: Icon(icon, color: color, size: 22.sp),
-            ),
-            SizedBox(height: AppSpacing.xs.h),
-            Text(
-              label,
-              style: AppTypography.labelSmall.copyWith(
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
           ],
         ),
       ),

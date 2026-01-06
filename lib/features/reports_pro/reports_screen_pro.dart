@@ -36,6 +36,7 @@ class ReportsScreenPro extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final salesAsync = ref.watch(salesInvoicesProvider);
     final purchasesAsync = ref.watch(purchaseInvoicesProvider);
+    final expensesAsync = ref.watch(expensesStreamProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -61,7 +62,7 @@ class ReportsScreenPro extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Quick Stats
-                    _buildQuickStats(salesAsync, purchasesAsync),
+                    _buildQuickStats(salesAsync, purchasesAsync, expensesAsync),
                     SizedBox(height: AppSpacing.md),
 
                     // Sales Reports
@@ -142,14 +143,17 @@ class ReportsScreenPro extends ConsumerWidget {
   Widget _buildQuickStats(
     AsyncValue<List<Invoice>> salesAsync,
     AsyncValue<List<Invoice>> purchasesAsync,
+    AsyncValue<List<Voucher>> expensesAsync,
   ) {
+    final now = DateTime.now();
+
     final salesTotal = salesAsync.when(
       data: (invoices) {
-        final now = DateTime.now();
         return invoices
             .where((inv) =>
                 inv.invoiceDate.month == now.month &&
-                inv.invoiceDate.year == now.year)
+                inv.invoiceDate.year == now.year &&
+                inv.status != 'cancelled')
             .fold(0.0, (sum, inv) => sum + inv.total);
       },
       loading: () => 0.0,
@@ -158,18 +162,32 @@ class ReportsScreenPro extends ConsumerWidget {
 
     final purchasesTotal = purchasesAsync.when(
       data: (invoices) {
-        final now = DateTime.now();
         return invoices
             .where((inv) =>
                 inv.invoiceDate.month == now.month &&
-                inv.invoiceDate.year == now.year)
+                inv.invoiceDate.year == now.year &&
+                inv.status != 'cancelled')
             .fold(0.0, (sum, inv) => sum + inv.total);
       },
       loading: () => 0.0,
       error: (_, __) => 0.0,
     );
 
-    final profit = salesTotal - purchasesTotal;
+    // ✅ إضافة المصاريف في حساب الربح الصافي
+    final expensesTotal = expensesAsync.when(
+      data: (expenses) {
+        return expenses
+            .where((exp) =>
+                exp.voucherDate.month == now.month &&
+                exp.voucherDate.year == now.year)
+            .fold(0.0, (sum, exp) => sum + exp.amount);
+      },
+      loading: () => 0.0,
+      error: (_, __) => 0.0,
+    );
+
+    // صافي الربح = المبيعات - المشتريات - المصاريف
+    final profit = salesTotal - purchasesTotal - expensesTotal;
 
     return Container(
       padding: EdgeInsets.all(AppSpacing.md),
@@ -474,7 +492,12 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro>
       loading: () => ProLoadingState.list(),
       error: (error, _) => ProEmptyState.error(error: error.toString()),
       data: (invoices) {
-        final filtered = _filterByDate(invoices);
+        // ═══════════════════════════════════════════════════════════════════
+        // ⚠️ استثناء الفواتير الملغاة من التقارير المالية
+        // ═══════════════════════════════════════════════════════════════════
+        final activeInvoices =
+            invoices.where((inv) => inv.status != 'cancelled').toList();
+        final filtered = _filterByDate(activeInvoices);
         // ═══════════════════════════════════════════════════════════════════
         // ⚠️ السياسة المحاسبية: جمع القيم المحفوظة مباشرة - بدون تحويل
         // ═══════════════════════════════════════════════════════════════════
@@ -514,7 +537,12 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro>
       loading: () => ProLoadingState.list(),
       error: (error, _) => ProEmptyState.error(error: error.toString()),
       data: (invoices) {
-        final filtered = _filterByDate(invoices);
+        // ═══════════════════════════════════════════════════════════════════
+        // ⚠️ استثناء الفواتير الملغاة من التقارير المالية
+        // ═══════════════════════════════════════════════════════════════════
+        final activeInvoices =
+            invoices.where((inv) => inv.status != 'cancelled').toList();
+        final filtered = _filterByDate(activeInvoices);
         // ═══════════════════════════════════════════════════════════════════
         // ⚠️ السياسة المحاسبية: جمع القيم المحفوظة مباشرة - بدون تحويل
         // ═══════════════════════════════════════════════════════════════════
@@ -825,8 +853,13 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro>
       loading: () => ProLoadingState.list(),
       error: (error, _) => ProEmptyState.error(error: error.toString()),
       data: (invoices) {
+        // ═══════════════════════════════════════════════════════════════════
+        // ⚠️ استثناء الفواتير الملغاة - فقط الفواتير غير المسددة/جزئية السداد
+        // ═══════════════════════════════════════════════════════════════════
         final unpaid = invoices
-            .where((inv) => inv.status == 'unpaid' || inv.status == 'partial')
+            .where((inv) =>
+                inv.status != 'cancelled' &&
+                (inv.status == 'unpaid' || inv.status == 'partial'))
             .toList();
         // ═══════════════════════════════════════════════════════════════════
         // ⚠️ السياسة المحاسبية: استخدام القيم المحفوظة

@@ -18,6 +18,8 @@ import '../../core/services/printing/printing_services.dart';
 import '../../core/di/injection.dart';
 import '../../core/services/printing/print_settings_service.dart';
 import '../../data/database/app_database.dart';
+import '../../data/repositories/voucher_repository.dart';
+import 'package:drift/drift.dart' hide Column;
 
 class InvoiceDetailsScreenPro extends ConsumerStatefulWidget {
   final String invoiceId;
@@ -310,6 +312,180 @@ class _InvoiceDetailsScreenProState
           }
         }
         break;
+    }
+  }
+
+  /// عرض نافذة تسجيل دفعة جديدة
+  Future<void> _showPaymentDialog() async {
+    if (_invoice == null) return;
+
+    // التحقق من وجود وردية مفتوحة
+    final openShift = ref.read(openShiftStreamProvider).value;
+    if (openShift == null) {
+      ProSnackbar.error(context, 'لا توجد وردية مفتوحة. يرجى فتح وردية أولاً.');
+      return;
+    }
+
+    final amountController = TextEditingController();
+    final remainingAmount = remaining;
+
+    final result = await showProBottomSheet<double>(
+      context: context,
+      title: 'تسجيل دفعة',
+      titleIcon: Icons.payments_outlined,
+      child: StatefulBuilder(
+        builder: (context, setDialogState) => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // معلومات الفاتورة
+            Container(
+              padding: EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('رقم الفاتورة:', style: AppTypography.bodySmall),
+                      Text(_invoice!.invoiceNumber,
+                          style: AppTypography.labelMedium.mono),
+                    ],
+                  ),
+                  SizedBox(height: AppSpacing.xs),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('المبلغ المتبقي:', style: AppTypography.bodySmall),
+                      Text(
+                        '${remainingAmount.toStringAsFixed(0)} ل.س',
+                        style: AppTypography.labelMedium
+                            .copyWith(
+                              color: AppColors.warning,
+                              fontWeight: FontWeight.w600,
+                            )
+                            .mono,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: AppSpacing.lg),
+
+            // حقل إدخال المبلغ
+            ProTextField(
+              controller: amountController,
+              label: 'مبلغ الدفعة',
+              hint: 'أدخل المبلغ',
+              keyboardType: TextInputType.number,
+              prefixIcon: Icons.attach_money_rounded,
+              suffix: Text('ل.س', style: AppTypography.bodySmall),
+            ),
+            SizedBox(height: AppSpacing.md),
+
+            // أزرار المبالغ السريعة
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      amountController.text =
+                          remainingAmount.toStringAsFixed(0);
+                    },
+                    child: Text('كامل المبلغ'),
+                  ),
+                ),
+                SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      amountController.text =
+                          (remainingAmount / 2).toStringAsFixed(0);
+                    },
+                    child: Text('النصف'),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: AppSpacing.lg),
+
+            // زر التأكيد
+            FilledButton(
+              onPressed: () {
+                final amount = double.tryParse(amountController.text);
+                if (amount == null || amount <= 0) {
+                  ProSnackbar.error(context, 'يرجى إدخال مبلغ صحيح');
+                  return;
+                }
+                if (amount > remainingAmount) {
+                  ProSnackbar.error(context, 'المبلغ أكبر من المتبقي');
+                  return;
+                }
+                Navigator.pop(context, amount);
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.success,
+                minimumSize: Size(double.infinity, 50.h),
+              ),
+              child: Text('تسجيل الدفعة',
+                  style:
+                      AppTypography.labelLarge.copyWith(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result != null && result > 0 && mounted) {
+      await _processPayment(result, openShift.id);
+    }
+  }
+
+  /// معالجة الدفعة وإنشاء سند قبض
+  Future<void> _processPayment(double amount, String shiftId) async {
+    try {
+      final voucherRepo = ref.read(voucherRepositoryProvider);
+      final invoiceRepo = ref.read(invoiceRepositoryProvider);
+
+      // إنشاء سند قبض للدفعة
+      await voucherRepo.createVoucher(
+        type: VoucherType.receipt,
+        amount: amount,
+        description: 'دفعة على فاتورة ${_invoice!.invoiceNumber}',
+        customerId: _invoice!.customerId,
+        shiftId: shiftId,
+      );
+
+      // تحديث المبلغ المدفوع في الفاتورة
+      final newPaidAmount = _invoice!.paidAmount + amount;
+      await invoiceRepo.database.updateInvoice(
+        InvoicesCompanion(
+          id: Value(_invoice!.id),
+          paidAmount: Value(newPaidAmount),
+          paidAmountUsd: Value(
+            _invoice!.exchangeRate != null && _invoice!.exchangeRate! > 0
+                ? newPaidAmount / _invoice!.exchangeRate!
+                : null,
+          ),
+          syncStatus: const Value('pending'),
+          updatedAt: Value(DateTime.now()),
+        ),
+      );
+
+      // إعادة تحميل بيانات الفاتورة
+      await _loadInvoiceData();
+
+      if (mounted) {
+        ProSnackbar.success(context, 'تم تسجيل الدفعة بنجاح');
+      }
+    } catch (e) {
+      if (mounted) {
+        ProSnackbar.showError(context, e);
+      }
     }
   }
 
@@ -794,9 +970,7 @@ class _InvoiceDetailsScreenProState
       ),
       child: SafeArea(
         child: FilledButton.icon(
-          onPressed: () {
-            // TODO: Show payment dialog
-          },
+          onPressed: _showPaymentDialog,
           icon: const Icon(Icons.payments_outlined),
           label: Builder(
             builder: (context) {

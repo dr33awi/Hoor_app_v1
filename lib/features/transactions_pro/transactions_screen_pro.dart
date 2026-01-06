@@ -209,7 +209,7 @@ class _TransactionsScreenProState extends ConsumerState<TransactionsScreenPro>
       paidAmount: paid,
       paidAmountUsd: paidUsd,
       pendingAmount: pending,
-      overdueAmount: 0,
+      overdueAmount: 0, // لا يوجد حقل dueDate في قاعدة البيانات حالياً
       isSales: isSales,
     );
   }

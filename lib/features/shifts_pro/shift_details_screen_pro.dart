@@ -83,15 +83,27 @@ class _ShiftDetailsScreenProState extends ConsumerState<ShiftDetailsScreenPro> {
     }
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ⚠️ السياسة المحاسبية: استخدام القيم المحفوظة بالدولار - عدم إعادة الحساب
+  // ═══════════════════════════════════════════════════════════════════════════
   String _formatPrice(double price, {double? priceUsd, double? rate}) {
     final syp = '${NumberFormat('#,###').format(price)} ل.س';
-    // استخدام القيمة المحفوظة بالدولار إن وجدت، وإلا حسابها من سعر الصرف المحفوظ
+    // ✅ استخدام القيمة المحفوظة بالدولار فقط إن وجدت
+    // ❌ عدم إعادة الحساب من سعر الصرف للحفاظ على الدقة المحاسبية
+    if (priceUsd != null && priceUsd > 0) {
+      final usd = '\$${priceUsd.toStringAsFixed(2)}';
+      return '$syp ($usd)';
+    }
+    // Fallback للبيانات القديمة فقط (قبل تطبيق سياسة تثبيت السعر)
     final shift = _summary?['shift'] as Shift?;
     final exchangeRate =
         rate ?? shift?.exchangeRate ?? AppConstants.defaultExchangeRate;
-    final usdValue = priceUsd ?? (price / exchangeRate);
-    final usd = '\$${usdValue.toStringAsFixed(2)}';
-    return '$syp ($usd)';
+    if (exchangeRate > 0) {
+      final usdValue = price / exchangeRate;
+      final usd = '\$${usdValue.toStringAsFixed(2)}';
+      return '$syp ($usd)';
+    }
+    return syp;
   }
 
   @override
@@ -527,14 +539,17 @@ class _ShiftDetailsScreenProState extends ConsumerState<ShiftDetailsScreenPro> {
   Widget _buildProfitReportCard() {
     final report = _profitReport!;
     final netProfit = report['netProfit'] as double? ?? 0;
+    // ✅ استخدام القيمة المحفوظة بالدولار مباشرة
+    final netProfitUsd = report['netProfitUsd'] as double? ?? 0;
     final grossProfit = report['grossProfit'] as double? ?? 0;
+    final grossProfitUsd = report['grossProfitUsd'] as double? ?? 0;
     final profitMargin = report['profitMargin'] as double? ?? 0;
     final totalRevenue = report['totalRevenue'] as double? ?? 0;
+    final totalRevenueUsd = report['totalRevenueUsd'] as double? ?? 0;
     final totalExpenses = report['totalExpenses'] as double? ?? 0;
+    final totalExpensesUsd = report['totalExpensesUsd'] as double? ?? 0;
     final totalReturns = report['totalReturns'] as double? ?? 0;
-
-    final shift = _summary!['shift'] as Shift;
-    final rate = shift.exchangeRate ?? AppConstants.defaultExchangeRate;
+    final totalReturnsUsd = report['totalReturnsUsd'] as double? ?? 0;
 
     final isProfit = netProfit >= 0;
     final profitColor = isProfit ? AppColors.success : AppColors.error;
@@ -620,8 +635,9 @@ class _ShiftDetailsScreenProState extends ConsumerState<ShiftDetailsScreenPro> {
                     ),
                   ],
                 ),
+                // ✅ استخدام القيمة المحفوظة بالدولار مباشرة
                 Text(
-                  '\$${(netProfit.abs() / rate).toStringAsFixed(2)}',
+                  '\$${netProfitUsd.abs().toStringAsFixed(2)}',
                   style: AppTypography.titleLarge.copyWith(
                     color: profitColor.withOpacity(0.8),
                     fontWeight: FontWeight.w600,
@@ -639,7 +655,7 @@ class _ShiftDetailsScreenProState extends ConsumerState<ShiftDetailsScreenPro> {
                 child: _buildProfitDetailItem(
                   label: 'إجمالي الإيرادات',
                   value: totalRevenue,
-                  rate: rate,
+                  valueUsd: totalRevenueUsd,
                   color: AppColors.success,
                   icon: Icons.arrow_downward_rounded,
                 ),
@@ -649,7 +665,7 @@ class _ShiftDetailsScreenProState extends ConsumerState<ShiftDetailsScreenPro> {
                 child: _buildProfitDetailItem(
                   label: 'إجمالي الربح',
                   value: grossProfit,
-                  rate: rate,
+                  valueUsd: grossProfitUsd,
                   color: AppColors.info,
                   icon: Icons.show_chart_rounded,
                 ),
@@ -663,7 +679,7 @@ class _ShiftDetailsScreenProState extends ConsumerState<ShiftDetailsScreenPro> {
                 child: _buildProfitDetailItem(
                   label: 'المصروفات',
                   value: totalExpenses,
-                  rate: rate,
+                  valueUsd: totalExpensesUsd,
                   color: AppColors.warning,
                   icon: Icons.arrow_upward_rounded,
                 ),
@@ -673,7 +689,7 @@ class _ShiftDetailsScreenProState extends ConsumerState<ShiftDetailsScreenPro> {
                 child: _buildProfitDetailItem(
                   label: 'المرتجعات',
                   value: totalReturns,
-                  rate: rate,
+                  valueUsd: totalReturnsUsd,
                   color: AppColors.error,
                   icon: Icons.assignment_return_rounded,
                 ),
@@ -685,10 +701,13 @@ class _ShiftDetailsScreenProState extends ConsumerState<ShiftDetailsScreenPro> {
     );
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ⚠️ السياسة المحاسبية: استخدام القيم المحفوظة بالدولار - عدم إعادة الحساب
+  // ═══════════════════════════════════════════════════════════════════════════
   Widget _buildProfitDetailItem({
     required String label,
     required double value,
-    required double rate,
+    double? valueUsd,
     required Color color,
     required IconData icon,
   }) {
@@ -719,6 +738,14 @@ class _ShiftDetailsScreenProState extends ConsumerState<ShiftDetailsScreenPro> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
+                // ✅ عرض القيمة بالدولار إن وجدت
+                if (valueUsd != null && valueUsd > 0)
+                  Text(
+                    '\$${valueUsd.toStringAsFixed(2)}',
+                    style: AppTypography.labelSmall.copyWith(
+                      color: AppColors.textTertiary,
+                    ),
+                  ),
               ],
             ),
           ),

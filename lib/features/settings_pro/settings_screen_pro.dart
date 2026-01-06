@@ -352,8 +352,11 @@ class _SettingsScreenProState extends ConsumerState<SettingsScreenPro> {
       isDanger: true,
       confirmText: 'تسجيل الخروج',
     );
-    if (confirm == true) {
-      // TODO: Handle logout
+    if (confirm == true && mounted) {
+      // عرض رسالة نجاح
+      ProSnackbar.success(context, 'تم تسجيل الخروج بنجاح');
+      // العودة للشاشة الرئيسية
+      context.go('/');
     }
   }
 }

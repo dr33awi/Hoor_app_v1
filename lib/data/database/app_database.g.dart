@@ -12001,6 +12001,12 @@ class $InventoryAdjustmentsTable extends InventoryAdjustments
       type: DriftSqlType.double,
       requiredDuringInsert: false,
       defaultValue: const Constant(0));
+  static const VerificationMeta _totalValueUsdMeta =
+      const VerificationMeta('totalValueUsd');
+  @override
+  late final GeneratedColumn<double> totalValueUsd = GeneratedColumn<double>(
+      'total_value_usd', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
   static const VerificationMeta _notesMeta = const VerificationMeta('notes');
   @override
   late final GeneratedColumn<String> notes = GeneratedColumn<String>(
@@ -12047,6 +12053,7 @@ class $InventoryAdjustmentsTable extends InventoryAdjustments
         status,
         approvedBy,
         totalValue,
+        totalValueUsd,
         notes,
         syncStatus,
         adjustmentDate,
@@ -12117,6 +12124,12 @@ class $InventoryAdjustmentsTable extends InventoryAdjustments
           totalValue.isAcceptableOrUnknown(
               data['total_value']!, _totalValueMeta));
     }
+    if (data.containsKey('total_value_usd')) {
+      context.handle(
+          _totalValueUsdMeta,
+          totalValueUsd.isAcceptableOrUnknown(
+              data['total_value_usd']!, _totalValueUsdMeta));
+    }
     if (data.containsKey('notes')) {
       context.handle(
           _notesMeta, notes.isAcceptableOrUnknown(data['notes']!, _notesMeta));
@@ -12170,6 +12183,8 @@ class $InventoryAdjustmentsTable extends InventoryAdjustments
           .read(DriftSqlType.string, data['${effectivePrefix}approved_by']),
       totalValue: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}total_value'])!,
+      totalValueUsd: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}total_value_usd']),
       notes: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}notes']),
       syncStatus: attachedDatabase.typeMapping
@@ -12200,6 +12215,7 @@ class InventoryAdjustment extends DataClass
   final String status;
   final String? approvedBy;
   final double totalValue;
+  final double? totalValueUsd;
   final String? notes;
   final String syncStatus;
   final DateTime adjustmentDate;
@@ -12215,6 +12231,7 @@ class InventoryAdjustment extends DataClass
       required this.status,
       this.approvedBy,
       required this.totalValue,
+      this.totalValueUsd,
       this.notes,
       required this.syncStatus,
       required this.adjustmentDate,
@@ -12236,6 +12253,9 @@ class InventoryAdjustment extends DataClass
       map['approved_by'] = Variable<String>(approvedBy);
     }
     map['total_value'] = Variable<double>(totalValue);
+    if (!nullToAbsent || totalValueUsd != null) {
+      map['total_value_usd'] = Variable<double>(totalValueUsd);
+    }
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
     }
@@ -12263,6 +12283,9 @@ class InventoryAdjustment extends DataClass
           ? const Value.absent()
           : Value(approvedBy),
       totalValue: Value(totalValue),
+      totalValueUsd: totalValueUsd == null && nullToAbsent
+          ? const Value.absent()
+          : Value(totalValueUsd),
       notes:
           notes == null && nullToAbsent ? const Value.absent() : Value(notes),
       syncStatus: Value(syncStatus),
@@ -12287,6 +12310,7 @@ class InventoryAdjustment extends DataClass
       status: serializer.fromJson<String>(json['status']),
       approvedBy: serializer.fromJson<String?>(json['approvedBy']),
       totalValue: serializer.fromJson<double>(json['totalValue']),
+      totalValueUsd: serializer.fromJson<double?>(json['totalValueUsd']),
       notes: serializer.fromJson<String?>(json['notes']),
       syncStatus: serializer.fromJson<String>(json['syncStatus']),
       adjustmentDate: serializer.fromJson<DateTime>(json['adjustmentDate']),
@@ -12307,6 +12331,7 @@ class InventoryAdjustment extends DataClass
       'status': serializer.toJson<String>(status),
       'approvedBy': serializer.toJson<String?>(approvedBy),
       'totalValue': serializer.toJson<double>(totalValue),
+      'totalValueUsd': serializer.toJson<double?>(totalValueUsd),
       'notes': serializer.toJson<String?>(notes),
       'syncStatus': serializer.toJson<String>(syncStatus),
       'adjustmentDate': serializer.toJson<DateTime>(adjustmentDate),
@@ -12325,6 +12350,7 @@ class InventoryAdjustment extends DataClass
           String? status,
           Value<String?> approvedBy = const Value.absent(),
           double? totalValue,
+          Value<double?> totalValueUsd = const Value.absent(),
           Value<String?> notes = const Value.absent(),
           String? syncStatus,
           DateTime? adjustmentDate,
@@ -12340,6 +12366,8 @@ class InventoryAdjustment extends DataClass
         status: status ?? this.status,
         approvedBy: approvedBy.present ? approvedBy.value : this.approvedBy,
         totalValue: totalValue ?? this.totalValue,
+        totalValueUsd:
+            totalValueUsd.present ? totalValueUsd.value : this.totalValueUsd,
         notes: notes.present ? notes.value : this.notes,
         syncStatus: syncStatus ?? this.syncStatus,
         adjustmentDate: adjustmentDate ?? this.adjustmentDate,
@@ -12362,6 +12390,9 @@ class InventoryAdjustment extends DataClass
           data.approvedBy.present ? data.approvedBy.value : this.approvedBy,
       totalValue:
           data.totalValue.present ? data.totalValue.value : this.totalValue,
+      totalValueUsd: data.totalValueUsd.present
+          ? data.totalValueUsd.value
+          : this.totalValueUsd,
       notes: data.notes.present ? data.notes.value : this.notes,
       syncStatus:
           data.syncStatus.present ? data.syncStatus.value : this.syncStatus,
@@ -12386,6 +12417,7 @@ class InventoryAdjustment extends DataClass
           ..write('status: $status, ')
           ..write('approvedBy: $approvedBy, ')
           ..write('totalValue: $totalValue, ')
+          ..write('totalValueUsd: $totalValueUsd, ')
           ..write('notes: $notes, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('adjustmentDate: $adjustmentDate, ')
@@ -12406,6 +12438,7 @@ class InventoryAdjustment extends DataClass
       status,
       approvedBy,
       totalValue,
+      totalValueUsd,
       notes,
       syncStatus,
       adjustmentDate,
@@ -12424,6 +12457,7 @@ class InventoryAdjustment extends DataClass
           other.status == this.status &&
           other.approvedBy == this.approvedBy &&
           other.totalValue == this.totalValue &&
+          other.totalValueUsd == this.totalValueUsd &&
           other.notes == this.notes &&
           other.syncStatus == this.syncStatus &&
           other.adjustmentDate == this.adjustmentDate &&
@@ -12442,6 +12476,7 @@ class InventoryAdjustmentsCompanion
   final Value<String> status;
   final Value<String?> approvedBy;
   final Value<double> totalValue;
+  final Value<double?> totalValueUsd;
   final Value<String?> notes;
   final Value<String> syncStatus;
   final Value<DateTime> adjustmentDate;
@@ -12458,6 +12493,7 @@ class InventoryAdjustmentsCompanion
     this.status = const Value.absent(),
     this.approvedBy = const Value.absent(),
     this.totalValue = const Value.absent(),
+    this.totalValueUsd = const Value.absent(),
     this.notes = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.adjustmentDate = const Value.absent(),
@@ -12475,6 +12511,7 @@ class InventoryAdjustmentsCompanion
     this.status = const Value.absent(),
     this.approvedBy = const Value.absent(),
     this.totalValue = const Value.absent(),
+    this.totalValueUsd = const Value.absent(),
     this.notes = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.adjustmentDate = const Value.absent(),
@@ -12496,6 +12533,7 @@ class InventoryAdjustmentsCompanion
     Expression<String>? status,
     Expression<String>? approvedBy,
     Expression<double>? totalValue,
+    Expression<double>? totalValueUsd,
     Expression<String>? notes,
     Expression<String>? syncStatus,
     Expression<DateTime>? adjustmentDate,
@@ -12513,6 +12551,7 @@ class InventoryAdjustmentsCompanion
       if (status != null) 'status': status,
       if (approvedBy != null) 'approved_by': approvedBy,
       if (totalValue != null) 'total_value': totalValue,
+      if (totalValueUsd != null) 'total_value_usd': totalValueUsd,
       if (notes != null) 'notes': notes,
       if (syncStatus != null) 'sync_status': syncStatus,
       if (adjustmentDate != null) 'adjustment_date': adjustmentDate,
@@ -12532,6 +12571,7 @@ class InventoryAdjustmentsCompanion
       Value<String>? status,
       Value<String?>? approvedBy,
       Value<double>? totalValue,
+      Value<double?>? totalValueUsd,
       Value<String?>? notes,
       Value<String>? syncStatus,
       Value<DateTime>? adjustmentDate,
@@ -12548,6 +12588,7 @@ class InventoryAdjustmentsCompanion
       status: status ?? this.status,
       approvedBy: approvedBy ?? this.approvedBy,
       totalValue: totalValue ?? this.totalValue,
+      totalValueUsd: totalValueUsd ?? this.totalValueUsd,
       notes: notes ?? this.notes,
       syncStatus: syncStatus ?? this.syncStatus,
       adjustmentDate: adjustmentDate ?? this.adjustmentDate,
@@ -12587,6 +12628,9 @@ class InventoryAdjustmentsCompanion
     if (totalValue.present) {
       map['total_value'] = Variable<double>(totalValue.value);
     }
+    if (totalValueUsd.present) {
+      map['total_value_usd'] = Variable<double>(totalValueUsd.value);
+    }
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
@@ -12620,6 +12664,7 @@ class InventoryAdjustmentsCompanion
           ..write('status: $status, ')
           ..write('approvedBy: $approvedBy, ')
           ..write('totalValue: $totalValue, ')
+          ..write('totalValueUsd: $totalValueUsd, ')
           ..write('notes: $notes, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('adjustmentDate: $adjustmentDate, ')
@@ -12690,12 +12735,24 @@ class $InventoryAdjustmentItemsTable extends InventoryAdjustmentItems
   late final GeneratedColumn<double> unitCost = GeneratedColumn<double>(
       'unit_cost', aliasedName, false,
       type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _unitCostUsdMeta =
+      const VerificationMeta('unitCostUsd');
+  @override
+  late final GeneratedColumn<double> unitCostUsd = GeneratedColumn<double>(
+      'unit_cost_usd', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
   static const VerificationMeta _adjustmentValueMeta =
       const VerificationMeta('adjustmentValue');
   @override
   late final GeneratedColumn<double> adjustmentValue = GeneratedColumn<double>(
       'adjustment_value', aliasedName, false,
       type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _adjustmentValueUsdMeta =
+      const VerificationMeta('adjustmentValueUsd');
+  @override
+  late final GeneratedColumn<double> adjustmentValueUsd =
+      GeneratedColumn<double>('adjustment_value_usd', aliasedName, true,
+          type: DriftSqlType.double, requiredDuringInsert: false);
   static const VerificationMeta _reasonMeta = const VerificationMeta('reason');
   @override
   late final GeneratedColumn<String> reason = GeneratedColumn<String>(
@@ -12727,7 +12784,9 @@ class $InventoryAdjustmentItemsTable extends InventoryAdjustmentItems
         quantityAdjusted,
         quantityAfter,
         unitCost,
+        unitCostUsd,
         adjustmentValue,
+        adjustmentValueUsd,
         reason,
         syncStatus,
         createdAt
@@ -12800,6 +12859,12 @@ class $InventoryAdjustmentItemsTable extends InventoryAdjustmentItems
     } else if (isInserting) {
       context.missing(_unitCostMeta);
     }
+    if (data.containsKey('unit_cost_usd')) {
+      context.handle(
+          _unitCostUsdMeta,
+          unitCostUsd.isAcceptableOrUnknown(
+              data['unit_cost_usd']!, _unitCostUsdMeta));
+    }
     if (data.containsKey('adjustment_value')) {
       context.handle(
           _adjustmentValueMeta,
@@ -12807,6 +12872,12 @@ class $InventoryAdjustmentItemsTable extends InventoryAdjustmentItems
               data['adjustment_value']!, _adjustmentValueMeta));
     } else if (isInserting) {
       context.missing(_adjustmentValueMeta);
+    }
+    if (data.containsKey('adjustment_value_usd')) {
+      context.handle(
+          _adjustmentValueUsdMeta,
+          adjustmentValueUsd.isAcceptableOrUnknown(
+              data['adjustment_value_usd']!, _adjustmentValueUsdMeta));
     }
     if (data.containsKey('reason')) {
       context.handle(_reasonMeta,
@@ -12848,8 +12919,12 @@ class $InventoryAdjustmentItemsTable extends InventoryAdjustmentItems
           .read(DriftSqlType.int, data['${effectivePrefix}quantity_after'])!,
       unitCost: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}unit_cost'])!,
+      unitCostUsd: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}unit_cost_usd']),
       adjustmentValue: attachedDatabase.typeMapping.read(
           DriftSqlType.double, data['${effectivePrefix}adjustment_value'])!,
+      adjustmentValueUsd: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}adjustment_value_usd']),
       reason: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}reason']),
       syncStatus: attachedDatabase.typeMapping
@@ -12875,7 +12950,9 @@ class InventoryAdjustmentItem extends DataClass
   final int quantityAdjusted;
   final int quantityAfter;
   final double unitCost;
+  final double? unitCostUsd;
   final double adjustmentValue;
+  final double? adjustmentValueUsd;
   final String? reason;
   final String syncStatus;
   final DateTime createdAt;
@@ -12888,7 +12965,9 @@ class InventoryAdjustmentItem extends DataClass
       required this.quantityAdjusted,
       required this.quantityAfter,
       required this.unitCost,
+      this.unitCostUsd,
       required this.adjustmentValue,
+      this.adjustmentValueUsd,
       this.reason,
       required this.syncStatus,
       required this.createdAt});
@@ -12903,7 +12982,13 @@ class InventoryAdjustmentItem extends DataClass
     map['quantity_adjusted'] = Variable<int>(quantityAdjusted);
     map['quantity_after'] = Variable<int>(quantityAfter);
     map['unit_cost'] = Variable<double>(unitCost);
+    if (!nullToAbsent || unitCostUsd != null) {
+      map['unit_cost_usd'] = Variable<double>(unitCostUsd);
+    }
     map['adjustment_value'] = Variable<double>(adjustmentValue);
+    if (!nullToAbsent || adjustmentValueUsd != null) {
+      map['adjustment_value_usd'] = Variable<double>(adjustmentValueUsd);
+    }
     if (!nullToAbsent || reason != null) {
       map['reason'] = Variable<String>(reason);
     }
@@ -12922,7 +13007,13 @@ class InventoryAdjustmentItem extends DataClass
       quantityAdjusted: Value(quantityAdjusted),
       quantityAfter: Value(quantityAfter),
       unitCost: Value(unitCost),
+      unitCostUsd: unitCostUsd == null && nullToAbsent
+          ? const Value.absent()
+          : Value(unitCostUsd),
       adjustmentValue: Value(adjustmentValue),
+      adjustmentValueUsd: adjustmentValueUsd == null && nullToAbsent
+          ? const Value.absent()
+          : Value(adjustmentValueUsd),
       reason:
           reason == null && nullToAbsent ? const Value.absent() : Value(reason),
       syncStatus: Value(syncStatus),
@@ -12942,7 +13033,10 @@ class InventoryAdjustmentItem extends DataClass
       quantityAdjusted: serializer.fromJson<int>(json['quantityAdjusted']),
       quantityAfter: serializer.fromJson<int>(json['quantityAfter']),
       unitCost: serializer.fromJson<double>(json['unitCost']),
+      unitCostUsd: serializer.fromJson<double?>(json['unitCostUsd']),
       adjustmentValue: serializer.fromJson<double>(json['adjustmentValue']),
+      adjustmentValueUsd:
+          serializer.fromJson<double?>(json['adjustmentValueUsd']),
       reason: serializer.fromJson<String?>(json['reason']),
       syncStatus: serializer.fromJson<String>(json['syncStatus']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -12960,7 +13054,9 @@ class InventoryAdjustmentItem extends DataClass
       'quantityAdjusted': serializer.toJson<int>(quantityAdjusted),
       'quantityAfter': serializer.toJson<int>(quantityAfter),
       'unitCost': serializer.toJson<double>(unitCost),
+      'unitCostUsd': serializer.toJson<double?>(unitCostUsd),
       'adjustmentValue': serializer.toJson<double>(adjustmentValue),
+      'adjustmentValueUsd': serializer.toJson<double?>(adjustmentValueUsd),
       'reason': serializer.toJson<String?>(reason),
       'syncStatus': serializer.toJson<String>(syncStatus),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -12976,7 +13072,9 @@ class InventoryAdjustmentItem extends DataClass
           int? quantityAdjusted,
           int? quantityAfter,
           double? unitCost,
+          Value<double?> unitCostUsd = const Value.absent(),
           double? adjustmentValue,
+          Value<double?> adjustmentValueUsd = const Value.absent(),
           Value<String?> reason = const Value.absent(),
           String? syncStatus,
           DateTime? createdAt}) =>
@@ -12989,7 +13087,11 @@ class InventoryAdjustmentItem extends DataClass
         quantityAdjusted: quantityAdjusted ?? this.quantityAdjusted,
         quantityAfter: quantityAfter ?? this.quantityAfter,
         unitCost: unitCost ?? this.unitCost,
+        unitCostUsd: unitCostUsd.present ? unitCostUsd.value : this.unitCostUsd,
         adjustmentValue: adjustmentValue ?? this.adjustmentValue,
+        adjustmentValueUsd: adjustmentValueUsd.present
+            ? adjustmentValueUsd.value
+            : this.adjustmentValueUsd,
         reason: reason.present ? reason.value : this.reason,
         syncStatus: syncStatus ?? this.syncStatus,
         createdAt: createdAt ?? this.createdAt,
@@ -13014,9 +13116,14 @@ class InventoryAdjustmentItem extends DataClass
           ? data.quantityAfter.value
           : this.quantityAfter,
       unitCost: data.unitCost.present ? data.unitCost.value : this.unitCost,
+      unitCostUsd:
+          data.unitCostUsd.present ? data.unitCostUsd.value : this.unitCostUsd,
       adjustmentValue: data.adjustmentValue.present
           ? data.adjustmentValue.value
           : this.adjustmentValue,
+      adjustmentValueUsd: data.adjustmentValueUsd.present
+          ? data.adjustmentValueUsd.value
+          : this.adjustmentValueUsd,
       reason: data.reason.present ? data.reason.value : this.reason,
       syncStatus:
           data.syncStatus.present ? data.syncStatus.value : this.syncStatus,
@@ -13035,7 +13142,9 @@ class InventoryAdjustmentItem extends DataClass
           ..write('quantityAdjusted: $quantityAdjusted, ')
           ..write('quantityAfter: $quantityAfter, ')
           ..write('unitCost: $unitCost, ')
+          ..write('unitCostUsd: $unitCostUsd, ')
           ..write('adjustmentValue: $adjustmentValue, ')
+          ..write('adjustmentValueUsd: $adjustmentValueUsd, ')
           ..write('reason: $reason, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('createdAt: $createdAt')
@@ -13053,7 +13162,9 @@ class InventoryAdjustmentItem extends DataClass
       quantityAdjusted,
       quantityAfter,
       unitCost,
+      unitCostUsd,
       adjustmentValue,
+      adjustmentValueUsd,
       reason,
       syncStatus,
       createdAt);
@@ -13069,7 +13180,9 @@ class InventoryAdjustmentItem extends DataClass
           other.quantityAdjusted == this.quantityAdjusted &&
           other.quantityAfter == this.quantityAfter &&
           other.unitCost == this.unitCost &&
+          other.unitCostUsd == this.unitCostUsd &&
           other.adjustmentValue == this.adjustmentValue &&
+          other.adjustmentValueUsd == this.adjustmentValueUsd &&
           other.reason == this.reason &&
           other.syncStatus == this.syncStatus &&
           other.createdAt == this.createdAt);
@@ -13085,7 +13198,9 @@ class InventoryAdjustmentItemsCompanion
   final Value<int> quantityAdjusted;
   final Value<int> quantityAfter;
   final Value<double> unitCost;
+  final Value<double?> unitCostUsd;
   final Value<double> adjustmentValue;
+  final Value<double?> adjustmentValueUsd;
   final Value<String?> reason;
   final Value<String> syncStatus;
   final Value<DateTime> createdAt;
@@ -13099,7 +13214,9 @@ class InventoryAdjustmentItemsCompanion
     this.quantityAdjusted = const Value.absent(),
     this.quantityAfter = const Value.absent(),
     this.unitCost = const Value.absent(),
+    this.unitCostUsd = const Value.absent(),
     this.adjustmentValue = const Value.absent(),
+    this.adjustmentValueUsd = const Value.absent(),
     this.reason = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -13114,7 +13231,9 @@ class InventoryAdjustmentItemsCompanion
     required int quantityAdjusted,
     required int quantityAfter,
     required double unitCost,
+    this.unitCostUsd = const Value.absent(),
     required double adjustmentValue,
+    this.adjustmentValueUsd = const Value.absent(),
     this.reason = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -13137,7 +13256,9 @@ class InventoryAdjustmentItemsCompanion
     Expression<int>? quantityAdjusted,
     Expression<int>? quantityAfter,
     Expression<double>? unitCost,
+    Expression<double>? unitCostUsd,
     Expression<double>? adjustmentValue,
+    Expression<double>? adjustmentValueUsd,
     Expression<String>? reason,
     Expression<String>? syncStatus,
     Expression<DateTime>? createdAt,
@@ -13152,7 +13273,10 @@ class InventoryAdjustmentItemsCompanion
       if (quantityAdjusted != null) 'quantity_adjusted': quantityAdjusted,
       if (quantityAfter != null) 'quantity_after': quantityAfter,
       if (unitCost != null) 'unit_cost': unitCost,
+      if (unitCostUsd != null) 'unit_cost_usd': unitCostUsd,
       if (adjustmentValue != null) 'adjustment_value': adjustmentValue,
+      if (adjustmentValueUsd != null)
+        'adjustment_value_usd': adjustmentValueUsd,
       if (reason != null) 'reason': reason,
       if (syncStatus != null) 'sync_status': syncStatus,
       if (createdAt != null) 'created_at': createdAt,
@@ -13169,7 +13293,9 @@ class InventoryAdjustmentItemsCompanion
       Value<int>? quantityAdjusted,
       Value<int>? quantityAfter,
       Value<double>? unitCost,
+      Value<double?>? unitCostUsd,
       Value<double>? adjustmentValue,
+      Value<double?>? adjustmentValueUsd,
       Value<String?>? reason,
       Value<String>? syncStatus,
       Value<DateTime>? createdAt,
@@ -13183,7 +13309,9 @@ class InventoryAdjustmentItemsCompanion
       quantityAdjusted: quantityAdjusted ?? this.quantityAdjusted,
       quantityAfter: quantityAfter ?? this.quantityAfter,
       unitCost: unitCost ?? this.unitCost,
+      unitCostUsd: unitCostUsd ?? this.unitCostUsd,
       adjustmentValue: adjustmentValue ?? this.adjustmentValue,
+      adjustmentValueUsd: adjustmentValueUsd ?? this.adjustmentValueUsd,
       reason: reason ?? this.reason,
       syncStatus: syncStatus ?? this.syncStatus,
       createdAt: createdAt ?? this.createdAt,
@@ -13218,8 +13346,14 @@ class InventoryAdjustmentItemsCompanion
     if (unitCost.present) {
       map['unit_cost'] = Variable<double>(unitCost.value);
     }
+    if (unitCostUsd.present) {
+      map['unit_cost_usd'] = Variable<double>(unitCostUsd.value);
+    }
     if (adjustmentValue.present) {
       map['adjustment_value'] = Variable<double>(adjustmentValue.value);
+    }
+    if (adjustmentValueUsd.present) {
+      map['adjustment_value_usd'] = Variable<double>(adjustmentValueUsd.value);
     }
     if (reason.present) {
       map['reason'] = Variable<String>(reason.value);
@@ -13247,7 +13381,9 @@ class InventoryAdjustmentItemsCompanion
           ..write('quantityAdjusted: $quantityAdjusted, ')
           ..write('quantityAfter: $quantityAfter, ')
           ..write('unitCost: $unitCost, ')
+          ..write('unitCostUsd: $unitCostUsd, ')
           ..write('adjustmentValue: $adjustmentValue, ')
+          ..write('adjustmentValueUsd: $adjustmentValueUsd, ')
           ..write('reason: $reason, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('createdAt: $createdAt, ')
@@ -22351,6 +22487,7 @@ typedef $$InventoryAdjustmentsTableCreateCompanionBuilder
   Value<String> status,
   Value<String?> approvedBy,
   Value<double> totalValue,
+  Value<double?> totalValueUsd,
   Value<String?> notes,
   Value<String> syncStatus,
   Value<DateTime> adjustmentDate,
@@ -22369,6 +22506,7 @@ typedef $$InventoryAdjustmentsTableUpdateCompanionBuilder
   Value<String> status,
   Value<String?> approvedBy,
   Value<double> totalValue,
+  Value<double?> totalValueUsd,
   Value<String?> notes,
   Value<String> syncStatus,
   Value<DateTime> adjustmentDate,
@@ -22461,6 +22599,9 @@ class $$InventoryAdjustmentsTableFilterComposer
 
   ColumnFilters<double> get totalValue => $composableBuilder(
       column: $table.totalValue, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get totalValueUsd => $composableBuilder(
+      column: $table.totalValueUsd, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get notes => $composableBuilder(
       column: $table.notes, builder: (column) => ColumnFilters(column));
@@ -22573,6 +22714,10 @@ class $$InventoryAdjustmentsTableOrderingComposer
   ColumnOrderings<double> get totalValue => $composableBuilder(
       column: $table.totalValue, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<double> get totalValueUsd => $composableBuilder(
+      column: $table.totalValueUsd,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get notes => $composableBuilder(
       column: $table.notes, builder: (column) => ColumnOrderings(column));
 
@@ -22659,6 +22804,9 @@ class $$InventoryAdjustmentsTableAnnotationComposer
 
   GeneratedColumn<double> get totalValue => $composableBuilder(
       column: $table.totalValue, builder: (column) => column);
+
+  GeneratedColumn<double> get totalValueUsd => $composableBuilder(
+      column: $table.totalValueUsd, builder: (column) => column);
 
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
@@ -22776,6 +22924,7 @@ class $$InventoryAdjustmentsTableTableManager extends RootTableManager<
             Value<String> status = const Value.absent(),
             Value<String?> approvedBy = const Value.absent(),
             Value<double> totalValue = const Value.absent(),
+            Value<double?> totalValueUsd = const Value.absent(),
             Value<String?> notes = const Value.absent(),
             Value<String> syncStatus = const Value.absent(),
             Value<DateTime> adjustmentDate = const Value.absent(),
@@ -22793,6 +22942,7 @@ class $$InventoryAdjustmentsTableTableManager extends RootTableManager<
             status: status,
             approvedBy: approvedBy,
             totalValue: totalValue,
+            totalValueUsd: totalValueUsd,
             notes: notes,
             syncStatus: syncStatus,
             adjustmentDate: adjustmentDate,
@@ -22810,6 +22960,7 @@ class $$InventoryAdjustmentsTableTableManager extends RootTableManager<
             Value<String> status = const Value.absent(),
             Value<String?> approvedBy = const Value.absent(),
             Value<double> totalValue = const Value.absent(),
+            Value<double?> totalValueUsd = const Value.absent(),
             Value<String?> notes = const Value.absent(),
             Value<String> syncStatus = const Value.absent(),
             Value<DateTime> adjustmentDate = const Value.absent(),
@@ -22827,6 +22978,7 @@ class $$InventoryAdjustmentsTableTableManager extends RootTableManager<
             status: status,
             approvedBy: approvedBy,
             totalValue: totalValue,
+            totalValueUsd: totalValueUsd,
             notes: notes,
             syncStatus: syncStatus,
             adjustmentDate: adjustmentDate,
@@ -22934,7 +23086,9 @@ typedef $$InventoryAdjustmentItemsTableCreateCompanionBuilder
   required int quantityAdjusted,
   required int quantityAfter,
   required double unitCost,
+  Value<double?> unitCostUsd,
   required double adjustmentValue,
+  Value<double?> adjustmentValueUsd,
   Value<String?> reason,
   Value<String> syncStatus,
   Value<DateTime> createdAt,
@@ -22950,7 +23104,9 @@ typedef $$InventoryAdjustmentItemsTableUpdateCompanionBuilder
   Value<int> quantityAdjusted,
   Value<int> quantityAfter,
   Value<double> unitCost,
+  Value<double?> unitCostUsd,
   Value<double> adjustmentValue,
+  Value<double?> adjustmentValueUsd,
   Value<String?> reason,
   Value<String> syncStatus,
   Value<DateTime> createdAt,
@@ -23022,8 +23178,15 @@ class $$InventoryAdjustmentItemsTableFilterComposer
   ColumnFilters<double> get unitCost => $composableBuilder(
       column: $table.unitCost, builder: (column) => ColumnFilters(column));
 
+  ColumnFilters<double> get unitCostUsd => $composableBuilder(
+      column: $table.unitCostUsd, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<double> get adjustmentValue => $composableBuilder(
       column: $table.adjustmentValue,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get adjustmentValueUsd => $composableBuilder(
+      column: $table.adjustmentValueUsd,
       builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get reason => $composableBuilder(
@@ -23106,8 +23269,15 @@ class $$InventoryAdjustmentItemsTableOrderingComposer
   ColumnOrderings<double> get unitCost => $composableBuilder(
       column: $table.unitCost, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<double> get unitCostUsd => $composableBuilder(
+      column: $table.unitCostUsd, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<double> get adjustmentValue => $composableBuilder(
       column: $table.adjustmentValue,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get adjustmentValueUsd => $composableBuilder(
+      column: $table.adjustmentValueUsd,
       builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get reason => $composableBuilder(
@@ -23188,8 +23358,14 @@ class $$InventoryAdjustmentItemsTableAnnotationComposer
   GeneratedColumn<double> get unitCost =>
       $composableBuilder(column: $table.unitCost, builder: (column) => column);
 
+  GeneratedColumn<double> get unitCostUsd => $composableBuilder(
+      column: $table.unitCostUsd, builder: (column) => column);
+
   GeneratedColumn<double> get adjustmentValue => $composableBuilder(
       column: $table.adjustmentValue, builder: (column) => column);
+
+  GeneratedColumn<double> get adjustmentValueUsd => $composableBuilder(
+      column: $table.adjustmentValueUsd, builder: (column) => column);
 
   GeneratedColumn<String> get reason =>
       $composableBuilder(column: $table.reason, builder: (column) => column);
@@ -23277,7 +23453,9 @@ class $$InventoryAdjustmentItemsTableTableManager extends RootTableManager<
             Value<int> quantityAdjusted = const Value.absent(),
             Value<int> quantityAfter = const Value.absent(),
             Value<double> unitCost = const Value.absent(),
+            Value<double?> unitCostUsd = const Value.absent(),
             Value<double> adjustmentValue = const Value.absent(),
+            Value<double?> adjustmentValueUsd = const Value.absent(),
             Value<String?> reason = const Value.absent(),
             Value<String> syncStatus = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
@@ -23292,7 +23470,9 @@ class $$InventoryAdjustmentItemsTableTableManager extends RootTableManager<
             quantityAdjusted: quantityAdjusted,
             quantityAfter: quantityAfter,
             unitCost: unitCost,
+            unitCostUsd: unitCostUsd,
             adjustmentValue: adjustmentValue,
+            adjustmentValueUsd: adjustmentValueUsd,
             reason: reason,
             syncStatus: syncStatus,
             createdAt: createdAt,
@@ -23307,7 +23487,9 @@ class $$InventoryAdjustmentItemsTableTableManager extends RootTableManager<
             required int quantityAdjusted,
             required int quantityAfter,
             required double unitCost,
+            Value<double?> unitCostUsd = const Value.absent(),
             required double adjustmentValue,
+            Value<double?> adjustmentValueUsd = const Value.absent(),
             Value<String?> reason = const Value.absent(),
             Value<String> syncStatus = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
@@ -23322,7 +23504,9 @@ class $$InventoryAdjustmentItemsTableTableManager extends RootTableManager<
             quantityAdjusted: quantityAdjusted,
             quantityAfter: quantityAfter,
             unitCost: unitCost,
+            unitCostUsd: unitCostUsd,
             adjustmentValue: adjustmentValue,
+            adjustmentValueUsd: adjustmentValueUsd,
             reason: reason,
             syncStatus: syncStatus,
             createdAt: createdAt,

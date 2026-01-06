@@ -534,7 +534,9 @@ class InventoryAdjustments extends Table {
       .withDefault(const Constant('pending'))(); // pending, approved, rejected
   TextColumn get approvedBy => text().nullable()();
   RealColumn get totalValue =>
-      real().withDefault(const Constant(0))(); // إجمالي قيمة التسوية
+      real().withDefault(const Constant(0))(); // إجمالي قيمة التسوية بالليرة
+  RealColumn get totalValueUsd =>
+      real().nullable()(); // إجمالي قيمة التسوية بالدولار
   TextColumn get notes => text().nullable()();
   TextColumn get syncStatus => text().withDefault(const Constant('pending'))();
   DateTimeColumn get adjustmentDate =>
@@ -555,8 +557,11 @@ class InventoryAdjustmentItems extends Table {
   IntColumn get quantityBefore => integer()(); // الكمية قبل التسوية
   IntColumn get quantityAdjusted => integer()(); // الكمية المعدلة
   IntColumn get quantityAfter => integer()(); // الكمية بعد التسوية
-  RealColumn get unitCost => real()(); // تكلفة الوحدة
-  RealColumn get adjustmentValue => real()(); // قيمة التسوية
+  RealColumn get unitCost => real()(); // تكلفة الوحدة بالليرة
+  RealColumn get unitCostUsd => real().nullable()(); // تكلفة الوحدة بالدولار
+  RealColumn get adjustmentValue => real()(); // قيمة التسوية بالليرة
+  RealColumn get adjustmentValueUsd =>
+      real().nullable()(); // قيمة التسوية بالدولار
   TextColumn get reason => text().nullable()(); // سبب محدد لهذا الصنف
   TextColumn get syncStatus => text().withDefault(const Constant('pending'))();
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();

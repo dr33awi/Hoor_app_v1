@@ -145,7 +145,8 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
                   paidAmount: paidAmount,
                   paidAmountUsd: paidAmountUsd,
                   pendingAmount: pendingAmount,
-                  overdueAmount: 0, // TODO: Calculate overdue
+                  overdueAmount:
+                      0, // لا يوجد حقل dueDate في قاعدة البيانات حالياً
                   isSales: isSales,
                 );
               },
