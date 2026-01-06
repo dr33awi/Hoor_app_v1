@@ -3,7 +3,6 @@
 // عرض تفاصيل العميل مع كشف الحساب والفواتير والسندات
 // ═══════════════════════════════════════════════════════════════════════════
 
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -14,9 +13,7 @@ import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/widgets/widgets.dart';
 import '../../core/widgets/dual_price_display.dart';
-import '../../core/services/currency_service.dart';
 import '../../core/services/export/export_services.dart';
-import '../../core/services/export/export_button.dart';
 import '../../data/database/app_database.dart';
 
 class CustomerDetailsScreenPro extends ConsumerStatefulWidget {
@@ -39,14 +36,16 @@ class _CustomerDetailsScreenProState
   bool _isLoading = true;
   bool _isExporting = false;
   Customer? _customer;
-  List<Invoice> _invoices = [];
-  List<Voucher> _vouchers = [];
+
+  // البيانات المستخرجة من الـ streams - تُحدّث في build()
+  List<Invoice> _currentInvoices = [];
+  List<Voucher> _currentVouchers = [];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _loadData();
+    _loadCustomer();
   }
 
   @override
@@ -55,40 +54,14 @@ class _CustomerDetailsScreenProState
     super.dispose();
   }
 
-  Future<void> _loadData() async {
+  /// تحميل بيانات العميل فقط (الفواتير والسندات تأتي من ref.watch)
+  Future<void> _loadCustomer() async {
     setState(() => _isLoading = true);
     try {
       final customerRepo = ref.read(customerRepositoryProvider);
       final customer = await customerRepo.getCustomerById(widget.customerId);
-
-      if (customer != null && mounted) {
+      if (mounted) {
         setState(() => _customer = customer);
-
-        // تحميل الفواتير
-        final invoicesAsync = ref.read(invoicesStreamProvider);
-        invoicesAsync.whenData((invoices) {
-          if (mounted) {
-            setState(() {
-              _invoices = invoices
-                  .where((i) => i.customerId == widget.customerId)
-                  .toList()
-                ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-            });
-          }
-        });
-
-        // تحميل السندات
-        final vouchersAsync = ref.read(vouchersStreamProvider);
-        vouchersAsync.whenData((vouchers) {
-          if (mounted) {
-            setState(() {
-              _vouchers = vouchers
-                  .where((v) => v.customerId == widget.customerId)
-                  .toList()
-                ..sort((a, b) => b.voucherDate.compareTo(a.voucherDate));
-            });
-          }
-        });
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -97,6 +70,19 @@ class _CustomerDetailsScreenProState
 
   @override
   Widget build(BuildContext context) {
+    // ✅ استخدام ref.watch للحصول على تحديثات تلقائية
+    final invoicesAsync = ref.watch(invoicesStreamProvider);
+    final vouchersAsync = ref.watch(vouchersStreamProvider);
+
+    // فلترة الفواتير والسندات للعميل الحالي
+    final customerInvoices = invoicesAsync.whenData((invoices) =>
+        invoices.where((i) => i.customerId == widget.customerId).toList()
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt)));
+
+    final customerVouchers = vouchersAsync.whenData((vouchers) =>
+        vouchers.where((v) => v.customerId == widget.customerId).toList()
+          ..sort((a, b) => b.voucherDate.compareTo(a.voucherDate)));
+
     if (_isLoading) {
       return Scaffold(
         backgroundColor: AppColors.background,
@@ -113,6 +99,10 @@ class _CustomerDetailsScreenProState
       );
     }
 
+    // استخراج البيانات الفعلية وتخزينها للاستخدام في الدوال الأخرى
+    _currentInvoices = customerInvoices.value ?? [];
+    _currentVouchers = customerVouchers.value ?? [];
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -126,9 +116,9 @@ class _CustomerDetailsScreenProState
               child: TabBarView(
                 controller: _tabController,
                 children: [
-                  _buildAccountStatement(),
-                  _buildInvoicesList(),
-                  _buildVouchersList(),
+                  _buildAccountStatement(_currentInvoices, _currentVouchers),
+                  _buildInvoicesList(_currentInvoices),
+                  _buildVouchersList(_currentVouchers),
                 ],
               ),
             ),
@@ -387,7 +377,7 @@ class _CustomerDetailsScreenProState
               children: [
                 const Icon(Icons.shopping_cart_rounded, size: 18),
                 SizedBox(width: 4.w),
-                Text('الفواتير (${_invoices.length})'),
+                Text('الفواتير (${_currentInvoices.length})'),
               ],
             ),
           ),
@@ -397,7 +387,7 @@ class _CustomerDetailsScreenProState
               children: [
                 const Icon(Icons.payments_rounded, size: 18),
                 SizedBox(width: 4.w),
-                Text('السندات (${_vouchers.length})'),
+                Text('السندات (${_currentVouchers.length})'),
               ],
             ),
           ),
@@ -406,12 +396,13 @@ class _CustomerDetailsScreenProState
     );
   }
 
-  Widget _buildAccountStatement() {
+  Widget _buildAccountStatement(
+      List<Invoice> invoices, List<Voucher> vouchers) {
     // دمج الفواتير والسندات في كشف حساب موحد
     final List<_AccountEntry> entries = [];
 
     // إضافة الفواتير
-    for (final invoice in _invoices) {
+    for (final invoice in invoices) {
       entries.add(_AccountEntry(
         date: invoice.createdAt,
         description: 'فاتورة #${invoice.invoiceNumber}',
@@ -423,7 +414,7 @@ class _CustomerDetailsScreenProState
     }
 
     // إضافة السندات
-    for (final voucher in _vouchers) {
+    for (final voucher in vouchers) {
       entries.add(_AccountEntry(
         date: voucher.voucherDate,
         description: 'سند قبض #${voucher.voucherNumber}',
@@ -572,8 +563,8 @@ class _CustomerDetailsScreenProState
     );
   }
 
-  Widget _buildInvoicesList() {
-    if (_invoices.isEmpty) {
+  Widget _buildInvoicesList(List<Invoice> invoices) {
+    if (invoices.isEmpty) {
       return ProEmptyState.list(
         itemName: 'فواتير',
       );
@@ -581,9 +572,9 @@ class _CustomerDetailsScreenProState
 
     return ListView.builder(
       padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
-      itemCount: _invoices.length,
+      itemCount: invoices.length,
       itemBuilder: (context, index) {
-        final invoice = _invoices[index];
+        final invoice = invoices[index];
         return _InvoiceCard(
           invoice: invoice,
           onTap: () => context.push('/invoices/${invoice.id}'),
@@ -592,8 +583,8 @@ class _CustomerDetailsScreenProState
     );
   }
 
-  Widget _buildVouchersList() {
-    if (_vouchers.isEmpty) {
+  Widget _buildVouchersList(List<Voucher> vouchers) {
+    if (vouchers.isEmpty) {
       return ProEmptyState.list(
         itemName: 'سندات',
       );
@@ -601,9 +592,9 @@ class _CustomerDetailsScreenProState
 
     return ListView.builder(
       padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
-      itemCount: _vouchers.length,
+      itemCount: vouchers.length,
       itemBuilder: (context, index) {
-        final voucher = _vouchers[index];
+        final voucher = vouchers[index];
         return _VoucherMiniCard(
           voucher: voucher,
           onTap: () => context.push('/vouchers/${voucher.id}'),
@@ -692,8 +683,8 @@ class _CustomerDetailsScreenProState
         case ExportType.excel:
           await ExcelExportService.exportCustomerStatement(
             customer: _customer!,
-            invoices: _invoices,
-            vouchers: _vouchers,
+            invoices: _currentInvoices,
+            vouchers: _currentVouchers,
             fileName: fileName,
           );
           if (mounted) ProSnackbar.success(context, 'تم حفظ الملف بنجاح');
@@ -701,8 +692,8 @@ class _CustomerDetailsScreenProState
         case ExportType.pdf:
           final pdfBytes = await PdfExportService.generateCustomerStatement(
             customer: _customer!,
-            invoices: _invoices,
-            vouchers: _vouchers,
+            invoices: _currentInvoices,
+            vouchers: _currentVouchers,
           );
           await PdfExportService.savePdfFile(pdfBytes, fileName);
           if (mounted) ProSnackbar.success(context, 'تم حفظ الملف بنجاح');
@@ -711,8 +702,8 @@ class _CustomerDetailsScreenProState
           final pdfBytesShare =
               await PdfExportService.generateCustomerStatement(
             customer: _customer!,
-            invoices: _invoices,
-            vouchers: _vouchers,
+            invoices: _currentInvoices,
+            vouchers: _currentVouchers,
           );
           await PdfExportService.sharePdfBytes(pdfBytesShare,
               fileName: fileName, subject: 'كشف حساب ${_customer!.name}');
@@ -720,8 +711,8 @@ class _CustomerDetailsScreenProState
         case ExportType.shareExcel:
           final filePath = await ExcelExportService.exportCustomerStatement(
             customer: _customer!,
-            invoices: _invoices,
-            vouchers: _vouchers,
+            invoices: _currentInvoices,
+            vouchers: _currentVouchers,
             fileName: fileName,
           );
           await ExcelExportService.shareFile(filePath,

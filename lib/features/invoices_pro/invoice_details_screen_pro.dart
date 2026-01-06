@@ -190,6 +190,17 @@ class _InvoiceDetailsScreenProState
 
   @override
   Widget build(BuildContext context) {
+    // ✅ مراقبة تغييرات الفواتير للتحديث التلقائي
+    ref.listen(invoicesStreamProvider, (previous, next) {
+      if (next.value != null && _invoice != null) {
+        final updatedInvoice =
+            next.value!.where((i) => i.id == widget.invoiceId).firstOrNull;
+        if (updatedInvoice != null && updatedInvoice != _invoice) {
+          _loadInvoiceData();
+        }
+      }
+    });
+
     if (_isLoading) {
       return Scaffold(
         backgroundColor: AppColors.background,

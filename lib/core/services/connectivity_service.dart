@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 
+import 'app_logger.dart';
+
 /// ═══════════════════════════════════════════════════════════════════════════
 /// Connection Quality - جودة الاتصال
 /// ═══════════════════════════════════════════════════════════════════════════
@@ -92,6 +94,12 @@ class ConnectivityService extends ChangeNotifier {
     }
 
     if (wasOnline != _isOnline) {
+      // Log connectivity change
+      if (_isOnline) {
+        appLogger.info('🌐 Connected: $_connectionType (${_quality.name})');
+      } else {
+        appLogger.warning('📴 Disconnected from network');
+      }
       // إخطار المستمعين
       for (final listener in _onlineStatusListeners) {
         listener(_isOnline);

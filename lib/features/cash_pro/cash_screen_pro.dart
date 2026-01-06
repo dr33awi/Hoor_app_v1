@@ -13,10 +13,9 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/theme/design_tokens.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/providers/app_providers.dart';
-import '../../core/services/currency_service.dart';
 import '../../core/widgets/widgets.dart';
-import '../../core/widgets/dual_price_display.dart';
 import '../../core/services/export/export_button.dart';
 import '../../core/services/export/export_services.dart';
 import '../../data/database/app_database.dart';
@@ -290,7 +289,7 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
           m.type == 'opening';
       // استخدام القيمة المحفوظة بالدولار
       final amountUsd = m.amountUsd ??
-          (m.amount / (m.exchangeRate ?? CurrencyService.currentRate));
+          (m.amount / (m.exchangeRate ?? AppConstants.defaultExchangeRate));
       if (isIncome) {
         totalIncome += m.amount;
         totalIncomeUsd += amountUsd;

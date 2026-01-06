@@ -548,57 +548,273 @@ class _ReportDetailScreenProState extends ConsumerState<ReportDetailScreenPro>
   }
 
   Widget _buildProfitReport() {
-    final salesAsync = ref.watch(salesInvoicesProvider);
-    final purchasesAsync = ref.watch(purchaseInvoicesProvider);
+    // ═══════════════════════════════════════════════════════════════════════
+    // ✅ السياسة المحاسبية الصحيحة:
+    // صافي الربح = إجمالي الربح - المصاريف - مرتجعات المبيعات + مرتجعات المشتريات ± فروقات الجرد
+    // ═══════════════════════════════════════════════════════════════════════
+    final db = ref.read(databaseProvider);
 
-    return salesAsync.when(
-      loading: () => ProLoadingState.list(),
-      error: (error, _) => ProEmptyState.error(error: error.toString()),
-      data: (sales) {
-        return purchasesAsync.when(
-          loading: () => ProLoadingState.list(),
-          error: (error, _) => ProEmptyState.error(error: error.toString()),
-          data: (purchases) {
-            final filteredSales = _filterByDate(sales);
-            final filteredPurchases = _filterByDate(purchases);
+    return FutureBuilder<Map<String, dynamic>>(
+      future: db.getEnhancedProfitReport(
+        startDate: _dateRange?.start,
+        endDate: _dateRange?.end,
+      ),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return ProLoadingState.list();
+        }
 
-            // ═══════════════════════════════════════════════════════════════
-            // ⚠️ السياسة المحاسبية: جمع القيم المحفوظة مباشرة - بدون تحويل
-            // ═══════════════════════════════════════════════════════════════
-            final totalSalesSyp =
-                filteredSales.fold<double>(0, (sum, inv) => sum + inv.total);
-            final totalSalesUsd = filteredSales.fold<double>(
-                0, (sum, inv) => sum + (inv.totalUsd ?? 0));
-            final totalPurchasesSyp = filteredPurchases.fold<double>(
-                0, (sum, inv) => sum + inv.total);
-            final totalPurchasesUsd = filteredPurchases.fold<double>(
-                0, (sum, inv) => sum + (inv.totalUsd ?? 0));
+        if (snapshot.hasError) {
+          return ProEmptyState.error(error: snapshot.error.toString());
+        }
 
-            // الربح = المبيعات - المشتريات (بدون تحويل عملات)
-            final profitSyp = totalSalesSyp - totalPurchasesSyp;
-            final profitUsd = totalSalesUsd - totalPurchasesUsd;
+        if (!snapshot.hasData) {
+          return const ProEmptyState(
+            icon: Icons.analytics_rounded,
+            title: 'لا توجد بيانات',
+            message: 'لم يتم العثور على بيانات للفترة المحددة',
+          );
+        }
 
-            return SingleChildScrollView(
-              padding: EdgeInsets.all(AppSpacing.md),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildDateRangeChip(),
-                  SizedBox(height: AppSpacing.md),
-                  _buildProfitCardsWithLockedPrice(
-                    salesSyp: totalSalesSyp,
-                    salesUsd: totalSalesUsd,
-                    purchasesSyp: totalPurchasesSyp,
-                    purchasesUsd: totalPurchasesUsd,
-                    profitSyp: profitSyp,
-                    profitUsd: profitUsd,
-                  ),
-                ],
+        final report = snapshot.data!;
+        final totalRevenue = report['totalRevenue'] as double;
+        final totalRevenueUsd = report['totalRevenueUsd'] as double;
+        final grossProfit = report['grossProfit'] as double;
+        final grossProfitUsd = report['grossProfitUsd'] as double;
+        final totalExpenses = report['totalExpenses'] as double;
+        final totalExpensesUsd = report['totalExpensesUsd'] as double;
+        final totalSaleReturns = report['totalSaleReturns'] as double;
+        final totalSaleReturnsUsd = report['totalSaleReturnsUsd'] as double;
+        final totalPurchaseReturns = report['totalPurchaseReturns'] as double;
+        final totalPurchaseReturnsUsd =
+            report['totalPurchaseReturnsUsd'] as double;
+        final inventoryAdjustments =
+            report['inventoryAdjustments'] as double? ?? 0;
+        final inventoryAdjustmentsUsd =
+            report['inventoryAdjustmentsUsd'] as double? ?? 0;
+        final netProfit = report['netProfit'] as double;
+        final netProfitUsd = report['netProfitUsd'] as double;
+        final profitMargin = report['profitMargin'] as double;
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.all(AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildDateRangeChip(),
+              SizedBox(height: AppSpacing.md),
+
+              // صافي الربح (العنصر الرئيسي)
+              _buildNetProfitCard(
+                netProfit: netProfit,
+                netProfitUsd: netProfitUsd,
+                profitMargin: profitMargin,
               ),
-            );
-          },
+              SizedBox(height: AppSpacing.md),
+
+              // تفاصيل الإيرادات
+              Text('الإيرادات', style: AppTypography.titleMedium),
+              SizedBox(height: AppSpacing.sm),
+              _buildProfitDetailRow(
+                label: 'إجمالي المبيعات',
+                amountSyp: totalRevenue,
+                amountUsd: totalRevenueUsd,
+                icon: Icons.shopping_cart_rounded,
+                color: AppColors.success,
+              ),
+              _buildProfitDetailRow(
+                label: 'إجمالي الربح (قبل المصاريف)',
+                amountSyp: grossProfit,
+                amountUsd: grossProfitUsd,
+                icon: Icons.trending_up_rounded,
+                color: AppColors.info,
+              ),
+              if (totalPurchaseReturns > 0)
+                _buildProfitDetailRow(
+                  label: 'مرتجعات المشتريات (+)',
+                  amountSyp: totalPurchaseReturns,
+                  amountUsd: totalPurchaseReturnsUsd,
+                  icon: Icons.assignment_return_rounded,
+                  color: AppColors.success,
+                ),
+
+              SizedBox(height: AppSpacing.md),
+
+              // التكاليف والمصروفات
+              Text('التكاليف والمصروفات', style: AppTypography.titleMedium),
+              SizedBox(height: AppSpacing.sm),
+              _buildProfitDetailRow(
+                label: 'المصروفات',
+                amountSyp: totalExpenses,
+                amountUsd: totalExpensesUsd,
+                icon: Icons.receipt_long_rounded,
+                color: AppColors.error,
+                isNegative: true,
+              ),
+              if (totalSaleReturns > 0)
+                _buildProfitDetailRow(
+                  label: 'مرتجعات المبيعات (-)',
+                  amountSyp: totalSaleReturns,
+                  amountUsd: totalSaleReturnsUsd,
+                  icon: Icons.replay_rounded,
+                  color: AppColors.error,
+                  isNegative: true,
+                ),
+              if (inventoryAdjustments != 0)
+                _buildProfitDetailRow(
+                  label: inventoryAdjustments > 0
+                      ? 'مكاسب جرد (+)'
+                      : 'خسائر جرد (-)',
+                  amountSyp: inventoryAdjustments.abs(),
+                  amountUsd: inventoryAdjustmentsUsd.abs(),
+                  icon: Icons.inventory_rounded,
+                  color: inventoryAdjustments > 0
+                      ? AppColors.success
+                      : AppColors.warning,
+                  isNegative: inventoryAdjustments < 0,
+                ),
+            ],
+          ),
         );
       },
+    );
+  }
+
+  Widget _buildNetProfitCard({
+    required double netProfit,
+    required double netProfitUsd,
+    required double profitMargin,
+  }) {
+    final isProfit = netProfit >= 0;
+    final numberFormat = NumberFormat('#,###');
+
+    return Container(
+      padding: EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        gradient: isProfit
+            ? LinearGradient(
+                colors: [
+                  AppColors.success,
+                  AppColors.success.withValues(alpha: 0.8)
+                ],
+              )
+            : LinearGradient(
+                colors: [
+                  AppColors.error,
+                  AppColors.error.withValues(alpha: 0.8)
+                ],
+              ),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                isProfit
+                    ? Icons.trending_up_rounded
+                    : Icons.trending_down_rounded,
+                color: Colors.white,
+                size: 28.sp,
+              ),
+              SizedBox(width: AppSpacing.sm),
+              Text(
+                isProfit ? 'صافي الربح' : 'صافي الخسارة',
+                style: AppTypography.titleMedium.copyWith(
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: AppSpacing.sm),
+          Text(
+            '${numberFormat.format(netProfit.abs())} ل.س',
+            style: AppTypography.displaySmall.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Text(
+            '\$${numberFormat.format(netProfitUsd.abs())}',
+            style: AppTypography.titleMedium.copyWith(
+              color: Colors.white.withValues(alpha: 0.9),
+            ),
+          ),
+          SizedBox(height: AppSpacing.xs),
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: AppSpacing.sm,
+              vertical: AppSpacing.xs,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+            ),
+            child: Text(
+              'هامش الربح: ${profitMargin.toStringAsFixed(1)}%',
+              style: AppTypography.labelMedium.copyWith(
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfitDetailRow({
+    required String label,
+    required double amountSyp,
+    required double amountUsd,
+    required IconData icon,
+    required Color color,
+    bool isNegative = false,
+  }) {
+    final numberFormat = NumberFormat('#,###');
+
+    return ProCard(
+      margin: EdgeInsets.only(bottom: AppSpacing.xs),
+      padding: EdgeInsets.all(AppSpacing.sm),
+      child: Row(
+        children: [
+          Container(
+            width: 36.w,
+            height: 36.h,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+            ),
+            child: Icon(icon, color: color, size: 18.sp),
+          ),
+          SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              label,
+              style: AppTypography.bodyMedium,
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${isNegative ? "-" : ""}${numberFormat.format(amountSyp)} ل.س',
+                style: AppTypography.labelLarge.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: isNegative ? AppColors.error : null,
+                ),
+              ),
+              if (amountUsd > 0)
+                Text(
+                  '${isNegative ? "-" : ""}\$${numberFormat.format(amountUsd)}',
+                  style: AppTypography.labelSmall.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

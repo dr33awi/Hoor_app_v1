@@ -1,23 +1,20 @@
 ﻿// ═══════════════════════════════════════════════════════════════════════════
 // Vouchers Screen Pro - Enterprise Design System
-// Voucher Management Interface
+// Voucher Management Interface (سندات القبض والصرف)
 // Hoor Enterprise Design System 2026
 // ═══════════════════════════════════════════════════════════════════════════
-
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hoor_manager/core/services/currency_service.dart';
 import 'package:hoor_manager/data/repositories/voucher_repository.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
-import '../../core/services/currency_service.dart';
 import '../../core/widgets/widgets.dart';
-import '../../core/widgets/dual_price_display.dart';
 import '../../core/services/export/export_services.dart';
 import '../../core/services/export/export_button.dart';
 import '../../data/database/app_database.dart';
@@ -35,23 +32,11 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
   final _searchController = TextEditingController();
   DateTimeRange? _dateRange;
   bool _isExporting = false;
-  String? _selectedCategoryId; // فلتر فئة المصاريف
-  List<VoucherCategory> _expenseCategories = [];
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
-    _loadExpenseCategories();
-  }
-
-  Future<void> _loadExpenseCategories() async {
-    final voucherRepo = ref.read(voucherRepositoryProvider);
-    final categories =
-        await voucherRepo.getCategoriesByType(VoucherType.expense);
-    if (mounted) {
-      setState(() => _expenseCategories = categories);
-    }
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -66,12 +51,6 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
 
     if (type != null) {
       filtered = filtered.where((v) => v.type == type).toList();
-    }
-
-    // تصفية حسب فئة المصاريف
-    if (type == 'expense' && _selectedCategoryId != null) {
-      filtered =
-          filtered.where((v) => v.categoryId == _selectedCategoryId).toList();
     }
 
     // تصفية حسب نطاق التاريخ
@@ -107,10 +86,6 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
       .where((v) => v.type == 'payment')
       .fold(0.0, (sum, v) => sum + v.amount);
 
-  double _totalExpenses(List<Voucher> vouchers) => vouchers
-      .where((v) => v.type == 'expense')
-      .fold(0.0, (sum, v) => sum + v.amount);
-
   // حساب المبالغ بالدولار باستخدام سعر الصرف المحفوظ
   double _totalReceiptsUsd(List<Voucher> vouchers) =>
       vouchers.where((v) => v.type == 'receipt').fold(
@@ -122,14 +97,6 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
 
   double _totalPaymentsUsd(List<Voucher> vouchers) =>
       vouchers.where((v) => v.type == 'payment').fold(
-          0.0,
-          (sum, v) =>
-              sum +
-              (v.amountUsd ??
-                  (v.exchangeRate > 0 ? v.amount / v.exchangeRate : 0)));
-
-  double _totalExpensesUsd(List<Voucher> vouchers) =>
-      vouchers.where((v) => v.type == 'expense').fold(
           0.0,
           (sum, v) =>
               sum +
@@ -162,7 +129,6 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
                       _buildVoucherList(_filterVouchers(vouchers, null)),
                       _buildVoucherList(_filterVouchers(vouchers, 'receipt')),
                       _buildVoucherList(_filterVouchers(vouchers, 'payment')),
-                      _buildExpenseTab(vouchers),
                     ],
                   ),
                 ),
@@ -241,19 +207,6 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
                     },
                   ),
                 ),
-                SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: _VoucherTypeButton(
-                    icon: Icons.receipt_long_outlined,
-                    label: 'مصاريف',
-                    subtitle: 'مصاريف عامة',
-                    color: AppColors.warning,
-                    onTap: () {
-                      Navigator.pop(context);
-                      context.push('/vouchers/expense/add');
-                    },
-                  ),
-                ),
               ],
             ),
             SizedBox(height: AppSpacing.lg),
@@ -322,7 +275,6 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
   Widget _buildStatsSummary(List<Voucher> vouchers) {
     final receipts = _totalReceipts(vouchers);
     final payments = _totalPayments(vouchers);
-    final expenses = _totalExpenses(vouchers);
 
     return Container(
       margin: EdgeInsets.symmetric(horizontal: AppSpacing.md),
@@ -345,16 +297,6 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
               amountUsd: _totalPaymentsUsd(vouchers),
               icon: Icons.arrow_upward_rounded,
               color: AppColors.error,
-            ),
-          ),
-          SizedBox(width: AppSpacing.xs),
-          Expanded(
-            child: _StatCard(
-              label: 'مصاريف',
-              amount: expenses,
-              amountUsd: _totalExpensesUsd(vouchers),
-              icon: Icons.receipt_outlined,
-              color: AppColors.warning,
             ),
           ),
         ],
@@ -478,8 +420,6 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
           _buildTab('الكل', vouchers.length),
           _buildTab('قبض', vouchers.where((v) => v.type == 'receipt').length),
           _buildTab('صرف', vouchers.where((v) => v.type == 'payment').length),
-          _buildTab(
-              'مصاريف', vouchers.where((v) => v.type == 'expense').length),
         ],
       ),
     );
@@ -542,169 +482,11 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
       },
     );
   }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // تبويب المصاريف الخاص - مع تقسيم حسب الفئات
-  // ═══════════════════════════════════════════════════════════════════════════
-  Widget _buildExpenseTab(List<Voucher> allVouchers) {
-    final expenseVouchers = _filterVouchers(allVouchers, 'expense');
-
-    // تجميع المصاريف حسب الفئة
-    final Map<String?, List<Voucher>> byCategory = {};
-    for (final v in expenseVouchers) {
-      byCategory.putIfAbsent(v.categoryId, () => []).add(v);
-    }
-
-    return Column(
-      children: [
-        // فلتر الفئات
-        _buildCategoryFilter(),
-        // ملخص الفئات (إذا لم يتم اختيار فئة)
-        if (_selectedCategoryId == null && _expenseCategories.isNotEmpty)
-          _buildCategorySummary(byCategory),
-        // قائمة السندات
-        Expanded(
-          child: _buildVoucherList(expenseVouchers),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCategoryFilter() {
-    return Container(
-      height: 40.h,
-      margin: EdgeInsets.symmetric(horizontal: AppSpacing.md),
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        children: [
-          // زر الكل
-          _CategoryChip(
-            label: 'الكل',
-            isSelected: _selectedCategoryId == null,
-            onTap: () => setState(() => _selectedCategoryId = null),
-          ),
-          SizedBox(width: AppSpacing.xs),
-          // الفئات
-          ..._expenseCategories.map((cat) => Padding(
-                padding: EdgeInsets.only(left: AppSpacing.xs),
-                child: _CategoryChip(
-                  label: cat.name,
-                  isSelected: _selectedCategoryId == cat.id,
-                  onTap: () => setState(() => _selectedCategoryId = cat.id),
-                ),
-              )),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCategorySummary(Map<String?, List<Voucher>> byCategory) {
-    return Container(
-      height: 85.h,
-      margin: EdgeInsets.only(top: AppSpacing.sm),
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(horizontal: AppSpacing.md),
-        itemCount: _expenseCategories.length,
-        itemBuilder: (context, index) {
-          final category = _expenseCategories[index];
-          final vouchers = byCategory[category.id] ?? [];
-          final total = vouchers.fold(0.0, (sum, v) => sum + v.amount);
-          final totalUsd = vouchers.fold(
-              0.0,
-              (sum, v) =>
-                  sum +
-                  (v.amountUsd ??
-                      (v.exchangeRate > 0 ? v.amount / v.exchangeRate : 0)));
-
-          return GestureDetector(
-            onTap: () => setState(() => _selectedCategoryId = category.id),
-            child: Container(
-              width: 100.w,
-              margin: EdgeInsets.only(left: AppSpacing.sm),
-              padding: EdgeInsets.all(AppSpacing.sm),
-              decoration: BoxDecoration(
-                color: AppColors.warning.soft,
-                borderRadius: BorderRadius.circular(AppRadius.md),
-                border: Border.all(color: AppColors.warning.border),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    category.name,
-                    style: AppTypography.labelSmall.copyWith(
-                      color: AppColors.warning,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const Spacer(),
-                  Text(
-                    '${(total / 1000).toStringAsFixed(0)}K',
-                    style: AppTypography.labelLarge.copyWith(
-                      color: AppColors.warning,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    '${totalUsd.toStringAsFixed(1)}\$',
-                    style: AppTypography.labelSmall.copyWith(
-                      color: AppColors.textTertiary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Category Chip Widget
+// Stat Card Widget
 // ═══════════════════════════════════════════════════════════════════════════
-class _CategoryChip extends StatelessWidget {
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _CategoryChip({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(
-            horizontal: AppSpacing.md, vertical: AppSpacing.xs),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.warning : AppColors.surface,
-          borderRadius: BorderRadius.circular(AppRadius.full),
-          border: Border.all(
-            color: isSelected ? AppColors.warning : AppColors.border,
-          ),
-        ),
-        child: Text(
-          label,
-          style: AppTypography.labelMedium.copyWith(
-            color: isSelected ? Colors.white : AppColors.textSecondary,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _StatCard extends StatelessWidget {
   final String label;
   final double amount;

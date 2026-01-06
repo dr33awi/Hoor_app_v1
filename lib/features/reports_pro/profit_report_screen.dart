@@ -14,7 +14,6 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/widgets/widgets.dart';
-import '../../data/database/app_database.dart';
 
 class ProfitReportScreen extends ConsumerStatefulWidget {
   const ProfitReportScreen({super.key});
@@ -49,90 +48,30 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen>
     super.dispose();
   }
 
-  Future<void> _loadData() async {
-    setState(() => _isLoading = true);
-
-    try {
-      final db = ref.read(databaseProvider);
-
-      final profitReport = await db.getEnhancedProfitReport(
-        startDate: _startDate,
-        endDate: _endDate,
-      );
-
-      final categoryReport = await db.getProfitByCategory(
-        startDate: _startDate,
-        endDate: _endDate,
-      );
-
-      final customerReport = await db.getProfitByCustomer(
-        startDate: _startDate,
-        endDate: _endDate,
-      );
-
-      final dailyProfitData = await db.getDailyProfitData(
-        startDate: _startDate,
-        endDate: _endDate,
-      );
-
-      final monthlyProfitData = await db.getMonthlyProfitData(
-        year: DateTime.now().year,
-      );
-
-      setState(() {
-        _profitReport = profitReport;
-        _categoryReport = categoryReport;
-        _customerReport = customerReport;
-        _dailyProfitData = dailyProfitData;
-        _monthlyProfitData = monthlyProfitData;
-        _isLoading = false;
-      });
-    } catch (e) {
-      debugPrint('Error loading profit data: $e');
-      setState(() => _isLoading = false);
-    }
-  }
-
-  Future<void> _selectDateRange() async {
-    final picked = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime(2020),
-      lastDate: DateTime.now(),
-      initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
-      locale: const Locale('ar'),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: AppColors.primary,
-              onPrimary: Colors.white,
-              surface: AppColors.surface,
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
-
-    if (picked != null) {
-      setState(() {
-        _startDate = picked.start;
-        _endDate = picked.end;
-      });
-      _loadData();
-    }
-  }
-
-  String _formatPrice(double price) {
-    return '${NumberFormat('#,###').format(price)} ل.س';
-  }
-
-  String _formatUsd(double price) {
-    return '\$${price.toStringAsFixed(2)}';
-  }
-
   @override
   Widget build(BuildContext context) {
+    // ✅ مراقبة تغييرات الفواتير والسندات للتحديث التلقائي
+    ref.listen(invoicesStreamProvider, (previous, next) {
+      // تحديث فقط عند تغيير البيانات الفعلية (ليس عند التحميل الأول)
+      if (previous?.value != null && next.value != null) {
+        if (previous!.value!.length != next.value!.length) {
+          _loadData();
+        }
+      }
+    });
+
+    ref.listen(vouchersStreamProvider, (previous, next) {
+      if (previous?.value != null && next.value != null) {
+        if (previous!.value!.length != next.value!.length) {
+          _loadData();
+        }
+      }
+    });
+
+    return _buildContent();
+  }
+
+  Widget _buildContent() {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
@@ -192,6 +131,89 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen>
         ),
       ),
     );
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final db = ref.read(databaseProvider);
+
+      final profitReport = await db.getEnhancedProfitReport(
+        startDate: _startDate,
+        endDate: _endDate,
+      );
+
+      final categoryReport = await db.getProfitByCategory(
+        startDate: _startDate,
+        endDate: _endDate,
+      );
+
+      final customerReport = await db.getProfitByCustomer(
+        startDate: _startDate,
+        endDate: _endDate,
+      );
+
+      final dailyProfitData = await db.getDailyProfitData(
+        startDate: _startDate,
+        endDate: _endDate,
+      );
+
+      final monthlyProfitData = await db.getMonthlyProfitData(
+        year: DateTime.now().year,
+      );
+
+      setState(() {
+        _profitReport = profitReport;
+        _categoryReport = categoryReport;
+        _customerReport = customerReport;
+        _dailyProfitData = dailyProfitData;
+        _monthlyProfitData = monthlyProfitData;
+        _isLoading = false;
+      });
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error loading profit data: $e');
+      debugPrint('Stack trace: $stackTrace');
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _selectDateRange() async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
+      locale: const Locale('ar'),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: AppColors.primary,
+              onPrimary: Colors.white,
+              surface: AppColors.surface,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _startDate = picked.start;
+        _endDate = picked.end;
+      });
+      _loadData();
+    }
+  }
+
+  String _formatPrice(double price) {
+    return '${NumberFormat('#,###').format(price)} ل.س';
+  }
+
+  String _formatUsd(double price) {
+    return '\$${price.toStringAsFixed(2)}';
   }
 
   Widget _buildSummaryTab() {
@@ -305,6 +327,19 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen>
 
           SizedBox(height: AppSpacing.md),
 
+          // Purchases Section
+          Text('المشتريات', style: AppTypography.titleMedium),
+          SizedBox(height: AppSpacing.sm),
+          _buildStatRow(
+            'إجمالي المشتريات (${report['purchaseCount'] ?? 0} فاتورة)',
+            (report['totalPurchases'] as double?) ?? 0,
+            (report['totalPurchasesUsd'] as double?) ?? 0,
+            Icons.shopping_bag_rounded,
+            AppColors.secondary,
+          ),
+
+          SizedBox(height: AppSpacing.md),
+
           // Costs Section
           Text('التكاليف والمصروفات', style: AppTypography.titleMedium),
           SizedBox(height: AppSpacing.sm),
@@ -329,6 +364,29 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen>
             Icons.replay_rounded,
             AppColors.error,
           ),
+          // فروقات الجرد (مكاسب/خسائر المخزون)
+          if ((report['inventoryAdjustments'] as double? ?? 0) != 0)
+            _buildStatRow(
+              (report['inventoryAdjustments'] as double) > 0
+                  ? 'مكاسب جرد'
+                  : 'خسائر جرد',
+              (report['inventoryAdjustments'] as double).abs(),
+              (report['inventoryAdjustmentsUsd'] as double? ?? 0).abs(),
+              Icons.inventory_rounded,
+              (report['inventoryAdjustments'] as double) > 0
+                  ? AppColors.success
+                  : AppColors.warning,
+            ),
+
+          SizedBox(height: AppSpacing.md),
+
+          // Vouchers Section (سندات القبض والدفع)
+          _buildVouchersSection(report),
+
+          SizedBox(height: AppSpacing.md),
+
+          // Cash Flow Section
+          _buildCashFlowCard(report),
 
           SizedBox(height: AppSpacing.md),
 
@@ -428,6 +486,272 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen>
           ),
         ],
       ),
+    );
+  }
+
+  /// بطاقة التدفق النقدي
+  Widget _buildCashFlowCard(Map<String, dynamic> report) {
+    final cashFlow = (report['cashFlow'] as double?) ?? 0;
+    final cashFlowUsd = (report['cashFlowUsd'] as double?) ?? 0;
+    final totalRevenue = report['totalRevenue'] as double;
+    final totalPurchases = (report['totalPurchases'] as double?) ?? 0;
+    final totalExpenses = report['totalExpenses'] as double;
+    final totalReceipts = (report['totalReceipts'] as double?) ?? 0;
+    final totalPayments = (report['totalPayments'] as double?) ?? 0;
+
+    final isPositive = cashFlow >= 0;
+    final flowColor = isPositive ? AppColors.success : AppColors.error;
+
+    return ProCard(
+      padding: EdgeInsets.all(AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(AppSpacing.xs),
+                decoration: BoxDecoration(
+                  color: flowColor.soft,
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: Icon(
+                  isPositive
+                      ? Icons.trending_up_rounded
+                      : Icons.trending_down_rounded,
+                  color: flowColor,
+                  size: 20.sp,
+                ),
+              ),
+              SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  'التدفق النقدي',
+                  style: AppTypography.titleMedium.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm, vertical: 4.h),
+                decoration: BoxDecoration(
+                  color: flowColor.soft,
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: Text(
+                  isPositive ? 'إيجابي' : 'سلبي',
+                  style: AppTypography.labelSmall.copyWith(
+                    color: flowColor,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: AppSpacing.md),
+
+          // Cash Flow Value
+          Container(
+            padding: EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  flowColor.withOpacity(0.1),
+                  flowColor.withOpacity(0.05),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(color: flowColor.withOpacity(0.3)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'صافي التدفق النقدي',
+                      style: AppTypography.labelMedium.copyWith(
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    Text(
+                      '${NumberFormat('#,###').format(cashFlow.abs())} ل.س',
+                      style: AppTypography.headlineSmall.copyWith(
+                        color: flowColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                if (cashFlowUsd != 0)
+                  Text(
+                    '\$${cashFlowUsd.abs().toStringAsFixed(2)}',
+                    style: AppTypography.titleMedium.copyWith(
+                      color: flowColor.withOpacity(0.8),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          SizedBox(height: AppSpacing.md),
+
+          // Breakdown
+          Text(
+            'المعادلة: مبيعات - مشتريات - مصروفات + قبض - دفع',
+            style: AppTypography.labelSmall.copyWith(
+              color: AppColors.textTertiary,
+            ),
+          ),
+          SizedBox(height: AppSpacing.sm),
+          // الصف الأول: مبيعات - مشتريات - مصروفات
+          Row(
+            children: [
+              Expanded(
+                child: _buildFlowItem(
+                  'المبيعات',
+                  totalRevenue,
+                  AppColors.success,
+                  '+',
+                ),
+              ),
+              Expanded(
+                child: _buildFlowItem(
+                  'المشتريات',
+                  totalPurchases,
+                  AppColors.secondary,
+                  '-',
+                ),
+              ),
+              Expanded(
+                child: _buildFlowItem(
+                  'المصروفات',
+                  totalExpenses,
+                  AppColors.error,
+                  '-',
+                ),
+              ),
+            ],
+          ),
+          // الصف الثاني: سندات القبض والدفع (إذا وجدت)
+          if (totalReceipts > 0 || totalPayments > 0) ...[
+            SizedBox(height: AppSpacing.sm),
+            Row(
+              children: [
+                if (totalReceipts > 0)
+                  Expanded(
+                    child: _buildFlowItem(
+                      'تحصيلات',
+                      totalReceipts,
+                      AppColors.success,
+                      '+',
+                    ),
+                  ),
+                if (totalPayments > 0)
+                  Expanded(
+                    child: _buildFlowItem(
+                      'مدفوعات',
+                      totalPayments,
+                      AppColors.warning,
+                      '-',
+                    ),
+                  ),
+                // إضافة spacer إذا كان هناك عنصر واحد فقط
+                if (totalReceipts == 0 || totalPayments == 0)
+                  const Expanded(child: SizedBox()),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// قسم السندات (القبض والدفع)
+  Widget _buildVouchersSection(Map<String, dynamic> report) {
+    final receiptCount = (report['receiptCount'] as int?) ?? 0;
+    final totalReceipts = (report['totalReceipts'] as double?) ?? 0;
+    final totalReceiptsUsd = (report['totalReceiptsUsd'] as double?) ?? 0;
+    final paymentCount = (report['paymentCount'] as int?) ?? 0;
+    final totalPayments = (report['totalPayments'] as double?) ?? 0;
+    final totalPaymentsUsd = (report['totalPaymentsUsd'] as double?) ?? 0;
+
+    // لا تعرض القسم إذا لم تكن هناك سندات
+    if (receiptCount == 0 && paymentCount == 0) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text('السندات', style: AppTypography.titleMedium),
+            SizedBox(width: AppSpacing.xs),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+              decoration: BoxDecoration(
+                color: AppColors.info.soft,
+                borderRadius: BorderRadius.circular(AppRadius.xs),
+              ),
+              child: Text(
+                'للمعلومية',
+                style: AppTypography.labelSmall.copyWith(
+                  color: AppColors.info,
+                  fontSize: 10.sp,
+                ),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: AppSpacing.xs),
+        Text(
+          'لا تؤثر على صافي الربح - فقط حركة نقدية',
+          style: AppTypography.labelSmall.copyWith(
+            color: AppColors.textTertiary,
+          ),
+        ),
+        SizedBox(height: AppSpacing.sm),
+        if (receiptCount > 0)
+          _buildStatRow(
+            'سندات قبض ($receiptCount سند)',
+            totalReceipts,
+            totalReceiptsUsd,
+            Icons.call_received_rounded,
+            AppColors.success,
+          ),
+        if (paymentCount > 0)
+          _buildStatRow(
+            'سندات دفع ($paymentCount سند)',
+            totalPayments,
+            totalPaymentsUsd,
+            Icons.call_made_rounded,
+            AppColors.warning,
+          ),
+      ],
+    );
+  }
+
+  Widget _buildFlowItem(String label, double value, Color color, String sign) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: AppTypography.labelSmall.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+        SizedBox(height: 4.h),
+        Text(
+          '$sign${NumberFormat('#,###').format(value)}',
+          style: AppTypography.labelMedium.copyWith(
+            color: color,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
     );
   }
 
@@ -909,10 +1233,12 @@ class _ProfitReportScreenState extends ConsumerState<ProfitReportScreen>
 
     // Fill missing months with 0
     final fullData = List.generate(12, (index) {
-      final monthData = _monthlyProfitData!.firstWhere(
-        (item) => item['month'] == index + 1,
-        orElse: () => {'month': index + 1, 'totalProfit': 0.0},
-      );
+      final monthData =
+          _monthlyProfitData!.cast<Map<String, dynamic>>().firstWhere(
+                (item) => item['month'] == index + 1,
+                orElse: () =>
+                    <String, dynamic>{'month': index + 1, 'totalProfit': 0.0},
+              );
       return monthData;
     });
 

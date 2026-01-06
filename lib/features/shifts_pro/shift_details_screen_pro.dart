@@ -11,8 +11,8 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/theme/design_tokens.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/providers/app_providers.dart';
-import '../../core/services/currency_service.dart';
 import '../../core/widgets/widgets.dart';
 import '../../data/database/app_database.dart';
 
@@ -88,7 +88,7 @@ class _ShiftDetailsScreenProState extends ConsumerState<ShiftDetailsScreenPro> {
     // استخدام القيمة المحفوظة بالدولار إن وجدت، وإلا حسابها من سعر الصرف المحفوظ
     final shift = _summary?['shift'] as Shift?;
     final exchangeRate =
-        rate ?? shift?.exchangeRate ?? CurrencyService.currentRate;
+        rate ?? shift?.exchangeRate ?? AppConstants.defaultExchangeRate;
     final usdValue = priceUsd ?? (price / exchangeRate);
     final usd = '\$${usdValue.toStringAsFixed(2)}';
     return '$syp ($usd)';
@@ -96,6 +96,23 @@ class _ShiftDetailsScreenProState extends ConsumerState<ShiftDetailsScreenPro> {
 
   @override
   Widget build(BuildContext context) {
+    // ✅ مراقبة تغييرات الفواتير والسندات للتحديث التلقائي
+    ref.listen(invoicesStreamProvider, (previous, next) {
+      if (previous?.value != null && next.value != null) {
+        if (previous!.value!.length != next.value!.length) {
+          _loadData(); // إعادة تحميل ملخص الوردية عند إضافة/حذف فاتورة
+        }
+      }
+    });
+
+    ref.listen(vouchersStreamProvider, (previous, next) {
+      if (previous?.value != null && next.value != null) {
+        if (previous!.value!.length != next.value!.length) {
+          _loadData(); // إعادة تحميل ملخص الوردية عند إضافة/حذف سند
+        }
+      }
+    });
+
     if (_isLoading) {
       return Scaffold(
         backgroundColor: AppColors.background,
@@ -517,7 +534,7 @@ class _ShiftDetailsScreenProState extends ConsumerState<ShiftDetailsScreenPro> {
     final totalReturns = report['totalReturns'] as double? ?? 0;
 
     final shift = _summary!['shift'] as Shift;
-    final rate = shift.exchangeRate ?? CurrencyService.currentRate;
+    final rate = shift.exchangeRate ?? AppConstants.defaultExchangeRate;
 
     final isProfit = netProfit >= 0;
     final profitColor = isProfit ? AppColors.success : AppColors.error;
@@ -1288,7 +1305,7 @@ class _ShiftDetailsScreenProState extends ConsumerState<ShiftDetailsScreenPro> {
   /// قسم التقرير التفصيلي
   Widget _buildDetailedReportSection() {
     final shift = _summary!['shift'] as Shift;
-    final rate = shift.exchangeRate ?? CurrencyService.currentRate;
+    final rate = shift.exchangeRate ?? AppConstants.defaultExchangeRate;
 
     return ProCard(
       child: Column(
@@ -1803,7 +1820,7 @@ class _ShiftDetailsScreenProState extends ConsumerState<ShiftDetailsScreenPro> {
   }
 
   Widget _buildInvoiceItem(Invoice invoice) {
-    final rate = invoice.exchangeRate ?? CurrencyService.currentRate;
+    final rate = invoice.exchangeRate ?? AppConstants.defaultExchangeRate;
     final totalUsd = invoice.totalUsd ?? (invoice.total / rate);
     final isSale = invoice.type == 'sale';
     final isReturn = invoice.type.contains('return');
@@ -1984,7 +2001,7 @@ class _ShiftDetailsScreenProState extends ConsumerState<ShiftDetailsScreenPro> {
   }
 
   Widget _buildVoucherItem(Voucher voucher) {
-    final rate = voucher.exchangeRate ?? CurrencyService.currentRate;
+    final rate = voucher.exchangeRate ?? AppConstants.defaultExchangeRate;
     final amountUsd = voucher.amountUsd ?? (voucher.amount / rate);
 
     Color typeColor;

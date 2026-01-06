@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../constants/app_constants.dart';
+import 'app_logger.dart';
 import 'connectivity_service.dart';
 import 'network_utils.dart';
 import 'printing/print_settings_service.dart';
@@ -154,7 +155,7 @@ class SyncService extends ChangeNotifier {
     if (_realtimeSyncStarted) return;
 
     _realtimeSyncStarted = true;
-    debugPrint('Starting real-time sync...');
+    appLogger.sync('Starting real-time sync...');
 
     // Start real-time listeners for main data
     _productRepo.startRealtimeSync();
@@ -173,7 +174,7 @@ class SyncService extends ChangeNotifier {
     // Start real-time sync for print settings
     _printSettingsService?.startRealtimeSync();
 
-    debugPrint('Real-time sync started');
+    appLogger.sync('Real-time sync started', success: true);
   }
 
   /// Stop listening to Firestore changes
@@ -181,7 +182,7 @@ class SyncService extends ChangeNotifier {
     if (!_realtimeSyncStarted) return;
 
     _realtimeSyncStarted = false;
-    debugPrint('Stopping real-time sync...');
+    appLogger.sync('Stopping real-time sync...');
 
     _productRepo.stopRealtimeSync();
     _categoryRepo.stopRealtimeSync();
@@ -199,7 +200,7 @@ class SyncService extends ChangeNotifier {
     // Stop real-time sync for print settings
     _printSettingsService?.stopRealtimeSync();
 
-    debugPrint('Real-time sync stopped');
+    appLogger.sync('Real-time sync stopped');
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -240,10 +241,10 @@ class SyncService extends ChangeNotifier {
       _lastSyncTime = DateTime.now();
       _status = SyncStatus.success;
       _lastError = null;
-    } catch (e) {
+    } catch (e, stackTrace) {
       _lastError = e.toString();
       _status = SyncStatus.error;
-      debugPrint('Sync pending error: $e');
+      appLogger.error('Sync pending error', e, stackTrace);
     } finally {
       _isSyncing = false;
       notifyListeners();
@@ -292,10 +293,10 @@ class SyncService extends ChangeNotifier {
 
       _lastSyncTime = DateTime.now();
       _status = SyncStatus.success;
-    } catch (e) {
+    } catch (e, stackTrace) {
       _lastError = e.toString();
       _status = SyncStatus.error;
-      debugPrint('Sync error: $e');
+      appLogger.error('Sync error', e, stackTrace);
     } finally {
       _isSyncing = false;
       notifyListeners();
@@ -368,8 +369,8 @@ class SyncService extends ChangeNotifier {
       }
       _lastSyncTime = DateTime.now();
       notifyListeners();
-    } catch (e) {
-      debugPrint('Sync error for $repoName: $e');
+    } catch (e, stackTrace) {
+      appLogger.error('Sync error for $repoName', e, stackTrace);
       rethrow;
     }
   }

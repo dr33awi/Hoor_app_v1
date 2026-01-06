@@ -14,8 +14,8 @@ import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
 
 import '../../core/theme/design_tokens.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/services/printing/invoice_pdf_generator.dart';
-import '../../core/services/currency_service.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/widgets/widgets.dart';
 import '../../core/widgets/dual_price_display.dart';
@@ -37,6 +37,10 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
   // ignore: unused_field - Reserved for print state
   bool _isPrinting = false;
 
+  // Cache for profit summary
+  Map<String, dynamic>? _profitSummaryCache;
+  List<String>? _lastShiftIds;
+
   List<Shift> _filterShifts(List<Shift> shifts) {
     if (_dateRange == null) return shifts;
 
@@ -45,6 +49,27 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
               .isAfter(_dateRange!.start.subtract(const Duration(days: 1))) &&
           s.openedAt.isBefore(_dateRange!.end.add(const Duration(days: 1)));
     }).toList();
+  }
+
+  /// تحميل ملخص الأرباح للورديات
+  Future<Map<String, dynamic>> _loadProfitSummary(List<Shift> shifts) async {
+    final shiftIds = shifts.map((s) => s.id).toList();
+
+    // Use cache if shift IDs haven't changed
+    if (_lastShiftIds != null &&
+        _lastShiftIds!.length == shiftIds.length &&
+        _lastShiftIds!.every((id) => shiftIds.contains(id)) &&
+        _profitSummaryCache != null) {
+      return _profitSummaryCache!;
+    }
+
+    final shiftRepo = ref.read(shiftRepositoryProvider);
+    final summary = await shiftRepo.getShiftsProfitSummary(shiftIds);
+
+    _lastShiftIds = shiftIds;
+    _profitSummaryCache = summary;
+
+    return summary;
   }
 
   @override
@@ -192,8 +217,8 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
                           shift.totalSales -
                           shift.totalExpenses,
                       // استخدام سعر الصرف المحفوظ مع الوردية
-                      exchangeRate:
-                          shift.exchangeRate ?? CurrencyService.currentRate,
+                      exchangeRate: shift.exchangeRate ??
+                          AppConstants.defaultExchangeRate,
                       sypStyle: AppTypography.labelMedium.copyWith(
                         color: AppColors.success,
                         fontWeight: FontWeight.w600,
@@ -230,7 +255,12 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
       initialDateRange: _dateRange,
     );
     if (range != null) {
-      setState(() => _dateRange = range);
+      setState(() {
+        _dateRange = range;
+        // إبطال الـ cache لإعادة حساب الأرباح
+        _profitSummaryCache = null;
+        _lastShiftIds = null;
+      });
     }
   }
 
@@ -330,17 +360,10 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
   }
 
   Widget _buildStatsSummary(List<Shift> shifts) {
-    // إجماليات بالليرة
+    // إجماليات بالليرة من الورديات (للعرض)
     final totalSales = shifts.fold<double>(0.0, (sum, s) => sum + s.totalSales);
     final totalIncome =
         shifts.fold<double>(0.0, (sum, s) => sum + s.totalIncome);
-    final totalExpenses =
-        shifts.fold<double>(0.0, (sum, s) => sum + s.totalExpenses);
-    final totalReturns =
-        shifts.fold<double>(0.0, (sum, s) => sum + s.totalReturns);
-
-    // صافي الربح = المبيعات + الإيرادات - المصروفات - المرتجعات
-    final netProfit = totalSales + totalIncome - totalExpenses - totalReturns;
 
     // إجماليات بالدولار
     final totalSalesUsd = shifts.fold<double>(0.0, (sum, s) {
@@ -359,147 +382,182 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
       return sum;
     });
 
-    final totalExpensesUsd = shifts.fold<double>(0.0, (sum, s) {
-      if (s.totalExpensesUsd > 0) return sum + s.totalExpensesUsd;
-      if (s.exchangeRate != null && s.exchangeRate! > 0) {
-        return sum + (s.totalExpenses / s.exchangeRate!);
-      }
-      return sum;
-    });
+    // استخدام FutureBuilder لجلب الأرباح الدقيقة
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _loadProfitSummary(shifts),
+      builder: (context, snapshot) {
+        // القيم الافتراضية أثناء التحميل
+        double grossProfit = 0;
+        double grossProfitUsd = 0;
+        double totalExpenses = 0;
+        double totalExpensesUsd = 0;
+        double totalReturns = 0;
+        double totalReturnsUsd = 0;
+        double netProfit = 0;
+        double netProfitUsd = 0;
 
-    final totalReturnsUsd = shifts.fold<double>(0.0, (sum, s) {
-      if (s.totalReturnsUsd > 0) return sum + s.totalReturnsUsd;
-      if (s.exchangeRate != null && s.exchangeRate! > 0) {
-        return sum + (s.totalReturns / s.exchangeRate!);
-      }
-      return sum;
-    });
+        if (snapshot.hasData) {
+          final data = snapshot.data!;
+          grossProfit = data['grossProfit'] ?? 0;
+          grossProfitUsd = data['grossProfitUsd'] ?? 0;
+          totalExpenses = data['totalExpenses'] ?? 0;
+          totalExpensesUsd = data['totalExpensesUsd'] ?? 0;
+          totalReturns = data['totalReturns'] ?? 0;
+          totalReturnsUsd = data['totalReturnsUsd'] ?? 0;
+          netProfit = data['netProfit'] ?? 0;
+          netProfitUsd = data['netProfitUsd'] ?? 0;
+        }
 
-    final netProfitUsd =
-        totalSalesUsd + totalIncomeUsd - totalExpensesUsd - totalReturnsUsd;
-
-    return Container(
-      margin: EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
-      child: Column(
-        children: [
-          // الصف الأول: المبيعات والإيرادات
-          Row(
+        return Container(
+          margin: EdgeInsets.symmetric(horizontal: AppSpacing.screenPadding),
+          child: Column(
             children: [
-              Expanded(
-                child: ProStatCard.horizontal(
-                  label: 'المبيعات',
-                  amount: totalSales,
-                  amountUsd: totalSalesUsd > 0 ? totalSalesUsd : null,
-                  icon: Icons.point_of_sale_rounded,
-                  color: AppColors.success,
+              // الصف الأول: المبيعات والإيرادات
+              Row(
+                children: [
+                  Expanded(
+                    child: ProStatCard.horizontal(
+                      label: 'المبيعات',
+                      amount: totalSales,
+                      amountUsd: totalSalesUsd > 0 ? totalSalesUsd : null,
+                      icon: Icons.point_of_sale_rounded,
+                      color: AppColors.success,
+                    ),
+                  ),
+                  SizedBox(width: AppSpacing.xs),
+                  Expanded(
+                    child: ProStatCard.horizontal(
+                      label: 'الإيرادات',
+                      amount: totalIncome,
+                      amountUsd: totalIncomeUsd > 0 ? totalIncomeUsd : null,
+                      icon: Icons.arrow_downward_rounded,
+                      color: AppColors.info,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: AppSpacing.xs),
+              // الصف الثاني: إجمالي الربح والمصروفات
+              Row(
+                children: [
+                  Expanded(
+                    child: ProStatCard.horizontal(
+                      label: 'إجمالي الربح',
+                      amount: grossProfit,
+                      amountUsd: grossProfitUsd > 0 ? grossProfitUsd : null,
+                      icon: Icons.show_chart_rounded,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  SizedBox(width: AppSpacing.xs),
+                  Expanded(
+                    child: ProStatCard.horizontal(
+                      label: 'المصروفات',
+                      amount: totalExpenses,
+                      amountUsd: totalExpensesUsd > 0 ? totalExpensesUsd : null,
+                      icon: Icons.arrow_upward_rounded,
+                      color: AppColors.warning,
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: AppSpacing.xs),
+              // الصف الثالث: المرتجعات
+              if (totalReturns > 0)
+                Padding(
+                  padding: EdgeInsets.only(bottom: AppSpacing.xs),
+                  child: ProStatCard.horizontal(
+                    label: 'المرتجعات',
+                    amount: totalReturns,
+                    amountUsd: totalReturnsUsd > 0 ? totalReturnsUsd : null,
+                    icon: Icons.undo_rounded,
+                    color: AppColors.error,
+                  ),
                 ),
-              ),
-              SizedBox(width: AppSpacing.xs),
-              Expanded(
-                child: ProStatCard.horizontal(
-                  label: 'الإيرادات',
-                  amount: totalIncome,
-                  amountUsd: totalIncomeUsd > 0 ? totalIncomeUsd : null,
-                  icon: Icons.arrow_downward_rounded,
-                  color: AppColors.info,
+              // صافي الربح
+              Container(
+                padding: EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: netProfit >= 0
+                      ? AppColors.success.soft
+                      : AppColors.error.soft,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  border: Border.all(
+                    color: netProfit >= 0
+                        ? AppColors.success.withValues(alpha: 0.3)
+                        : AppColors.error.withValues(alpha: 0.3),
+                  ),
                 ),
-              ),
-            ],
-          ),
-          SizedBox(height: AppSpacing.xs),
-          // الصف الثاني: المصروفات والمرتجعات
-          Row(
-            children: [
-              Expanded(
-                child: ProStatCard.horizontal(
-                  label: 'المصروفات',
-                  amount: totalExpenses,
-                  amountUsd: totalExpensesUsd > 0 ? totalExpensesUsd : null,
-                  icon: Icons.arrow_upward_rounded,
-                  color: AppColors.warning,
-                ),
-              ),
-              SizedBox(width: AppSpacing.xs),
-              Expanded(
-                child: ProStatCard.horizontal(
-                  label: 'المرتجعات',
-                  amount: totalReturns,
-                  amountUsd: totalReturnsUsd > 0 ? totalReturnsUsd : null,
-                  icon: Icons.undo_rounded,
-                  color: AppColors.error,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: AppSpacing.xs),
-          // صافي الربح
-          Container(
-            padding: EdgeInsets.symmetric(
-                horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-            decoration: BoxDecoration(
-              color: netProfit >= 0
-                  ? AppColors.success.soft
-                  : AppColors.error.soft,
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              border: Border.all(
-                color: netProfit >= 0
-                    ? AppColors.success.withValues(alpha: 0.3)
-                    : AppColors.error.withValues(alpha: 0.3),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Icon(
-                      netProfit >= 0
-                          ? Icons.trending_up_rounded
-                          : Icons.trending_down_rounded,
-                      color:
-                          netProfit >= 0 ? AppColors.success : AppColors.error,
-                      size: 20.sp,
-                    ),
-                    SizedBox(width: AppSpacing.sm),
-                    Text(
-                      'صافي الربح',
-                      style: AppTypography.titleSmall.copyWith(
-                        color: netProfit >= 0
-                            ? AppColors.success
-                            : AppColors.error,
-                      ),
-                    ),
-                  ],
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '${netProfit.toStringAsFixed(0)} ل.س',
-                      style: AppTypography.titleMedium.copyWith(
-                        color: netProfit >= 0
-                            ? AppColors.success
-                            : AppColors.error,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    if (netProfitUsd != 0)
-                      Text(
-                        '\$${netProfitUsd.toStringAsFixed(2)}',
-                        style: AppTypography.labelSmall.copyWith(
-                          color: (netProfit >= 0
-                                  ? AppColors.success
-                                  : AppColors.error)
-                              .withValues(alpha: 0.7),
+                    Row(
+                      children: [
+                        Icon(
+                          netProfit >= 0
+                              ? Icons.trending_up_rounded
+                              : Icons.trending_down_rounded,
+                          color: netProfit >= 0
+                              ? AppColors.success
+                              : AppColors.error,
+                          size: 20.sp,
                         ),
-                      ),
+                        SizedBox(width: AppSpacing.sm),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              netProfit >= 0 ? 'صافي الربح' : 'صافي الخسارة',
+                              style: AppTypography.titleSmall.copyWith(
+                                color: netProfit >= 0
+                                    ? AppColors.success
+                                    : AppColors.error,
+                              ),
+                            ),
+                            if (snapshot.connectionState ==
+                                ConnectionState.waiting)
+                              Text(
+                                'جاري الحساب...',
+                                style: AppTypography.labelSmall.copyWith(
+                                  color: AppColors.textTertiary,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '${netProfit.toStringAsFixed(0)} ل.س',
+                          style: AppTypography.titleMedium.copyWith(
+                            color: netProfit >= 0
+                                ? AppColors.success
+                                : AppColors.error,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        if (netProfitUsd != 0)
+                          Text(
+                            '\$${netProfitUsd.toStringAsFixed(2)}',
+                            style: AppTypography.labelSmall.copyWith(
+                              color: (netProfit >= 0
+                                      ? AppColors.success
+                                      : AppColors.error)
+                                  .withValues(alpha: 0.7),
+                            ),
+                          ),
+                      ],
+                    ),
                   ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -660,7 +718,7 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
     // استخدام القيم المحفوظة بالدولار
     final openingUsd = shift.openingBalanceUsd ??
         (shift.openingBalance /
-            (shift.exchangeRate ?? CurrencyService.currentRate));
+            (shift.exchangeRate ?? AppConstants.defaultExchangeRate));
     final salesUsd = shift.totalSalesUsd;
     final expensesUsd = shift.totalExpensesUsd;
 
@@ -717,8 +775,8 @@ class _ShiftCard extends StatelessWidget {
     final dateFormat = DateFormat('MM/dd HH:mm', 'ar');
     final isOpen = shift.status == 'open';
     final statusColor = isOpen ? AppColors.success : AppColors.textSecondary;
-    // استخدام سعر الصرف المحفوظ مع الوردية أو الحالي كـ fallback
-    final rate = shift.exchangeRate ?? CurrencyService.currentRate;
+    // استخدام سعر الصرف المحفوظ مع الوردية أو الافتراضي كـ fallback
+    final rate = shift.exchangeRate ?? AppConstants.defaultExchangeRate;
 
     // حساب مدة الوردية
     final endTime = shift.closedAt ?? DateTime.now();
@@ -906,8 +964,8 @@ class _ShiftCardOld extends StatelessWidget {
     final dateFormat = DateFormat('yyyy/MM/dd HH:mm', 'ar');
     final isOpen = shift.status == 'open';
     final statusColor = isOpen ? AppColors.success : AppColors.textSecondary;
-    // استخدام سعر الصرف المحفوظ مع الوردية أو الحالي كـ fallback
-    final rate = shift.exchangeRate ?? CurrencyService.currentRate;
+    // استخدام سعر الصرف المحفوظ مع الوردية أو الافتراضي كـ fallback
+    final rate = shift.exchangeRate ?? AppConstants.defaultExchangeRate;
 
     return ProCard(
       onTap: () => context.push('/shifts/${shift.id}'),

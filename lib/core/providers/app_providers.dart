@@ -23,6 +23,8 @@ import '../services/currency_service.dart';
 import '../services/accounting_service.dart';
 import '../services/connectivity_service.dart';
 import '../services/printing/print_settings_service.dart';
+import '../services/price_locking_service.dart';
+import '../../features/expenses_pro/data/expense_repository.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CORE SERVICES PROVIDERS
@@ -41,6 +43,54 @@ final accountingServiceProvider =
     Provider<AccountingService>((ref) => getIt<AccountingService>());
 final printSettingsServiceProvider =
     Provider<PrintSettingsService>((ref) => getIt<PrintSettingsService>());
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PRICE LOCKING SERVICE PROVIDER
+// ═══════════════════════════════════════════════════════════════════════════
+
+final priceLockingServiceProvider =
+    Provider<PriceLockingService>((ref) => getIt<PriceLockingService>());
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EXPENSE REPOSITORY PROVIDER
+// ═══════════════════════════════════════════════════════════════════════════
+
+final expenseRepositoryProvider = Provider<ExpenseRepository>((ref) {
+  final database = ref.watch(databaseProvider);
+  final firestore = ref.watch(voucherRepositoryProvider).firestore;
+  final currencyService = ref.watch(currencyServiceProvider);
+  final priceLockingService = ref.watch(priceLockingServiceProvider);
+
+  final repo = ExpenseRepository(
+    database: database,
+    firestore: firestore,
+    currencyService: currencyService,
+    priceLockingService: priceLockingService,
+  );
+
+  // ربط مع الـ Repositories الأخرى
+  repo.setIntegrationRepositories(
+    cashRepo: ref.watch(cashRepositoryProvider),
+    shiftRepo: ref.watch(shiftRepositoryProvider),
+  );
+
+  return repo;
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EXPENSE STREAM PROVIDERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// All Expenses Stream
+final expensesStreamProvider = StreamProvider<List<Voucher>>((ref) {
+  return ref.watch(expenseRepositoryProvider).watchAllExpenses();
+});
+
+/// Expense Categories Stream
+final expenseCategoriesStreamProvider =
+    StreamProvider<List<VoucherCategory>>((ref) {
+  return ref.watch(expenseRepositoryProvider).watchCategories();
+});
 
 // ═══════════════════════════════════════════════════════════════════════════
 // REPOSITORY PROVIDERS

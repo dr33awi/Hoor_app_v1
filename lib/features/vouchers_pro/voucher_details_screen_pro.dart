@@ -11,10 +11,10 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/theme/design_tokens.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/widgets/widgets.dart';
 import '../../core/widgets/dual_price_display.dart';
-import '../../core/services/currency_service.dart';
 import '../../core/services/printing/voucher_pdf_generator.dart';
 import '../../core/services/printing/invoice_pdf_generator.dart';
 import '../../core/services/printing/print_settings_service.dart';
@@ -128,6 +128,17 @@ class _VoucherDetailsScreenProState
 
   @override
   Widget build(BuildContext context) {
+    // ✅ مراقبة تغييرات السندات للتحديث التلقائي
+    ref.listen(vouchersStreamProvider, (previous, next) {
+      if (next.value != null && _voucher != null) {
+        final updatedVoucher =
+            next.value!.where((v) => v.id == widget.voucherId).firstOrNull;
+        if (updatedVoucher != null && updatedVoucher != _voucher) {
+          _loadVoucherData();
+        }
+      }
+    });
+
     if (_isLoading) {
       return Scaffold(
         backgroundColor: AppColors.background,
@@ -423,8 +434,8 @@ class _VoucherDetailsScreenProState
                 children: [
                   Builder(
                     builder: (context) {
-                      final exchangeRate =
-                          _voucher?.exchangeRate ?? CurrencyService.currentRate;
+                      final exchangeRate = _voucher?.exchangeRate ??
+                          AppConstants.defaultExchangeRate;
                       final balanceUsd = exchangeRate > 0
                           ? balance.abs() / exchangeRate
                           : null;

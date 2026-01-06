@@ -544,10 +544,12 @@ class AppDatabase extends _$AppDatabase {
       whereClause += " AND i.shift_id = '$shiftId'";
     }
     if (startDate != null) {
-      whereClause += " AND i.created_at >= '${startDate.toIso8601String()}'";
+      final startTimestamp = startDate.millisecondsSinceEpoch ~/ 1000;
+      whereClause += " AND i.created_at >= $startTimestamp";
     }
     if (endDate != null) {
-      whereClause += " AND i.created_at <= '${endDate.toIso8601String()}'";
+      final endTimestamp = endDate.millisecondsSinceEpoch ~/ 1000;
+      whereClause += " AND i.created_at <= $endTimestamp";
     }
 
     final result = await customSelect(
@@ -577,12 +579,15 @@ class AppDatabase extends _$AppDatabase {
               'productId': row.read<String>('product_id'),
               'productName': row.read<String>('product_name'),
               'barcode': row.read<String?>('barcode'),
-              'totalQuantity': (row.read<num?>('total_quantity') ?? 0).toInt(),
-              'totalRevenue': (row.read<num?>('total_revenue') ?? 0).toDouble(),
+              'totalQuantity':
+                  ((row.data['total_quantity'] ?? 0) as num).toInt(),
+              'totalRevenue':
+                  ((row.data['total_revenue'] ?? 0) as num).toDouble(),
               'totalRevenueUsd':
-                  (row.read<num?>('total_revenue_usd') ?? 0).toDouble(),
-              'totalProfit': (row.read<num?>('total_profit') ?? 0).toDouble(),
-              'invoiceCount': (row.read<num?>('invoice_count') ?? 0).toInt(),
+                  ((row.data['total_revenue_usd'] ?? 0) as num).toDouble(),
+              'totalProfit':
+                  ((row.data['total_profit'] ?? 0) as num).toDouble(),
+              'invoiceCount': ((row.data['invoice_count'] ?? 0) as num).toInt(),
             })
         .toList();
   }
@@ -599,10 +604,12 @@ class AppDatabase extends _$AppDatabase {
       whereClause += " AND i.shift_id = '$shiftId'";
     }
     if (startDate != null) {
-      whereClause += " AND i.created_at >= '${startDate.toIso8601String()}'";
+      final startTimestamp = startDate.millisecondsSinceEpoch ~/ 1000;
+      whereClause += " AND i.created_at >= $startTimestamp";
     }
     if (endDate != null) {
-      whereClause += " AND i.created_at <= '${endDate.toIso8601String()}'";
+      final endTimestamp = endDate.millisecondsSinceEpoch ~/ 1000;
+      whereClause += " AND i.created_at <= $endTimestamp";
     }
 
     // إجمالي المبيعات والأرباح
@@ -628,10 +635,12 @@ class AppDatabase extends _$AppDatabase {
       expenseWhere += " AND shift_id = '$shiftId'";
     }
     if (startDate != null) {
-      expenseWhere += " AND created_at >= '${startDate.toIso8601String()}'";
+      final startTimestamp = startDate.millisecondsSinceEpoch ~/ 1000;
+      expenseWhere += " AND created_at >= $startTimestamp";
     }
     if (endDate != null) {
-      expenseWhere += " AND created_at <= '${endDate.toIso8601String()}'";
+      final endTimestamp = endDate.millisecondsSinceEpoch ~/ 1000;
+      expenseWhere += " AND created_at <= $endTimestamp";
     }
 
     final expenseResult = await customSelect(
@@ -651,10 +660,12 @@ class AppDatabase extends _$AppDatabase {
       returnWhere += " AND i.shift_id = '$shiftId'";
     }
     if (startDate != null) {
-      returnWhere += " AND i.created_at >= '${startDate.toIso8601String()}'";
+      final startTimestamp = startDate.millisecondsSinceEpoch ~/ 1000;
+      returnWhere += " AND i.created_at >= $startTimestamp";
     }
     if (endDate != null) {
-      returnWhere += " AND i.created_at <= '${endDate.toIso8601String()}'";
+      final endTimestamp = endDate.millisecondsSinceEpoch ~/ 1000;
+      returnWhere += " AND i.created_at <= $endTimestamp";
     }
 
     final returnResult = await customSelect(
@@ -668,29 +679,29 @@ class AppDatabase extends _$AppDatabase {
       readsFrom: {invoices},
     ).getSingleOrNull();
 
-    final totalRevenue =
-        (salesResult?.read<num?>('total_revenue') ?? 0).toDouble();
+    final salesData = salesResult?.data ?? {};
+    final expenseData = expenseResult?.data ?? {};
+    final returnData = returnResult?.data ?? {};
+
+    final totalRevenue = ((salesData['total_revenue'] ?? 0) as num).toDouble();
     final totalRevenueUsd =
-        (salesResult?.read<num?>('total_revenue_usd') ?? 0).toDouble();
-    final grossProfit =
-        (salesResult?.read<num?>('gross_profit') ?? 0).toDouble();
+        ((salesData['total_revenue_usd'] ?? 0) as num).toDouble();
+    final grossProfit = ((salesData['gross_profit'] ?? 0) as num).toDouble();
     final totalExpenses =
-        (expenseResult?.read<num?>('total_expenses') ?? 0).toDouble();
+        ((expenseData['total_expenses'] ?? 0) as num).toDouble();
     final totalExpensesUsd =
-        (expenseResult?.read<num?>('total_expenses_usd') ?? 0).toDouble();
-    final totalReturns =
-        (returnResult?.read<num?>('total_returns') ?? 0).toDouble();
+        ((expenseData['total_expenses_usd'] ?? 0) as num).toDouble();
+    final totalReturns = ((returnData['total_returns'] ?? 0) as num).toDouble();
     final totalReturnsUsd =
-        (returnResult?.read<num?>('total_returns_usd') ?? 0).toDouble();
+        ((returnData['total_returns_usd'] ?? 0) as num).toDouble();
 
     final netProfit = grossProfit - totalExpenses - totalReturns;
     final profitMargin =
         totalRevenue > 0 ? (netProfit / totalRevenue * 100) : 0.0;
 
     return {
-      'totalInvoices': (salesResult?.read<num?>('total_invoices') ?? 0).toInt(),
-      'totalItemsSold':
-          (salesResult?.read<num?>('total_items_sold') ?? 0).toInt(),
+      'totalInvoices': ((salesData['total_invoices'] ?? 0) as num).toInt(),
+      'totalItemsSold': ((salesData['total_items_sold'] ?? 0) as num).toInt(),
       'totalRevenue': totalRevenue,
       'totalRevenueUsd': totalRevenueUsd,
       'grossProfit': grossProfit,
@@ -708,18 +719,20 @@ class AppDatabase extends _$AppDatabase {
     required DateTime startDate,
     required DateTime endDate,
   }) async {
+    final startTimestamp = startDate.millisecondsSinceEpoch ~/ 1000;
+    final endTimestamp = endDate.millisecondsSinceEpoch ~/ 1000;
     final result = await customSelect(
       '''
       SELECT 
-        DATE(i.created_at) as sale_date,
+        DATE(i.created_at, 'unixepoch') as sale_date,
         COUNT(DISTINCT i.id) as invoice_count,
         COALESCE(SUM(i.total), 0.0) as total_sales,
         COALESCE(SUM(i.total_usd), 0.0) as total_sales_usd
       FROM invoices i
       WHERE i.type = 'sale'
-        AND i.created_at >= '${startDate.toIso8601String()}'
-        AND i.created_at <= '${endDate.toIso8601String()}'
-      GROUP BY DATE(i.created_at)
+        AND i.created_at >= $startTimestamp
+        AND i.created_at <= $endTimestamp
+      GROUP BY DATE(i.created_at, 'unixepoch')
       ORDER BY sale_date ASC
       ''',
       readsFrom: {invoices},
@@ -728,12 +741,97 @@ class AppDatabase extends _$AppDatabase {
     return result
         .map((row) => {
               'date': row.read<String>('sale_date'),
-              'invoiceCount': (row.read<num?>('invoice_count') ?? 0).toInt(),
-              'totalSales': (row.read<num?>('total_sales') ?? 0).toDouble(),
+              'invoiceCount': ((row.data['invoice_count'] ?? 0) as num).toInt(),
+              'totalSales': ((row.data['total_sales'] ?? 0) as num).toDouble(),
               'totalSalesUsd':
-                  (row.read<num?>('total_sales_usd') ?? 0).toDouble(),
+                  ((row.data['total_sales_usd'] ?? 0) as num).toDouble(),
             })
         .toList();
+  }
+
+  /// حساب إجمالي الأرباح لمجموعة من الورديات (بطريقة محسّنة)
+  Future<Map<String, dynamic>> getShiftsProfitSummary(
+      List<String> shiftIds) async {
+    if (shiftIds.isEmpty) {
+      return {
+        'grossProfit': 0.0,
+        'grossProfitUsd': 0.0,
+        'totalExpenses': 0.0,
+        'totalExpensesUsd': 0.0,
+        'totalReturns': 0.0,
+        'totalReturnsUsd': 0.0,
+        'netProfit': 0.0,
+        'netProfitUsd': 0.0,
+      };
+    }
+
+    final shiftIdsStr = shiftIds.map((id) => "'$id'").join(',');
+
+    // إجمالي الربح من المبيعات (سعر البيع - سعر التكلفة)
+    final salesResult = await customSelect(
+      '''
+      SELECT 
+        COALESCE(SUM((ii.unit_price - COALESCE(ii.cost_price, ii.purchase_price, 0)) * ii.quantity), 0) as gross_profit,
+        COALESCE(SUM((COALESCE(ii.unit_price_usd, 0) - COALESCE(ii.cost_price_usd, 0)) * ii.quantity), 0) as gross_profit_usd
+      FROM invoice_items ii
+      INNER JOIN invoices i ON ii.invoice_id = i.id
+      WHERE i.type = 'sale' AND i.shift_id IN ($shiftIdsStr)
+      ''',
+      readsFrom: {invoiceItems, invoices},
+    ).getSingleOrNull();
+
+    // إجمالي المصروفات
+    final expenseResult = await customSelect(
+      '''
+      SELECT 
+        COALESCE(SUM(amount), 0) as total_expenses,
+        COALESCE(SUM(amount_usd), 0) as total_expenses_usd
+      FROM cash_movements
+      WHERE type = 'expense' AND shift_id IN ($shiftIdsStr)
+      ''',
+      readsFrom: {cashMovements},
+    ).getSingleOrNull();
+
+    // إجمالي مرتجعات المبيعات
+    final returnResult = await customSelect(
+      '''
+      SELECT 
+        COALESCE(SUM(total), 0) as total_returns,
+        COALESCE(SUM(total_usd), 0) as total_returns_usd
+      FROM invoices
+      WHERE type = 'sale_return' AND shift_id IN ($shiftIdsStr)
+      ''',
+      readsFrom: {invoices},
+    ).getSingleOrNull();
+
+    final salesData = salesResult?.data ?? {};
+    final expenseData = expenseResult?.data ?? {};
+    final returnData = returnResult?.data ?? {};
+
+    final grossProfit = ((salesData['gross_profit'] ?? 0) as num).toDouble();
+    final grossProfitUsd =
+        ((salesData['gross_profit_usd'] ?? 0) as num).toDouble();
+    final totalExpenses =
+        ((expenseData['total_expenses'] ?? 0) as num).toDouble();
+    final totalExpensesUsd =
+        ((expenseData['total_expenses_usd'] ?? 0) as num).toDouble();
+    final totalReturns = ((returnData['total_returns'] ?? 0) as num).toDouble();
+    final totalReturnsUsd =
+        ((returnData['total_returns_usd'] ?? 0) as num).toDouble();
+
+    final netProfit = grossProfit - totalExpenses - totalReturns;
+    final netProfitUsd = grossProfitUsd - totalExpensesUsd - totalReturnsUsd;
+
+    return {
+      'grossProfit': grossProfit,
+      'grossProfitUsd': grossProfitUsd,
+      'totalExpenses': totalExpenses,
+      'totalExpensesUsd': totalExpensesUsd,
+      'totalReturns': totalReturns,
+      'totalReturnsUsd': totalReturnsUsd,
+      'netProfit': netProfit,
+      'netProfitUsd': netProfitUsd,
+    };
   }
 
   /// تقرير الأرباح المحسن (يشمل الخصومات والمرتجعات)
@@ -747,10 +845,12 @@ class AppDatabase extends _$AppDatabase {
       whereClause += " AND i.shift_id = '$shiftId'";
     }
     if (startDate != null) {
-      whereClause += " AND i.created_at >= '${startDate.toIso8601String()}'";
+      final startTimestamp = startDate.millisecondsSinceEpoch ~/ 1000;
+      whereClause += " AND i.created_at >= $startTimestamp";
     }
     if (endDate != null) {
-      whereClause += " AND i.created_at <= '${endDate.toIso8601String()}'";
+      final endTimestamp = endDate.millisecondsSinceEpoch ~/ 1000;
+      whereClause += " AND i.created_at <= $endTimestamp";
     }
 
     // إجمالي المبيعات والأرباح (باستخدام cost_price المحفوظ إن وجد)
@@ -775,10 +875,14 @@ class AppDatabase extends _$AppDatabase {
     // المصروفات
     String expenseWhere = "WHERE type = 'expense'";
     if (shiftId != null) expenseWhere += " AND shift_id = '$shiftId'";
-    if (startDate != null)
-      expenseWhere += " AND created_at >= '${startDate.toIso8601String()}'";
-    if (endDate != null)
-      expenseWhere += " AND created_at <= '${endDate.toIso8601String()}'";
+    if (startDate != null) {
+      final startTimestamp = startDate.millisecondsSinceEpoch ~/ 1000;
+      expenseWhere += " AND created_at >= $startTimestamp";
+    }
+    if (endDate != null) {
+      final endTimestamp = endDate.millisecondsSinceEpoch ~/ 1000;
+      expenseWhere += " AND created_at <= $endTimestamp";
+    }
 
     final expenseResult = await customSelect(
       '''
@@ -794,11 +898,14 @@ class AppDatabase extends _$AppDatabase {
     // مرتجعات المبيعات
     String saleReturnWhere = "WHERE i.type = 'sale_return'";
     if (shiftId != null) saleReturnWhere += " AND i.shift_id = '$shiftId'";
-    if (startDate != null)
-      saleReturnWhere +=
-          " AND i.created_at >= '${startDate.toIso8601String()}'";
-    if (endDate != null)
-      saleReturnWhere += " AND i.created_at <= '${endDate.toIso8601String()}'";
+    if (startDate != null) {
+      final startTimestamp = startDate.millisecondsSinceEpoch ~/ 1000;
+      saleReturnWhere += " AND i.created_at >= $startTimestamp";
+    }
+    if (endDate != null) {
+      final endTimestamp = endDate.millisecondsSinceEpoch ~/ 1000;
+      saleReturnWhere += " AND i.created_at <= $endTimestamp";
+    }
 
     final saleReturnResult = await customSelect(
       '''
@@ -814,12 +921,14 @@ class AppDatabase extends _$AppDatabase {
     // مرتجعات المشتريات (تعتبر ربح)
     String purchaseReturnWhere = "WHERE i.type = 'purchase_return'";
     if (shiftId != null) purchaseReturnWhere += " AND i.shift_id = '$shiftId'";
-    if (startDate != null)
-      purchaseReturnWhere +=
-          " AND i.created_at >= '${startDate.toIso8601String()}'";
-    if (endDate != null)
-      purchaseReturnWhere +=
-          " AND i.created_at <= '${endDate.toIso8601String()}'";
+    if (startDate != null) {
+      final startTimestamp = startDate.millisecondsSinceEpoch ~/ 1000;
+      purchaseReturnWhere += " AND i.created_at >= $startTimestamp";
+    }
+    if (endDate != null) {
+      final endTimestamp = endDate.millisecondsSinceEpoch ~/ 1000;
+      purchaseReturnWhere += " AND i.created_at <= $endTimestamp";
+    }
 
     final purchaseReturnResult = await customSelect(
       '''
@@ -832,11 +941,122 @@ class AppDatabase extends _$AppDatabase {
       readsFrom: {invoices},
     ).getSingleOrNull();
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // فواتير المشتريات
+    // ═══════════════════════════════════════════════════════════════════════
+    String purchaseWhere = "WHERE i.type = 'purchase'";
+    if (shiftId != null) purchaseWhere += " AND i.shift_id = '$shiftId'";
+    if (startDate != null) {
+      final startTimestamp = startDate.millisecondsSinceEpoch ~/ 1000;
+      purchaseWhere += " AND i.created_at >= $startTimestamp";
+    }
+    if (endDate != null) {
+      final endTimestamp = endDate.millisecondsSinceEpoch ~/ 1000;
+      purchaseWhere += " AND i.created_at <= $endTimestamp";
+    }
+
+    final purchaseResult = await customSelect(
+      '''
+      SELECT 
+        COUNT(DISTINCT i.id) as purchase_count,
+        COALESCE(SUM(i.total), 0) as total_purchases,
+        COALESCE(SUM(i.total_usd), 0) as total_purchases_usd
+      FROM invoices i
+      $purchaseWhere
+      ''',
+      readsFrom: {invoices},
+    ).getSingleOrNull();
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // فروقات الجرد (مكاسب/خسائر المخزون)
+    // ═══════════════════════════════════════════════════════════════════════
+    String inventoryAdjWhere = "WHERE ia.status = 'approved'";
+    if (startDate != null) {
+      final startTimestamp = startDate.millisecondsSinceEpoch ~/ 1000;
+      inventoryAdjWhere += " AND ia.created_at >= $startTimestamp";
+    }
+    if (endDate != null) {
+      final endTimestamp = endDate.millisecondsSinceEpoch ~/ 1000;
+      inventoryAdjWhere += " AND ia.created_at <= $endTimestamp";
+    }
+
+    final inventoryAdjResult = await customSelect(
+      '''
+      SELECT 
+        COALESCE(SUM(CASE 
+          WHEN ia.type = 'increase' THEN ia.total_value 
+          WHEN ia.type IN ('decrease', 'write_off') THEN -ia.total_value
+          WHEN ia.type = 'correction' THEN 
+            CASE WHEN ia.total_value >= 0 THEN ia.total_value ELSE ia.total_value END
+          ELSE 0 
+        END), 0) as inventory_adj_value
+      FROM inventory_adjustments ia
+      $inventoryAdjWhere
+      ''',
+      readsFrom: {inventoryAdjustments},
+    ).getSingleOrNull();
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // سندات القبض (تحصيلات من العملاء)
+    // ═══════════════════════════════════════════════════════════════════════
+    String receiptWhere = "WHERE type = 'receipt'";
+    if (shiftId != null) receiptWhere += " AND shift_id = '$shiftId'";
+    if (startDate != null) {
+      final startTimestamp = startDate.millisecondsSinceEpoch ~/ 1000;
+      receiptWhere += " AND created_at >= $startTimestamp";
+    }
+    if (endDate != null) {
+      final endTimestamp = endDate.millisecondsSinceEpoch ~/ 1000;
+      receiptWhere += " AND created_at <= $endTimestamp";
+    }
+
+    final receiptResult = await customSelect(
+      '''
+      SELECT 
+        COUNT(*) as receipt_count,
+        COALESCE(SUM(amount), 0) as total_receipts,
+        COALESCE(SUM(amount_usd), 0) as total_receipts_usd
+      FROM vouchers
+      $receiptWhere
+      ''',
+      readsFrom: {vouchers},
+    ).getSingleOrNull();
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // سندات الدفع (مدفوعات للموردين)
+    // ═══════════════════════════════════════════════════════════════════════
+    String paymentWhere = "WHERE type = 'payment'";
+    if (shiftId != null) paymentWhere += " AND shift_id = '$shiftId'";
+    if (startDate != null) {
+      final startTimestamp = startDate.millisecondsSinceEpoch ~/ 1000;
+      paymentWhere += " AND created_at >= $startTimestamp";
+    }
+    if (endDate != null) {
+      final endTimestamp = endDate.millisecondsSinceEpoch ~/ 1000;
+      paymentWhere += " AND created_at <= $endTimestamp";
+    }
+
+    final paymentResult = await customSelect(
+      '''
+      SELECT 
+        COUNT(*) as payment_count,
+        COALESCE(SUM(amount), 0) as total_payments,
+        COALESCE(SUM(amount_usd), 0) as total_payments_usd
+      FROM vouchers
+      $paymentWhere
+      ''',
+      readsFrom: {vouchers},
+    ).getSingleOrNull();
+
     // استخراج القيم
     final salesData = salesResult?.data ?? {};
     final expenseData = expenseResult?.data ?? {};
+    final purchaseData = purchaseResult?.data ?? {};
     final saleReturnData = saleReturnResult?.data ?? {};
     final purchaseReturnData = purchaseReturnResult?.data ?? {};
+    final inventoryAdjData = inventoryAdjResult?.data ?? {};
+    final receiptData = receiptResult?.data ?? {};
+    final paymentData = paymentResult?.data ?? {};
 
     final totalRevenue = ((salesData['total_revenue'] ?? 0) as num).toDouble();
     final totalRevenueUsd =
@@ -859,15 +1079,63 @@ class AppDatabase extends _$AppDatabase {
     final totalPurchaseReturnsUsd =
         ((purchaseReturnData['total_returns_usd'] ?? 0) as num).toDouble();
 
-    // صافي الربح = إجمالي الربح - المصروفات - مرتجعات المبيعات + مرتجعات المشتريات
-    final netProfit =
-        grossProfit - totalExpenses - totalSaleReturns + totalPurchaseReturns;
+    // المشتريات
+    final purchaseCount =
+        ((purchaseData['purchase_count'] ?? 0) as num).toInt();
+    final totalPurchases =
+        ((purchaseData['total_purchases'] ?? 0) as num).toDouble();
+    final totalPurchasesUsd =
+        ((purchaseData['total_purchases_usd'] ?? 0) as num).toDouble();
+
+    // سندات القبض (تحصيلات)
+    final receiptCount = ((receiptData['receipt_count'] ?? 0) as num).toInt();
+    final totalReceipts =
+        ((receiptData['total_receipts'] ?? 0) as num).toDouble();
+    final totalReceiptsUsd =
+        ((receiptData['total_receipts_usd'] ?? 0) as num).toDouble();
+
+    // سندات الدفع (مدفوعات)
+    final paymentCount = ((paymentData['payment_count'] ?? 0) as num).toInt();
+    final totalPayments =
+        ((paymentData['total_payments'] ?? 0) as num).toDouble();
+    final totalPaymentsUsd =
+        ((paymentData['total_payments_usd'] ?? 0) as num).toDouble();
+
+    // فروقات الجرد (مكاسب/خسائر المخزون)
+    final totalInventoryAdj =
+        ((inventoryAdjData['inventory_adj_value'] ?? 0) as num).toDouble();
+    // ملاحظة: فروقات الجرد بالدولار غير متوفرة حالياً في جدول التسويات
+    final totalInventoryAdjUsd = 0.0;
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // صافي الربح = إجمالي الربح - المصروفات - مرتجعات المبيعات + مرتجعات المشتريات + فروقات الجرد
+    // ═══════════════════════════════════════════════════════════════════════════
+    final netProfit = grossProfit -
+        totalExpenses -
+        totalSaleReturns +
+        totalPurchaseReturns +
+        totalInventoryAdj;
     final netProfitUsd = grossProfitUsd -
         totalExpensesUsd -
         totalSaleReturnsUsd +
-        totalPurchaseReturnsUsd;
+        totalPurchaseReturnsUsd +
+        totalInventoryAdjUsd;
     final profitMargin =
         totalRevenue > 0 ? (netProfit / totalRevenue * 100) : 0.0;
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // التدفق النقدي = المبيعات - المشتريات - المصروفات + سندات القبض - سندات الدفع
+    // ═══════════════════════════════════════════════════════════════════════════
+    final cashFlow = totalRevenue -
+        totalPurchases -
+        totalExpenses +
+        totalReceipts -
+        totalPayments;
+    final cashFlowUsd = totalRevenueUsd -
+        totalPurchasesUsd -
+        totalExpensesUsd +
+        totalReceiptsUsd -
+        totalPaymentsUsd;
 
     return {
       'totalInvoices': ((salesData['total_invoices'] ?? 0) as num).toInt(),
@@ -883,9 +1151,28 @@ class AppDatabase extends _$AppDatabase {
       'totalSaleReturnsUsd': totalSaleReturnsUsd,
       'totalPurchaseReturns': totalPurchaseReturns,
       'totalPurchaseReturnsUsd': totalPurchaseReturnsUsd,
+      // المشتريات
+      'purchaseCount': purchaseCount,
+      'totalPurchases': totalPurchases,
+      'totalPurchasesUsd': totalPurchasesUsd,
+      // سندات القبض (تحصيلات من العملاء)
+      'receiptCount': receiptCount,
+      'totalReceipts': totalReceipts,
+      'totalReceiptsUsd': totalReceiptsUsd,
+      // سندات الدفع (مدفوعات للموردين)
+      'paymentCount': paymentCount,
+      'totalPayments': totalPayments,
+      'totalPaymentsUsd': totalPaymentsUsd,
+      // فروقات الجرد
+      'inventoryAdjustments': totalInventoryAdj,
+      'inventoryAdjustmentsUsd': totalInventoryAdjUsd,
+      // الأرباح
       'netProfit': netProfit,
       'netProfitUsd': netProfitUsd,
       'profitMargin': profitMargin,
+      // التدفق النقدي
+      'cashFlow': cashFlow,
+      'cashFlowUsd': cashFlowUsd,
     };
   }
 
@@ -897,10 +1184,14 @@ class AppDatabase extends _$AppDatabase {
   }) async {
     String whereClause = "WHERE i.type = 'sale'";
     if (shiftId != null) whereClause += " AND i.shift_id = '$shiftId'";
-    if (startDate != null)
-      whereClause += " AND i.created_at >= '${startDate.toIso8601String()}'";
-    if (endDate != null)
-      whereClause += " AND i.created_at <= '${endDate.toIso8601String()}'";
+    if (startDate != null) {
+      final startTimestamp = startDate.millisecondsSinceEpoch ~/ 1000;
+      whereClause += " AND i.created_at >= $startTimestamp";
+    }
+    if (endDate != null) {
+      final endTimestamp = endDate.millisecondsSinceEpoch ~/ 1000;
+      whereClause += " AND i.created_at <= $endTimestamp";
+    }
 
     final result = await customSelect(
       '''
@@ -944,10 +1235,14 @@ class AppDatabase extends _$AppDatabase {
     int limit = 20,
   }) async {
     String whereClause = "WHERE i.type = 'sale' AND i.customer_id IS NOT NULL";
-    if (startDate != null)
-      whereClause += " AND i.created_at >= '${startDate.toIso8601String()}'";
-    if (endDate != null)
-      whereClause += " AND i.created_at <= '${endDate.toIso8601String()}'";
+    if (startDate != null) {
+      final startTimestamp = startDate.millisecondsSinceEpoch ~/ 1000;
+      whereClause += " AND i.created_at >= $startTimestamp";
+    }
+    if (endDate != null) {
+      final endTimestamp = endDate.millisecondsSinceEpoch ~/ 1000;
+      whereClause += " AND i.created_at <= $endTimestamp";
+    }
 
     final result = await customSelect(
       '''
@@ -992,19 +1287,21 @@ class AppDatabase extends _$AppDatabase {
     required DateTime startDate,
     required DateTime endDate,
   }) async {
+    final startTimestamp = startDate.millisecondsSinceEpoch ~/ 1000;
+    final endTimestamp = endDate.millisecondsSinceEpoch ~/ 1000;
     final result = await customSelect(
       '''
       SELECT 
-        DATE(i.created_at) as profit_date,
+        DATE(i.created_at, 'unixepoch') as profit_date,
         COALESCE(SUM(ii.total), 0) as total_revenue,
         COALESCE(SUM((ii.unit_price - COALESCE(ii.cost_price, ii.purchase_price, 0)) * ii.quantity), 0) as total_profit
       FROM invoice_items ii
       INNER JOIN invoices i ON ii.invoice_id = i.id
       INNER JOIN products p ON ii.product_id = p.id
       WHERE i.type = 'sale'
-        AND i.created_at >= '${startDate.toIso8601String()}'
-        AND i.created_at <= '${endDate.toIso8601String()}'
-      GROUP BY DATE(i.created_at)
+        AND i.created_at >= $startTimestamp
+        AND i.created_at <= $endTimestamp
+      GROUP BY DATE(i.created_at, 'unixepoch')
       ORDER BY profit_date ASC
       ''',
       readsFrom: {invoiceItems, invoices, products},
@@ -1027,7 +1324,7 @@ class AppDatabase extends _$AppDatabase {
     final result = await customSelect(
       '''
       SELECT 
-        strftime('%m', i.created_at) as month,
+        strftime('%m', i.created_at, 'unixepoch') as month,
         COALESCE(SUM(ii.total), 0) as total_revenue,
         COALESCE(SUM(ii.total_usd), 0) as total_revenue_usd,
         COALESCE(SUM((ii.unit_price - COALESCE(ii.cost_price, ii.purchase_price, 0)) * ii.quantity), 0) as total_profit
@@ -1035,8 +1332,8 @@ class AppDatabase extends _$AppDatabase {
       INNER JOIN invoices i ON ii.invoice_id = i.id
       INNER JOIN products p ON ii.product_id = p.id
       WHERE i.type = 'sale'
-        AND strftime('%Y', i.created_at) = '$year'
-      GROUP BY strftime('%m', i.created_at)
+        AND strftime('%Y', i.created_at, 'unixepoch') = '$year'
+      GROUP BY strftime('%m', i.created_at, 'unixepoch')
       ORDER BY month ASC
       ''',
       readsFrom: {invoiceItems, invoices, products},

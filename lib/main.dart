@@ -3,22 +3,28 @@
 // Professional Accounting & Sales Management System
 // ═══════════════════════════════════════════════════════════════════════════
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:device_preview/device_preview.dart';
 
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router_pro.dart';
 import 'core/di/injection.dart';
+import 'core/services/app_logger.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  appLogger.info('🚀 Starting Hoor Manager Pro...');
+
   // Initialize dependencies (Firebase, Database, Services)
   await configureDependencies();
+  appLogger.info('✅ Dependencies configured');
 
   // Set preferred orientations
   await SystemChrome.setPreferredOrientations([
@@ -38,10 +44,16 @@ void main() async {
 
   // Preload fonts
   await _preloadFonts();
+  appLogger.info('✅ Fonts preloaded');
+
+  appLogger.info('🎉 App initialization complete!');
 
   runApp(
-    const ProviderScope(
-      child: HoorManagerPro(),
+    DevicePreview(
+      enabled: kDebugMode, // Only enabled in debug mode
+      builder: (context) => const ProviderScope(
+        child: HoorManagerPro(),
+      ),
     ),
   );
 }
@@ -53,8 +65,8 @@ Future<void> _preloadFonts() async {
       GoogleFonts.cairo(),
       GoogleFonts.jetBrainsMono(),
     ]);
-  } catch (e) {
-    debugPrint('Font preloading failed: $e');
+  } catch (e, stackTrace) {
+    appLogger.error('Font preloading failed', e, stackTrace);
   }
 }
 
@@ -77,9 +89,10 @@ class HoorManagerPro extends ConsumerWidget {
           debugShowCheckedModeBanner: false,
 
           // ═══════════════════════════════════════════════════════════════════
-          // Localization
+          // Device Preview Support
           // ═══════════════════════════════════════════════════════════════════
-          locale: const Locale('ar', 'SA'),
+          locale: DevicePreview.locale(context),
+          builder: DevicePreview.appBuilder,
           supportedLocales: const [
             Locale('ar', 'SA'),
             Locale('en', 'US'),
@@ -101,23 +114,6 @@ class HoorManagerPro extends ConsumerWidget {
           // Router
           // ═══════════════════════════════════════════════════════════════════
           routerConfig: router,
-
-          // ═══════════════════════════════════════════════════════════════════
-          // Builder for global configurations
-          // ═══════════════════════════════════════════════════════════════════
-          builder: (context, child) {
-            // Ensure RTL text direction
-            return Directionality(
-              textDirection: TextDirection.rtl,
-              child: MediaQuery(
-                // Prevent system font scaling from breaking layouts
-                data: MediaQuery.of(context).copyWith(
-                  textScaler: TextScaler.noScaling,
-                ),
-                child: child ?? const SizedBox.shrink(),
-              ),
-            );
-          },
         );
       },
     );

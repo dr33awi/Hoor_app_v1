@@ -44,6 +44,11 @@ import '../../features/suppliers_pro/supplier_details_screen_pro.dart';
 import '../../features/settings_pro/exchange_rate_screen_pro.dart';
 import '../../features/invoices_pro/invoice_preview_screen_pro.dart';
 
+// Expenses Screen
+import '../../features/expenses_pro/expenses_screen_pro.dart';
+import '../../features/expenses_pro/expense_form_screen_pro.dart';
+import '../../features/expenses_pro/screens/recurring_expenses_screen.dart';
+
 // Home Screen
 import '../../features/home_pro/home_screen_pro.dart';
 
@@ -352,6 +357,44 @@ final appRouterProProvider = Provider<GoRouter>((ref) {
             pageBuilder: (context, state) => _buildSlideTransition(
               state,
               VoucherDetailsScreenPro(voucherId: state.pathParameters['id']!),
+            ),
+          ),
+        ],
+      ),
+
+      // ═══════════════════════════════════════════════════════════════════
+      // Expenses - المصاريف
+      // ═══════════════════════════════════════════════════════════════════
+      GoRoute(
+        path: '/expenses',
+        name: 'expenses',
+        pageBuilder: (context, state) => _buildSlideTransition(
+          state,
+          const ExpensesScreenPro(),
+        ),
+        routes: [
+          GoRoute(
+            path: 'add',
+            name: 'expense-add',
+            pageBuilder: (context, state) => _buildSlideUpTransition(
+              state,
+              const ExpenseFormScreenPro(),
+            ),
+          ),
+          GoRoute(
+            path: 'edit/:id',
+            name: 'expense-edit',
+            pageBuilder: (context, state) => _buildSlideUpTransition(
+              state,
+              ExpenseFormScreenPro(expenseId: state.pathParameters['id']),
+            ),
+          ),
+          GoRoute(
+            path: 'recurring',
+            name: 'recurring-expenses',
+            pageBuilder: (context, state) => _buildSlideTransition(
+              state,
+              const RecurringExpensesScreen(),
             ),
           ),
         ],

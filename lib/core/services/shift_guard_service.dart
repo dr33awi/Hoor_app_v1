@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../theme/design_tokens.dart';
+import '../constants/app_constants.dart';
 import '../widgets/widgets.dart';
 import '../../data/database/app_database.dart';
 import '../../data/repositories/shift_repository.dart';
@@ -38,7 +39,7 @@ class ShiftGuardService {
     BuildContext context,
     Shift shift,
   ) async {
-    final rate = shift.exchangeRate ?? CurrencyService.currentRate;
+    final rate = shift.exchangeRate ?? AppConstants.defaultExchangeRate;
     final currentBalance =
         shift.openingBalance + shift.totalSales - shift.totalExpenses;
     final currentBalanceUsd = (shift.openingBalanceUsd ?? 0) +

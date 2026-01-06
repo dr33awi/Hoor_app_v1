@@ -546,8 +546,9 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
 
     final total = subtotal - discountAmount;
 
-    // تحديث الفاتورة
-    final currencyService = getIt<CurrencyService>();
+    // ═══════════════════════════════════════════════════════════════════════════
+    // تحديث الفاتورة مع الحفاظ على سعر الصرف الأصلي (لا نغيّره أبداً)
+    // ═══════════════════════════════════════════════════════════════════════════
     await database.updateInvoice(InvoicesCompanion(
       id: Value(invoiceId),
       customerId: Value(customerId),
@@ -556,7 +557,7 @@ class InvoiceRepository extends BaseRepository<Invoice, InvoicesCompanion> {
       discountAmount: Value(discountAmount),
       total: Value(total),
       paidAmount: Value(paidAmount),
-      exchangeRate: Value(currencyService.exchangeRate),
+      // ⚠️ لا نمرر exchangeRate - للحفاظ على القيمة الأصلية المحفوظة وقت إنشاء الفاتورة
       paymentMethod: Value(paymentMethod),
       notes: Value(notes),
       syncStatus: const Value('pending'),

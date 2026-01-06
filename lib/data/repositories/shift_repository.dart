@@ -52,6 +52,7 @@ class ShiftRepository extends BaseRepository<Shift, ShiftsCompanion> {
     final shiftNumber = await _generateShiftNumber();
 
     // تثبيت سعر الصرف وقت فتح الوردية
+    // ✅ عند فتح وردية جديدة، نستخدم السعر الحالي (هذا صحيح لأنها عملية إنشاء)
     final rate = exchangeRate ?? CurrencyService.currentRate;
     final balanceUsd = openingBalanceUsd ?? (openingBalance / rate);
 
@@ -105,7 +106,8 @@ class ShiftRepository extends BaseRepository<Shift, ShiftsCompanion> {
     }
 
     // استخدام سعر الصرف المحفوظ مع الوردية
-    final rate = shift.exchangeRate ?? CurrencyService.currentRate;
+    // ⚠️ fallback للبيانات القديمة فقط - يجب أن يكون exchangeRate محفوظاً دائماً
+    final rate = shift.exchangeRate ?? AppConstants.defaultExchangeRate;
 
     // Calculate expected balance (يشمل جميع أنواع الحركات)
     final movements = await database.getCashMovementsByShift(shiftId);
@@ -320,22 +322,24 @@ class ShiftRepository extends BaseRepository<Shift, ShiftsCompanion> {
     for (final inv in sales) {
       totalSalesAmount += inv.paidAmount;
       totalSalesUsd += inv.paidAmountUsd ??
-          (inv.paidAmount / (inv.exchangeRate ?? CurrencyService.currentRate));
+          (inv.paidAmount /
+              (inv.exchangeRate ?? AppConstants.defaultExchangeRate));
     }
     for (final inv in purchases) {
       totalPurchasesAmount += inv.paidAmount;
       totalPurchasesUsd += inv.paidAmountUsd ??
-          (inv.paidAmount / (inv.exchangeRate ?? CurrencyService.currentRate));
+          (inv.paidAmount /
+              (inv.exchangeRate ?? AppConstants.defaultExchangeRate));
     }
     for (final inv in saleReturns) {
       totalSaleReturnsAmount += inv.total;
       totalSaleReturnsUsd += inv.totalUsd ??
-          (inv.total / (inv.exchangeRate ?? CurrencyService.currentRate));
+          (inv.total / (inv.exchangeRate ?? AppConstants.defaultExchangeRate));
     }
     for (final inv in purchaseReturns) {
       totalPurchaseReturnsAmount += inv.total;
       totalPurchaseReturnsUsd += inv.totalUsd ??
-          (inv.total / (inv.exchangeRate ?? CurrencyService.currentRate));
+          (inv.total / (inv.exchangeRate ?? AppConstants.defaultExchangeRate));
     }
 
     // إجماليات السندات
@@ -349,17 +353,17 @@ class ShiftRepository extends BaseRepository<Shift, ShiftsCompanion> {
     for (final v in receipts) {
       totalReceiptsAmount += v.amount;
       totalReceiptsUsd += v.amountUsd ??
-          (v.amount / (v.exchangeRate ?? CurrencyService.currentRate));
+          (v.amount / (v.exchangeRate ?? AppConstants.defaultExchangeRate));
     }
     for (final v in payments) {
       totalPaymentsAmount += v.amount;
       totalPaymentsUsd += v.amountUsd ??
-          (v.amount / (v.exchangeRate ?? CurrencyService.currentRate));
+          (v.amount / (v.exchangeRate ?? AppConstants.defaultExchangeRate));
     }
     for (final v in expenses) {
       totalExpensesAmount += v.amount;
       totalExpensesUsd += v.amountUsd ??
-          (v.amount / (v.exchangeRate ?? CurrencyService.currentRate));
+          (v.amount / (v.exchangeRate ?? AppConstants.defaultExchangeRate));
     }
 
     return {
@@ -415,7 +419,8 @@ class ShiftRepository extends BaseRepository<Shift, ShiftsCompanion> {
 
     for (final inv in sales) {
       final amountUsd = inv.paidAmountUsd ??
-          (inv.paidAmount / (inv.exchangeRate ?? CurrencyService.currentRate));
+          (inv.paidAmount /
+              (inv.exchangeRate ?? AppConstants.defaultExchangeRate));
 
       // التحقق من طريقة الدفع: cash = نقدي، credit = آجل
       if (inv.paymentMethod == 'cash') {
@@ -467,11 +472,11 @@ class ShiftRepository extends BaseRepository<Shift, ShiftsCompanion> {
         hourlyData[hour]!['count'] = (hourlyData[hour]!['count'] as int) + 1;
         hourlyData[hour]!['total'] =
             (hourlyData[hour]!['total'] as double) + inv.paidAmount;
-        hourlyData[hour]!['totalUsd'] =
-            (hourlyData[hour]!['totalUsd'] as double) +
-                (inv.paidAmountUsd ??
-                    (inv.paidAmount /
-                        (inv.exchangeRate ?? CurrencyService.currentRate)));
+        hourlyData[hour]!['totalUsd'] = (hourlyData[hour]!['totalUsd']
+                as double) +
+            (inv.paidAmountUsd ??
+                (inv.paidAmount /
+                    (inv.exchangeRate ?? AppConstants.defaultExchangeRate)));
       }
     }
 
@@ -506,6 +511,12 @@ class ShiftRepository extends BaseRepository<Shift, ShiftsCompanion> {
       startDate: startDate,
       endDate: endDate,
     );
+  }
+
+  /// حساب إجمالي الأرباح لمجموعة من الورديات
+  Future<Map<String, dynamic>> getShiftsProfitSummary(
+      List<String> shiftIds) async {
+    return database.getShiftsProfitSummary(shiftIds);
   }
 
   /// الحصول على بيانات المبيعات اليومية للرسوم البيانية

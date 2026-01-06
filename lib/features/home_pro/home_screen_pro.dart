@@ -668,6 +668,13 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
           onTap: () => _showInventoryOptions(),
         ),
         _ModernMenuCard(
+          title: 'المصاريف',
+          subtitle: 'إدارة المصاريف اليومية',
+          icon: Icons.receipt_long_rounded,
+          color: AppColors.expense,
+          onTap: () => context.push('/expenses'),
+        ),
+        _ModernMenuCard(
           title: 'الصندوق والورديات',
           subtitle: 'إدارة الصندوق والورديات',
           icon: Icons.account_balance_wallet_rounded,
@@ -777,13 +784,6 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
           subtitle: 'إنشاء سند صرف جديد',
           route: '/vouchers/payment/add',
           color: AppColors.error,
-        ),
-        _OptionItem(
-          icon: Icons.receipt_long_outlined,
-          title: 'مصاريف',
-          subtitle: 'إنشاء سند مصاريف جديد',
-          route: '/vouchers/expense/add',
-          color: AppColors.warning,
         ),
       ],
     );
