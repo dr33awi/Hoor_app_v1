@@ -406,7 +406,9 @@ class ExpenseRepository {
       amountUsd: Value(amountUsd),
       exchangeRate: Value(exchangeRate),
       description: Value(description),
-      category: const Value('expense'),
+      // تحديد إذا كان مصروف دوري من الوصف
+      category:
+          Value(description.contains('دوري') ? 'recurring_expense' : 'expense'),
       referenceId: Value(expenseId),
       referenceType: const Value('expense'),
       paymentMethod: const Value('cash'),

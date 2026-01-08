@@ -152,7 +152,7 @@ class _TransactionsScreenProState extends ConsumerState<TransactionsScreenPro>
       showBackButton: true,
       showDrawerButton: false,
       onBack: () => context.go('/'),
-      icon: widget.type.icon,
+      icon: isSales ? widget.type.icon : null,
       iconColor: widget.type.color,
       actions: [
         IconButton(
@@ -278,8 +278,6 @@ class _TransactionsScreenProState extends ConsumerState<TransactionsScreenPro>
         icon: Icons.receipt_long_outlined,
         title: 'لا توجد فواتير',
         message: 'أنشئ ${widget.type.singularLabel} جديدة للبدء',
-        actionLabel: widget.type.singularLabel,
-        onAction: () => context.push(widget.type.newRoute),
       );
     }
 

@@ -916,27 +916,51 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
     final fileName =
         'فواتير_${typeName}_${DateFormat('yyyyMMdd').format(DateTime.now())}';
 
+    // جمع أسماء العملاء والموردين من البيانات المحملة
+    final customersAsync = ref.read(customersStreamProvider);
+    final suppliersAsync = ref.read(suppliersStreamProvider);
+
+    Map<String, String> customerNames = {};
+    Map<String, String> supplierNames = {};
+
+    customersAsync.whenData((customers) {
+      customerNames = {for (var c in customers) c.id: c.name};
+    });
+    suppliersAsync.whenData((suppliers) {
+      supplierNames = {for (var s in suppliers) s.id: s.name};
+    });
+
     try {
       switch (type) {
         case ExportType.excel:
           await ExcelExportService.exportInvoices(
             invoices: invoices,
             fileName: fileName,
+            customerNames: customerNames,
+            supplierNames: supplierNames,
           );
           if (mounted) ProSnackbar.success(context, 'تم حفظ الملف بنجاح');
           break;
         case ExportType.pdf:
+          final settings = await ExportService.getExportSettings();
           final pdfBytes = await PdfExportService.generateInvoicesList(
             invoices: invoices,
             type: typeCode,
+            customerNames: customerNames,
+            supplierNames: supplierNames,
+            settings: settings,
           );
           await PdfExportService.savePdfFile(pdfBytes, fileName);
           if (mounted) ProSnackbar.success(context, 'تم حفظ الملف بنجاح');
           break;
         case ExportType.sharePdf:
+          final settingsShare = await ExportService.getExportSettings();
           final pdfBytes = await PdfExportService.generateInvoicesList(
             invoices: invoices,
             type: typeCode,
+            customerNames: customerNames,
+            supplierNames: supplierNames,
+            settings: settingsShare,
           );
           await PdfExportService.sharePdfBytes(pdfBytes,
               fileName: fileName, subject: 'فواتير $typeName');
@@ -945,6 +969,8 @@ class _InvoicesScreenProState extends ConsumerState<InvoicesScreenPro>
           final filePath = await ExcelExportService.exportInvoices(
             invoices: invoices,
             fileName: fileName,
+            customerNames: customerNames,
+            supplierNames: supplierNames,
           );
           await ExcelExportService.shareFile(filePath,
               subject: 'فواتير $typeName');

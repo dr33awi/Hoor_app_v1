@@ -87,9 +87,12 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
     super.dispose();
   }
 
-  List<Product> _filterProducts(
-      List<Product> products, List<Category> categories) {
-    return products.where((product) {
+  List<Map<String, dynamic>> _filterProducts(
+      List<Map<String, dynamic>> productData, List<Category> categories) {
+    return productData.where((item) {
+      final product = item['product'] as Product;
+      final quantity = item['quantity'] as int;
+
       // فلتر البحث
       final matchesSearch = _searchController.text.isEmpty ||
           product.name
@@ -110,36 +113,47 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
 
       // فلتر المخزون المنخفض
       final matchesLowStock =
-          !_showLowStockOnly || product.quantity <= product.minQuantity;
+          !_showLowStockOnly || quantity <= product.minQuantity;
 
       return matchesSearch && matchesCategory && matchesLowStock;
     }).toList();
   }
 
-  List<Product> _sortProducts(List<Product> products) {
-    final sorted = List<Product>.from(products);
+  List<Map<String, dynamic>> _sortProducts(
+      List<Map<String, dynamic>> productData) {
+    final sorted = List<Map<String, dynamic>>.from(productData);
     switch (_sortBy) {
       case 'name':
-        sorted.sort((a, b) => a.name.compareTo(b.name));
+        sorted.sort((a, b) => (a['product'] as Product)
+            .name
+            .compareTo((b['product'] as Product).name));
         break;
       case 'price_asc':
-        sorted.sort((a, b) => a.salePrice.compareTo(b.salePrice));
+        sorted.sort((a, b) => (a['product'] as Product)
+            .salePrice
+            .compareTo((b['product'] as Product).salePrice));
         break;
       case 'price_desc':
-        sorted.sort((a, b) => b.salePrice.compareTo(a.salePrice));
+        sorted.sort((a, b) => (b['product'] as Product)
+            .salePrice
+            .compareTo((a['product'] as Product).salePrice));
         break;
       case 'stock':
-        sorted.sort((a, b) => a.quantity.compareTo(b.quantity));
+        sorted.sort(
+            (a, b) => (a['quantity'] as int).compareTo(b['quantity'] as int));
         break;
       case 'recent':
-        sorted.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        sorted.sort((a, b) => (b['product'] as Product)
+            .createdAt
+            .compareTo((a['product'] as Product).createdAt));
         break;
     }
     return sorted;
   }
 
-  Future<void> _handleExport(ExportType type, List<Product> products) async {
-    if (products.isEmpty) {
+  Future<void> _handleExport(
+      ExportType type, List<Map<String, dynamic>> productData) async {
+    if (productData.isEmpty) {
       ProSnackbar.warning(context, 'لا توجد منتجات للتصدير');
       return;
     }
@@ -147,6 +161,32 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
     setState(() => _isExporting = true);
 
     try {
+      // إنشاء قائمة منتجات بالكميات الصحيحة من المستودعات
+      final products = productData.map((item) {
+        final product = item['product'] as Product;
+        final quantity = item['quantity'] as int;
+        // إنشاء نسخة من المنتج بالكمية الفعلية من المستودع
+        return Product(
+          id: product.id,
+          name: product.name,
+          barcode: product.barcode,
+          sku: product.sku,
+          categoryId: product.categoryId,
+          quantity: quantity, // استخدام الكمية من المستودع
+          minQuantity: product.minQuantity,
+          purchasePrice: product.purchasePrice,
+          purchasePriceUsd: product.purchasePriceUsd,
+          salePrice: product.salePrice,
+          salePriceUsd: product.salePriceUsd,
+          description: product.description,
+          imageUrl: product.imageUrl,
+          isActive: product.isActive,
+          syncStatus: product.syncStatus,
+          createdAt: product.createdAt,
+          updatedAt: product.updatedAt,
+        );
+      }).toList();
+
       switch (type) {
         case ExportType.excel:
           await ProductsExportService.exportToExcel(
@@ -204,7 +244,8 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
 
   @override
   Widget build(BuildContext context) {
-    final productsAsync = ref.watch(activeProductsStreamProvider);
+    final productsAsync =
+        ref.watch(activeProductsWithDefaultWarehouseStockProvider);
     final categoriesAsync = ref.watch(categoriesStreamProvider);
 
     return Scaffold(
@@ -226,9 +267,12 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
                 subtitle: '0 منتج',
                 onBack: () => context.go('/'),
               ),
-              data: (products) {
-                final lowStockCount =
-                    products.where((p) => p.quantity <= p.minQuantity).length;
+              data: (productData) {
+                final lowStockCount = productData
+                    .where((item) =>
+                        item['quantity'] <=
+                        (item['product'] as Product).minQuantity)
+                    .length;
 
                 return ProHeader(
                   title: _isSelectionMode
@@ -236,7 +280,7 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
                       : 'المنتجات',
                   subtitle: _isSelectionMode
                       ? null
-                      : '${products.length} منتج${lowStockCount > 0 ? ' • $lowStockCount منخفض' : ''}',
+                      : '${productData.length} منتج${lowStockCount > 0 ? ' • $lowStockCount منخفض' : ''}',
                   onBack: _isSelectionMode
                       ? () => setState(() {
                             _isSelectionMode = false;
@@ -249,7 +293,9 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
                           IconButton(
                             onPressed: _selectedProducts.isEmpty
                                 ? null
-                                : () => _showDeleteConfirmation(products),
+                                : () => _showDeleteConfirmation(productData
+                                    .map((item) => item['product'] as Product)
+                                    .toList()),
                             icon: Icon(Icons.delete_outline,
                                 color: _selectedProducts.isEmpty
                                     ? AppColors.textSecondary
@@ -261,7 +307,9 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
                           IconButton(
                             onPressed: _selectedProducts.isEmpty
                                 ? null
-                                : () => _showBulkStockUpdateDialog(products),
+                                : () => _showBulkStockUpdateDialog(productData
+                                    .map((item) => item['product'] as Product)
+                                    .toList()),
                             icon: Icon(Icons.inventory_2_outlined,
                                 color: _selectedProducts.isEmpty
                                     ? AppColors.textSecondary
@@ -273,7 +321,9 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
                           IconButton(
                             onPressed: _selectedProducts.isEmpty
                                 ? null
-                                : () => _showBulkPriceEditDialog(products),
+                                : () => _showBulkPriceEditDialog(productData
+                                    .map((item) => item['product'] as Product)
+                                    .toList()),
                             icon: Icon(Icons.price_change_outlined,
                                 color: _selectedProducts.isEmpty
                                     ? AppColors.textSecondary
@@ -286,22 +336,24 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
                             onPressed: () {
                               setState(() {
                                 if (_selectedProducts.length ==
-                                    products.length) {
+                                    productData.length) {
                                   _selectedProducts.clear();
                                 } else {
-                                  _selectedProducts
-                                      .addAll(products.map((p) => p.id));
+                                  _selectedProducts.addAll(productData.map(
+                                      (item) =>
+                                          (item['product'] as Product).id));
                                 }
                               });
                             },
                             icon: Icon(
-                                _selectedProducts.length == products.length
+                                _selectedProducts.length == productData.length
                                     ? Icons.deselect
                                     : Icons.select_all,
                                 color: AppColors.textSecondary),
-                            tooltip: _selectedProducts.length == products.length
-                                ? 'إلغاء تحديد الكل'
-                                : 'تحديد الكل',
+                            tooltip:
+                                _selectedProducts.length == productData.length
+                                    ? 'إلغاء تحديد الكل'
+                                    : 'تحديد الكل',
                           ),
                         ]
                       : [
@@ -334,7 +386,8 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
                             tooltip: 'تحديد متعدد',
                           ),
                           ExportMenuButton(
-                            onExport: (type) => _handleExport(type, products),
+                            onExport: (type) =>
+                                _handleExport(type, productData),
                             isLoading: _isExporting,
                             icon: Icons.more_vert,
                             tooltip: 'تصدير ومشاركة',
@@ -371,14 +424,16 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
               error: (_, __) => const SizedBox(height: 50),
               data: (categories) {
                 // حساب عدد المنتجات لكل تصنيف
-                final products = productsAsync.asData?.value ?? [];
-                final allCount = products.length;
+                final productData = productsAsync.asData?.value ?? [];
+                final allCount = productData.length;
 
                 final categoryList = [
                   {'id': 'all', 'name': 'الكل', 'count': allCount},
                   ...categories.map((c) {
-                    final count =
-                        products.where((p) => p.categoryId == c.id).length;
+                    final count = productData
+                        .where((item) =>
+                            (item['product'] as Product).categoryId == c.id)
+                        .length;
                     return {
                       'id': c.id,
                       'name': c.name,
@@ -404,13 +459,15 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
                 loading: () => ProLoadingState.grid(),
                 error: (error, _) => ProEmptyState.error(
                   error: error.toString(),
-                  onRetry: () => ref.invalidate(activeProductsStreamProvider),
+                  onRetry: () => ref.invalidate(
+                      activeProductsWithDefaultWarehouseStockProvider),
                 ),
-                data: (products) {
+                data: (productData) {
                   final categories = categoriesAsync.asData?.value ?? [];
 
                   // Apply filters and sorting
-                  var filteredProducts = _filterProducts(products, categories);
+                  var filteredProducts =
+                      _filterProducts(productData, categories);
                   filteredProducts = _sortProducts(filteredProducts);
 
                   if (filteredProducts.isEmpty) {
@@ -434,7 +491,8 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
                     opacity: _fadeAnimation,
                     child: RefreshIndicator(
                       onRefresh: () async {
-                        ref.invalidate(activeProductsStreamProvider);
+                        ref.invalidate(
+                            activeProductsWithDefaultWarehouseStockProvider);
                       },
                       child: _isGridView
                           ? _buildGridView(filteredProducts, categories)
@@ -459,7 +517,8 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
     );
   }
 
-  Widget _buildGridView(List<Product> products, List<Category> categories) {
+  Widget _buildGridView(
+      List<Map<String, dynamic>> productData, List<Category> categories) {
     return GridView.builder(
       padding: EdgeInsets.all(AppSpacing.screenPadding),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -468,9 +527,11 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
         crossAxisSpacing: AppSpacing.xs,
         mainAxisSpacing: AppSpacing.xs,
       ),
-      itemCount: products.length,
+      itemCount: productData.length,
       itemBuilder: (context, index) {
-        final product = products[index];
+        final item = productData[index];
+        final product = item['product'] as Product;
+        final quantity = item['quantity'] as int;
         final category =
             categories.where((c) => c.id == product.categoryId).firstOrNull;
         final isSelected = _selectedProducts.contains(product.id);
@@ -487,7 +548,7 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
           child: Stack(
             children: [
               ProductCardPro(
-                product: _productToMap(product, category),
+                product: _productToMap(product, category, quantity),
                 isListView: false,
                 onTap: _isSelectionMode
                     ? () => _toggleSelection(product.id)
@@ -526,13 +587,16 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
     );
   }
 
-  Widget _buildListView(List<Product> products, List<Category> categories) {
+  Widget _buildListView(
+      List<Map<String, dynamic>> productData, List<Category> categories) {
     return ListView.separated(
       padding: EdgeInsets.all(AppSpacing.screenPadding),
-      itemCount: products.length,
+      itemCount: productData.length,
       separatorBuilder: (_, __) => SizedBox(height: AppSpacing.xs),
       itemBuilder: (context, index) {
-        final product = products[index];
+        final item = productData[index];
+        final product = item['product'] as Product;
+        final quantity = item['quantity'] as int;
         final category =
             categories.where((c) => c.id == product.categoryId).firstOrNull;
         final isSelected = _selectedProducts.contains(product.id);
@@ -559,7 +623,7 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
                 ),
               Expanded(
                 child: ProductCardPro(
-                  product: _productToMap(product, category),
+                  product: _productToMap(product, category, quantity),
                   isListView: true,
                   onTap: _isSelectionMode
                       ? () => _toggleSelection(product.id)
@@ -961,11 +1025,12 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
     }
   }
 
-  Map<String, dynamic> _productToMap(Product product, Category? category) {
+  Map<String, dynamic> _productToMap(
+      Product product, Category? category, int quantity) {
     String status = 'active';
-    if (product.quantity <= 0) {
+    if (quantity <= 0) {
       status = 'out_of_stock';
-    } else if (product.quantity <= product.minQuantity) {
+    } else if (quantity <= product.minQuantity) {
       status = 'low_stock';
     }
 
@@ -991,7 +1056,7 @@ class _ProductsScreenProState extends ConsumerState<ProductsScreenPro>
       'cost': purchasePriceSyp,
       'priceUsd': product.salePriceUsd,
       'costUsd': product.purchasePriceUsd,
-      'stock': product.quantity,
+      'stock': quantity,
       'minStock': product.minQuantity,
       'category': category?.name ?? 'بدون تصنيف',
       'categoryId': product.categoryId,

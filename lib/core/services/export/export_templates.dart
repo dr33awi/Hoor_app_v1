@@ -1,8 +1,59 @@
+import 'dart:typed_data';
+
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../printing/pdf_theme.dart';
 import '../currency_service.dart';
+
+/// ═══════════════════════════════════════════════════════════════════════════
+/// Export Settings - إعدادات التصدير الموحدة
+/// ═══════════════════════════════════════════════════════════════════════════
+class ExportSettings {
+  /// اسم الشركة
+  final String? companyName;
+
+  /// عنوان الشركة
+  final String? companyAddress;
+
+  /// هاتف الشركة
+  final String? companyPhone;
+
+  /// الرقم الضريبي
+  final String? companyTaxNumber;
+
+  /// شعار الشركة (bytes)
+  final Uint8List? logoBytes;
+
+  /// إظهار الشعار
+  final bool showLogo;
+
+  /// رسالة التذييل
+  final String? footerMessage;
+
+  const ExportSettings({
+    this.companyName,
+    this.companyAddress,
+    this.companyPhone,
+    this.companyTaxNumber,
+    this.logoBytes,
+    this.showLogo = true,
+    this.footerMessage,
+  });
+
+  /// إعدادات افتراضية
+  static const ExportSettings defaultSettings = ExportSettings();
+
+  /// هل هناك معلومات شركة؟
+  bool get hasCompanyInfo =>
+      companyName != null ||
+      companyAddress != null ||
+      companyPhone != null ||
+      companyTaxNumber != null;
+
+  /// هل هناك شعار؟
+  bool get hasLogo => showLogo && logoBytes != null;
+}
 
 /// ═══════════════════════════════════════════════════════════════════════════
 /// Export Templates - قوالب التصدير الموحدة
@@ -22,9 +73,9 @@ class ExportColors {
 
   // ألوان الجداول
   static const PdfColor tableHeader = PdfColor.fromInt(0xFF1565C0);
-  static const PdfColor tableRowEven = PdfColors.grey50;
-  static const PdfColor tableRowOdd = PdfColors.white;
-  static const PdfColor tableBorder = PdfColors.grey300;
+  static const PdfColor tableRowEven = AppPdfColors.bgLight;
+  static const PdfColor tableRowOdd = AppPdfColors.bgWhite;
+  static const PdfColor tableBorder = AppPdfColors.borderLight;
 
   // ألوان أنواع الفواتير
   static const PdfColor sale = PdfColor.fromInt(0xFF43A047);
@@ -57,90 +108,148 @@ class PdfReportTemplate {
   final String? subtitle;
   final DateTime reportDate;
   final PdfColor headerColor;
-  final String? companyName;
+  final ExportSettings? settings;
   final int? itemCount;
+
+  // للتوافق مع الكود القديم
+  String? get companyName => settings?.companyName;
 
   const PdfReportTemplate({
     required this.title,
     this.subtitle,
     required this.reportDate,
     this.headerColor = ExportColors.primary,
-    this.companyName,
+    this.settings,
     this.itemCount,
+    @Deprecated('استخدم settings.companyName بدلاً منها') String? companyName,
   });
 
-  /// إنشاء رأس التقرير الموحد - تصميم بسيط أفقي
+  /// إنشاء رأس التقرير الموحد مع الشعار ومعلومات الشركة
   pw.Widget buildHeader() {
+    final hasLogo = settings?.hasLogo ?? false;
+    final hasCompanyInfo = settings?.hasCompanyInfo ?? false;
+
     return pw.Directionality(
       textDirection: pw.TextDirection.rtl,
       child: pw.Container(
         padding: const pw.EdgeInsets.only(bottom: 16),
         decoration: const pw.BoxDecoration(
-          border: pw.Border(bottom: pw.BorderSide(color: PdfColors.grey300)),
+          border:
+              pw.Border(bottom: pw.BorderSide(color: AppPdfColors.borderLight)),
         ),
         child: pw.Row(
           mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
             // العنوان (يظهر على اليمين في RTL)
-            pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text(
-                  title,
-                  style: pw.TextStyle(
-                    font: PdfFonts.bold,
-                    fontSize: 18,
-                    color: headerColor,
-                  ),
-                  textDirection: pw.TextDirection.rtl,
-                ),
-                pw.SizedBox(height: 4),
-                if (subtitle != null)
+            pw.Expanded(
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
                   pw.Text(
-                    subtitle!,
-                    style: pw.TextStyle(
-                      font: PdfFonts.regular,
-                      fontSize: 10,
-                      color: PdfColors.grey600,
-                    ),
-                    textDirection: pw.TextDirection.rtl,
-                  )
-                else if (itemCount != null)
-                  pw.Text(
-                    '$itemCount عنصر',
-                    style: pw.TextStyle(
-                      font: PdfFonts.regular,
-                      fontSize: 10,
-                      color: PdfColors.grey600,
-                    ),
-                    textDirection: pw.TextDirection.rtl,
-                  ),
-              ],
-            ),
-            // معلومات الشركة والتاريخ (تظهر على اليسار في RTL)
-            pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.end,
-              children: [
-                if (companyName != null)
-                  pw.Text(
-                    companyName!,
+                    title,
                     style: pw.TextStyle(
                       font: PdfFonts.bold,
-                      fontSize: 12,
+                      fontSize: 18,
+                      color: headerColor,
                     ),
                     textDirection: pw.TextDirection.rtl,
                   ),
-                pw.Text(
-                  ExportFormatters.formatDateTime(reportDate),
-                  style: pw.TextStyle(
-                    font: PdfFonts.regular,
-                    fontSize: 9,
-                    color: PdfColors.grey600,
+                  pw.SizedBox(height: 4),
+                  if (subtitle != null)
+                    pw.Text(
+                      subtitle!,
+                      style: pw.TextStyle(
+                        font: PdfFonts.regular,
+                        fontSize: 10,
+                        color: AppPdfColors.textSecondary,
+                      ),
+                      textDirection: pw.TextDirection.rtl,
+                    )
+                  else if (itemCount != null)
+                    pw.Text(
+                      '$itemCount عنصر',
+                      style: pw.TextStyle(
+                        font: PdfFonts.regular,
+                        fontSize: 10,
+                        color: AppPdfColors.textSecondary,
+                      ),
+                      textDirection: pw.TextDirection.rtl,
+                    ),
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    ExportFormatters.formatDateArabic(reportDate),
+                    style: pw.TextStyle(
+                      font: PdfFonts.regular,
+                      fontSize: 9,
+                      color: AppPdfColors.textSecondary,
+                    ),
+                    textDirection: pw.TextDirection.rtl,
                   ),
-                  textDirection: pw.TextDirection.rtl,
-                ),
-              ],
+                ],
+              ),
             ),
+            // معلومات الشركة والشعار (تظهر على اليسار في RTL)
+            if (hasCompanyInfo || hasLogo)
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                children: [
+                  // الشعار
+                  if (hasLogo)
+                    pw.Container(
+                      width: 60,
+                      height: 60,
+                      margin: const pw.EdgeInsets.only(bottom: 8),
+                      child: pw.Image(
+                        pw.MemoryImage(settings!.logoBytes!),
+                        fit: pw.BoxFit.contain,
+                      ),
+                    ),
+                  // اسم الشركة
+                  if (settings?.companyName != null)
+                    pw.Text(
+                      settings!.companyName!,
+                      style: pw.TextStyle(
+                        font: PdfFonts.bold,
+                        fontSize: 12,
+                      ),
+                      textDirection: pw.TextDirection.rtl,
+                    ),
+                  // العنوان
+                  if (settings?.companyAddress != null)
+                    pw.Text(
+                      settings!.companyAddress!,
+                      style: pw.TextStyle(
+                        font: PdfFonts.regular,
+                        fontSize: 9,
+                        color: AppPdfColors.textSecondary,
+                      ),
+                      textDirection: pw.TextDirection.rtl,
+                    ),
+                  // الهاتف
+                  if (settings?.companyPhone != null)
+                    pw.Text(
+                      settings!.companyPhone!,
+                      style: pw.TextStyle(
+                        font: PdfFonts.regular,
+                        fontSize: 9,
+                        color: AppPdfColors.textSecondary,
+                      ),
+                      textDirection: pw.TextDirection.rtl,
+                    ),
+                  // الرقم الضريبي
+                  if (settings?.companyTaxNumber != null)
+                    pw.Text(
+                      'ر.ض: ${settings!.companyTaxNumber!}',
+                      style: pw.TextStyle(
+                        font: PdfFonts.regular,
+                        fontSize: 8,
+                        color: AppPdfColors.textSecondary,
+                      ),
+                      textDirection: pw.TextDirection.rtl,
+                    ),
+                ],
+              ),
           ],
         ),
       ),
@@ -155,7 +264,7 @@ class PdfReportTemplate {
         width: double.infinity,
         padding: const pw.EdgeInsets.all(12),
         decoration: pw.BoxDecoration(
-          color: PdfColors.grey100,
+          color: AppPdfColors.bgLight,
           borderRadius: pw.BorderRadius.circular(6),
         ),
         child: pw.Row(
@@ -174,7 +283,7 @@ class PdfReportTemplate {
           style: pw.TextStyle(
             font: PdfFonts.regular,
             fontSize: 8,
-            color: PdfColors.grey600,
+            color: AppPdfColors.textSecondary,
           ),
           textDirection: pw.TextDirection.rtl,
         ),
@@ -184,7 +293,7 @@ class PdfReportTemplate {
           style: pw.TextStyle(
             font: PdfFonts.bold,
             fontSize: 12,
-            color: stat.color ?? PdfColors.grey800,
+            color: stat.color ?? AppPdfColors.textPrimary,
           ),
           textDirection: pw.TextDirection.rtl,
         ),
@@ -210,7 +319,7 @@ class PdfReportTemplate {
     return pw.Directionality(
       textDirection: pw.TextDirection.rtl,
       child: pw.Table(
-        border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+        border: pw.TableBorder.all(color: AppPdfColors.borderLight, width: 0.5),
         columnWidths: columnWidths ?? defaultWidths,
         children: [
           // Header row
@@ -227,7 +336,8 @@ class PdfReportTemplate {
             final row = entry.value;
             return pw.TableRow(
               decoration: pw.BoxDecoration(
-                color: index.isEven ? PdfColors.grey50 : PdfColors.white,
+                color:
+                    index.isEven ? AppPdfColors.bgLight : AppPdfColors.bgWhite,
               ),
               children: row.map((cell) => _dataCell(cell)).toList(),
             );
@@ -247,7 +357,7 @@ class PdfReportTemplate {
         style: pw.TextStyle(
           font: PdfFonts.bold,
           fontSize: 9,
-          color: PdfColors.white,
+          color: AppPdfColors.textWhite,
         ),
         textDirection: pw.TextDirection.rtl,
         textAlign: pw.TextAlign.center,
@@ -270,7 +380,7 @@ class PdfReportTemplate {
         style: pw.TextStyle(
           font: bold ? PdfFonts.bold : PdfFonts.regular,
           fontSize: 8,
-          color: color ?? PdfColors.grey800,
+          color: color ?? AppPdfColors.textPrimary,
         ),
         textDirection: pw.TextDirection.rtl,
         textAlign: align == pw.Alignment.centerRight
@@ -297,7 +407,7 @@ class PdfReportTemplate {
     return pw.Directionality(
       textDirection: pw.TextDirection.rtl,
       child: pw.Table(
-        border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+        border: pw.TableBorder.all(color: AppPdfColors.borderLight, width: 0.5),
         columnWidths: columnWidths ?? defaultWidths,
         children: [
           pw.TableRow(
@@ -326,7 +436,7 @@ class PdfReportTemplate {
     return pw.TableRow(
       decoration: pw.BoxDecoration(
         color: backgroundColor ??
-            (index.isEven ? PdfColors.grey50 : PdfColors.white),
+            (index.isEven ? AppPdfColors.bgLight : AppPdfColors.bgWhite),
       ),
       children: reversedCells
           .map((cell) => pw.Container(
@@ -338,7 +448,7 @@ class PdfReportTemplate {
                   style: pw.TextStyle(
                     font: bold ? PdfFonts.bold : PdfFonts.regular,
                     fontSize: 8,
-                    color: textColor ?? PdfColors.grey800,
+                    color: textColor ?? AppPdfColors.textPrimary,
                   ),
                   textDirection: pw.TextDirection.rtl,
                   textAlign: pw.TextAlign.center,
@@ -354,7 +464,7 @@ class PdfReportTemplate {
       padding: const pw.EdgeInsets.symmetric(vertical: 12),
       child: pw.Row(
         children: [
-          pw.Expanded(child: pw.Divider(color: PdfColors.grey300)),
+          pw.Expanded(child: pw.Divider(color: AppPdfColors.borderLight)),
           pw.Padding(
             padding: const pw.EdgeInsets.symmetric(horizontal: 12),
             child: pw.Text(
@@ -362,28 +472,58 @@ class PdfReportTemplate {
               style: pw.TextStyle(
                 font: PdfFonts.bold,
                 fontSize: 12,
-                color: PdfColors.grey700,
+                color: AppPdfColors.textSecondary,
               ),
               textDirection: pw.TextDirection.rtl,
             ),
           ),
-          pw.Expanded(child: pw.Divider(color: PdfColors.grey300)),
+          pw.Expanded(child: pw.Divider(color: AppPdfColors.borderLight)),
         ],
       ),
     );
   }
 
-  /// إنشاء تذييل التقرير الموحد - تصميم بسيط
+  /// إنشاء تذييل التقرير الموحد مع رقم الصفحة ورسالة الشركة
   pw.Widget buildFooter({int pageNumber = 1, int totalPages = 1}) {
-    return pw.Container(
-      alignment: pw.Alignment.center,
-      margin: const pw.EdgeInsets.only(top: 10),
-      child: pw.Text(
-        'صفحة $pageNumber من $totalPages',
-        style: pw.TextStyle(
-          font: PdfFonts.regular,
-          fontSize: 9,
-          color: PdfColors.grey500,
+    final hasFooterMessage =
+        settings?.footerMessage != null && settings!.footerMessage!.isNotEmpty;
+
+    return pw.Directionality(
+      textDirection: pw.TextDirection.rtl,
+      child: pw.Container(
+        margin: const pw.EdgeInsets.only(top: 10),
+        padding: const pw.EdgeInsets.only(top: 8),
+        decoration: const pw.BoxDecoration(
+          border: pw.Border(top: pw.BorderSide(color: AppPdfColors.bgMedium)),
+        ),
+        child: pw.Column(
+          children: [
+            // رسالة الشكر/الشركة
+            if (hasFooterMessage)
+              pw.Padding(
+                padding: const pw.EdgeInsets.only(bottom: 8),
+                child: pw.Text(
+                  settings!.footerMessage!,
+                  style: pw.TextStyle(
+                    font: PdfFonts.regular,
+                    fontSize: 9,
+                    color: AppPdfColors.textSecondary,
+                  ),
+                  textAlign: pw.TextAlign.center,
+                  textDirection: pw.TextDirection.rtl,
+                ),
+              ),
+            // رقم الصفحة
+            pw.Text(
+              'صفحة $pageNumber من $totalPages',
+              style: pw.TextStyle(
+                font: PdfFonts.regular,
+                fontSize: 9,
+                color: AppPdfColors.textSecondary,
+              ),
+              textDirection: pw.TextDirection.rtl,
+            ),
+          ],
         ),
       ),
     );
@@ -448,25 +588,42 @@ class ExcelStyles {
 class ExportFormatters {
   ExportFormatters._();
 
-  /// تنسيق السعر
-  static String formatPrice(double price, {bool showCurrency = true}) {
-    String formatted;
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ثوابت التنسيق الموحدة
+  // ═══════════════════════════════════════════════════════════════════════════
 
-    if (price == price.roundToDouble()) {
-      formatted = price.toStringAsFixed(0);
-    } else {
-      formatted = price.toStringAsFixed(2);
-      // إزالة الأصفار الزائدة
-      while (formatted.endsWith('0') && formatted.contains('.')) {
-        formatted = formatted.substring(0, formatted.length - 1);
-      }
-      if (formatted.endsWith('.')) {
-        formatted = formatted.substring(0, formatted.length - 1);
-      }
-    }
+  /// المنازل العشرية للأسعار بالليرة
+  static const int sypDecimals = 0;
+
+  /// المنازل العشرية للأسعار بالدولار
+  static const int usdDecimals = 2;
+
+  /// المنازل العشرية للكميات
+  static const int qtyDecimals = 2;
+
+  /// المنازل العشرية للنسب المئوية
+  static const int percentDecimals = 1;
+
+  /// تنسيق السعر بالليرة
+  static String formatPrice(double price, {bool showCurrency = true}) {
+    // استخدام المنازل العشرية الموحدة للليرة
+    String formatted = price.toStringAsFixed(sypDecimals);
 
     // إضافة فواصل الآلاف
-    final parts = formatted.split('.');
+    formatted = _addThousandsSeparator(formatted);
+
+    return showCurrency ? '$formatted ل.س' : formatted;
+  }
+
+  /// تنسيق السعر بالدولار
+  static String formatUsdPrice(double price, {bool showCurrency = true}) {
+    final formatted = price.toStringAsFixed(usdDecimals);
+    return showCurrency ? '\$$formatted' : formatted;
+  }
+
+  /// إضافة فواصل الآلاف
+  static String _addThousandsSeparator(String numStr) {
+    final parts = numStr.split('.');
     final intPart = parts[0];
     final buffer = StringBuffer();
     int count = 0;
@@ -484,12 +641,11 @@ class ExportFormatters {
       }
     }
 
-    formatted = buffer.toString().split('').reversed.join();
+    String result = buffer.toString().split('').reversed.join();
     if (parts.length > 1) {
-      formatted = '$formatted.${parts[1]}';
+      result = '$result.${parts[1]}';
     }
-
-    return showCurrency ? '$formatted ل.س' : formatted;
+    return result;
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -512,7 +668,7 @@ class ExportFormatters {
     bool showCurrency = true,
   }) {
     final sypFormatted = formatPrice(priceSyp, showCurrency: false);
-    final usdFormatted = priceUsd.toStringAsFixed(2);
+    final usdFormatted = priceUsd.toStringAsFixed(usdDecimals);
 
     if (showCurrency) {
       return '$sypFormatted ل.س (\$$usdFormatted)';
@@ -530,7 +686,7 @@ class ExportFormatters {
     // ⚠️ تحويل باستخدام سعر الصرف الحالي - للعرض التحليلي فقط
     final priceUsd = priceSyp / CurrencyService.currentRate;
     final sypFormatted = formatPrice(priceSyp, showCurrency: false);
-    final usdFormatted = priceUsd.toStringAsFixed(2);
+    final usdFormatted = priceUsd.toStringAsFixed(usdDecimals);
 
     if (showCurrency) {
       return '$sypFormatted ل.س (\$$usdFormatted)';
@@ -538,9 +694,32 @@ class ExportFormatters {
     return '$sypFormatted (\$$usdFormatted)';
   }
 
-  /// تنسيق التاريخ
+  // ═══════════════════════════════════════════════════════════════════════════
+  // تنسيق التواريخ الموحد
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// تنسيق التاريخ (DD/MM/YYYY)
   static String formatDate(DateTime date) {
     return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+  }
+
+  /// تنسيق التاريخ بصيغة نصية (مثال: 7 يناير 2026)
+  static String formatDateArabic(DateTime date) {
+    const months = [
+      'يناير',
+      'فبراير',
+      'مارس',
+      'أبريل',
+      'مايو',
+      'يونيو',
+      'يوليو',
+      'أغسطس',
+      'سبتمبر',
+      'أكتوبر',
+      'نوفمبر',
+      'ديسمبر'
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
   /// تنسيق التاريخ والوقت (بنظام 12 ساعة)
@@ -549,6 +728,14 @@ class ExportFormatters {
     final hour12 = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
     final period = hour < 12 ? 'ص' : 'م';
     return '${formatDate(date)} ${hour12.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')} $period';
+  }
+
+  /// تنسيق الوقت فقط (بنظام 12 ساعة)
+  static String formatTime(DateTime date) {
+    final hour = date.hour;
+    final hour12 = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+    final period = hour < 12 ? 'ص' : 'م';
+    return '${hour12.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')} $period';
   }
 
   /// تنسيق الفترة الزمنية
@@ -610,7 +797,7 @@ class ExportFormatters {
     if (qty == qty.truncate()) {
       return qty.truncate().toString();
     }
-    return qty.toStringAsFixed(2);
+    return qty.toStringAsFixed(qtyDecimals);
   }
 
   /// تنسيق النسبة المئوية
@@ -618,6 +805,17 @@ class ExportFormatters {
     if (value == value.truncate()) {
       return '${value.truncate()}%';
     }
-    return '${value.toStringAsFixed(1)}%';
+    return '${value.toStringAsFixed(percentDecimals)}%';
+  }
+
+  /// تنسيق الرصيد (مع لون إيجابي/سلبي)
+  static String formatBalance(double balance) {
+    final formatted = formatPrice(balance.abs(), showCurrency: false);
+    if (balance > 0) {
+      return '+$formatted ل.س';
+    } else if (balance < 0) {
+      return '-$formatted ل.س';
+    }
+    return '$formatted ل.س';
   }
 }

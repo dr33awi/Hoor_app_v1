@@ -55,7 +55,10 @@ class _SettingsScreenProState extends ConsumerState<SettingsScreenPro> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: ProAppBar.noBack(title: 'الإعدادات'),
+      appBar: ProAppBar.simple(
+        title: 'الإعدادات',
+        onBack: () => context.go('/'),
+      ),
       body: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -199,27 +202,14 @@ class _SettingsScreenProState extends ConsumerState<SettingsScreenPro> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'مؤسسة الهور التجارية',
+                      'Hoor Manager',
                       style: AppTypography.titleMedium.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     SizedBox(height: 4.h),
-                    Text(
-                      'الباقة المميزة',
-                      style: AppTypography.bodySmall.copyWith(
-                        color: Colors.white.o87,
-                      ),
-                    ),
                   ],
-                ),
-              ),
-              IconButton(
-                onPressed: () {},
-                icon: Icon(
-                  Icons.edit_outlined,
-                  color: Colors.white.o87,
                 ),
               ),
             ],

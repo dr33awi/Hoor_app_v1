@@ -6,7 +6,6 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../data/database/app_database.dart' hide Category;
 import '../../../data/database/app_database.dart' as db show Category;
-import '../currency_service.dart';
 import 'export_templates.dart';
 
 // Type alias for clarity
@@ -60,6 +59,8 @@ class ExcelExportService {
     required List<Invoice> invoices,
     String? type,
     String? fileName,
+    Map<String, String>? customerNames,
+    Map<String, String>? supplierNames,
   }) async {
     final excel = Excel.createExcel();
     final typeName = type != null
@@ -125,17 +126,20 @@ class ExcelExportService {
     row += 2;
 
     // ═══════════════════════════════════════════════════════════════════════
-    // رأس الجدول
+    // رأس الجدول - مع إضافة سعر الصرف والقيم بالدولار
     // ═══════════════════════════════════════════════════════════════════════
     final headers = [
       '#',
       'رقم الفاتورة',
       'التاريخ',
+      'الطرف',
       'النوع',
       'طريقة الدفع',
       'المجموع الفرعي',
       'الخصم',
-      'الإجمالي',
+      'الإجمالي (ل.س)',
+      'الإجمالي (\$)',
+      'سعر الصرف',
       'الحالة',
     ];
 
@@ -147,19 +151,32 @@ class ExcelExportService {
     row++;
 
     // ═══════════════════════════════════════════════════════════════════════
-    // البيانات
+    // البيانات - مع القيم المحفوظة بالدولار وسعر الصرف
     // ═══════════════════════════════════════════════════════════════════════
     for (var i = 0; i < invoices.length; i++) {
       final inv = invoices[i];
+      // تحديد اسم الطرف - استخدام الاسم الفعلي إن توفر
+      String partyName = '-';
+      if (inv.customerId != null) {
+        partyName = customerNames?[inv.customerId!] ?? 'عميل';
+      } else if (inv.supplierId != null) {
+        partyName = supplierNames?[inv.supplierId!] ?? 'مورد';
+      }
       final rowData = [
         '${i + 1}',
         inv.invoiceNumber,
         ExportFormatters.formatDateTime(inv.invoiceDate),
+        partyName,
         ExportFormatters.getInvoiceTypeLabel(inv.type),
         ExportFormatters.getPaymentMethodLabel(inv.paymentMethod),
         ExportFormatters.formatPrice(inv.subtotal, showCurrency: false),
         ExportFormatters.formatPrice(inv.discountAmount, showCurrency: false),
         ExportFormatters.formatPrice(inv.total, showCurrency: false),
+        // ⚠️ السياسة المحاسبية: استخدام القيم المحفوظة
+        inv.totalUsd != null ? '\$${inv.totalUsd!.toStringAsFixed(2)}' : '-',
+        inv.exchangeRate != null && inv.exchangeRate! > 0
+            ? inv.exchangeRate!.toStringAsFixed(0)
+            : '-',
         ExportFormatters.getInvoiceStatusLabel(inv.status),
       ];
 
@@ -174,15 +191,18 @@ class ExcelExportService {
     // ═══════════════════════════════════════════════════════════════════════
     // ضبط عرض الأعمدة
     // ═══════════════════════════════════════════════════════════════════════
-    sheet.setColumnWidth(0, 8);
-    sheet.setColumnWidth(1, 30);
-    sheet.setColumnWidth(2, 22);
-    sheet.setColumnWidth(3, 18);
-    sheet.setColumnWidth(4, 15);
-    sheet.setColumnWidth(5, 18);
-    sheet.setColumnWidth(6, 15);
-    sheet.setColumnWidth(7, 18);
-    sheet.setColumnWidth(8, 15);
+    sheet.setColumnWidth(0, 5); // #
+    sheet.setColumnWidth(1, 20); // رقم الفاتورة
+    sheet.setColumnWidth(2, 18); // التاريخ
+    sheet.setColumnWidth(3, 18); // الطرف
+    sheet.setColumnWidth(4, 12); // النوع
+    sheet.setColumnWidth(5, 12); // طريقة الدفع
+    sheet.setColumnWidth(6, 14); // المجموع الفرعي
+    sheet.setColumnWidth(7, 10); // الخصم
+    sheet.setColumnWidth(8, 14); // الإجمالي (ل.س)
+    sheet.setColumnWidth(9, 12); // الإجمالي ($)
+    sheet.setColumnWidth(10, 12); // سعر الصرف
+    sheet.setColumnWidth(11, 10); // الحالة
 
     return await _saveExcelFile(excel, fileName ?? 'invoices_list');
   }
@@ -547,6 +567,8 @@ class ExcelExportService {
     required List<Voucher> vouchers,
     String? type,
     String? fileName,
+    Map<String, String>? customerNames,
+    Map<String, String>? supplierNames,
   }) async {
     final excel = Excel.createExcel();
     final typeName = type != null ? _getVoucherTypeLabel(type) : 'جميع السندات';
@@ -567,7 +589,7 @@ class ExcelExportService {
       ..cellStyle = _titleStyle();
     sheet.merge(
       CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row),
-      CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: row),
+      CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: row),
     );
     row++;
 
@@ -595,13 +617,16 @@ class ExcelExportService {
         .value = TextCellValue(ExportFormatters.formatPrice(totalAmount));
     row += 2;
 
-    // رأس الجدول
+    // رأس الجدول - مع إضافة الطرف وسعر الصرف
     final headers = [
       '#',
       'رقم السند',
       'النوع',
+      'الطرف',
       'التاريخ',
-      'المبلغ',
+      'المبلغ (ل.س)',
+      'المبلغ (\$)',
+      'سعر الصرف',
       'الوصف',
     ];
 
@@ -612,15 +637,27 @@ class ExcelExportService {
     }
     row++;
 
-    // البيانات
+    // البيانات - مع القيم المحفوظة
     for (var i = 0; i < vouchers.length; i++) {
       final v = vouchers[i];
+      // تحديد اسم الطرف - استخدام الاسم الفعلي إن توفر
+      String partyName = '-';
+      if (v.customerId != null) {
+        partyName = customerNames?[v.customerId!] ?? 'عميل #${v.customerId}';
+      } else if (v.supplierId != null) {
+        partyName = supplierNames?[v.supplierId!] ?? 'مورد #${v.supplierId}';
+      }
+
       final rowData = [
         '${i + 1}',
         v.voucherNumber,
         _getVoucherTypeLabel(v.type),
+        partyName,
         ExportFormatters.formatDate(v.voucherDate),
         ExportFormatters.formatPrice(v.amount, showCurrency: false),
+        // ⚠️ السياسة المحاسبية: استخدام القيم المحفوظة
+        v.amountUsd != null ? '\$${v.amountUsd!.toStringAsFixed(2)}' : '-',
+        v.exchangeRate > 0 ? v.exchangeRate.toStringAsFixed(0) : '-',
         v.description ?? '',
       ];
 
@@ -633,12 +670,15 @@ class ExcelExportService {
     }
 
     // ضبط عرض الأعمدة
-    sheet.setColumnWidth(0, 5);
-    sheet.setColumnWidth(1, 15);
-    sheet.setColumnWidth(2, 12);
-    sheet.setColumnWidth(3, 18);
-    sheet.setColumnWidth(4, 15);
-    sheet.setColumnWidth(5, 30);
+    sheet.setColumnWidth(0, 5); // #
+    sheet.setColumnWidth(1, 15); // رقم السند
+    sheet.setColumnWidth(2, 12); // النوع
+    sheet.setColumnWidth(3, 12); // الطرف
+    sheet.setColumnWidth(4, 15); // التاريخ
+    sheet.setColumnWidth(5, 15); // المبلغ (ل.س)
+    sheet.setColumnWidth(6, 12); // المبلغ ($)
+    sheet.setColumnWidth(7, 12); // سعر الصرف
+    sheet.setColumnWidth(8, 28); // الوصف
 
     return await _saveExcelFile(excel, fileName ?? 'vouchers_list');
   }
@@ -737,11 +777,15 @@ class ExcelExportService {
         .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
         .value = TextCellValue('الهاتف: ${customer.phone ?? "غير محدد"}');
     row++;
+    // ⚠️ السياسة المحاسبية: عرض الرصيد بالليرة فقط أو استخدام balanceUsd المحفوظ
+    final customerBalanceUsdText = customer.balanceUsd != null
+        ? ' (\$${customer.balanceUsd.toStringAsFixed(2)})'
+        : '';
     sheet
             .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
             .value =
         TextCellValue(
-            'الرصيد الحالي: ${customer.balance.toStringAsFixed(0)} ل.س (\$${(customer.balance / CurrencyService.currentRate).toStringAsFixed(2)})');
+            'الرصيد الحالي: ${customer.balance.toStringAsFixed(0)} ل.س$customerBalanceUsdText');
     row += 2;
 
     // رأس الجدول
@@ -845,11 +889,15 @@ class ExcelExportService {
         .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
         .value = TextCellValue('الهاتف: ${supplier.phone ?? "غير محدد"}');
     row++;
+    // ⚠️ السياسة المحاسبية: عرض الرصيد بالليرة فقط أو استخدام balanceUsd المحفوظ
+    final supplierBalanceUsdText = supplier.balanceUsd != null
+        ? ' (\$${supplier.balanceUsd.toStringAsFixed(2)})'
+        : '';
     sheet
             .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
             .value =
         TextCellValue(
-            'الرصيد الحالي: ${supplier.balance.toStringAsFixed(0)} ل.س (\$${(supplier.balance / CurrencyService.currentRate).toStringAsFixed(2)})');
+            'الرصيد الحالي: ${supplier.balance.toStringAsFixed(0)} ل.س$supplierBalanceUsdText');
     row += 2;
 
     // رأس الجدول
@@ -1016,9 +1064,11 @@ class ExcelExportService {
     final sheet = excel['حركات الصندوق'];
     excel.delete('Sheet1');
 
-    // حساب الإحصائيات
+    // حساب الإحصائيات - مع USD
     double totalIncome = 0;
+    double totalIncomeUsd = 0;
     double totalExpense = 0;
+    double totalExpenseUsd = 0;
     for (final m in movements) {
       final isIncome = m.type == 'income' ||
           m.type == 'sale' ||
@@ -1026,8 +1076,10 @@ class ExcelExportService {
           m.type == 'opening';
       if (isIncome) {
         totalIncome += m.amount;
+        totalIncomeUsd += m.amountUsd ?? 0;
       } else {
         totalExpense += m.amount;
+        totalExpenseUsd += m.amountUsd ?? 0;
       }
     }
 
@@ -1041,7 +1093,7 @@ class ExcelExportService {
       ..cellStyle = _titleStyle();
     sheet.merge(
       CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row),
-      CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: row),
+      CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: row),
     );
     row++;
 
@@ -1052,7 +1104,7 @@ class ExcelExportService {
             'تاريخ التصدير: ${ExportFormatters.formatDateTime(DateTime.now())}');
     row++;
 
-    // ملخص
+    // ملخص - مع USD
     sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
       ..value = TextCellValue('عدد الحركات:')
       ..cellStyle = _summaryLabelStyle();
@@ -1065,7 +1117,8 @@ class ExcelExportService {
       ..value = TextCellValue('إجمالي الإيرادات:')
       ..cellStyle = _summaryLabelStyle();
     sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
-      ..value = TextCellValue(totalIncome.toStringAsFixed(2))
+      ..value = TextCellValue(
+          '${ExportFormatters.formatPrice(totalIncome, showCurrency: false)} | \$${totalIncomeUsd.toStringAsFixed(2)}')
       ..cellStyle = _summaryValueStyle(fontColor: ExcelStyles.successColor);
     row++;
 
@@ -1073,7 +1126,8 @@ class ExcelExportService {
       ..value = TextCellValue('إجمالي المصروفات:')
       ..cellStyle = _summaryLabelStyle();
     sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
-      ..value = TextCellValue(totalExpense.toStringAsFixed(2))
+      ..value = TextCellValue(
+          '${ExportFormatters.formatPrice(totalExpense, showCurrency: false)} | \$${totalExpenseUsd.toStringAsFixed(2)}')
       ..cellStyle = _summaryValueStyle(fontColor: ExcelStyles.errorColor);
     row++;
 
@@ -1081,7 +1135,8 @@ class ExcelExportService {
       ..value = TextCellValue('الصافي:')
       ..cellStyle = _summaryLabelStyle();
     sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
-      ..value = TextCellValue((totalIncome - totalExpense).toStringAsFixed(2))
+      ..value = TextCellValue(
+          '${ExportFormatters.formatPrice(totalIncome - totalExpense, showCurrency: false)} | \$${(totalIncomeUsd - totalExpenseUsd).toStringAsFixed(2)}')
       ..cellStyle = _summaryValueStyle(
         fontColor: totalIncome >= totalExpense
             ? ExcelStyles.successColor
@@ -1090,9 +1145,17 @@ class ExcelExportService {
     row += 2;
 
     // ═══════════════════════════════════════════════════════════════════════
-    // عناوين الأعمدة
+    // عناوين الأعمدة - مع USD
     // ═══════════════════════════════════════════════════════════════════════
-    final headers = ['#', 'التاريخ', 'الوصف', 'النوع', 'المبلغ'];
+    final headers = [
+      '#',
+      'التاريخ',
+      'الوصف',
+      'النوع',
+      'المبلغ (ل.س)',
+      'المبلغ (\$)',
+      'سعر الصرف'
+    ];
     for (var i = 0; i < headers.length; i++) {
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: row))
         ..value = TextCellValue(headers[i])
@@ -1101,7 +1164,7 @@ class ExcelExportService {
     row++;
 
     // ═══════════════════════════════════════════════════════════════════════
-    // البيانات
+    // البيانات - مع القيم المحفوظة بالدولار
     // ═══════════════════════════════════════════════════════════════════════
     for (var i = 0; i < movements.length; i++) {
       final movement = movements[i];
@@ -1115,7 +1178,14 @@ class ExcelExportService {
         ExportFormatters.formatDateTime(movement.createdAt),
         movement.description,
         isIncome ? 'إيراد' : 'مصروف',
-        '${isIncome ? '+' : '-'}${movement.amount.toStringAsFixed(2)}',
+        '${isIncome ? '+' : '-'}${ExportFormatters.formatPrice(movement.amount, showCurrency: false)}',
+        // ⚠️ السياسة المحاسبية: استخدام القيم المحفوظة
+        movement.amountUsd != null
+            ? '${isIncome ? '+' : '-'}\$${movement.amountUsd!.toStringAsFixed(2)}'
+            : '-',
+        movement.exchangeRate != null && movement.exchangeRate! > 0
+            ? movement.exchangeRate!.toStringAsFixed(0)
+            : '-',
       ];
 
       for (var j = 0; j < rowData.length; j++) {
@@ -1127,11 +1197,13 @@ class ExcelExportService {
     }
 
     // ضبط عرض الأعمدة
-    sheet.setColumnWidth(0, 5);
-    sheet.setColumnWidth(1, 18);
-    sheet.setColumnWidth(2, 30);
-    sheet.setColumnWidth(3, 10);
-    sheet.setColumnWidth(4, 12);
+    sheet.setColumnWidth(0, 5); // #
+    sheet.setColumnWidth(1, 18); // التاريخ
+    sheet.setColumnWidth(2, 28); // الوصف
+    sheet.setColumnWidth(3, 10); // النوع
+    sheet.setColumnWidth(4, 14); // المبلغ (ل.س)
+    sheet.setColumnWidth(5, 12); // المبلغ ($)
+    sheet.setColumnWidth(6, 12); // سعر الصرف
 
     return await _saveExcelFile(excel, fileName ?? 'cash_movements');
   }
@@ -1148,12 +1220,16 @@ class ExcelExportService {
     final sheet = excel['الورديات'];
     excel.delete('Sheet1');
 
-    // حساب الإحصائيات
+    // حساب الإحصائيات - مع USD
     double totalSales = 0;
+    double totalSalesUsd = 0;
     double totalExpenses = 0;
+    double totalExpensesUsd = 0;
     for (final s in shifts) {
       totalSales += s.totalSales;
+      totalSalesUsd += s.totalSalesUsd;
       totalExpenses += s.totalExpenses;
+      totalExpensesUsd += s.totalExpensesUsd;
     }
 
     int row = 0;
@@ -1166,7 +1242,7 @@ class ExcelExportService {
       ..cellStyle = _titleStyle();
     sheet.merge(
       CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row),
-      CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: row),
+      CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: row),
     );
     row++;
 
@@ -1177,7 +1253,7 @@ class ExcelExportService {
             'تاريخ التصدير: ${ExportFormatters.formatDateTime(DateTime.now())}');
     row++;
 
-    // ملخص
+    // ملخص - مع USD
     sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
       ..value = TextCellValue('عدد الورديات:')
       ..cellStyle = _summaryLabelStyle();
@@ -1190,7 +1266,8 @@ class ExcelExportService {
       ..value = TextCellValue('إجمالي المبيعات:')
       ..cellStyle = _summaryLabelStyle();
     sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
-      ..value = TextCellValue(totalSales.toStringAsFixed(2))
+      ..value = TextCellValue(
+          '${ExportFormatters.formatPrice(totalSales, showCurrency: false)} | \$${totalSalesUsd.toStringAsFixed(2)}')
       ..cellStyle = _summaryValueStyle(fontColor: ExcelStyles.successColor);
     row++;
 
@@ -1198,20 +1275,24 @@ class ExcelExportService {
       ..value = TextCellValue('إجمالي المصروفات:')
       ..cellStyle = _summaryLabelStyle();
     sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
-      ..value = TextCellValue(totalExpenses.toStringAsFixed(2))
+      ..value = TextCellValue(
+          '${ExportFormatters.formatPrice(totalExpenses, showCurrency: false)} | \$${totalExpensesUsd.toStringAsFixed(2)}')
       ..cellStyle = _summaryValueStyle(fontColor: ExcelStyles.errorColor);
     row += 2;
 
     // ═══════════════════════════════════════════════════════════════════════
-    // عناوين الأعمدة
+    // عناوين الأعمدة - مع USD
     // ═══════════════════════════════════════════════════════════════════════
     final headers = [
       '#',
       'رقم الوردية',
       'تاريخ الافتتاح',
       'الرصيد الافتتاحي',
-      'المبيعات',
-      'المصروفات',
+      'المبيعات (ل.س)',
+      'المبيعات (\$)',
+      'المصروفات (ل.س)',
+      'المصروفات (\$)',
+      'سعر الصرف',
       'الحالة'
     ];
     for (var i = 0; i < headers.length; i++) {
@@ -1222,7 +1303,7 @@ class ExcelExportService {
     row++;
 
     // ═══════════════════════════════════════════════════════════════════════
-    // البيانات
+    // البيانات - مع القيم المحفوظة بالدولار
     // ═══════════════════════════════════════════════════════════════════════
     for (var i = 0; i < shifts.length; i++) {
       final shift = shifts[i];
@@ -1231,9 +1312,15 @@ class ExcelExportService {
         (i + 1).toString(),
         '#${shift.shiftNumber}',
         ExportFormatters.formatDateTime(shift.openedAt),
-        shift.openingBalance.toStringAsFixed(2),
-        shift.totalSales.toStringAsFixed(2),
-        shift.totalExpenses.toStringAsFixed(2),
+        ExportFormatters.formatPrice(shift.openingBalance, showCurrency: false),
+        ExportFormatters.formatPrice(shift.totalSales, showCurrency: false),
+        // ⚠️ السياسة المحاسبية: استخدام القيم المحفوظة
+        '\$${shift.totalSalesUsd.toStringAsFixed(2)}',
+        ExportFormatters.formatPrice(shift.totalExpenses, showCurrency: false),
+        '\$${shift.totalExpensesUsd.toStringAsFixed(2)}',
+        shift.exchangeRate != null && shift.exchangeRate! > 0
+            ? shift.exchangeRate!.toStringAsFixed(0)
+            : '-',
         shift.status == 'open' ? 'مفتوحة' : 'مغلقة',
       ];
 
@@ -1246,13 +1333,16 @@ class ExcelExportService {
     }
 
     // ضبط عرض الأعمدة
-    sheet.setColumnWidth(0, 5);
-    sheet.setColumnWidth(1, 12);
-    sheet.setColumnWidth(2, 18);
-    sheet.setColumnWidth(3, 15);
-    sheet.setColumnWidth(4, 12);
-    sheet.setColumnWidth(5, 12);
-    sheet.setColumnWidth(6, 10);
+    sheet.setColumnWidth(0, 5); // #
+    sheet.setColumnWidth(1, 12); // رقم الوردية
+    sheet.setColumnWidth(2, 18); // تاريخ الافتتاح
+    sheet.setColumnWidth(3, 15); // الرصيد الافتتاحي
+    sheet.setColumnWidth(4, 14); // المبيعات (ل.س)
+    sheet.setColumnWidth(5, 12); // المبيعات ($)
+    sheet.setColumnWidth(6, 14); // المصروفات (ل.س)
+    sheet.setColumnWidth(7, 12); // المصروفات ($)
+    sheet.setColumnWidth(8, 12); // سعر الصرف
+    sheet.setColumnWidth(9, 10); // الحالة
 
     return await _saveExcelFile(excel, fileName ?? 'shifts');
   }

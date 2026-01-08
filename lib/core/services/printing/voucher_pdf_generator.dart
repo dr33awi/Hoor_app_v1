@@ -99,14 +99,7 @@ extension VoucherPrintTypeExtension on VoucherPrintType {
   }
 
   PdfColor get color {
-    switch (this) {
-      case VoucherPrintType.receipt:
-        return PdfColors.green;
-      case VoucherPrintType.payment:
-        return PdfColors.blue;
-      case VoucherPrintType.expense:
-        return PdfColors.orange;
-    }
+    return AppPdfColors.getVoucherColor(name);
   }
 
   static VoucherPrintType fromString(String type) {
@@ -241,8 +234,8 @@ class VoucherPdfGenerator {
             voucherType.arabicName,
             style: pw.TextStyle(
               font: PdfFonts.bold,
-              fontSize: 22,
-              color: PdfColors.white,
+              fontSize: PdfSizes.fontSizeTitle + 2,
+              color: AppPdfColors.textWhite,
             ),
             textAlign: pw.TextAlign.center,
           ),
@@ -255,14 +248,14 @@ class VoucherPdfGenerator {
                 padding:
                     const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: pw.BoxDecoration(
-                  color: PdfColors.white,
+                  color: AppPdfColors.bgWhite,
                   borderRadius: pw.BorderRadius.circular(16),
                 ),
                 child: pw.Text(
                   'رقم: ${data.voucherNumber}',
                   style: pw.TextStyle(
                     font: PdfFonts.bold,
-                    fontSize: 11,
+                    fontSize: PdfSizes.fontSizeSmall + 1,
                     color: voucherType.color,
                   ),
                 ),
@@ -272,14 +265,14 @@ class VoucherPdfGenerator {
                 padding:
                     const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: pw.BoxDecoration(
-                  color: PdfColors.white,
+                  color: AppPdfColors.bgWhite,
                   borderRadius: pw.BorderRadius.circular(16),
                 ),
                 child: pw.Text(
                   ExportFormatters.formatDateTime(data.date),
                   style: pw.TextStyle(
                     font: PdfFonts.regular,
-                    fontSize: 10,
+                    fontSize: PdfSizes.fontSizeSmall,
                     color: voucherType.color,
                   ),
                 ),
@@ -330,9 +323,9 @@ class VoucherPdfGenerator {
     return pw.Container(
       padding: const pw.EdgeInsets.all(12),
       decoration: pw.BoxDecoration(
-        color: PdfColors.grey100,
+        color: AppPdfColors.bgLight,
         borderRadius: pw.BorderRadius.circular(6),
-        border: pw.Border.all(color: PdfColors.grey300),
+        border: pw.Border.all(color: AppPdfColors.borderLight),
       ),
       child: pw.Row(
         children: [
@@ -340,7 +333,7 @@ class VoucherPdfGenerator {
             width: 4,
             height: 50,
             decoration: pw.BoxDecoration(
-              color: ExportColors.primary,
+              color: AppPdfColors.primary,
               borderRadius: pw.BorderRadius.circular(2),
             ),
           ),
@@ -352,7 +345,8 @@ class VoucherPdfGenerator {
                 if (options.companyName != null)
                   pw.Text(
                     options.companyName!,
-                    style: pw.TextStyle(font: PdfFonts.bold, fontSize: 12),
+                    style: pw.TextStyle(
+                        font: PdfFonts.bold, fontSize: PdfSizes.fontSizeMedium),
                   ),
                 if (options.companyAddress != null) ...[
                   pw.SizedBox(height: 2),
@@ -360,8 +354,8 @@ class VoucherPdfGenerator {
                     options.companyAddress!,
                     style: pw.TextStyle(
                         font: PdfFonts.regular,
-                        fontSize: 9,
-                        color: PdfColors.grey700),
+                        fontSize: PdfSizes.fontSizeSmall - 1,
+                        color: AppPdfColors.textSecondary),
                   ),
                 ],
                 if (options.companyPhone != null) ...[
@@ -370,8 +364,8 @@ class VoucherPdfGenerator {
                     'هاتف: ${options.companyPhone}',
                     style: pw.TextStyle(
                         font: PdfFonts.regular,
-                        fontSize: 9,
-                        color: PdfColors.grey700),
+                        fontSize: PdfSizes.fontSizeSmall - 1,
+                        color: AppPdfColors.textSecondary),
                   ),
                 ],
               ],
@@ -408,9 +402,9 @@ class VoucherPdfGenerator {
     return pw.Container(
       padding: const pw.EdgeInsets.all(12),
       decoration: pw.BoxDecoration(
-        color: PdfColors.grey100,
+        color: AppPdfColors.bgLight,
         borderRadius: pw.BorderRadius.circular(6),
-        border: pw.Border.all(color: PdfColors.grey300),
+        border: pw.Border.all(color: AppPdfColors.borderLight),
       ),
       child: pw.Row(
         children: [
@@ -429,7 +423,8 @@ class VoucherPdfGenerator {
               children: [
                 pw.Text(
                   '$label: ${name ?? "-"}',
-                  style: pw.TextStyle(font: PdfFonts.bold, fontSize: 12),
+                  style: pw.TextStyle(
+                      font: PdfFonts.bold, fontSize: PdfSizes.fontSizeMedium),
                 ),
               ],
             ),
@@ -457,7 +452,7 @@ class VoucherPdfGenerator {
           child: pw.Container(
             padding: const pw.EdgeInsets.all(12),
             decoration: pw.BoxDecoration(
-              color: PdfColors.grey100,
+              color: AppPdfColors.bgLight,
               borderRadius: pw.BorderRadius.circular(6),
             ),
             child: pw.Row(
@@ -477,9 +472,9 @@ class VoucherPdfGenerator {
           child: pw.Container(
             padding: const pw.EdgeInsets.all(12),
             decoration: pw.BoxDecoration(
-              color: PdfColors.grey100,
+              color: AppPdfColors.bgLight,
               borderRadius: pw.BorderRadius.circular(6),
-              border: pw.Border.all(color: PdfColors.grey300),
+              border: pw.Border.all(color: AppPdfColors.borderLight),
             ),
             child: pw.Column(
               children: [
@@ -491,14 +486,14 @@ class VoucherPdfGenerator {
                       'المبلغ',
                       style: pw.TextStyle(
                           font: PdfFonts.bold,
-                          fontSize: 14,
+                          fontSize: PdfSizes.fontSizeLarge,
                           color: voucherType.color),
                     ),
                     pw.Text(
                       '${ExportFormatters.formatPrice(data.amount, showCurrency: false)} ${CurrencyFormatter.sypSymbol}',
                       style: pw.TextStyle(
                           font: PdfFonts.bold,
-                          fontSize: 18,
+                          fontSize: PdfSizes.fontSizeTitle,
                           color: voucherType.color),
                     ),
                   ],
@@ -506,7 +501,7 @@ class VoucherPdfGenerator {
                 // سعر الصرف والمبلغ بالدولار
                 if (options.showExchangeRate && data.exchangeRate > 0) ...[
                   pw.SizedBox(height: 8),
-                  pw.Divider(color: PdfColors.grey300, thickness: 0.5),
+                  pw.Divider(color: AppPdfColors.borderLight, thickness: 0.5),
                   pw.SizedBox(height: 8),
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -515,15 +510,15 @@ class VoucherPdfGenerator {
                         'سعر الصرف',
                         style: pw.TextStyle(
                             font: PdfFonts.regular,
-                            fontSize: 10,
-                            color: PdfColors.grey700),
+                            fontSize: PdfSizes.fontSizeSmall,
+                            color: AppPdfColors.textSecondary),
                       ),
                       pw.Text(
                         '${ExportFormatters.formatPrice(data.exchangeRate, showCurrency: false)} ${CurrencyFormatter.sypSymbol}/\$',
                         style: pw.TextStyle(
                             font: PdfFonts.regular,
-                            fontSize: 10,
-                            color: PdfColors.grey700),
+                            fontSize: PdfSizes.fontSizeSmall,
+                            color: AppPdfColors.textSecondary),
                       ),
                     ],
                   ),
@@ -535,15 +530,15 @@ class VoucherPdfGenerator {
                         'المبلغ بالدولار',
                         style: pw.TextStyle(
                             font: PdfFonts.bold,
-                            fontSize: 11,
-                            color: PdfColors.blue800),
+                            fontSize: PdfSizes.fontSizeMedium - 1,
+                            color: AppPdfColors.blue800),
                       ),
                       pw.Text(
                         '\$${usdAmount.toStringAsFixed(2)}',
                         style: pw.TextStyle(
                             font: PdfFonts.bold,
-                            fontSize: 12,
-                            color: PdfColors.blue800),
+                            fontSize: PdfSizes.fontSizeMedium,
+                            color: AppPdfColors.blue800),
                       ),
                     ],
                   ),
@@ -551,7 +546,7 @@ class VoucherPdfGenerator {
                 // المنشئ
                 if (data.createdBy != null) ...[
                   pw.SizedBox(height: 8),
-                  pw.Divider(color: PdfColors.grey300, thickness: 0.5),
+                  pw.Divider(color: AppPdfColors.borderLight, thickness: 0.5),
                   pw.SizedBox(height: 8),
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -560,15 +555,15 @@ class VoucherPdfGenerator {
                         'بواسطة',
                         style: pw.TextStyle(
                             font: PdfFonts.regular,
-                            fontSize: 10,
-                            color: PdfColors.grey700),
+                            fontSize: PdfSizes.fontSizeSmall,
+                            color: AppPdfColors.textSecondary),
                       ),
                       pw.Text(
                         data.createdBy!,
                         style: pw.TextStyle(
                             font: PdfFonts.bold,
-                            fontSize: 10,
-                            color: PdfColors.grey800),
+                            fontSize: PdfSizes.fontSizeSmall,
+                            color: AppPdfColors.textPrimary),
                       ),
                     ],
                   ),
@@ -587,13 +582,17 @@ class VoucherPdfGenerator {
         pw.Text(
           label,
           style: pw.TextStyle(
-              font: PdfFonts.regular, fontSize: 9, color: PdfColors.grey600),
+              font: PdfFonts.regular,
+              fontSize: PdfSizes.fontSizeSmall - 1,
+              color: AppPdfColors.textMuted),
         ),
         pw.SizedBox(height: 4),
         pw.Text(
           value,
           style: pw.TextStyle(
-              font: PdfFonts.bold, fontSize: 12, color: PdfColors.grey800),
+              font: PdfFonts.bold,
+              fontSize: PdfSizes.fontSizeMedium,
+              color: AppPdfColors.textPrimary),
         ),
       ],
     );
@@ -617,8 +616,8 @@ class VoucherPdfGenerator {
         pw.Expanded(
           child: pw.Container(
             padding: const pw.EdgeInsets.all(12),
-            decoration: const pw.BoxDecoration(
-              color: PdfColors.amber50,
+            decoration: pw.BoxDecoration(
+              color: AppPdfColors.bgAmber,
             ),
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -627,16 +626,16 @@ class VoucherPdfGenerator {
                   'البيان',
                   style: pw.TextStyle(
                       font: PdfFonts.bold,
-                      fontSize: 10,
-                      color: ExportColors.warning),
+                      fontSize: PdfSizes.fontSizeSmall,
+                      color: AppPdfColors.warning),
                 ),
                 pw.SizedBox(height: 4),
                 pw.Text(
                   data.description ?? '',
                   style: pw.TextStyle(
                       font: PdfFonts.regular,
-                      fontSize: 11,
-                      color: PdfColors.grey800),
+                      fontSize: PdfSizes.fontSizeMedium - 1,
+                      color: AppPdfColors.textPrimary),
                 ),
               ],
             ),
@@ -652,8 +651,8 @@ class VoucherPdfGenerator {
 
     return pw.Container(
       padding: const pw.EdgeInsets.symmetric(vertical: 12),
-      decoration: const pw.BoxDecoration(
-        border: pw.Border(top: pw.BorderSide(color: PdfColors.grey300)),
+      decoration: pw.BoxDecoration(
+        border: pw.Border(top: pw.BorderSide(color: AppPdfColors.borderLight)),
       ),
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -661,13 +660,17 @@ class VoucherPdfGenerator {
           pw.Text(
             'تم الطباعة: ${ExportFormatters.formatDateTime(DateTime.now())}',
             style: pw.TextStyle(
-                font: PdfFonts.regular, fontSize: 8, color: PdfColors.grey500),
+                font: PdfFonts.regular,
+                fontSize: PdfSizes.fontSizeSmall - 2,
+                color: AppPdfColors.textLight),
           ),
           if (footerText != null && footerText.isNotEmpty)
             pw.Text(
               footerText,
               style: pw.TextStyle(
-                  font: PdfFonts.bold, fontSize: 9, color: PdfColors.grey600),
+                  font: PdfFonts.bold,
+                  fontSize: PdfSizes.fontSizeSmall - 1,
+                  color: AppPdfColors.textMuted),
             ),
         ],
       ),
@@ -730,8 +733,11 @@ class VoucherPdfGenerator {
     VoucherPrintType voucherType,
     int widthMm,
   ) {
-    final titleSize = widthMm == 58 ? 12.0 : 14.0;
-    final fontSize = widthMm == 58 ? 7.0 : 8.0;
+    final titleSize =
+        widthMm == 58 ? PdfSizes.fontSizeMedium : PdfSizes.fontSizeLarge;
+    final fontSize = widthMm == 58
+        ? PdfSizes.fontSizeThermalSmall
+        : PdfSizes.fontSizeThermal;
 
     return pw.Column(
       children: [
@@ -741,6 +747,7 @@ class VoucherPdfGenerator {
             options.companyName!,
             style: pw.TextStyle(font: PdfFonts.bold, fontSize: titleSize),
             textAlign: pw.TextAlign.center,
+            textDirection: pw.TextDirection.rtl,
           ),
 
         // العنوان
@@ -749,6 +756,7 @@ class VoucherPdfGenerator {
             options.companyAddress!,
             style: pw.TextStyle(font: PdfFonts.regular, fontSize: fontSize),
             textAlign: pw.TextAlign.center,
+            textDirection: pw.TextDirection.rtl,
           ),
 
         // رقم الهاتف
@@ -757,6 +765,7 @@ class VoucherPdfGenerator {
             options.companyPhone!,
             style: pw.TextStyle(font: PdfFonts.regular, fontSize: fontSize),
             textAlign: pw.TextAlign.center,
+            textDirection: pw.TextDirection.rtl,
           ),
 
         // الرقم الضريبي
@@ -765,6 +774,7 @@ class VoucherPdfGenerator {
             'الرقم الضريبي: ${options.companyTaxNumber}',
             style: pw.TextStyle(font: PdfFonts.regular, fontSize: fontSize),
             textAlign: pw.TextAlign.center,
+            textDirection: pw.TextDirection.rtl,
           ),
 
         pw.SizedBox(height: 8),
@@ -780,9 +790,12 @@ class VoucherPdfGenerator {
             voucherType.arabicName,
             style: pw.TextStyle(
               font: PdfFonts.bold,
-              fontSize: widthMm == 58 ? 10.0 : 12.0,
-              color: PdfColors.white,
+              fontSize: widthMm == 58
+                  ? PdfSizes.fontSizeSmall
+                  : PdfSizes.fontSizeMedium,
+              color: AppPdfColors.textWhite,
             ),
+            textDirection: pw.TextDirection.rtl,
           ),
         ),
 
@@ -792,21 +805,30 @@ class VoucherPdfGenerator {
         pw.Text(
           data.voucherNumber,
           style: pw.TextStyle(
-              font: PdfFonts.regular, fontSize: widthMm == 58 ? 9.0 : 10.0),
+              font: PdfFonts.regular,
+              fontSize: widthMm == 58
+                  ? PdfSizes.fontSizeSmall - 1
+                  : PdfSizes.fontSizeSmall),
           textAlign: pw.TextAlign.center,
+          textDirection: pw.TextDirection.rtl,
         ),
         pw.Text(
           ExportFormatters.formatDateTime(data.date),
           style: pw.TextStyle(
-              font: PdfFonts.regular, fontSize: widthMm == 58 ? 8.0 : 9.0),
+              font: PdfFonts.regular,
+              fontSize: widthMm == 58
+                  ? PdfSizes.fontSizeThermal
+                  : PdfSizes.fontSizeSmall - 1),
           textAlign: pw.TextAlign.center,
+          textDirection: pw.TextDirection.rtl,
         ),
       ],
     );
   }
 
   static pw.Widget _buildThermalPartyInfo(VoucherPrintData data, int widthMm) {
-    final fontSize = widthMm == 58 ? 8.0 : 9.0;
+    final fontSize =
+        widthMm == 58 ? PdfSizes.fontSizeThermal : PdfSizes.fontSizeSmall - 1;
     final isReceipt = data.type == 'receipt';
     final label = isReceipt
         ? 'استلمنا من'
@@ -819,6 +841,7 @@ class VoucherPdfGenerator {
         pw.Text(
           '$label: $name',
           style: pw.TextStyle(font: PdfFonts.regular, fontSize: fontSize),
+          textDirection: pw.TextDirection.rtl,
         ),
       ],
     );
@@ -829,8 +852,10 @@ class VoucherPdfGenerator {
     VoucherPrintOptions options,
     int widthMm,
   ) {
-    final titleSize = widthMm == 58 ? 14.0 : 16.0;
-    final fontSize = widthMm == 58 ? 8.0 : 9.0;
+    final titleSize =
+        widthMm == 58 ? PdfSizes.fontSizeLarge : PdfSizes.fontSizeTitle;
+    final fontSize =
+        widthMm == 58 ? PdfSizes.fontSizeThermal : PdfSizes.fontSizeSmall - 1;
 
     return pw.Column(
       children: [
@@ -838,18 +863,20 @@ class VoucherPdfGenerator {
           'المبلغ',
           style: pw.TextStyle(font: PdfFonts.regular, fontSize: fontSize),
           textAlign: pw.TextAlign.center,
+          textDirection: pw.TextDirection.rtl,
         ),
         pw.SizedBox(height: 4),
         pw.Container(
           padding: const pw.EdgeInsets.symmetric(vertical: 4),
           decoration: pw.BoxDecoration(
-            color: PdfColors.grey200,
+            color: AppPdfColors.bgMedium,
             borderRadius: pw.BorderRadius.circular(4),
           ),
           child: pw.Center(
             child: pw.Text(
               '${_formatNumber(data.amount)} ${CurrencyFormatter.sypSymbol}',
               style: pw.TextStyle(font: PdfFonts.bold, fontSize: titleSize),
+              textDirection: pw.TextDirection.rtl,
             ),
           ),
         ),
@@ -863,11 +890,13 @@ class VoucherPdfGenerator {
                 'سعر الصرف',
                 style: pw.TextStyle(
                     font: PdfFonts.regular, fontSize: fontSize - 1),
+                textDirection: pw.TextDirection.rtl,
               ),
               pw.Text(
                 '${data.exchangeRate.toStringAsFixed(0)} ${CurrencyFormatter.sypSymbol}/\$',
                 style: pw.TextStyle(
                     font: PdfFonts.regular, fontSize: fontSize - 1),
+                textDirection: pw.TextDirection.rtl,
               ),
             ],
           ),
@@ -879,16 +908,18 @@ class VoucherPdfGenerator {
                 style: pw.TextStyle(
                   font: PdfFonts.regular,
                   fontSize: fontSize,
-                  color: PdfColors.blue800,
+                  color: AppPdfColors.blue800,
                 ),
+                textDirection: pw.TextDirection.rtl,
               ),
               pw.Text(
                 '\$${(data.amount / data.exchangeRate).toStringAsFixed(2)}',
                 style: pw.TextStyle(
                   font: PdfFonts.bold,
                   fontSize: fontSize + 1,
-                  color: PdfColors.blue800,
+                  color: AppPdfColors.blue800,
                 ),
+                textDirection: pw.TextDirection.rtl,
               ),
             ],
           ),
@@ -899,7 +930,9 @@ class VoucherPdfGenerator {
 
   static pw.Widget _buildThermalDescription(
       VoucherPrintData data, int widthMm) {
-    final fontSize = widthMm == 58 ? 7.0 : 8.0;
+    final fontSize = widthMm == 58
+        ? PdfSizes.fontSizeThermalSmall
+        : PdfSizes.fontSizeThermal;
 
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -907,11 +940,13 @@ class VoucherPdfGenerator {
         pw.Text(
           'البيان:',
           style: pw.TextStyle(font: PdfFonts.bold, fontSize: fontSize),
+          textDirection: pw.TextDirection.rtl,
         ),
         pw.Text(
           data.description!,
           style: pw.TextStyle(font: PdfFonts.regular, fontSize: fontSize),
           maxLines: 3,
+          textDirection: pw.TextDirection.rtl,
         ),
       ],
     );
@@ -919,7 +954,9 @@ class VoucherPdfGenerator {
 
   static pw.Widget _buildThermalFooter(
       VoucherPrintOptions options, int widthMm) {
-    final fontSize = widthMm == 58 ? 7.0 : 8.0;
+    final fontSize = widthMm == 58
+        ? PdfSizes.fontSizeThermalSmall
+        : PdfSizes.fontSizeThermal;
 
     return pw.Column(
       children: [
@@ -929,6 +966,7 @@ class VoucherPdfGenerator {
             options.footerMessage!,
             style: pw.TextStyle(font: PdfFonts.regular, fontSize: fontSize),
             textAlign: pw.TextAlign.center,
+            textDirection: pw.TextDirection.rtl,
           ),
           pw.SizedBox(height: 4),
         ],
@@ -945,7 +983,9 @@ class VoucherPdfGenerator {
           (index) => pw.Expanded(
             child: pw.Container(
               height: 1,
-              color: index.isEven ? PdfColors.grey400 : PdfColors.white,
+              color: index.isEven
+                  ? AppPdfColors.borderMedium
+                  : AppPdfColors.bgWhite,
             ),
           ),
         ),

@@ -17,6 +17,7 @@ import '../../core/providers/app_providers.dart';
 import '../../core/widgets/widgets.dart';
 import '../../core/services/export/export_services.dart';
 import '../../core/services/export/export_button.dart';
+import '../../core/services/party_name_resolver.dart';
 import '../../data/database/app_database.dart';
 
 class VouchersScreenPro extends ConsumerStatefulWidget {
@@ -217,58 +218,35 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
   }
 
   Widget _buildHeader(int totalVouchers, List<Voucher> filteredVouchers) {
-    return Padding(
-      padding: EdgeInsets.symmetric(
-          horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => context.go('/'),
-            icon: const Icon(Icons.arrow_back_rounded),
-            style: IconButton.styleFrom(
-              backgroundColor: AppColors.surface,
-            ),
+    return ProHeader(
+      title: 'السندات',
+      subtitle: '$totalVouchers سند',
+      showBackButton: true,
+      onBack: () => context.go('/'),
+      icon: Icons.receipt_long_rounded,
+      iconColor: AppColors.secondary,
+      actions: [
+        IconButton(
+          onPressed: _selectDateRange,
+          icon: Badge(
+            isLabelVisible: _dateRange != null,
+            child: const Icon(Icons.filter_list_rounded),
           ),
-          SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'السندات',
-                  style: AppTypography.titleMedium.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  '$totalVouchers سند',
-                  style: AppTypography.labelSmall.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
+          style: IconButton.styleFrom(
+            backgroundColor: AppColors.surfaceMuted,
           ),
-          IconButton(
-            onPressed: _selectDateRange,
-            icon: Badge(
-              isLabelVisible: _dateRange != null,
-              child: const Icon(Icons.date_range_rounded, size: 22),
-            ),
-            tooltip: 'تصفية حسب التاريخ',
-          ),
-          ExportMenuButton(
-            onExport: (type) => _handleExport(type, filteredVouchers),
-            isLoading: _isExporting,
-            enabledOptions: const {
-              ExportType.excel,
-              ExportType.pdf,
-              ExportType.sharePdf,
-              ExportType.shareExcel,
-            },
-          ),
-        ],
-      ),
+        ),
+        ExportMenuButton(
+          onExport: (type) => _handleExport(type, filteredVouchers),
+          isLoading: _isExporting,
+          enabledOptions: const {
+            ExportType.excel,
+            ExportType.pdf,
+            ExportType.sharePdf,
+            ExportType.shareExcel,
+          },
+        ),
+      ],
     );
   }
 
@@ -361,24 +339,42 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
     setState(() => _isExporting = true);
     final fileName = 'السندات_${DateFormat('yyyyMMdd').format(DateTime.now())}';
 
+    // ⚠️ استخدام PartyNameResolver للتحميل الجماعي - أفضل للأداء
+    final partyResolver = ref.read(partyNameResolverProvider);
+    final partyNames = await partyResolver.loadAllPartyNames();
+    final customerNames = partyNames.customers;
+    final supplierNames = partyNames.suppliers;
+
     try {
       switch (type) {
         case ExportType.excel:
           await ExcelExportService.exportVouchers(
             vouchers: vouchers,
             fileName: fileName,
+            customerNames: customerNames,
+            supplierNames: supplierNames,
           );
           if (mounted) ProSnackbar.success(context, 'تم حفظ الملف بنجاح');
           break;
         case ExportType.pdf:
-          final pdfBytes =
-              await PdfExportService.generateVouchersList(vouchers: vouchers);
+          final settings = await ExportService.getExportSettings();
+          final pdfBytes = await PdfExportService.generateVouchersList(
+            vouchers: vouchers,
+            customerNames: customerNames,
+            supplierNames: supplierNames,
+            settings: settings,
+          );
           await PdfExportService.savePdfFile(pdfBytes, fileName);
           if (mounted) ProSnackbar.success(context, 'تم حفظ الملف بنجاح');
           break;
         case ExportType.sharePdf:
-          final pdfBytes =
-              await PdfExportService.generateVouchersList(vouchers: vouchers);
+          final settingsShare = await ExportService.getExportSettings();
+          final pdfBytes = await PdfExportService.generateVouchersList(
+            vouchers: vouchers,
+            customerNames: customerNames,
+            supplierNames: supplierNames,
+            settings: settingsShare,
+          );
           await PdfExportService.sharePdfBytes(pdfBytes,
               fileName: fileName, subject: 'تقرير السندات');
           break;
@@ -386,6 +382,8 @@ class _VouchersScreenProState extends ConsumerState<VouchersScreenPro>
           final filePath = await ExcelExportService.exportVouchers(
             vouchers: vouchers,
             fileName: fileName,
+            customerNames: customerNames,
+            supplierNames: supplierNames,
           );
           await ExcelExportService.shareFile(filePath,
               subject: 'تقرير السندات');

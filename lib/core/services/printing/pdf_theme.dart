@@ -121,6 +121,11 @@ class PdfSizes {
   static const fontSizeXLarge = 16.0;
   static const fontSizeTitle = 20.0;
   static const fontSizeHeader = 24.0;
+
+  // Thermal receipt font sizes
+  static const fontSizeThermal = 9.0;
+  static const fontSizeThermalSmall = 7.0;
+  static const fontSizeThermalLarge = 11.0;
 }
 
 /// ═══════════════════════════════════════════════════════════════════════════
@@ -462,9 +467,10 @@ enum PdfPrintSize {
 }
 
 /// ═══════════════════════════════════════════════════════════════════════════
-/// App PDF Colors - ألوان PDF للتطبيق
+/// App PDF Colors - ألوان PDF للتطبيق (المصدر الوحيد للهوية البصرية)
 /// ═══════════════════════════════════════════════════════════════════════════
 class AppPdfColors {
+  // ═══════ الألوان الأساسية ═══════
   static const primary = PdfColor.fromInt(0xFF2E7D32);
   static const primaryLight = PdfColor.fromInt(0xFF4CAF50);
   static const secondary = PdfColor.fromInt(0xFF757575);
@@ -473,10 +479,80 @@ class AppPdfColors {
   static const error = PdfColor.fromInt(0xFFF44336);
   static const info = PdfColor.fromInt(0xFF2196F3);
 
+  // ═══════ ألوان الجداول ═══════
   static const tableBorder = PdfColors.grey300;
   static const tableHeader = PdfColor.fromInt(0xFF2E7D32);
   static const tableRowEven = PdfColors.grey50;
   static const tableRowOdd = PdfColors.white;
+
+  // ═══════ ألوان النصوص ═══════
+  static const textPrimary = PdfColors.grey800;
+  static const textSecondary = PdfColors.grey700;
+  static const textMuted = PdfColors.grey600;
+  static const textLight = PdfColors.grey500;
+  static const textWhite = PdfColors.white;
+
+  // ═══════ ألوان الخلفيات ═══════
+  static const bgLight = PdfColors.grey100;
+  static const bgMedium = PdfColors.grey200;
+  static const bgWhite = PdfColors.white;
+  static const bgAmber = PdfColors.amber50;
+  static const bgBlue = PdfColors.blue50;
+  static const bgGreen = PdfColors.green50;
+  static const bgRed = PdfColors.red50;
+
+  // ═══════ ألوان الحدود ═══════
+  static const borderLight = PdfColors.grey300;
+  static const borderMedium = PdfColors.grey400;
+  static const borderAmber = PdfColors.amber200;
+
+  // ═══════ ألوان الفواتير حسب النوع ═══════
+  static const invoiceSale = PdfColor.fromInt(0xFF22C55E);
+  static const invoicePurchase = PdfColor.fromInt(0xFF3B82F6);
+  static const invoiceSaleReturn = PdfColor.fromInt(0xFFF97316);
+  static const invoicePurchaseReturn = PdfColor.fromInt(0xFFEF4444);
+  static const invoiceDefault = PdfColor.fromInt(0xFF6B7280);
+
+  // ═══════ ألوان السندات حسب النوع ═══════
+  static const voucherReceipt = PdfColors.green;
+  static const voucherPayment = PdfColors.blue;
+  static const voucherExpense = PdfColors.orange;
+
+  // ═══════ ألوان إضافية ═══════
+  static const blue800 = PdfColors.blue800;
+  static const red = PdfColors.red;
+
+  /// الحصول على لون الفاتورة حسب النوع
+  static PdfColor getInvoiceColor(String invoiceType) {
+    switch (invoiceType) {
+      case 'sale':
+        return invoiceSale;
+      case 'purchase':
+        return invoicePurchase;
+      case 'saleReturn':
+      case 'sale_return':
+        return invoiceSaleReturn;
+      case 'purchaseReturn':
+      case 'purchase_return':
+        return invoicePurchaseReturn;
+      default:
+        return invoiceDefault;
+    }
+  }
+
+  /// الحصول على لون السند حسب النوع
+  static PdfColor getVoucherColor(String voucherType) {
+    switch (voucherType.toLowerCase()) {
+      case 'receipt':
+        return voucherReceipt;
+      case 'payment':
+        return voucherPayment;
+      case 'expense':
+        return voucherExpense;
+      default:
+        return voucherExpense;
+    }
+  }
 }
 
 /// ═══════════════════════════════════════════════════════════════════════════
@@ -833,7 +909,7 @@ class InvoiceTheme {
         ),
         pw.SizedBox(height: styles.gap / 2),
         pw.Text(
-          'نظام حور للمبيعات',
+          'Hoor',
           style: styles.small(),
           textDirection: pw.TextDirection.rtl,
           textAlign: pw.TextAlign.center,
@@ -1250,9 +1326,9 @@ class InvoiceTheme {
       width: double.infinity,
       padding: pw.EdgeInsets.all(styles.padding),
       decoration: pw.BoxDecoration(
-        color: PdfColors.amber50,
+        color: AppPdfColors.bgAmber,
         borderRadius: pw.BorderRadius.circular(8),
-        border: pw.Border.all(color: PdfColors.amber200),
+        border: pw.Border.all(color: AppPdfColors.borderAmber),
       ),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -1272,4 +1348,1589 @@ class InvoiceTheme {
       ),
     );
   }
+}
+
+/// ═══════════════════════════════════════════════════════════════════════════
+/// Voucher Theme - مكونات السندات الموحدة
+/// ═══════════════════════════════════════════════════════════════════════════
+class VoucherTheme {
+  /// إنشاء ترويسة السند
+  static pw.Widget header({
+    required String voucherType,
+    required String voucherNumber,
+    required String date,
+    required PdfColor typeColor,
+  }) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(16),
+      decoration: pw.BoxDecoration(
+        color: typeColor,
+        borderRadius: pw.BorderRadius.circular(8),
+      ),
+      child: pw.Column(
+        children: [
+          pw.Text(
+            voucherType,
+            style: pw.TextStyle(
+              font: PdfFonts.bold,
+              fontSize: PdfSizes.fontSizeTitle + 2,
+              color: AppPdfColors.textWhite,
+            ),
+            textAlign: pw.TextAlign.center,
+          ),
+          pw.SizedBox(height: 12),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.center,
+            children: [
+              _badge('رقم: $voucherNumber', typeColor),
+              pw.SizedBox(width: 12),
+              _badge(date, typeColor),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  static pw.Widget _badge(String text, PdfColor accentColor) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: pw.BoxDecoration(
+        color: AppPdfColors.bgWhite,
+        borderRadius: pw.BorderRadius.circular(16),
+      ),
+      child: pw.Text(
+        text,
+        style: pw.TextStyle(
+          font: PdfFonts.bold,
+          fontSize: PdfSizes.fontSizeSmall + 1,
+          color: accentColor,
+        ),
+      ),
+    );
+  }
+
+  /// صندوق معلومات الشركة
+  static pw.Widget companyInfoBox({
+    String? companyName,
+    String? companyAddress,
+    String? companyPhone,
+  }) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(12),
+      decoration: pw.BoxDecoration(
+        color: AppPdfColors.bgLight,
+        borderRadius: pw.BorderRadius.circular(6),
+        border: pw.Border.all(color: AppPdfColors.borderLight),
+      ),
+      child: pw.Row(
+        children: [
+          pw.Container(
+            width: 4,
+            height: 50,
+            decoration: pw.BoxDecoration(
+              color: AppPdfColors.primary,
+              borderRadius: pw.BorderRadius.circular(2),
+            ),
+          ),
+          pw.SizedBox(width: 12),
+          pw.Expanded(
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                if (companyName != null)
+                  pw.Text(
+                    companyName,
+                    style: pw.TextStyle(
+                        font: PdfFonts.bold, fontSize: PdfSizes.fontSizeMedium),
+                  ),
+                if (companyAddress != null) ...[
+                  pw.SizedBox(height: 2),
+                  pw.Text(
+                    companyAddress,
+                    style: pw.TextStyle(
+                      font: PdfFonts.regular,
+                      fontSize: PdfSizes.fontSizeSmall - 1,
+                      color: AppPdfColors.textSecondary,
+                    ),
+                  ),
+                ],
+                if (companyPhone != null) ...[
+                  pw.SizedBox(height: 4),
+                  pw.Text(
+                    'هاتف: $companyPhone',
+                    style: pw.TextStyle(
+                      font: PdfFonts.regular,
+                      fontSize: PdfSizes.fontSizeSmall - 1,
+                      color: AppPdfColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// صندوق معلومات الطرف (العميل/المورد)
+  static pw.Widget partyInfoBox({
+    required String label,
+    required String name,
+    required PdfColor accentColor,
+  }) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(12),
+      decoration: pw.BoxDecoration(
+        color: AppPdfColors.bgLight,
+        borderRadius: pw.BorderRadius.circular(6),
+        border: pw.Border.all(color: AppPdfColors.borderLight),
+      ),
+      child: pw.Row(
+        children: [
+          pw.Container(
+            width: 4,
+            height: 50,
+            decoration: pw.BoxDecoration(
+              color: accentColor,
+              borderRadius: pw.BorderRadius.circular(2),
+            ),
+          ),
+          pw.SizedBox(width: 12),
+          pw.Expanded(
+            child: pw.Text(
+              '$label: $name',
+              style: pw.TextStyle(
+                  font: PdfFonts.bold, fontSize: PdfSizes.fontSizeMedium),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// قسم المبلغ
+  static pw.Widget amountSection({
+    required String amount,
+    required String amountLabel,
+    required PdfColor typeColor,
+    String? exchangeRate,
+    String? amountUsd,
+    String? createdBy,
+  }) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(12),
+      decoration: pw.BoxDecoration(
+        color: AppPdfColors.bgLight,
+        borderRadius: pw.BorderRadius.circular(6),
+        border: pw.Border.all(color: AppPdfColors.borderLight),
+      ),
+      child: pw.Column(
+        children: [
+          // المبلغ الإجمالي
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text(
+                amountLabel,
+                style: pw.TextStyle(
+                  font: PdfFonts.bold,
+                  fontSize: PdfSizes.fontSizeLarge,
+                  color: typeColor,
+                ),
+              ),
+              pw.Text(
+                amount,
+                style: pw.TextStyle(
+                  font: PdfFonts.bold,
+                  fontSize: PdfSizes.fontSizeTitle - 2,
+                  color: typeColor,
+                ),
+              ),
+            ],
+          ),
+          // سعر الصرف والمبلغ بالدولار
+          if (exchangeRate != null && amountUsd != null) ...[
+            pw.SizedBox(height: 8),
+            pw.Divider(color: AppPdfColors.borderLight, thickness: 0.5),
+            pw.SizedBox(height: 8),
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text(
+                  'سعر الصرف',
+                  style: pw.TextStyle(
+                    font: PdfFonts.regular,
+                    fontSize: PdfSizes.fontSizeSmall,
+                    color: AppPdfColors.textSecondary,
+                  ),
+                ),
+                pw.Text(
+                  exchangeRate,
+                  style: pw.TextStyle(
+                    font: PdfFonts.regular,
+                    fontSize: PdfSizes.fontSizeSmall,
+                    color: AppPdfColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+            pw.SizedBox(height: 4),
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text(
+                  'المبلغ بالدولار',
+                  style: pw.TextStyle(
+                    font: PdfFonts.bold,
+                    fontSize: PdfSizes.fontSizeSmall + 1,
+                    color: AppPdfColors.blue800,
+                  ),
+                ),
+                pw.Text(
+                  amountUsd,
+                  style: pw.TextStyle(
+                    font: PdfFonts.bold,
+                    fontSize: PdfSizes.fontSizeMedium,
+                    color: AppPdfColors.blue800,
+                  ),
+                ),
+              ],
+            ),
+          ],
+          // المنشئ
+          if (createdBy != null) ...[
+            pw.SizedBox(height: 8),
+            pw.Divider(color: AppPdfColors.borderLight, thickness: 0.5),
+            pw.SizedBox(height: 8),
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text(
+                  'بواسطة',
+                  style: pw.TextStyle(
+                    font: PdfFonts.regular,
+                    fontSize: PdfSizes.fontSizeSmall,
+                    color: AppPdfColors.textSecondary,
+                  ),
+                ),
+                pw.Text(
+                  createdBy,
+                  style: pw.TextStyle(
+                    font: PdfFonts.bold,
+                    fontSize: PdfSizes.fontSizeSmall,
+                    color: AppPdfColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// صندوق الإحصائيات
+  static pw.Widget statsBox({
+    required List<MapEntry<String, String>> stats,
+  }) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(12),
+      decoration: pw.BoxDecoration(
+        color: AppPdfColors.bgLight,
+        borderRadius: pw.BorderRadius.circular(6),
+      ),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+        children: stats
+            .map((stat) => pw.Column(
+                  children: [
+                    pw.Text(
+                      stat.key,
+                      style: pw.TextStyle(
+                        font: PdfFonts.regular,
+                        fontSize: PdfSizes.fontSizeSmall - 1,
+                        color: AppPdfColors.textMuted,
+                      ),
+                    ),
+                    pw.SizedBox(height: 4),
+                    pw.Text(
+                      stat.value,
+                      style: pw.TextStyle(
+                        font: PdfFonts.bold,
+                        fontSize: PdfSizes.fontSizeMedium,
+                        color: AppPdfColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ))
+            .toList(),
+      ),
+    );
+  }
+
+  /// صندوق التفاصيل/البيان
+  static pw.Widget detailsBox({
+    required String description,
+    required PdfColor accentColor,
+    String title = 'البيان',
+  }) {
+    return pw.Row(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Container(
+          width: 3,
+          height: 60,
+          color: accentColor,
+        ),
+        pw.Expanded(
+          child: pw.Container(
+            padding: const pw.EdgeInsets.all(12),
+            decoration: const pw.BoxDecoration(
+              color: AppPdfColors.bgAmber,
+            ),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  title,
+                  style: pw.TextStyle(
+                    font: PdfFonts.bold,
+                    fontSize: PdfSizes.fontSizeSmall,
+                    color: AppPdfColors.warning,
+                  ),
+                ),
+                pw.SizedBox(height: 4),
+                pw.Text(
+                  description,
+                  style: pw.TextStyle(
+                    font: PdfFonts.regular,
+                    fontSize: PdfSizes.fontSizeSmall + 1,
+                    color: AppPdfColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// تذييل السند
+  static pw.Widget footer({String? footerMessage}) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.symmetric(vertical: 12),
+      decoration: const pw.BoxDecoration(
+        border: pw.Border(top: pw.BorderSide(color: AppPdfColors.borderLight)),
+      ),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(
+            'تم الطباعة: ${_formatDateTime(DateTime.now())}',
+            style: pw.TextStyle(
+              font: PdfFonts.regular,
+              fontSize: PdfSizes.fontSizeXSmall,
+              color: AppPdfColors.textLight,
+            ),
+          ),
+          if (footerMessage != null && footerMessage.isNotEmpty)
+            pw.Text(
+              footerMessage,
+              style: pw.TextStyle(
+                font: PdfFonts.bold,
+                fontSize: PdfSizes.fontSizeSmall - 1,
+                color: AppPdfColors.textMuted,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// فاصل منقط
+  static pw.Widget dottedDivider() {
+    return pw.Container(
+      margin: const pw.EdgeInsets.symmetric(vertical: 4),
+      child: pw.Row(
+        children: List.generate(
+          40,
+          (index) => pw.Expanded(
+            child: pw.Container(
+              height: 1,
+              color: index.isEven
+                  ? AppPdfColors.borderMedium
+                  : AppPdfColors.bgWhite,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static String _formatDateTime(DateTime date) {
+    return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // مكونات الطابعة الحرارية
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// ترويسة حرارية
+  static pw.Widget thermalHeader({
+    required String voucherType,
+    required String voucherNumber,
+    required String date,
+    required PdfColor typeColor,
+    required int widthMm,
+    String? companyName,
+    String? companyAddress,
+    String? companyPhone,
+    String? companyTaxNumber,
+  }) {
+    final titleSize = widthMm == 58 ? 12.0 : 14.0;
+    final fontSize = widthMm == 58 ? 7.0 : 8.0;
+
+    return pw.Column(
+      children: [
+        if (companyName != null)
+          pw.Text(
+            companyName,
+            style: pw.TextStyle(font: PdfFonts.bold, fontSize: titleSize),
+            textAlign: pw.TextAlign.center,
+          ),
+        if (companyAddress != null)
+          pw.Text(
+            companyAddress,
+            style: pw.TextStyle(font: PdfFonts.regular, fontSize: fontSize),
+            textAlign: pw.TextAlign.center,
+          ),
+        if (companyPhone != null)
+          pw.Text(
+            companyPhone,
+            style: pw.TextStyle(font: PdfFonts.regular, fontSize: fontSize),
+            textAlign: pw.TextAlign.center,
+          ),
+        if (companyTaxNumber != null)
+          pw.Text(
+            'الرقم الضريبي: $companyTaxNumber',
+            style: pw.TextStyle(font: PdfFonts.regular, fontSize: fontSize),
+            textAlign: pw.TextAlign.center,
+          ),
+        pw.SizedBox(height: 8),
+        pw.Container(
+          padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          decoration: pw.BoxDecoration(
+            color: typeColor,
+            borderRadius: pw.BorderRadius.circular(4),
+          ),
+          child: pw.Text(
+            voucherType,
+            style: pw.TextStyle(
+              font: PdfFonts.bold,
+              fontSize: widthMm == 58 ? 10.0 : 12.0,
+              color: AppPdfColors.textWhite,
+            ),
+          ),
+        ),
+        pw.SizedBox(height: 6),
+        pw.Text(
+          voucherNumber,
+          style: pw.TextStyle(
+              font: PdfFonts.regular, fontSize: widthMm == 58 ? 9.0 : 10.0),
+          textAlign: pw.TextAlign.center,
+        ),
+        pw.Text(
+          date,
+          style: pw.TextStyle(
+              font: PdfFonts.regular, fontSize: widthMm == 58 ? 8.0 : 9.0),
+          textAlign: pw.TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  /// معلومات الطرف للحرارية
+  static pw.Widget thermalPartyInfo({
+    required String label,
+    required String name,
+    required int widthMm,
+  }) {
+    final fontSize = widthMm == 58 ? 8.0 : 9.0;
+    return pw.Text(
+      '$label: $name',
+      style: pw.TextStyle(font: PdfFonts.regular, fontSize: fontSize),
+    );
+  }
+
+  /// قسم المبلغ الحراري
+  static pw.Widget thermalAmount({
+    required String amount,
+    required int widthMm,
+    String? exchangeRate,
+    String? amountUsd,
+  }) {
+    final titleSize = widthMm == 58 ? 14.0 : 16.0;
+    final fontSize = widthMm == 58 ? 8.0 : 9.0;
+
+    return pw.Column(
+      children: [
+        pw.Text(
+          'المبلغ',
+          style: pw.TextStyle(font: PdfFonts.regular, fontSize: fontSize),
+          textAlign: pw.TextAlign.center,
+        ),
+        pw.SizedBox(height: 4),
+        pw.Container(
+          padding: const pw.EdgeInsets.symmetric(vertical: 4),
+          decoration: pw.BoxDecoration(
+            color: AppPdfColors.bgMedium,
+            borderRadius: pw.BorderRadius.circular(4),
+          ),
+          child: pw.Center(
+            child: pw.Text(
+              amount,
+              style: pw.TextStyle(font: PdfFonts.bold, fontSize: titleSize),
+            ),
+          ),
+        ),
+        if (exchangeRate != null && amountUsd != null) ...[
+          pw.SizedBox(height: 4),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text(
+                'سعر الصرف',
+                style: pw.TextStyle(
+                    font: PdfFonts.regular, fontSize: fontSize - 1),
+              ),
+              pw.Text(
+                exchangeRate,
+                style: pw.TextStyle(
+                    font: PdfFonts.regular, fontSize: fontSize - 1),
+              ),
+            ],
+          ),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text(
+                'بالدولار',
+                style: pw.TextStyle(
+                  font: PdfFonts.regular,
+                  fontSize: fontSize,
+                  color: AppPdfColors.blue800,
+                ),
+              ),
+              pw.Text(
+                amountUsd,
+                style: pw.TextStyle(
+                  font: PdfFonts.bold,
+                  fontSize: fontSize + 1,
+                  color: AppPdfColors.blue800,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
+  /// وصف حراري
+  static pw.Widget thermalDescription({
+    required String description,
+    required int widthMm,
+  }) {
+    final fontSize = widthMm == 58 ? 7.0 : 8.0;
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(
+          'البيان:',
+          style: pw.TextStyle(font: PdfFonts.bold, fontSize: fontSize),
+        ),
+        pw.Text(
+          description,
+          style: pw.TextStyle(font: PdfFonts.regular, fontSize: fontSize),
+          maxLines: 3,
+        ),
+      ],
+    );
+  }
+
+  /// تذييل حراري
+  static pw.Widget thermalFooter({
+    String? footerMessage,
+    required int widthMm,
+  }) {
+    final fontSize = widthMm == 58 ? 7.0 : 8.0;
+    return pw.Column(
+      children: [
+        if (footerMessage != null && footerMessage.isNotEmpty)
+          pw.Text(
+            footerMessage,
+            style: pw.TextStyle(font: PdfFonts.regular, fontSize: fontSize),
+            textAlign: pw.TextAlign.center,
+          ),
+      ],
+    );
+  }
+}
+
+/// ═══════════════════════════════════════════════════════════════════════════
+/// Report Theme - مكونات التقارير الموحدة
+/// ═══════════════════════════════════════════════════════════════════════════
+class ReportTheme {
+  /// إنشاء ترويسة التقرير
+  static pw.Widget header({
+    required String title,
+    String? subtitle,
+    String? dateRange,
+    PdfColor color = AppPdfColors.primary,
+  }) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(16),
+      decoration: pw.BoxDecoration(
+        color: color,
+        borderRadius: pw.BorderRadius.circular(8),
+      ),
+      child: pw.Column(
+        children: [
+          pw.Text(
+            title,
+            style: pw.TextStyle(
+              font: PdfFonts.bold,
+              fontSize: PdfSizes.fontSizeHeader,
+              color: AppPdfColors.textWhite,
+            ),
+            textDirection: pw.TextDirection.rtl,
+          ),
+          if (subtitle != null) ...[
+            pw.SizedBox(height: 4),
+            pw.Text(
+              subtitle,
+              style: pw.TextStyle(
+                font: PdfFonts.regular,
+                fontSize: PdfSizes.fontSizeMedium,
+                color: AppPdfColors.textWhite,
+              ),
+              textDirection: pw.TextDirection.rtl,
+            ),
+          ],
+          if (dateRange != null) ...[
+            pw.SizedBox(height: 8),
+            pw.Container(
+              padding:
+                  const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: pw.BoxDecoration(
+                color: AppPdfColors.bgWhite,
+                borderRadius: pw.BorderRadius.circular(16),
+              ),
+              child: pw.Text(
+                dateRange,
+                style: pw.TextStyle(
+                  font: PdfFonts.regular,
+                  fontSize: PdfSizes.fontSizeSmall,
+                  color: color,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// صندوق الإحصائيات
+  static pw.Widget statsBox({
+    required List<ReportStat> stats,
+    PdfColor borderColor = AppPdfColors.primary,
+  }) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(12),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: borderColor, width: 1),
+        borderRadius: pw.BorderRadius.circular(8),
+      ),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceEvenly,
+        children: stats.map((stat) {
+          return pw.Expanded(
+            child: pw.Column(
+              children: [
+                pw.Text(
+                  stat.label,
+                  style: pw.TextStyle(
+                    font: PdfFonts.regular,
+                    fontSize: PdfSizes.fontSizeSmall,
+                    color: AppPdfColors.textSecondary,
+                  ),
+                  textDirection: pw.TextDirection.rtl,
+                ),
+                pw.SizedBox(height: 4),
+                pw.Text(
+                  stat.value,
+                  style: pw.TextStyle(
+                    font: PdfFonts.bold,
+                    fontSize: PdfSizes.fontSizeMedium,
+                    color: stat.color ?? AppPdfColors.textPrimary,
+                  ),
+                  textDirection: pw.TextDirection.rtl,
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  /// جدول التقرير
+  static pw.Widget table({
+    required List<String> headers,
+    required List<List<String>> data,
+    PdfColor headerColor = AppPdfColors.primary,
+  }) {
+    return pw.TableHelper.fromTextArray(
+      headers: headers,
+      data: data,
+      border: pw.TableBorder.all(color: AppPdfColors.borderLight, width: 0.5),
+      headerStyle: pw.TextStyle(
+        font: PdfFonts.bold,
+        fontSize: PdfSizes.fontSizeSmall,
+        color: AppPdfColors.textWhite,
+      ),
+      cellStyle: pw.TextStyle(
+        font: PdfFonts.regular,
+        fontSize: PdfSizes.fontSizeSmall,
+        color: AppPdfColors.textPrimary,
+      ),
+      headerDecoration: pw.BoxDecoration(color: headerColor),
+      cellAlignments: {
+        for (int i = 0; i < headers.length; i++) i: pw.Alignment.centerRight,
+      },
+      cellPadding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      cellHeight: 30,
+      headerHeight: 35,
+    );
+  }
+
+  /// فاصل بعنوان
+  static pw.Widget sectionDivider(String title) {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.SizedBox(height: 16),
+        pw.Row(
+          children: [
+            pw.Expanded(child: pw.Divider(color: AppPdfColors.borderLight)),
+            pw.Padding(
+              padding: const pw.EdgeInsets.symmetric(horizontal: 8),
+              child: pw.Text(
+                title,
+                style: pw.TextStyle(
+                  font: PdfFonts.bold,
+                  fontSize: PdfSizes.fontSizeLarge,
+                  color: AppPdfColors.textPrimary,
+                ),
+                textDirection: pw.TextDirection.rtl,
+              ),
+            ),
+            pw.Expanded(child: pw.Divider(color: AppPdfColors.borderLight)),
+          ],
+        ),
+        pw.SizedBox(height: 16),
+      ],
+    );
+  }
+
+  /// صندوق ملخص
+  static pw.Widget summaryBox({
+    required String label,
+    required String value,
+    PdfColor? valueColor,
+    PdfColor? backgroundColor,
+  }) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(12),
+      decoration: pw.BoxDecoration(
+        color: backgroundColor ?? AppPdfColors.bgLight,
+        borderRadius: pw.BorderRadius.circular(6),
+      ),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(
+            label,
+            style: pw.TextStyle(
+              font: PdfFonts.regular,
+              fontSize: PdfSizes.fontSizeMedium,
+              color: AppPdfColors.textPrimary,
+            ),
+            textDirection: pw.TextDirection.rtl,
+          ),
+          pw.Text(
+            value,
+            style: pw.TextStyle(
+              font: PdfFonts.bold,
+              fontSize: PdfSizes.fontSizeMedium,
+              color: valueColor ?? AppPdfColors.textPrimary,
+            ),
+            textDirection: pw.TextDirection.rtl,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// تذييل التقرير
+  static pw.Widget footer({
+    required int pageNumber,
+    required int totalPages,
+    String? note,
+  }) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.symmetric(vertical: 8),
+      decoration: const pw.BoxDecoration(
+        border: pw.Border(top: pw.BorderSide(color: AppPdfColors.borderLight)),
+      ),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(
+            'صفحة $pageNumber من $totalPages',
+            style: pw.TextStyle(
+              font: PdfFonts.regular,
+              fontSize: PdfSizes.fontSizeXSmall,
+              color: AppPdfColors.textLight,
+            ),
+          ),
+          if (note != null)
+            pw.Text(
+              note,
+              style: pw.TextStyle(
+                font: PdfFonts.regular,
+                fontSize: PdfSizes.fontSizeXSmall,
+                color: AppPdfColors.textLight,
+              ),
+              textDirection: pw.TextDirection.rtl,
+            ),
+          pw.Text(
+            'Hoor',
+            style: pw.TextStyle(
+              font: PdfFonts.regular,
+              fontSize: PdfSizes.fontSizeXSmall,
+              color: AppPdfColors.textLight,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// إحصائية للتقرير
+class ReportStat {
+  final String label;
+  final String value;
+  final PdfColor? color;
+
+  const ReportStat({
+    required this.label,
+    required this.value,
+    this.color,
+  });
+}
+
+/// ═══════════════════════════════════════════════════════════════════════════
+/// Export Theme - ثيم التصدير الموحد (للتقارير والقوائم)
+/// ═══════════════════════════════════════════════════════════════════════════
+class ExportTheme {
+  ExportTheme._();
+
+  // ═══════ الألوان الخاصة بالتصدير ═══════
+  static const PdfColor headerPrimary = PdfColor.fromInt(0xFF1565C0);
+  static const PdfColor headerSuccess = PdfColor.fromInt(0xFF43A047);
+  static const PdfColor headerWarning = PdfColor.fromInt(0xFFFFA000);
+  static const PdfColor headerError = PdfColor.fromInt(0xFFE53935);
+  static const PdfColor headerPurchase = PdfColor.fromInt(0xFF1E88E5);
+
+  // ═══════ ألوان تقرير Z ═══════
+  static const PdfColor zReportSales = PdfColor.fromInt(0xFFE8F5E9);
+  static const PdfColor zReportSalesText = PdfColor.fromInt(0xFF2E7D32);
+  static const PdfColor zReportExpense = PdfColor.fromInt(0xFFFFEBEE);
+  static const PdfColor zReportExpenseText = PdfColor.fromInt(0xFFC62828);
+  static const PdfColor zReportCash = PdfColor.fromInt(0xFFE3F2FD);
+  static const PdfColor zReportCashText = PdfColor.fromInt(0xFF1565C0);
+
+  /// صندوق إحصائيات التصدير
+  static pw.Widget statsBox(List<ExportStat> stats) {
+    return pw.Directionality(
+      textDirection: pw.TextDirection.rtl,
+      child: pw.Container(
+        width: double.infinity,
+        padding: const pw.EdgeInsets.all(12),
+        decoration: pw.BoxDecoration(
+          color: AppPdfColors.bgLight,
+          borderRadius: pw.BorderRadius.circular(6),
+        ),
+        child: pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+          children: stats.map((stat) => _buildStatItem(stat)).toList(),
+        ),
+      ),
+    );
+  }
+
+  static pw.Widget _buildStatItem(ExportStat stat) {
+    return pw.Column(
+      children: [
+        pw.Text(
+          stat.label,
+          style: pw.TextStyle(
+            font: PdfFonts.regular,
+            fontSize: PdfSizes.fontSizeXSmall,
+            color: AppPdfColors.textMuted,
+          ),
+          textDirection: pw.TextDirection.rtl,
+        ),
+        pw.SizedBox(height: 4),
+        pw.Text(
+          stat.value,
+          style: pw.TextStyle(
+            font: PdfFonts.bold,
+            fontSize: PdfSizes.fontSizeMedium,
+            color: stat.color ?? AppPdfColors.textPrimary,
+          ),
+          textDirection: pw.TextDirection.rtl,
+        ),
+      ],
+    );
+  }
+
+  /// صندوق ملون (للربح المتوقع، إجماليات، إلخ)
+  static pw.Widget highlightBox({
+    required String label,
+    required String value,
+    required PdfColor bgColor,
+    required PdfColor textColor,
+  }) {
+    return pw.Container(
+      width: double.infinity,
+      padding: const pw.EdgeInsets.all(12),
+      decoration: pw.BoxDecoration(
+        color: bgColor,
+        borderRadius: pw.BorderRadius.circular(8),
+        border: pw.Border.all(color: textColor),
+      ),
+      child: pw.Directionality(
+        textDirection: pw.TextDirection.rtl,
+        child: pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Text(
+              label,
+              style: pw.TextStyle(
+                font: PdfFonts.bold,
+                fontSize: PdfSizes.fontSizeMedium,
+                color: textColor,
+              ),
+            ),
+            pw.Text(
+              value,
+              style: pw.TextStyle(
+                font: PdfFonts.bold,
+                fontSize: PdfSizes.fontSizeLarge,
+                color: textColor,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// صندوق معلومات بسيط (للإحصائيات العامة)
+  static pw.Widget infoBox({
+    required String title,
+    required String subtitle,
+    String? trailing,
+  }) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(12),
+      decoration: pw.BoxDecoration(
+        color: AppPdfColors.bgLight,
+        borderRadius: pw.BorderRadius.circular(8),
+      ),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(
+                title,
+                style: pw.TextStyle(
+                  font: PdfFonts.bold,
+                  fontSize: PdfSizes.fontSizeMedium,
+                ),
+              ),
+              if (subtitle.isNotEmpty) ...[
+                pw.SizedBox(height: 4),
+                pw.Text(
+                  subtitle,
+                  style: pw.TextStyle(
+                    font: PdfFonts.regular,
+                    fontSize: PdfSizes.fontSizeSmall,
+                    color: AppPdfColors.textMuted,
+                  ),
+                ),
+              ],
+            ],
+          ),
+          if (trailing != null)
+            pw.Text(
+              trailing,
+              style: pw.TextStyle(
+                font: PdfFonts.regular,
+                fontSize: PdfSizes.fontSizeSmall,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// جدول بنمط TableHelper - مع دعم RTL
+  static pw.Widget tableHelper({
+    required List<String> headers,
+    required List<List<String>> data,
+    PdfColor headerColor = headerPrimary,
+  }) {
+    // عكس ترتيب الأعمدة لدعم RTL
+    final reversedHeaders = headers.reversed.toList();
+    final reversedData = data.map((row) => row.reversed.toList()).toList();
+
+    return pw.Directionality(
+      textDirection: pw.TextDirection.rtl,
+      child: pw.TableHelper.fromTextArray(
+        headerStyle: pw.TextStyle(
+          font: PdfFonts.bold,
+          color: AppPdfColors.textWhite,
+          fontSize: PdfSizes.fontSizeSmall,
+        ),
+        headerDecoration: pw.BoxDecoration(
+          color: headerColor,
+          borderRadius: const pw.BorderRadius.only(
+            topLeft: pw.Radius.circular(8),
+            topRight: pw.Radius.circular(8),
+          ),
+        ),
+        cellStyle: pw.TextStyle(
+          font: PdfFonts.regular,
+          fontSize: PdfSizes.fontSizeSmall - 1,
+        ),
+        cellPadding: const pw.EdgeInsets.all(8),
+        cellAlignments: {
+          for (int i = 0; i < headers.length; i++) i: pw.Alignment.center,
+        },
+        headers: reversedHeaders,
+        data: reversedData,
+      ),
+    );
+  }
+
+  /// فاصل قسم
+  static pw.Widget sectionDivider(String title) {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.SizedBox(height: 16),
+        pw.Row(
+          children: [
+            pw.Expanded(child: pw.Divider(color: AppPdfColors.borderLight)),
+            pw.Padding(
+              padding: const pw.EdgeInsets.symmetric(horizontal: 8),
+              child: pw.Text(
+                title,
+                style: pw.TextStyle(
+                  font: PdfFonts.bold,
+                  fontSize: PdfSizes.fontSizeMedium,
+                  color: AppPdfColors.textSecondary,
+                ),
+                textDirection: pw.TextDirection.rtl,
+              ),
+            ),
+            pw.Expanded(child: pw.Divider(color: AppPdfColors.borderLight)),
+          ],
+        ),
+        pw.SizedBox(height: 16),
+      ],
+    );
+  }
+
+  /// صندوق ملخص (للإجماليات)
+  static pw.Widget summaryBox({
+    required List<SummaryItem> items,
+    String? finalLabel,
+    String? finalValue,
+  }) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: AppPdfColors.bgMedium,
+        borderRadius: pw.BorderRadius.circular(4),
+      ),
+      child: pw.Column(
+        children: [
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+            children: items
+                .map((item) => pw.Text(
+                      '${item.label}: ${item.value}',
+                      style: pw.TextStyle(
+                        font: PdfFonts.bold,
+                        fontSize: PdfSizes.fontSizeSmall - 1,
+                        color: item.color ?? AppPdfColors.textPrimary,
+                      ),
+                    ))
+                .toList(),
+          ),
+          if (finalLabel != null && finalValue != null) ...[
+            pw.SizedBox(height: 6),
+            pw.Text(
+              '$finalLabel: $finalValue',
+              style: pw.TextStyle(
+                font: PdfFonts.bold,
+                fontSize: PdfSizes.fontSizeMedium - 1,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// ═══════════════════════════════════════════════════════════════════════════
+/// Statement Theme - ثيم كشف الحساب (العملاء/الموردين)
+/// ═══════════════════════════════════════════════════════════════════════════
+class StatementTheme {
+  StatementTheme._();
+
+  /// صندوق معلومات الطرف (عميل/مورد)
+  static pw.Widget partyInfoBox({
+    required String phone,
+    required String balance,
+    required bool isPositive,
+  }) {
+    return pw.Container(
+      width: double.infinity,
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: AppPdfColors.bgLight,
+        borderRadius: pw.BorderRadius.circular(4),
+      ),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(
+            phone,
+            style: pw.TextStyle(
+              font: PdfFonts.regular,
+              fontSize: PdfSizes.fontSizeSmall - 1,
+            ),
+          ),
+          pw.Text(
+            balance,
+            style: pw.TextStyle(
+              font: PdfFonts.bold,
+              fontSize: PdfSizes.fontSizeSmall,
+              color: isPositive ? AppPdfColors.error : AppPdfColors.success,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// رسالة لا توجد معاملات
+  static pw.Widget emptyMessage() {
+    return pw.Center(
+      child: pw.Padding(
+        padding: const pw.EdgeInsets.all(40),
+        child: pw.Text(
+          'لا توجد معاملات',
+          style: pw.TextStyle(
+            font: PdfFonts.regular,
+            fontSize: PdfSizes.fontSizeLarge,
+            color: AppPdfColors.textMuted,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// صندوق إجماليات كشف الحساب
+  static pw.Widget totalsBox({
+    required String totalDebit,
+    required String totalCredit,
+    required String finalBalance,
+  }) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(10),
+      decoration: pw.BoxDecoration(
+        color: AppPdfColors.bgMedium,
+        borderRadius: pw.BorderRadius.circular(4),
+      ),
+      child: pw.Column(
+        children: [
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+            children: [
+              pw.Text(
+                totalDebit,
+                style: pw.TextStyle(
+                  font: PdfFonts.bold,
+                  fontSize: PdfSizes.fontSizeSmall - 1,
+                  color: AppPdfColors.error,
+                ),
+              ),
+              pw.Text(
+                totalCredit,
+                style: pw.TextStyle(
+                  font: PdfFonts.bold,
+                  fontSize: PdfSizes.fontSizeSmall - 1,
+                  color: AppPdfColors.success,
+                ),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 6),
+          pw.Text(
+            finalBalance,
+            style: pw.TextStyle(
+              font: PdfFonts.bold,
+              fontSize: PdfSizes.fontSizeMedium - 1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// ═══════════════════════════════════════════════════════════════════════════
+/// Z Report Theme - ثيم تقرير Z (إغلاق الوردية)
+/// ═══════════════════════════════════════════════════════════════════════════
+class ZReportTheme {
+  ZReportTheme._();
+
+  /// صندوق معلومات الوردية
+  static pw.Widget shiftInfoBox(List<ZReportRow> rows) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(16),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: AppPdfColors.borderLight),
+        borderRadius: pw.BorderRadius.circular(8),
+      ),
+      child: pw.Column(
+        children: rows
+            .map((row) => pw.Column(
+                  children: [
+                    _buildRow(row.label, row.value,
+                        isBold: row.isBold, color: row.color),
+                    if (rows.indexOf(row) < rows.length - 1)
+                      pw.Divider(color: AppPdfColors.bgMedium),
+                  ],
+                ))
+            .toList(),
+      ),
+    );
+  }
+
+  /// صندوق المبيعات (أخضر)
+  static pw.Widget salesBox({
+    required String title,
+    required List<ZReportRow> rows,
+    required ZReportRow total,
+  }) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(16),
+      decoration: pw.BoxDecoration(
+        color: ExportTheme.zReportSales,
+        borderRadius: pw.BorderRadius.circular(8),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(
+            title,
+            style: pw.TextStyle(
+              fontSize: PdfSizes.fontSizeLarge,
+              font: PdfFonts.bold,
+              color: ExportTheme.zReportSalesText,
+            ),
+          ),
+          pw.SizedBox(height: 12),
+          ...rows.map((row) => _buildRow(row.label, row.value)),
+          pw.Divider(color: PdfColors.green200),
+          _buildRow(total.label, total.value, isBold: true),
+        ],
+      ),
+    );
+  }
+
+  /// صندوق المصروفات (أحمر)
+  static pw.Widget expenseBox({
+    required String title,
+    required List<ZReportRow> rows,
+    required ZReportRow total,
+  }) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(16),
+      decoration: pw.BoxDecoration(
+        color: ExportTheme.zReportExpense,
+        borderRadius: pw.BorderRadius.circular(8),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(
+            title,
+            style: pw.TextStyle(
+              fontSize: PdfSizes.fontSizeLarge,
+              font: PdfFonts.bold,
+              color: ExportTheme.zReportExpenseText,
+            ),
+          ),
+          pw.SizedBox(height: 12),
+          ...rows.map((row) => _buildRow(row.label, row.value)),
+          pw.Divider(color: PdfColors.red200),
+          _buildRow(total.label, total.value, isBold: true),
+        ],
+      ),
+    );
+  }
+
+  /// صندوق النقدية (أزرق)
+  static pw.Widget cashBox({
+    required String title,
+    required List<ZReportRow> rows,
+    required ZReportRow total,
+  }) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(16),
+      decoration: pw.BoxDecoration(
+        color: ExportTheme.zReportCash,
+        borderRadius: pw.BorderRadius.circular(8),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text(
+            title,
+            style: pw.TextStyle(
+              fontSize: PdfSizes.fontSizeLarge,
+              font: PdfFonts.bold,
+              color: ExportTheme.zReportCashText,
+            ),
+          ),
+          pw.SizedBox(height: 12),
+          ...rows
+              .map((row) => _buildRow(row.label, row.value, color: row.color)),
+          pw.Divider(color: PdfColors.blue200, thickness: 2),
+          _buildRow(total.label, total.value,
+              isBold: true, fontSize: PdfSizes.fontSizeLarge),
+        ],
+      ),
+    );
+  }
+
+  /// قسم التوقيعات
+  static pw.Widget signaturesSection() {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(16),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          _buildSignature('توقيع الكاشير'),
+          _buildSignature('توقيع المدير'),
+        ],
+      ),
+    );
+  }
+
+  static pw.Widget _buildSignature(String label) {
+    return pw.Column(
+      children: [
+        pw.Text(
+          label,
+          style: pw.TextStyle(
+            font: PdfFonts.regular,
+            fontSize: PdfSizes.fontSizeSmall,
+          ),
+        ),
+        pw.SizedBox(height: 24),
+        pw.Container(
+          width: 120,
+          decoration: const pw.BoxDecoration(
+            border: pw.Border(
+              bottom: pw.BorderSide(color: AppPdfColors.borderMedium),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  static pw.Widget _buildRow(
+    String label,
+    String value, {
+    bool isBold = false,
+    double fontSize = PdfSizes.fontSizeMedium - 1,
+    PdfColor? color,
+  }) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 4),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(
+            label,
+            style: pw.TextStyle(
+              fontSize: fontSize,
+              font: isBold ? PdfFonts.bold : PdfFonts.regular,
+            ),
+          ),
+          pw.Text(
+            value,
+            style: pw.TextStyle(
+              fontSize: fontSize,
+              font: isBold ? PdfFonts.bold : PdfFonts.regular,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// ═══════════════════════════════════════════════════════════════════════════
+/// Cash Movement Theme - ثيم حركات الصندوق
+/// ═══════════════════════════════════════════════════════════════════════════
+class CashMovementTheme {
+  CashMovementTheme._();
+
+  /// صندوق ملخص حركات الصندوق
+  static pw.Widget summaryBox({
+    required String movementCount,
+    required String netValue,
+    required bool isPositive,
+    required String incomeValue,
+    required String expenseValue,
+  }) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(12),
+      decoration: pw.BoxDecoration(
+        color: AppPdfColors.bgLight,
+        borderRadius: pw.BorderRadius.circular(8),
+      ),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(
+                movementCount,
+                style: pw.TextStyle(
+                  font: PdfFonts.bold,
+                  fontSize: PdfSizes.fontSizeMedium - 1,
+                ),
+              ),
+              pw.SizedBox(height: 4),
+              pw.Text(
+                netValue,
+                style: pw.TextStyle(
+                  font: PdfFonts.bold,
+                  fontSize: PdfSizes.fontSizeMedium - 1,
+                  color: isPositive ? AppPdfColors.success : AppPdfColors.error,
+                ),
+              ),
+            ],
+          ),
+          pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.end,
+            children: [
+              pw.Text(
+                incomeValue,
+                style: pw.TextStyle(
+                  color: AppPdfColors.success,
+                  fontSize: PdfSizes.fontSizeSmall,
+                ),
+              ),
+              pw.SizedBox(height: 2),
+              pw.Text(
+                expenseValue,
+                style: pw.TextStyle(
+                  color: AppPdfColors.error,
+                  fontSize: PdfSizes.fontSizeSmall,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// ═══════════════════════════════════════════════════════════════════════════
+/// نماذج البيانات للمكونات
+/// ═══════════════════════════════════════════════════════════════════════════
+
+/// إحصائية للتصدير
+class ExportStat {
+  final String label;
+  final String value;
+  final PdfColor? color;
+
+  const ExportStat({
+    required this.label,
+    required this.value,
+    this.color,
+  });
+}
+
+/// عنصر ملخص
+class SummaryItem {
+  final String label;
+  final String value;
+  final PdfColor? color;
+
+  const SummaryItem({
+    required this.label,
+    required this.value,
+    this.color,
+  });
+}
+
+/// صف تقرير Z
+class ZReportRow {
+  final String label;
+  final String value;
+  final bool isBold;
+  final PdfColor? color;
+
+  const ZReportRow({
+    required this.label,
+    required this.value,
+    this.isBold = false,
+    this.color,
+  });
 }

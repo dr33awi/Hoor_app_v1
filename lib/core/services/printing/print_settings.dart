@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import '../export/export_templates.dart';
 import 'invoice_pdf_generator.dart';
 import 'voucher_pdf_generator.dart';
 
@@ -150,6 +151,28 @@ class PrintSettings {
       companyAddress: companyAddress,
       companyPhone: companyPhone,
       companyTaxNumber: companyTaxNumber,
+      footerMessage: footerMessage,
+    );
+  }
+
+  /// تحويل إلى ExportSettings (للتقارير والتصديرات)
+  ExportSettings toExportSettings() {
+    Uint8List? logoBytes;
+    if (logoBase64 != null && logoBase64!.isNotEmpty) {
+      try {
+        logoBytes = base64Decode(logoBase64!);
+      } catch (_) {
+        // تجاهل الخطأ إذا كان الـ Base64 غير صالح
+      }
+    }
+
+    return ExportSettings(
+      companyName: companyName,
+      companyAddress: companyAddress,
+      companyPhone: companyPhone,
+      companyTaxNumber: companyTaxNumber,
+      logoBytes: logoBytes,
+      showLogo: showLogo,
       footerMessage: footerMessage,
     );
   }

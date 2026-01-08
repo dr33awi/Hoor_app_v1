@@ -113,6 +113,7 @@ class ReportsExportService {
   static Future<Uint8List> generateSalesReportPdf({
     required List<Invoice> invoices,
     DateTimeRange? dateRange,
+    ExportSettings? settings,
   }) async {
     await PdfFonts.init();
 
@@ -123,6 +124,7 @@ class ReportsExportService {
           : null,
       reportDate: DateTime.now(),
       headerColor: ExportColors.success,
+      settings: settings,
     );
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -294,6 +296,7 @@ class ReportsExportService {
   static Future<Uint8List> generatePurchasesReportPdf({
     required List<Invoice> invoices,
     DateTimeRange? dateRange,
+    ExportSettings? settings,
   }) async {
     await PdfFonts.init();
 
@@ -304,6 +307,7 @@ class ReportsExportService {
           : null,
       reportDate: DateTime.now(),
       headerColor: ExportColors.purchase,
+      settings: settings,
     );
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -388,9 +392,18 @@ class ReportsExportService {
     final sheet = excel['تقرير الأرباح والخسائر'];
     excel.delete('Sheet1');
 
-    double totalSales = sales.fold(0, (sum, inv) => sum + inv.total);
-    double totalPurchases = purchases.fold(0, (sum, inv) => sum + inv.total);
-    double profit = totalSales - totalPurchases;
+    // ═══════════════════════════════════════════════════════════════════════
+    // ⚠️ السياسة المحاسبية: استخدام القيم المحفوظة (SYP + USD) بدون تحويل
+    // ═══════════════════════════════════════════════════════════════════════
+    double totalSalesSyp = sales.fold(0.0, (sum, inv) => sum + inv.total);
+    double totalSalesUsd =
+        sales.fold(0.0, (sum, inv) => sum + (inv.totalUsd ?? 0));
+    double totalPurchasesSyp =
+        purchases.fold(0.0, (sum, inv) => sum + inv.total);
+    double totalPurchasesUsd =
+        purchases.fold(0.0, (sum, inv) => sum + (inv.totalUsd ?? 0));
+    double profitSyp = totalSalesSyp - totalPurchasesSyp;
+    double profitUsd = totalSalesUsd - totalPurchasesUsd;
 
     // Title
     final headerStyle = CellStyle(
@@ -408,32 +421,65 @@ class ReportsExportService {
       ..cellStyle = headerStyle;
     sheet.merge(CellIndex.indexByString('A1'), CellIndex.indexByString('C1'));
 
-    // Data
+    // تاريخ الفترة
+    if (dateRange != null) {
+      sheet
+              .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 1))
+              .value =
+          TextCellValue(
+              'الفترة: ${ExportFormatters.formatDateRange(dateRange.start, dateRange.end)}');
+    }
+
+    // رأس الجدول
+    final headerRowStyle = CellStyle(
+      bold: true,
+      backgroundColorHex: ExcelColor.fromHexString('#E0E0E0'),
+    );
+    final headerRowIdx = 3;
+    sheet.cell(
+        CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: headerRowIdx))
+      ..value = TextCellValue('البيان')
+      ..cellStyle = headerRowStyle;
+    sheet.cell(
+        CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: headerRowIdx))
+      ..value = TextCellValue('المبلغ (ل.س)')
+      ..cellStyle = headerRowStyle;
+    sheet.cell(
+        CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: headerRowIdx))
+      ..value = TextCellValue('المبلغ (\$)')
+      ..cellStyle = headerRowStyle;
+
+    // Data - مع القيم بالدولار
     final labels = ['إجمالي المبيعات', 'إجمالي المشتريات', 'صافي الربح'];
-    final values = [totalSales, totalPurchases, profit];
+    final valuesSyp = [totalSalesSyp, totalPurchasesSyp, profitSyp];
+    final valuesUsd = [totalSalesUsd, totalPurchasesUsd, profitUsd];
     final colors = [
       ExcelStyles.successColor,
       ExcelStyles.purchaseColor,
-      profit >= 0 ? ExcelStyles.successColor : ExcelStyles.errorColor
+      profitSyp >= 0 ? ExcelStyles.successColor : ExcelStyles.errorColor
     ];
 
     for (var i = 0; i < labels.length; i++) {
-      final row = i + 3;
+      final row = i + 4;
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
         ..value = TextCellValue(labels[i])
         ..cellStyle = CellStyle(bold: true);
       sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
-        ..value = DoubleCellValue(values[i])
+        ..value = TextCellValue(
+            ExportFormatters.formatPrice(valuesSyp[i], showCurrency: false))
         ..cellStyle = CellStyle(
             fontColorHex:
                 ExcelColor.fromHexString('#${colors[i].substring(2)}'));
-      sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
-          .value = TextCellValue('ل.س');
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
+        ..value = TextCellValue('\$${valuesUsd[i].toStringAsFixed(2)}')
+        ..cellStyle = CellStyle(
+            fontColorHex:
+                ExcelColor.fromHexString('#${colors[i].substring(2)}'));
     }
 
     sheet.setColumnWidth(0, 25);
     sheet.setColumnWidth(1, 20);
+    sheet.setColumnWidth(2, 15);
 
     return await _saveExcelFile(excel, fileName ?? 'profit_report');
   }
@@ -443,6 +489,7 @@ class ReportsExportService {
     required List<Invoice> sales,
     required List<Invoice> purchases,
     DateTimeRange? dateRange,
+    ExportSettings? settings,
   }) async {
     await PdfFonts.init();
 
@@ -456,8 +503,12 @@ class ReportsExportService {
         purchases.fold(0.0, (sum, inv) => sum + inv.total);
     double totalPurchasesUsd =
         purchases.fold(0.0, (sum, inv) => sum + (inv.totalUsd ?? 0));
-    double profitSyp = totalSalesSyp - totalPurchasesSyp;
-    double profitUsd = totalSalesUsd - totalPurchasesUsd;
+    double grossProfitSyp = totalSalesSyp - totalPurchasesSyp;
+    double grossProfitUsd = totalSalesUsd - totalPurchasesUsd;
+
+    // حساب هامش الربح
+    double profitMargin =
+        totalSalesSyp > 0 ? (grossProfitSyp / totalSalesSyp * 100) : 0;
 
     final template = PdfReportTemplate(
       title: 'تقرير الأرباح والخسائر',
@@ -465,87 +516,223 @@ class ReportsExportService {
           ? ExportFormatters.formatDateRange(dateRange.start, dateRange.end)
           : null,
       reportDate: DateTime.now(),
-      headerColor: profitSyp >= 0 ? ExportColors.success : ExportColors.error,
+      headerColor:
+          grossProfitSyp >= 0 ? ExportColors.success : ExportColors.error,
+      settings: settings,
     );
 
     final pdf = pw.Document();
 
     pdf.addPage(
-      pw.Page(
+      pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         textDirection: pw.TextDirection.rtl,
         theme: PdfTheme.create(),
-        build: (context) => pw.Column(
-          children: [
-            template.buildHeader(),
-            pw.SizedBox(height: 40),
+        header: (context) => template.buildHeader(),
+        footer: (context) => template.buildFooter(
+          pageNumber: context.pageNumber,
+          totalPages: context.pagesCount,
+        ),
+        build: (context) => [
+          pw.SizedBox(height: 20),
 
-            // Sales Card - استخدام القيم المحفوظة
-            _buildProfitCard(
-              title: 'إجمالي المبيعات',
+          // ═══════════════════════════════════════════════════════════════
+          // صندوق الإحصائيات الرئيسية
+          // ═══════════════════════════════════════════════════════════════
+          template.buildStatsBox([
+            StatItem(
+              label: 'إجمالي المبيعات',
               value: ExportFormatters.formatDualPriceFromLocked(
                   totalSalesSyp, totalSalesUsd),
-              subtitle: '${sales.length} فاتورة',
               color: ExportColors.success,
             ),
-            pw.SizedBox(height: 16),
-
-            // Purchases Card - استخدام القيم المحفوظة
-            _buildProfitCard(
-              title: 'إجمالي المشتريات',
+            StatItem(
+              label: 'إجمالي المشتريات',
               value: ExportFormatters.formatDualPriceFromLocked(
                   totalPurchasesSyp, totalPurchasesUsd),
-              subtitle: '${purchases.length} فاتورة',
               color: ExportColors.purchase,
             ),
-            pw.SizedBox(height: 24),
+            StatItem(
+              label: 'عدد فواتير البيع',
+              value: '${sales.length}',
+            ),
+            StatItem(
+              label: 'عدد فواتير الشراء',
+              value: '${purchases.length}',
+            ),
+          ]),
+          pw.SizedBox(height: 24),
 
-            // Profit Card
-            pw.Container(
-              width: double.infinity,
-              padding: const pw.EdgeInsets.all(24),
-              decoration: pw.BoxDecoration(
-                color: profitSyp >= 0
-                    ? const PdfColor.fromInt(0xFFE8F5E9)
-                    : const PdfColor.fromInt(0xFFFFEBEE),
-                borderRadius: pw.BorderRadius.circular(12),
-                border: pw.Border.all(
-                  color: profitSyp >= 0
-                      ? ExportColors.success
-                      : ExportColors.error,
-                  width: 2,
-                ),
+          // ═══════════════════════════════════════════════════════════════
+          // بطاقة صافي الربح الرئيسية
+          // ═══════════════════════════════════════════════════════════════
+          pw.Container(
+            width: double.infinity,
+            padding: const pw.EdgeInsets.all(24),
+            decoration: pw.BoxDecoration(
+              color: grossProfitSyp >= 0
+                  ? const PdfColor.fromInt(0xFFE8F5E9)
+                  : const PdfColor.fromInt(0xFFFFEBEE),
+              borderRadius: pw.BorderRadius.circular(12),
+              border: pw.Border.all(
+                color: grossProfitSyp >= 0
+                    ? ExportColors.success
+                    : ExportColors.error,
+                width: 2,
               ),
-              child: pw.Column(
-                children: [
-                  pw.Text(
-                    'صافي الربح',
-                    style: pw.TextStyle(font: PdfFonts.bold, fontSize: 18),
-                    textDirection: pw.TextDirection.rtl,
+            ),
+            child: pw.Column(
+              children: [
+                pw.Text(
+                  grossProfitSyp >= 0 ? 'صافي الربح' : 'صافي الخسارة',
+                  style: pw.TextStyle(font: PdfFonts.bold, fontSize: 18),
+                  textDirection: pw.TextDirection.rtl,
+                ),
+                pw.SizedBox(height: 12),
+                pw.Text(
+                  ExportFormatters.formatDualPriceFromLocked(
+                      grossProfitSyp.abs(), grossProfitUsd.abs()),
+                  style: pw.TextStyle(
+                    font: PdfFonts.bold,
+                    fontSize: 28,
+                    color: grossProfitSyp >= 0
+                        ? ExportColors.success
+                        : ExportColors.error,
                   ),
-                  pw.SizedBox(height: 8),
-                  // استخدام القيم المحفوظة
-                  pw.Text(
-                    ExportFormatters.formatDualPriceFromLocked(
-                        profitSyp, profitUsd),
+                  textDirection: pw.TextDirection.rtl,
+                ),
+                pw.SizedBox(height: 8),
+                pw.Container(
+                  padding: const pw.EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: pw.BoxDecoration(
+                    color: grossProfitSyp >= 0
+                        ? const PdfColor.fromInt(0xFFC8E6C9)
+                        : const PdfColor.fromInt(0xFFFFCDD2),
+                    borderRadius: pw.BorderRadius.circular(20),
+                  ),
+                  child: pw.Text(
+                    'هامش الربح: ${profitMargin.toStringAsFixed(1)}%',
                     style: pw.TextStyle(
                       font: PdfFonts.bold,
-                      fontSize: 32,
-                      color: profitSyp >= 0
+                      fontSize: 12,
+                      color: grossProfitSyp >= 0
                           ? ExportColors.success
                           : ExportColors.error,
                     ),
                     textDirection: pw.TextDirection.rtl,
                   ),
-                ],
-              ),
+                ),
+              ],
+            ),
+          ),
+          pw.SizedBox(height: 24),
+
+          // ═══════════════════════════════════════════════════════════════
+          // جدول قائمة الدخل
+          // ═══════════════════════════════════════════════════════════════
+          pw.Text(
+            'قائمة الدخل',
+            style: pw.TextStyle(font: PdfFonts.bold, fontSize: 16),
+            textDirection: pw.TextDirection.rtl,
+          ),
+          pw.SizedBox(height: 12),
+          template.buildTable(
+            headers: ['البيان', 'المبلغ (ل.س)', 'المبلغ (\$)'],
+            data: [
+              [
+                'إجمالي المبيعات',
+                ExportFormatters.formatPrice(totalSalesSyp,
+                    showCurrency: false),
+                '\$${totalSalesUsd.toStringAsFixed(2)}',
+              ],
+              [
+                'إجمالي المشتريات',
+                '(${ExportFormatters.formatPrice(totalPurchasesSyp, showCurrency: false)})',
+                '(\$${totalPurchasesUsd.toStringAsFixed(2)})',
+              ],
+              [
+                grossProfitSyp >= 0 ? 'صافي الربح' : 'صافي الخسارة',
+                ExportFormatters.formatPrice(grossProfitSyp.abs(),
+                    showCurrency: false),
+                '\$${grossProfitUsd.abs().toStringAsFixed(2)}',
+              ],
+            ],
+            headerBgColor:
+                grossProfitSyp >= 0 ? ExportColors.success : ExportColors.error,
+          ),
+          pw.SizedBox(height: 24),
+
+          // ═══════════════════════════════════════════════════════════════
+          // ملخص الفواتير
+          // ═══════════════════════════════════════════════════════════════
+          if (sales.isNotEmpty || purchases.isNotEmpty) ...[
+            pw.Text(
+              'ملخص الفواتير',
+              style: pw.TextStyle(font: PdfFonts.bold, fontSize: 16),
+              textDirection: pw.TextDirection.rtl,
+            ),
+            pw.SizedBox(height: 12),
+            pw.Row(
+              children: [
+                pw.Expanded(
+                  child: _buildSummaryBox(
+                    title: 'فواتير المبيعات',
+                    count: sales.length,
+                    color: ExportColors.success,
+                  ),
+                ),
+                pw.SizedBox(width: 16),
+                pw.Expanded(
+                  child: _buildSummaryBox(
+                    title: 'فواتير المشتريات',
+                    count: purchases.length,
+                    color: ExportColors.purchase,
+                  ),
+                ),
+              ],
             ),
           ],
-        ),
+        ],
       ),
     );
 
     return pdf.save();
+  }
+
+  /// بناء صندوق ملخص
+  static pw.Widget _buildSummaryBox({
+    required String title,
+    required int count,
+    required PdfColor color,
+  }) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.all(16),
+      decoration: pw.BoxDecoration(
+        border: pw.Border.all(color: color, width: 1),
+        borderRadius: pw.BorderRadius.circular(8),
+      ),
+      child: pw.Column(
+        children: [
+          pw.Text(
+            title,
+            style: pw.TextStyle(font: PdfFonts.regular, fontSize: 12),
+            textDirection: pw.TextDirection.rtl,
+          ),
+          pw.SizedBox(height: 8),
+          pw.Text(
+            '$count',
+            style: pw.TextStyle(
+              font: PdfFonts.bold,
+              fontSize: 24,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -606,6 +793,7 @@ class ReportsExportService {
   /// تصدير تقرير الذمم المدينة إلى PDF
   static Future<Uint8List> generateReceivablesReportPdf({
     required List<Customer> customers,
+    ExportSettings? settings,
   }) async {
     await PdfFonts.init();
 
@@ -618,6 +806,7 @@ class ReportsExportService {
       subtitle: 'المبالغ المستحقة من العملاء',
       reportDate: DateTime.now(),
       headerColor: ExportColors.error,
+      settings: settings,
     );
 
     final pdf = pw.Document();
@@ -724,6 +913,7 @@ class ReportsExportService {
   /// تصدير تقرير الذمم الدائنة إلى PDF
   static Future<Uint8List> generatePayablesReportPdf({
     required List<Supplier> suppliers,
+    ExportSettings? settings,
   }) async {
     await PdfFonts.init();
 
@@ -736,6 +926,7 @@ class ReportsExportService {
       subtitle: 'المبالغ المستحقة للموردين',
       reportDate: DateTime.now(),
       headerColor: ExportColors.warning,
+      settings: settings,
     );
 
     final pdf = pw.Document();
@@ -754,7 +945,7 @@ class ReportsExportService {
           pw.SizedBox(height: 20),
           template.buildStatsBox([
             StatItem(
-              label: 'إجمالي المستحقات للموردين',
+              label: 'إجمالي المستحقات',
               value: ExportFormatters.formatPrice(totalBalance),
               color: ExportColors.warning,
             ),
@@ -805,14 +996,17 @@ class ReportsExportService {
       horizontalAlign: HorizontalAlign.Center,
     );
 
+    // أعمدة مع دعم الدولار
     final headers = [
       '#',
       'اسم المنتج',
       'الباركود',
       'الكمية',
-      'الكمية المباعة',
-      'سعر التكلفة',
-      'قيمة المخزون'
+      'المباع',
+      'سعر التكلفة (ل.س)',
+      'سعر التكلفة (\$)',
+      'قيمة المخزون (ل.س)',
+      'قيمة المخزون (\$)',
     ];
 
     // Set sheet RTL direction
@@ -820,11 +1014,15 @@ class ReportsExportService {
 
     _writeExcelHeaders(sheet, headers, headerStyle);
 
-    double totalValue = 0;
+    double totalValueSyp = 0;
+    double totalValueUsd = 0;
+
     for (var i = 0; i < products.length; i++) {
       final product = products[i];
-      final stockValue = product.quantity * product.purchasePrice;
-      totalValue += stockValue;
+      final stockValueSyp = product.quantity * product.purchasePrice;
+      final stockValueUsd = product.quantity * (product.purchasePriceUsd ?? 0);
+      totalValueSyp += stockValueSyp;
+      totalValueUsd += stockValueUsd;
       final sold = soldQuantities?[product.id] ?? 0;
 
       final row = i + 1;
@@ -837,21 +1035,27 @@ class ReportsExportService {
         sold.toString(),
         ExportFormatters.formatPrice(product.purchasePrice,
             showCurrency: false),
-        ExportFormatters.formatPrice(stockValue, showCurrency: false),
+        product.purchasePriceUsd != null
+            ? '\$${product.purchasePriceUsd!.toStringAsFixed(2)}'
+            : '-',
+        ExportFormatters.formatPrice(stockValueSyp, showCurrency: false),
+        stockValueUsd > 0 ? '\$${stockValueUsd.toStringAsFixed(2)}' : '-',
       ]);
     }
 
     _writeExcelSummary(
         sheet,
         products.length + 2,
-        5,
+        6,
         'الإجمالي:',
         [
-          ExportFormatters.formatPrice(totalValue, showCurrency: false),
+          '',
+          ExportFormatters.formatPrice(totalValueSyp, showCurrency: false),
+          '\$${totalValueUsd.toStringAsFixed(2)}',
         ],
         '673AB7');
 
-    _setExcelColumnWidths(sheet, [5, 30, 18, 10, 15, 15, 18]);
+    _setExcelColumnWidths(sheet, [5, 25, 15, 10, 10, 15, 12, 18, 15]);
 
     return await _saveExcelFile(excel, fileName ?? 'inventory_report');
   }
@@ -860,12 +1064,15 @@ class ReportsExportService {
   static Future<Uint8List> generateInventoryReportPdf({
     required List<Product> products,
     Map<String, int>? soldQuantities,
+    ExportSettings? settings,
   }) async {
     await PdfFonts.init();
 
     final totalItems = products.fold<int>(0, (sum, p) => sum + p.quantity);
-    final totalValue = products.fold<double>(
+    final totalValueSyp = products.fold<double>(
         0, (sum, p) => sum + (p.quantity * p.purchasePrice));
+    final totalValueUsd = products.fold<double>(
+        0, (sum, p) => sum + (p.quantity * (p.purchasePriceUsd ?? 0)));
     final totalSold =
         soldQuantities?.values.fold<int>(0, (sum, q) => sum + q) ?? 0;
 
@@ -874,6 +1081,7 @@ class ReportsExportService {
       subtitle: 'الكميات والقيم الحالية',
       reportDate: DateTime.now(),
       headerColor: const PdfColor.fromInt(0xFF673AB7),
+      settings: settings,
     );
 
     final pdf = pw.Document();
@@ -908,26 +1116,45 @@ class ReportsExportService {
             ),
             StatItem(
               label: 'قيمة المخزون',
-              value: ExportFormatters.formatPrice(totalValue),
+              value:
+                  '${ExportFormatters.formatPrice(totalValueSyp)} (\$${totalValueUsd.toStringAsFixed(2)})',
               color: const PdfColor.fromInt(0xFF673AB7),
             ),
           ]),
           pw.SizedBox(height: 20),
-          template.buildTable(
-            headers: ['#', 'المنتج', 'الباركود', 'الكمية', 'المباع', 'القيمة'],
-            data: List.generate(products.length, (i) {
-              final p = products[i];
-              final sold = soldQuantities?[p.id] ?? 0;
-              return [
-                '${i + 1}',
-                p.name,
-                p.barcode ?? '-',
-                '${p.quantity}',
-                '$sold',
-                ExportFormatters.formatPrice(p.quantity * p.purchasePrice),
-              ];
-            }),
-            headerBgColor: const PdfColor.fromInt(0xFF673AB7),
+          // جدول RTL مع دعم الدولار
+          pw.Directionality(
+            textDirection: pw.TextDirection.rtl,
+            child: template.buildTable(
+              headers: [
+                'القيمة (\$)',
+                'القيمة (ل.س)',
+                'المباع',
+                'الكمية',
+                'الباركود',
+                'المنتج',
+                '#'
+              ],
+              data: List.generate(products.length, (i) {
+                final p = products[i];
+                final sold = soldQuantities?[p.id] ?? 0;
+                final stockValueSyp = p.quantity * p.purchasePrice;
+                final stockValueUsd = p.quantity * (p.purchasePriceUsd ?? 0);
+                return [
+                  stockValueUsd > 0
+                      ? '\$${stockValueUsd.toStringAsFixed(2)}'
+                      : '-',
+                  ExportFormatters.formatPrice(stockValueSyp,
+                      showCurrency: false),
+                  '$sold',
+                  '${p.quantity}',
+                  p.barcode ?? '-',
+                  p.name,
+                  '${i + 1}',
+                ];
+              }),
+              headerBgColor: const PdfColor.fromInt(0xFF673AB7),
+            ),
           ),
         ],
       ),
@@ -1003,54 +1230,6 @@ class ReportsExportService {
     for (var i = 0; i < widths.length; i++) {
       sheet.setColumnWidth(i, widths[i]);
     }
-  }
-
-  /// بناء بطاقة الربح في PDF
-  static pw.Widget _buildProfitCard({
-    required String title,
-    required String value,
-    required String subtitle,
-    required PdfColor color,
-  }) {
-    return pw.Container(
-      width: double.infinity,
-      padding: const pw.EdgeInsets.all(16),
-      decoration: pw.BoxDecoration(
-        color: color.shade(50),
-        borderRadius: pw.BorderRadius.circular(8),
-        border: pw.Border.all(color: color.shade(200)),
-      ),
-      child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-        children: [
-          pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Text(
-                title,
-                style: pw.TextStyle(font: PdfFonts.bold, fontSize: 14),
-                textDirection: pw.TextDirection.rtl,
-              ),
-              pw.SizedBox(height: 4),
-              pw.Text(
-                subtitle,
-                style: pw.TextStyle(
-                    font: PdfFonts.regular,
-                    fontSize: 10,
-                    color: PdfColors.grey600),
-                textDirection: pw.TextDirection.rtl,
-              ),
-            ],
-          ),
-          pw.Text(
-            value,
-            style:
-                pw.TextStyle(font: PdfFonts.bold, fontSize: 18, color: color),
-            textDirection: pw.TextDirection.rtl,
-          ),
-        ],
-      ),
-    );
   }
 
   /// حفظ ملف Excel

@@ -12,6 +12,7 @@ import '../services/currency_service.dart';
 import '../services/price_locking_service.dart';
 import '../services/printing/print_settings_service.dart';
 import '../services/accounting_service.dart';
+import '../services/export/export_service.dart';
 import '../../data/repositories/product_repository.dart';
 import '../../data/repositories/category_repository.dart';
 import '../../data/repositories/invoice_repository.dart';
@@ -21,8 +22,8 @@ import '../../data/repositories/cash_repository.dart';
 import '../../data/repositories/customer_repository.dart';
 import '../../data/repositories/supplier_repository.dart';
 import '../../data/repositories/voucher_repository.dart';
-import '../../data/repositories/warehouse_repository.dart';
 import '../../data/repositories/inventory_count_repository.dart';
+import '../../data/repositories/warehouse_repository.dart';
 
 final getIt = GetIt.instance;
 
@@ -103,6 +104,13 @@ Future<void> configureDependencies() async {
     ),
   );
 
+  getIt.registerSingleton<WarehouseRepository>(
+    WarehouseRepository(
+      database: getIt<AppDatabase>(),
+      firestore: getIt<FirebaseFirestore>(),
+    ),
+  );
+
   // Currency Service
   final currencyService = CurrencyService(getIt<SharedPreferences>());
   CurrencyService.setInstance(
@@ -133,6 +141,9 @@ Future<void> configureDependencies() async {
     ),
   );
 
+  // Export Service (initialize after PrintSettingsService)
+  ExportService.init(getIt<PrintSettingsService>());
+
   // Sync Service
   getIt.registerSingleton<SyncService>(
     SyncService(
@@ -156,14 +167,6 @@ Future<void> configureDependencies() async {
       database: getIt<AppDatabase>(),
       firestore: getIt<FirebaseFirestore>(),
       connectivity: getIt<ConnectivityService>(),
-    ),
-  );
-
-  // Warehouse Repository
-  getIt.registerSingleton<WarehouseRepository>(
-    WarehouseRepository(
-      database: getIt<AppDatabase>(),
-      firestore: getIt<FirebaseFirestore>(),
     ),
   );
 

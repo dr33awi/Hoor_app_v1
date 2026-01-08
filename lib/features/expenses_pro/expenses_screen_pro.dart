@@ -268,10 +268,14 @@ class _ExpensesScreenProState extends ConsumerState<ExpensesScreenPro> {
     try {
       switch (type) {
         case ExportType.pdf:
+          final settings = await ExportService.getExportSettings();
           final pdfBytes = await PdfExportService.generateVouchersList(
             vouchers: expenses,
             type: 'expense',
+            settings: settings,
           );
+          final fileName = 'expenses_${DateTime.now().millisecondsSinceEpoch}';
+          await PdfExportService.savePdfFile(pdfBytes, fileName);
           if (mounted) {
             ProSnackbar.success(context, 'تم إنشاء التقرير بنجاح');
           }
@@ -288,14 +292,14 @@ class _ExpensesScreenProState extends ConsumerState<ExpensesScreenPro> {
           break;
 
         case ExportType.sharePdf:
+          final settingsShare = await ExportService.getExportSettings();
           final pdfData = await PdfExportService.generateVouchersList(
             vouchers: expenses,
             type: 'expense',
+            settings: settingsShare,
           );
-          // PDF sharing would require saving to temp file first
-          if (mounted) {
-            ProSnackbar.success(context, 'تم إنشاء التقرير');
-          }
+          await PdfExportService.sharePdfBytes(pdfData,
+              fileName: 'expenses_report');
           break;
 
         case ExportType.shareExcel:
@@ -1192,7 +1196,7 @@ class _ExpensesScreenProState extends ConsumerState<ExpensesScreenPro> {
       message: hasFilters
           ? 'جرب تغيير الفلاتر أو البحث'
           : 'ابدأ بتسجيل مصاريفك اليومية',
-      actionLabel: hasFilters ? 'مسح الفلاتر' : 'إضافة مصروف',
+      actionLabel: hasFilters ? 'مسح الفلاتر' : null,
       onAction: hasFilters
           ? () {
               setState(() {
@@ -1201,7 +1205,7 @@ class _ExpensesScreenProState extends ConsumerState<ExpensesScreenPro> {
                 _searchController.clear();
               });
             }
-          : () => context.push('/expenses/add'),
+          : null,
     );
   }
 

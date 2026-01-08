@@ -6,6 +6,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
@@ -34,7 +35,10 @@ class _BackupScreenProState extends ConsumerState<BackupScreenPro> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: ProAppBar.simple(title: 'النسخ الاحتياطي'),
+      appBar: ProAppBar.simple(
+        title: 'النسخ الاحتياطي',
+        onBack: () => context.canPop() ? context.pop() : context.go('/'),
+      ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(AppSpacing.md),
         child: Column(
@@ -370,7 +374,7 @@ class _BackupScreenProState extends ConsumerState<BackupScreenPro> {
       try {
         await Share.shareXFiles(
           [XFile(_lastBackupPath!)],
-          text: 'نسخة احتياطية - حور المدير',
+          text: 'نسخة احتياطية -Hoor',
         );
       } catch (e) {
         if (mounted) {

@@ -398,8 +398,8 @@ class InvoicePdfGenerator {
             _getInvoiceTypeLabel(invoice.invoiceType),
             style: pw.TextStyle(
               font: PdfFonts.bold,
-              fontSize: 22,
-              color: PdfColors.white,
+              fontSize: PdfSizes.fontSizeTitle + 2,
+              color: AppPdfColors.textWhite,
             ),
             textAlign: pw.TextAlign.center,
             textDirection: pw.TextDirection.rtl,
@@ -413,14 +413,14 @@ class InvoicePdfGenerator {
                 padding:
                     const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: pw.BoxDecoration(
-                  color: PdfColors.white,
+                  color: AppPdfColors.bgWhite,
                   borderRadius: pw.BorderRadius.circular(16),
                 ),
                 child: pw.Text(
                   invoice.invoiceNumber,
                   style: pw.TextStyle(
                     font: PdfFonts.bold,
-                    fontSize: 11,
+                    fontSize: PdfSizes.fontSizeSmall + 1,
                     color: invoiceColor,
                   ),
                   textDirection: pw.TextDirection.rtl,
@@ -431,14 +431,14 @@ class InvoicePdfGenerator {
                 padding:
                     const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: pw.BoxDecoration(
-                  color: PdfColors.white,
+                  color: AppPdfColors.bgWhite,
                   borderRadius: pw.BorderRadius.circular(16),
                 ),
                 child: pw.Text(
                   ExportFormatters.formatDateTime(invoice.date),
                   style: pw.TextStyle(
                     font: PdfFonts.regular,
-                    fontSize: 10,
+                    fontSize: PdfSizes.fontSizeSmall,
                     color: invoiceColor,
                   ),
                   textDirection: pw.TextDirection.rtl,
@@ -490,9 +490,9 @@ class InvoicePdfGenerator {
     return pw.Container(
       padding: const pw.EdgeInsets.all(12),
       decoration: pw.BoxDecoration(
-        color: PdfColors.grey100,
+        color: AppPdfColors.bgLight,
         borderRadius: pw.BorderRadius.circular(6),
-        border: pw.Border.all(color: PdfColors.grey300),
+        border: pw.Border.all(color: AppPdfColors.borderLight),
       ),
       child: pw.Row(
         children: [
@@ -500,7 +500,7 @@ class InvoicePdfGenerator {
             width: 4,
             height: 50,
             decoration: pw.BoxDecoration(
-              color: ExportColors.primary,
+              color: AppPdfColors.primary,
               borderRadius: pw.BorderRadius.circular(2),
             ),
           ),
@@ -512,7 +512,8 @@ class InvoicePdfGenerator {
                 if (options.companyName != null)
                   pw.Text(
                     options.companyName!,
-                    style: pw.TextStyle(font: PdfFonts.bold, fontSize: 12),
+                    style: pw.TextStyle(
+                        font: PdfFonts.bold, fontSize: PdfSizes.fontSizeMedium),
                     textDirection: pw.TextDirection.rtl,
                   ),
                 if (options.companyAddress != null) ...[
@@ -521,8 +522,8 @@ class InvoicePdfGenerator {
                     options.companyAddress!,
                     style: pw.TextStyle(
                         font: PdfFonts.regular,
-                        fontSize: 9,
-                        color: PdfColors.grey700),
+                        fontSize: PdfSizes.fontSizeSmall - 1,
+                        color: AppPdfColors.textSecondary),
                     textDirection: pw.TextDirection.rtl,
                   ),
                 ],
@@ -536,8 +537,8 @@ class InvoicePdfGenerator {
                         'هاتف: ${options.companyPhone}',
                         style: pw.TextStyle(
                             font: PdfFonts.regular,
-                            fontSize: 9,
-                            color: PdfColors.grey700),
+                            fontSize: PdfSizes.fontSizeSmall - 1,
+                            color: AppPdfColors.textSecondary),
                         textDirection: pw.TextDirection.rtl,
                       ),
                     if (options.companyPhone != null &&
@@ -545,15 +546,15 @@ class InvoicePdfGenerator {
                       pw.Text('  |  ',
                           style: pw.TextStyle(
                               font: PdfFonts.regular,
-                              fontSize: 9,
-                              color: PdfColors.grey400)),
+                              fontSize: PdfSizes.fontSizeSmall - 1,
+                              color: AppPdfColors.borderMedium)),
                     if (options.companyTaxNumber != null)
                       pw.Text(
                         'الرقم الضريبي: ${options.companyTaxNumber}',
                         style: pw.TextStyle(
                             font: PdfFonts.regular,
-                            fontSize: 9,
-                            color: PdfColors.grey700),
+                            fontSize: PdfSizes.fontSizeSmall - 1,
+                            color: AppPdfColors.textSecondary),
                         textDirection: pw.TextDirection.rtl,
                       ),
                   ],
@@ -576,9 +577,9 @@ class InvoicePdfGenerator {
     return pw.Container(
       padding: const pw.EdgeInsets.all(12),
       decoration: pw.BoxDecoration(
-        color: PdfColors.grey100,
+        color: AppPdfColors.bgLight,
         borderRadius: pw.BorderRadius.circular(6),
-        border: pw.Border.all(color: PdfColors.grey300),
+        border: pw.Border.all(color: AppPdfColors.borderLight),
       ),
       child: pw.Row(
         children: [
@@ -597,7 +598,8 @@ class InvoicePdfGenerator {
               children: [
                 pw.Text(
                   '$label: ${invoice.customerName}',
-                  style: pw.TextStyle(font: PdfFonts.bold, fontSize: 12),
+                  style: pw.TextStyle(
+                      font: PdfFonts.bold, fontSize: PdfSizes.fontSizeMedium),
                   textDirection: pw.TextDirection.rtl,
                 ),
                 if (invoice.customerPhone != null ||
@@ -608,8 +610,8 @@ class InvoicePdfGenerator {
                     'هاتف: ${invoice.customerPhone}',
                     style: pw.TextStyle(
                         font: PdfFonts.regular,
-                        fontSize: 9,
-                        color: PdfColors.grey700),
+                        fontSize: PdfSizes.fontSizeSmall - 1,
+                        color: AppPdfColors.textSecondary),
                     textDirection: pw.TextDirection.rtl,
                   ),
                 if (invoice.customerAddress != null)
@@ -617,8 +619,8 @@ class InvoicePdfGenerator {
                     'العنوان: ${invoice.customerAddress}',
                     style: pw.TextStyle(
                         font: PdfFonts.regular,
-                        fontSize: 9,
-                        color: PdfColors.grey700),
+                        fontSize: PdfSizes.fontSizeSmall - 1,
+                        color: AppPdfColors.textSecondary),
                     textDirection: pw.TextDirection.rtl,
                   ),
               ],
@@ -640,66 +642,75 @@ class InvoicePdfGenerator {
           child: pw.Text(
             'تفاصيل الأصناف (${invoice.items.length} صنف)',
             style: pw.TextStyle(
-                font: PdfFonts.bold, fontSize: 11, color: PdfColors.grey700),
+                font: PdfFonts.bold,
+                fontSize: PdfSizes.fontSizeSmall + 1,
+                color: AppPdfColors.textSecondary),
             textDirection: pw.TextDirection.rtl,
           ),
         ),
-        // الجدول - RTL (الأعمدة من اليمين لليسار)
-        pw.Table(
-          border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
-          columnWidths: {
-            0: const pw.FlexColumnWidth(0.5), // #
-            1: const pw.FlexColumnWidth(3.5), // الصنف
-            2: const pw.FlexColumnWidth(1), // الكمية
-            3: const pw.FlexColumnWidth(1.2), // السعر
-            4: const pw.FlexColumnWidth(1), // الخصم
-            5: const pw.FlexColumnWidth(1.3), // الإجمالي
-          },
-          children: [
-            // رأس الجدول
-            pw.TableRow(
-              decoration: pw.BoxDecoration(color: invoiceColor),
-              children: [
-                _simpleHeaderCell('#'),
-                _simpleHeaderCell('الصنف'),
-                _simpleHeaderCell('الكمية'),
-                _simpleHeaderCell('السعر'),
-                _simpleHeaderCell('الخصم'),
-                _simpleHeaderCell('الإجمالي'),
-              ],
-            ),
-            // بيانات الأصناف
-            ...invoice.items.asMap().entries.map((entry) {
-              final index = entry.key;
-              final item = entry.value;
-              final isEven = index.isEven;
-              return pw.TableRow(
-                decoration: pw.BoxDecoration(
-                  color: isEven ? PdfColors.grey50 : PdfColors.white,
-                ),
+        // الجدول - RTL (الأعمدة معكوسة)
+        pw.Directionality(
+          textDirection: pw.TextDirection.rtl,
+          child: pw.Table(
+            border:
+                pw.TableBorder.all(color: AppPdfColors.borderLight, width: 0.5),
+            columnWidths: {
+              // العرض معكوس: الإجمالي(يسار) ... #(يمين)
+              0: const pw.FlexColumnWidth(1.3), // الإجمالي
+              1: const pw.FlexColumnWidth(1), // الخصم
+              2: const pw.FlexColumnWidth(1.2), // السعر
+              3: const pw.FlexColumnWidth(1), // الكمية
+              4: const pw.FlexColumnWidth(3.5), // الصنف
+              5: const pw.FlexColumnWidth(0.5), // #
+            },
+            children: [
+              // رأس الجدول - معكوس للـ RTL
+              pw.TableRow(
+                decoration: pw.BoxDecoration(color: invoiceColor),
                 children: [
-                  _simpleDataCell('${index + 1}'),
-                  _simpleDataCell(item.name, align: pw.Alignment.centerRight),
-                  _simpleDataCell(
-                      ExportFormatters.formatQuantity(item.quantity)),
-                  _simpleDataCell(ExportFormatters.formatPrice(item.unitPrice,
-                      showCurrency: false)),
-                  _simpleDataCell(
-                    item.discount > 0
-                        ? ExportFormatters.formatPrice(item.discount,
-                            showCurrency: false)
-                        : '-',
-                    color: item.discount > 0 ? ExportColors.error : null,
-                  ),
-                  _simpleDataCell(
-                    ExportFormatters.formatPrice(item.total,
-                        showCurrency: false),
-                    bold: true,
-                  ),
+                  _simpleHeaderCell('الإجمالي'),
+                  _simpleHeaderCell('الخصم'),
+                  _simpleHeaderCell('السعر'),
+                  _simpleHeaderCell('الكمية'),
+                  _simpleHeaderCell('الصنف'),
+                  _simpleHeaderCell('#'),
                 ],
-              );
-            }),
-          ],
+              ),
+              // بيانات الأصناف - معكوسة للـ RTL
+              ...invoice.items.asMap().entries.map((entry) {
+                final index = entry.key;
+                final item = entry.value;
+                final isEven = index.isEven;
+                return pw.TableRow(
+                  decoration: pw.BoxDecoration(
+                    color: isEven
+                        ? AppPdfColors.tableRowEven
+                        : AppPdfColors.tableRowOdd,
+                  ),
+                  children: [
+                    _simpleDataCell(
+                      ExportFormatters.formatPrice(item.total,
+                          showCurrency: false),
+                      bold: true,
+                    ),
+                    _simpleDataCell(
+                      item.discount > 0
+                          ? ExportFormatters.formatPrice(item.discount,
+                              showCurrency: false)
+                          : '-',
+                      color: item.discount > 0 ? AppPdfColors.error : null,
+                    ),
+                    _simpleDataCell(ExportFormatters.formatPrice(item.unitPrice,
+                        showCurrency: false)),
+                    _simpleDataCell(
+                        ExportFormatters.formatQuantity(item.quantity)),
+                    _simpleDataCell(item.name, align: pw.Alignment.centerRight),
+                    _simpleDataCell('${index + 1}'),
+                  ],
+                );
+              }),
+            ],
+          ),
         ),
       ],
     );
@@ -713,8 +724,8 @@ class InvoicePdfGenerator {
         text,
         style: pw.TextStyle(
           font: PdfFonts.bold,
-          fontSize: 10,
-          color: PdfColors.white,
+          fontSize: PdfSizes.fontSizeSmall,
+          color: AppPdfColors.textWhite,
         ),
         textAlign: pw.TextAlign.center,
         textDirection: pw.TextDirection.rtl,
@@ -735,8 +746,8 @@ class InvoicePdfGenerator {
         text,
         style: pw.TextStyle(
           font: bold ? PdfFonts.bold : PdfFonts.regular,
-          fontSize: 9,
-          color: color ?? PdfColors.grey800,
+          fontSize: PdfSizes.fontSizeSmall - 1,
+          color: color ?? AppPdfColors.textPrimary,
         ),
         textAlign: align == pw.Alignment.centerRight
             ? pw.TextAlign.right
@@ -758,7 +769,7 @@ class InvoicePdfGenerator {
           child: pw.Container(
             padding: const pw.EdgeInsets.all(12),
             decoration: pw.BoxDecoration(
-              color: PdfColors.grey100,
+              color: AppPdfColors.bgLight,
               borderRadius: pw.BorderRadius.circular(6),
             ),
             child: pw.Row(
@@ -782,9 +793,9 @@ class InvoicePdfGenerator {
           child: pw.Container(
             padding: const pw.EdgeInsets.all(12),
             decoration: pw.BoxDecoration(
-              color: PdfColors.grey100,
+              color: AppPdfColors.bgLight,
               borderRadius: pw.BorderRadius.circular(6),
-              border: pw.Border.all(color: PdfColors.grey300),
+              border: pw.Border.all(color: AppPdfColors.borderLight),
             ),
             child: pw.Column(
               children: [
@@ -796,7 +807,7 @@ class InvoicePdfGenerator {
                       ExportFormatters.formatPrice(invoice.total),
                       style: pw.TextStyle(
                           font: PdfFonts.bold,
-                          fontSize: 16,
+                          fontSize: PdfSizes.fontSizeXLarge,
                           color: invoiceColor),
                       textDirection: pw.TextDirection.rtl,
                     ),
@@ -804,7 +815,7 @@ class InvoicePdfGenerator {
                       'الإجمالي',
                       style: pw.TextStyle(
                           font: PdfFonts.bold,
-                          fontSize: 14,
+                          fontSize: PdfSizes.fontSizeLarge,
                           color: invoiceColor),
                       textDirection: pw.TextDirection.rtl,
                     ),
@@ -820,16 +831,16 @@ class InvoicePdfGenerator {
                         '- ${ExportFormatters.formatPrice(invoice.discount, showCurrency: false)}',
                         style: pw.TextStyle(
                             font: PdfFonts.regular,
-                            fontSize: 10,
-                            color: ExportColors.error),
+                            fontSize: PdfSizes.fontSizeSmall,
+                            color: AppPdfColors.error),
                         textDirection: pw.TextDirection.rtl,
                       ),
                       pw.Text(
                         'الخصم',
                         style: pw.TextStyle(
                             font: PdfFonts.regular,
-                            fontSize: 10,
-                            color: ExportColors.error),
+                            fontSize: PdfSizes.fontSizeSmall,
+                            color: AppPdfColors.error),
                         textDirection: pw.TextDirection.rtl,
                       ),
                     ],
@@ -838,7 +849,7 @@ class InvoicePdfGenerator {
                 // المبلغ المدفوع والمتبقي (للدفع الجزئي)
                 if (invoice.paidAmount != null) ...[
                   pw.SizedBox(height: 8),
-                  pw.Divider(color: PdfColors.grey300, thickness: 0.5),
+                  pw.Divider(color: AppPdfColors.borderLight, thickness: 0.5),
                   pw.SizedBox(height: 8),
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -847,16 +858,16 @@ class InvoicePdfGenerator {
                         ExportFormatters.formatPrice(invoice.paidAmount!),
                         style: pw.TextStyle(
                             font: PdfFonts.bold,
-                            fontSize: 11,
-                            color: ExportColors.success),
+                            fontSize: PdfSizes.fontSizeSmall + 1,
+                            color: AppPdfColors.success),
                         textDirection: pw.TextDirection.rtl,
                       ),
                       pw.Text(
                         'المبلغ المدفوع',
                         style: pw.TextStyle(
                             font: PdfFonts.regular,
-                            fontSize: 10,
-                            color: ExportColors.success),
+                            fontSize: PdfSizes.fontSizeSmall,
+                            color: AppPdfColors.success),
                         textDirection: pw.TextDirection.rtl,
                       ),
                     ],
@@ -872,16 +883,16 @@ class InvoicePdfGenerator {
                               invoice.remainingAmount!),
                           style: pw.TextStyle(
                               font: PdfFonts.bold,
-                              fontSize: 11,
-                              color: ExportColors.error),
+                              fontSize: PdfSizes.fontSizeSmall + 1,
+                              color: AppPdfColors.error),
                           textDirection: pw.TextDirection.rtl,
                         ),
                         pw.Text(
                           'المبلغ المتبقي',
                           style: pw.TextStyle(
                               font: PdfFonts.regular,
-                              fontSize: 10,
-                              color: ExportColors.error),
+                              fontSize: PdfSizes.fontSizeSmall,
+                              color: AppPdfColors.error),
                           textDirection: pw.TextDirection.rtl,
                         ),
                       ],
@@ -892,7 +903,7 @@ class InvoicePdfGenerator {
                 if (options.showPaymentMethod &&
                     invoice.paymentMethod != null) ...[
                   pw.SizedBox(height: 8),
-                  pw.Divider(color: PdfColors.grey300, thickness: 0.5),
+                  pw.Divider(color: AppPdfColors.borderLight, thickness: 0.5),
                   pw.SizedBox(height: 8),
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -902,16 +913,16 @@ class InvoicePdfGenerator {
                             invoice.paymentMethod!),
                         style: pw.TextStyle(
                             font: PdfFonts.bold,
-                            fontSize: 10,
-                            color: PdfColors.grey800),
+                            fontSize: PdfSizes.fontSizeSmall,
+                            color: AppPdfColors.textPrimary),
                         textDirection: pw.TextDirection.rtl,
                       ),
                       pw.Text(
                         'طريقة الدفع',
                         style: pw.TextStyle(
                             font: PdfFonts.regular,
-                            fontSize: 10,
-                            color: PdfColors.grey700),
+                            fontSize: PdfSizes.fontSizeSmall,
+                            color: AppPdfColors.textSecondary),
                         textDirection: pw.TextDirection.rtl,
                       ),
                     ],
@@ -920,7 +931,7 @@ class InvoicePdfGenerator {
                 // سعر الصرف والإجمالي بالدولار (من القيم المحفوظة)
                 if (options.showExchangeRate && invoice.exchangeRate > 0) ...[
                   pw.SizedBox(height: 8),
-                  pw.Divider(color: PdfColors.grey300, thickness: 0.5),
+                  pw.Divider(color: AppPdfColors.borderLight, thickness: 0.5),
                   pw.SizedBox(height: 8),
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -929,16 +940,16 @@ class InvoicePdfGenerator {
                         '${ExportFormatters.formatPrice(invoice.exchangeRate, showCurrency: false)} ${CurrencyFormatter.sypSymbol}/\$',
                         style: pw.TextStyle(
                             font: PdfFonts.regular,
-                            fontSize: 10,
-                            color: PdfColors.grey700),
+                            fontSize: PdfSizes.fontSizeSmall,
+                            color: AppPdfColors.textSecondary),
                         textDirection: pw.TextDirection.rtl,
                       ),
                       pw.Text(
                         'سعر الصرف',
                         style: pw.TextStyle(
                             font: PdfFonts.regular,
-                            fontSize: 10,
-                            color: PdfColors.grey700),
+                            fontSize: PdfSizes.fontSizeSmall,
+                            color: AppPdfColors.textSecondary),
                         textDirection: pw.TextDirection.rtl,
                       ),
                     ],
@@ -952,16 +963,16 @@ class InvoicePdfGenerator {
                         '\$${(invoice.totalUsd ?? (invoice.total / invoice.exchangeRate)).toStringAsFixed(2)}',
                         style: pw.TextStyle(
                             font: PdfFonts.bold,
-                            fontSize: 12,
-                            color: PdfColors.blue800),
+                            fontSize: PdfSizes.fontSizeMedium,
+                            color: AppPdfColors.blue800),
                         textDirection: pw.TextDirection.rtl,
                       ),
                       pw.Text(
                         'السعر بالدولار',
                         style: pw.TextStyle(
                             font: PdfFonts.bold,
-                            fontSize: 11,
-                            color: PdfColors.blue800),
+                            fontSize: PdfSizes.fontSizeSmall + 1,
+                            color: AppPdfColors.blue800),
                         textDirection: pw.TextDirection.rtl,
                       ),
                     ],
@@ -981,14 +992,18 @@ class InvoicePdfGenerator {
         pw.Text(
           label,
           style: pw.TextStyle(
-              font: PdfFonts.regular, fontSize: 9, color: PdfColors.grey600),
+              font: PdfFonts.regular,
+              fontSize: PdfSizes.fontSizeSmall - 1,
+              color: AppPdfColors.textMuted),
           textDirection: pw.TextDirection.rtl,
         ),
         pw.SizedBox(height: 4),
         pw.Text(
           value,
           style: pw.TextStyle(
-              font: PdfFonts.bold, fontSize: 14, color: PdfColors.grey800),
+              font: PdfFonts.bold,
+              fontSize: PdfSizes.fontSizeLarge,
+              color: AppPdfColors.textPrimary),
           textDirection: pw.TextDirection.rtl,
         ),
       ],
@@ -1006,8 +1021,8 @@ class InvoicePdfGenerator {
             child: _buildSimpleInfoBox(
               'طريقة الدفع',
               ExportFormatters.getPaymentMethodLabel(invoice.paymentMethod!),
-              PdfColors.blue50,
-              ExportColors.primary,
+              AppPdfColors.bgBlue,
+              AppPdfColors.primary,
             ),
           ),
         if (options.showPaymentMethod &&
@@ -1021,8 +1036,8 @@ class InvoicePdfGenerator {
             child: _buildSimpleInfoBox(
               'ملاحظات',
               invoice.notes!,
-              PdfColors.amber50,
-              ExportColors.warning,
+              AppPdfColors.bgAmber,
+              AppPdfColors.warning,
             ),
           ),
       ],
@@ -1053,7 +1068,9 @@ class InvoicePdfGenerator {
                 pw.Text(
                   title,
                   style: pw.TextStyle(
-                      font: PdfFonts.bold, fontSize: 10, color: accentColor),
+                      font: PdfFonts.bold,
+                      fontSize: PdfSizes.fontSizeSmall,
+                      color: accentColor),
                   textDirection: pw.TextDirection.rtl,
                 ),
                 pw.SizedBox(height: 4),
@@ -1061,8 +1078,8 @@ class InvoicePdfGenerator {
                   content,
                   style: pw.TextStyle(
                       font: PdfFonts.regular,
-                      fontSize: 10,
-                      color: PdfColors.grey800),
+                      fontSize: PdfSizes.fontSizeSmall,
+                      color: AppPdfColors.textPrimary),
                   textDirection: pw.TextDirection.rtl,
                 ),
               ],
@@ -1080,7 +1097,7 @@ class InvoicePdfGenerator {
     return pw.Container(
       padding: const pw.EdgeInsets.symmetric(vertical: 12),
       decoration: const pw.BoxDecoration(
-        border: pw.Border(top: pw.BorderSide(color: PdfColors.grey300)),
+        border: pw.Border(top: pw.BorderSide(color: AppPdfColors.borderLight)),
       ),
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
@@ -1089,13 +1106,17 @@ class InvoicePdfGenerator {
             pw.Text(
               footerText,
               style: pw.TextStyle(
-                  font: PdfFonts.bold, fontSize: 9, color: PdfColors.grey600),
+                  font: PdfFonts.bold,
+                  fontSize: PdfSizes.fontSizeSmall - 1,
+                  color: AppPdfColors.textMuted),
               textDirection: pw.TextDirection.rtl,
             ),
           pw.Text(
             'تم الطباعة: ${ExportFormatters.formatDateTime(DateTime.now())}',
             style: pw.TextStyle(
-                font: PdfFonts.regular, fontSize: 8, color: PdfColors.grey500),
+                font: PdfFonts.regular,
+                fontSize: PdfSizes.fontSizeXSmall,
+                color: AppPdfColors.textLight),
             textDirection: pw.TextDirection.rtl,
           ),
         ],
@@ -1169,7 +1190,8 @@ class InvoicePdfGenerator {
         if (options.companyName != null)
           pw.Text(
             options.companyName!,
-            style: pw.TextStyle(font: PdfFonts.bold, fontSize: 14),
+            style: pw.TextStyle(
+                font: PdfFonts.bold, fontSize: PdfSizes.fontSizeLarge),
             textAlign: pw.TextAlign.center,
             textDirection: pw.TextDirection.rtl,
           ),
@@ -1178,7 +1200,8 @@ class InvoicePdfGenerator {
         if (options.companyAddress != null)
           pw.Text(
             options.companyAddress!,
-            style: pw.TextStyle(font: PdfFonts.regular, fontSize: 8),
+            style: pw.TextStyle(
+                font: PdfFonts.regular, fontSize: PdfSizes.fontSizeXSmall),
             textAlign: pw.TextAlign.center,
             textDirection: pw.TextDirection.rtl,
           ),
@@ -1187,7 +1210,8 @@ class InvoicePdfGenerator {
         if (options.companyPhone != null)
           pw.Text(
             options.companyPhone!,
-            style: pw.TextStyle(font: PdfFonts.regular, fontSize: 8),
+            style: pw.TextStyle(
+                font: PdfFonts.regular, fontSize: PdfSizes.fontSizeXSmall),
             textAlign: pw.TextAlign.center,
             textDirection: pw.TextDirection.rtl,
           ),
@@ -1196,7 +1220,8 @@ class InvoicePdfGenerator {
         if (options.companyTaxNumber != null)
           pw.Text(
             'الرقم الضريبي: ${options.companyTaxNumber}',
-            style: pw.TextStyle(font: PdfFonts.regular, fontSize: 8),
+            style: pw.TextStyle(
+                font: PdfFonts.regular, fontSize: PdfSizes.fontSizeXSmall),
             textAlign: pw.TextAlign.center,
             textDirection: pw.TextDirection.rtl,
           ),
@@ -1214,8 +1239,8 @@ class InvoicePdfGenerator {
             _getInvoiceTypeLabel(invoice.invoiceType),
             style: pw.TextStyle(
               font: PdfFonts.bold,
-              fontSize: 12,
-              color: PdfColors.white,
+              fontSize: PdfSizes.fontSizeMedium,
+              color: AppPdfColors.textWhite,
             ),
             textDirection: pw.TextDirection.rtl,
           ),
@@ -1226,13 +1251,15 @@ class InvoicePdfGenerator {
         // رقم الفاتورة والتاريخ
         pw.Text(
           invoice.invoiceNumber,
-          style: pw.TextStyle(font: PdfFonts.regular, fontSize: 10),
+          style: pw.TextStyle(
+              font: PdfFonts.regular, fontSize: PdfSizes.fontSizeSmall),
           textAlign: pw.TextAlign.center,
           textDirection: pw.TextDirection.rtl,
         ),
         pw.Text(
           ExportFormatters.formatDateTime(invoice.date),
-          style: pw.TextStyle(font: PdfFonts.regular, fontSize: 9),
+          style: pw.TextStyle(
+              font: PdfFonts.regular, fontSize: PdfSizes.fontSizeSmall - 1),
           textAlign: pw.TextAlign.center,
           textDirection: pw.TextDirection.rtl,
         ),
@@ -1249,13 +1276,15 @@ class InvoicePdfGenerator {
       children: [
         pw.Text(
           '${isSupplier ? "المورد" : "العميل"}: ${invoice.customerName}',
-          style: pw.TextStyle(font: PdfFonts.regular, fontSize: 9),
+          style: pw.TextStyle(
+              font: PdfFonts.regular, fontSize: PdfSizes.fontSizeSmall - 1),
           textDirection: pw.TextDirection.rtl,
         ),
         if (invoice.customerPhone != null)
           pw.Text(
             'الهاتف: ${invoice.customerPhone}',
-            style: pw.TextStyle(font: PdfFonts.regular, fontSize: 8),
+            style: pw.TextStyle(
+                font: PdfFonts.regular, fontSize: PdfSizes.fontSizeXSmall),
             textDirection: pw.TextDirection.rtl,
           ),
       ],
@@ -1312,7 +1341,7 @@ class InvoicePdfGenerator {
         pw.Container(
           padding: const pw.EdgeInsets.symmetric(vertical: 4),
           decoration: pw.BoxDecoration(
-            color: PdfColors.grey200,
+            color: AppPdfColors.bgMedium,
             borderRadius: pw.BorderRadius.circular(4),
           ),
           child: pw.Row(
@@ -1320,12 +1349,14 @@ class InvoicePdfGenerator {
             children: [
               pw.Text(
                 ExportFormatters.formatPrice(invoice.total),
-                style: pw.TextStyle(font: PdfFonts.bold, fontSize: 12),
+                style: pw.TextStyle(
+                    font: PdfFonts.bold, fontSize: PdfSizes.fontSizeMedium),
                 textDirection: pw.TextDirection.rtl,
               ),
               pw.Text(
                 'الإجمالي',
-                style: pw.TextStyle(font: PdfFonts.bold, fontSize: 12),
+                style: pw.TextStyle(
+                    font: PdfFonts.bold, fontSize: PdfSizes.fontSizeMedium),
                 textDirection: pw.TextDirection.rtl,
               ),
             ],
@@ -1346,16 +1377,16 @@ class InvoicePdfGenerator {
                   '\$${(invoice.totalUsd ?? (invoice.total / invoice.exchangeRate)).toStringAsFixed(2)}',
                   style: pw.TextStyle(
                       font: PdfFonts.bold,
-                      fontSize: 10,
-                      color: PdfColors.blue800),
+                      fontSize: PdfSizes.fontSizeSmall,
+                      color: AppPdfColors.blue800),
                   textDirection: pw.TextDirection.rtl,
                 ),
                 pw.Text(
                   'السعر بالدولار',
                   style: pw.TextStyle(
                       font: PdfFonts.regular,
-                      fontSize: 9,
-                      color: PdfColors.blue800),
+                      fontSize: PdfSizes.fontSizeSmall - 1,
+                      color: AppPdfColors.blue800),
                   textDirection: pw.TextDirection.rtl,
                 ),
               ],
@@ -1377,14 +1408,15 @@ class InvoicePdfGenerator {
             '${isNegative ? "-" : ""}${ExportFormatters.formatPrice(value, showCurrency: false)}${suffix ?? ""}',
             style: pw.TextStyle(
               font: PdfFonts.regular,
-              fontSize: 9,
-              color: isNegative ? PdfColors.red : PdfColors.black,
+              fontSize: PdfSizes.fontSizeSmall - 1,
+              color: isNegative ? AppPdfColors.red : AppPdfColors.textPrimary,
             ),
             textDirection: pw.TextDirection.rtl,
           ),
           pw.Text(
             label,
-            style: pw.TextStyle(font: PdfFonts.regular, fontSize: 9),
+            style: pw.TextStyle(
+                font: PdfFonts.regular, fontSize: PdfSizes.fontSizeSmall - 1),
             textDirection: pw.TextDirection.rtl,
           ),
         ],
@@ -1398,13 +1430,15 @@ class InvoicePdfGenerator {
       children: [
         pw.Text(
           'طريقة الدفع: ${ExportFormatters.getPaymentMethodLabel(invoice.paymentMethod!)}',
-          style: pw.TextStyle(font: PdfFonts.regular, fontSize: 9),
+          style: pw.TextStyle(
+              font: PdfFonts.regular, fontSize: PdfSizes.fontSizeSmall - 1),
           textDirection: pw.TextDirection.rtl,
         ),
         if (invoice.paidAmount != null)
           pw.Text(
             'المدفوع: ${ExportFormatters.formatPrice(invoice.paidAmount!)}',
-            style: pw.TextStyle(font: PdfFonts.regular, fontSize: 9),
+            style: pw.TextStyle(
+                font: PdfFonts.regular, fontSize: PdfSizes.fontSizeSmall - 1),
             textDirection: pw.TextDirection.rtl,
           ),
         if (invoice.remainingAmount != null && invoice.remainingAmount! > 0)
@@ -1412,8 +1446,8 @@ class InvoicePdfGenerator {
             'المتبقي: ${ExportFormatters.formatPrice(invoice.remainingAmount!)}',
             style: pw.TextStyle(
               font: PdfFonts.bold,
-              fontSize: 9,
-              color: PdfColors.red,
+              fontSize: PdfSizes.fontSizeSmall - 1,
+              color: AppPdfColors.red,
             ),
             textDirection: pw.TextDirection.rtl,
           ),
@@ -1429,7 +1463,8 @@ class InvoicePdfGenerator {
         if (footerText != null && footerText.isNotEmpty) ...[
           pw.Text(
             footerText,
-            style: pw.TextStyle(font: PdfFonts.regular, fontSize: 10),
+            style: pw.TextStyle(
+                font: PdfFonts.regular, fontSize: PdfSizes.fontSizeSmall),
             textAlign: pw.TextAlign.center,
             textDirection: pw.TextDirection.rtl,
           ),
@@ -1437,15 +1472,18 @@ class InvoicePdfGenerator {
         ],
         pw.Text(
           'شكراً لتعاملكم معنا',
-          style: pw.TextStyle(font: PdfFonts.bold, fontSize: 10),
+          style: pw.TextStyle(
+              font: PdfFonts.bold, fontSize: PdfSizes.fontSizeSmall),
           textAlign: pw.TextAlign.center,
           textDirection: pw.TextDirection.rtl,
         ),
         pw.SizedBox(height: 2),
         pw.Text(
-          'نظام حور للمبيعات',
+          'Hoor',
           style: pw.TextStyle(
-              font: PdfFonts.regular, fontSize: 8, color: PdfColors.grey600),
+              font: PdfFonts.regular,
+              fontSize: PdfSizes.fontSizeXSmall,
+              color: AppPdfColors.textMuted),
           textAlign: pw.TextAlign.center,
           textDirection: pw.TextDirection.rtl,
         ),
@@ -1462,7 +1500,9 @@ class InvoicePdfGenerator {
           (index) => pw.Expanded(
             child: pw.Container(
               height: 1,
-              color: index.isEven ? PdfColors.grey400 : PdfColors.white,
+              color: index.isEven
+                  ? AppPdfColors.borderMedium
+                  : AppPdfColors.bgWhite,
             ),
           ),
         ),
@@ -1473,20 +1513,7 @@ class InvoicePdfGenerator {
   // ==================== دوال مساعدة ====================
 
   PdfColor _getInvoiceColor(String invoiceType) {
-    switch (invoiceType) {
-      case 'sale':
-        return PdfColor.fromHex('#22C55E');
-      case 'purchase':
-        return PdfColor.fromHex('#3B82F6');
-      case 'saleReturn':
-      case 'sale_return':
-        return PdfColor.fromHex('#F97316');
-      case 'purchaseReturn':
-      case 'purchase_return':
-        return PdfColor.fromHex('#EF4444');
-      default:
-        return PdfColor.fromHex('#6B7280');
-    }
+    return AppPdfColors.getInvoiceColor(invoiceType);
   }
 
   String _getInvoiceTypeLabel(String invoiceType) {

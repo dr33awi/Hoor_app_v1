@@ -352,18 +352,15 @@ class ShiftRepository extends BaseRepository<Shift, ShiftsCompanion> {
 
     for (final v in receipts) {
       totalReceiptsAmount += v.amount;
-      totalReceiptsUsd += v.amountUsd ??
-          (v.amount / (v.exchangeRate ?? AppConstants.defaultExchangeRate));
+      totalReceiptsUsd += v.amountUsd ?? 0;
     }
     for (final v in payments) {
       totalPaymentsAmount += v.amount;
-      totalPaymentsUsd += v.amountUsd ??
-          (v.amount / (v.exchangeRate ?? AppConstants.defaultExchangeRate));
+      totalPaymentsUsd += v.amountUsd ?? 0;
     }
     for (final v in expenses) {
       totalExpensesAmount += v.amount;
-      totalExpensesUsd += v.amountUsd ??
-          (v.amount / (v.exchangeRate ?? AppConstants.defaultExchangeRate));
+      totalExpensesUsd += v.amountUsd ?? 0;
     }
 
     return {

@@ -1,6 +1,6 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:excel/excel.dart';
-import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
@@ -11,30 +11,22 @@ import '../printing/pdf_theme.dart';
 import '../currency_service.dart';
 import '../../../data/database/app_database.dart';
 
-/// خدمة تصدير المنتجات
+/// ═══════════════════════════════════════════════════════════════════════════
+/// خدمة تصدير المنتجات - Products Export Service
 /// تدعم تصدير قائمة المنتجات إلى Excel و PDF
+/// يستخدم PdfFonts من pdf_theme.dart لدعم العربية و RTL
+/// ═══════════════════════════════════════════════════════════════════════════
 class ProductsExportService {
-  static pw.Font? _arabicFont;
-  static pw.Font? _arabicFontBold;
-
-  /// تحميل الخطوط العربية
-  static Future<void> _loadFonts() async {
-    if (_arabicFont != null && _arabicFontBold != null) return;
-
-    try {
-      final fontData = await rootBundle.load('assets/fonts/Cairo-Regular.ttf');
-      final fontBoldData = await rootBundle.load('assets/fonts/Cairo-Bold.ttf');
-      _arabicFont = pw.Font.ttf(fontData);
-      _arabicFontBold = pw.Font.ttf(fontBoldData);
-    } catch (e) {
-      // استخدام الخطوط المُهيأة مسبقاً من PdfFonts
-      _arabicFont = PdfFonts.regular;
-      _arabicFontBold = PdfFonts.bold;
-    }
+  /// تهيئة الخطوط العربية من PdfFonts
+  static Future<void> _ensureFontsInitialized() async {
+    await PdfFonts.init();
   }
 
-  static pw.Font get _font => _arabicFont ?? PdfFonts.regular;
-  static pw.Font get _fontBold => _arabicFontBold ?? PdfFonts.bold;
+  /// الخط العربي العادي
+  static pw.Font get _font => PdfFonts.regular;
+
+  /// الخط العربي العريض
+  static pw.Font get _fontBold => PdfFonts.bold;
   // ══════════════════════════════════════════════════════════════════════════
   // تصدير Excel
   // ══════════════════════════════════════════════════════════════════════════
@@ -67,13 +59,17 @@ class ProductsExportService {
       'الباركود',
       'SKU',
       'التصنيف',
-      'سعر التكلفة',
-      'سعر البيع',
+      'سعر التكلفة (ل.س)',
+      'سعر التكلفة (\$)',
+      'سعر البيع (ل.س)',
+      'سعر البيع (\$)',
       'هامش الربح',
       'الكمية',
       'الحد الأدنى',
-      'الوحدة',
-      'قيمة المخزون',
+      'قيمة المخزون تكلفة (ل.س)',
+      'قيمة المخزون تكلفة (\$)',
+      'قيمة المخزون بيع (ل.س)',
+      'قيمة المخزون بيع (\$)',
     ];
 
     for (var i = 0; i < headers.length; i++) {
@@ -102,6 +98,8 @@ class ProductsExportService {
     );
 
     // البيانات
+    final currentRate = CurrencyService.currentRate;
+
     for (var i = 0; i < products.length; i++) {
       final product = products[i];
       final row = i + 1;
@@ -109,21 +107,26 @@ class ProductsExportService {
       final isLowStock = product.quantity <= product.minQuantity;
 
       // ═══════════════════════════════════════════════════════════════════════════
-      // الدولار هو الأساس: حساب السعر من الدولار × سعر الصرف الحالي
+      // حساب الأسعار: استخدام الدولار المحفوظ إن وُجد، وإلا حسابه من سعر الصرف
       // ═══════════════════════════════════════════════════════════════════════════
-      final currentRate = CurrencyService.currentRate;
-      final purchasePriceSyp =
+      final purchasePriceSyp = product.purchasePrice;
+      final salePriceSyp = product.salePrice;
+      // إذا لم يكن السعر بالدولار محفوظاً، نحسبه من سعر الصرف الحالي
+      final purchasePriceUsd =
           (product.purchasePriceUsd != null && product.purchasePriceUsd! > 0)
-              ? product.purchasePriceUsd! * currentRate
-              : product.purchasePrice;
-      final salePriceSyp =
+              ? product.purchasePriceUsd!
+              : (currentRate > 0 ? purchasePriceSyp / currentRate : 0.0);
+      final salePriceUsd =
           (product.salePriceUsd != null && product.salePriceUsd! > 0)
-              ? product.salePriceUsd! * currentRate
-              : product.salePrice;
+              ? product.salePriceUsd!
+              : (currentRate > 0 ? salePriceSyp / currentRate : 0.0);
 
       final profit = salePriceSyp - purchasePriceSyp;
       final margin = salePriceSyp > 0 ? (profit / salePriceSyp * 100) : 0;
-      final stockValue = product.quantity * purchasePriceSyp;
+      final stockValueCostSyp = product.quantity * purchasePriceSyp;
+      final stockValueCostUsd = product.quantity * purchasePriceUsd;
+      final stockValueSaleSyp = product.quantity * salePriceSyp;
+      final stockValueSaleUsd = product.quantity * salePriceUsd;
 
       final categoryName = product.categoryId != null
           ? categoryMap[product.categoryId] ?? ''
@@ -154,28 +157,39 @@ class ProductsExportService {
           .cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: row))
           .value = TextCellValue(categoryName);
 
-      // سعر التكلفة (بالليرة من الدولار)
+      // سعر التكلفة (ل.س)
       sheet
-              .cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: row))
-              .value =
-          TextCellValue(
-              '${purchasePriceSyp.toStringAsFixed(0)} (\$${product.purchasePriceUsd?.toStringAsFixed(2) ?? "-"})');
+          .cell(CellIndex.indexByColumnRow(columnIndex: 5, rowIndex: row))
+          .value = TextCellValue(purchasePriceSyp.toStringAsFixed(0));
 
-      // سعر البيع (بالليرة من الدولار)
+      // سعر التكلفة ($)
       sheet
               .cell(CellIndex.indexByColumnRow(columnIndex: 6, rowIndex: row))
               .value =
+          TextCellValue(purchasePriceUsd > 0
+              ? '\$${purchasePriceUsd.toStringAsFixed(2)}'
+              : '-');
+
+      // سعر البيع (ل.س)
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: row))
+          .value = TextCellValue(salePriceSyp.toStringAsFixed(0));
+
+      // سعر البيع ($)
+      sheet
+              .cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: row))
+              .value =
           TextCellValue(
-              '${salePriceSyp.toStringAsFixed(0)} (\$${product.salePriceUsd?.toStringAsFixed(2) ?? "-"})');
+              salePriceUsd > 0 ? '\$${salePriceUsd.toStringAsFixed(2)}' : '-');
 
       // هامش الربح
       sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 7, rowIndex: row))
+          .cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: row))
           .value = TextCellValue('${margin.toStringAsFixed(1)}%');
 
       // الكمية
-      final qtyCell =
-          sheet.cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: row));
+      final qtyCell = sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: row));
       qtyCell.value = IntCellValue(product.quantity);
       if (isLowStock) {
         qtyCell.cellStyle = lowStockStyle;
@@ -183,23 +197,39 @@ class ProductsExportService {
 
       // الحد الأدنى
       sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 9, rowIndex: row))
+          .cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: row))
           .value = IntCellValue(product.minQuantity);
 
-      // الوحدة
+      // قيمة المخزون تكلفة (ل.س)
       sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: row))
-          .value = TextCellValue('قطعة');
+          .cell(CellIndex.indexByColumnRow(columnIndex: 12, rowIndex: row))
+          .value = TextCellValue(stockValueCostSyp.toStringAsFixed(0));
 
-      // قيمة المخزون
+      // قيمة المخزون تكلفة ($)
       sheet
-          .cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: row))
-          .value = DoubleCellValue(stockValue);
+              .cell(CellIndex.indexByColumnRow(columnIndex: 13, rowIndex: row))
+              .value =
+          TextCellValue(stockValueCostUsd > 0
+              ? '\$${stockValueCostUsd.toStringAsFixed(2)}'
+              : '-');
+
+      // قيمة المخزون بيع (ل.س)
+      sheet
+          .cell(CellIndex.indexByColumnRow(columnIndex: 14, rowIndex: row))
+          .value = TextCellValue(stockValueSaleSyp.toStringAsFixed(0));
+
+      // قيمة المخزون بيع ($)
+      sheet
+              .cell(CellIndex.indexByColumnRow(columnIndex: 15, rowIndex: row))
+              .value =
+          TextCellValue(stockValueSaleUsd > 0
+              ? '\$${stockValueSaleUsd.toStringAsFixed(2)}'
+              : '-');
 
       // تطبيق تنسيق الصف الزوجي
       if (isEven && !isLowStock) {
         for (var col = 0; col < headers.length; col++) {
-          if (col != 8) {
+          if (col != 10) {
             // تجنب الكتابة فوق تنسيق المخزون المنخفض
             sheet
                 .cell(
@@ -235,20 +265,60 @@ class ProductsExportService {
     // إجمالي الكمية
     final totalQty = products.fold(0, (sum, p) => sum + p.quantity);
     sheet
-        .cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: summaryRow))
+        .cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: summaryRow))
         .value = IntCellValue(totalQty);
     sheet
-        .cell(CellIndex.indexByColumnRow(columnIndex: 8, rowIndex: summaryRow))
+        .cell(CellIndex.indexByColumnRow(columnIndex: 10, rowIndex: summaryRow))
         .cellStyle = summaryStyle;
 
-    // إجمالي قيمة المخزون
-    final totalValue =
+    // إجمالي قيمة المخزون تكلفة (ل.س)
+    final totalCostValueSyp =
         products.fold(0.0, (sum, p) => sum + (p.quantity * p.purchasePrice));
     sheet
-        .cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: summaryRow))
-        .value = DoubleCellValue(totalValue);
+        .cell(CellIndex.indexByColumnRow(columnIndex: 12, rowIndex: summaryRow))
+        .value = TextCellValue(totalCostValueSyp.toStringAsFixed(0));
     sheet
-        .cell(CellIndex.indexByColumnRow(columnIndex: 11, rowIndex: summaryRow))
+        .cell(CellIndex.indexByColumnRow(columnIndex: 12, rowIndex: summaryRow))
+        .cellStyle = summaryStyle;
+
+    // إجمالي قيمة المخزون تكلفة ($)
+    // إذا لم يكن السعر بالدولار محفوظاً، نحسبه من سعر الصرف الحالي
+    final totalCostValueUsd = products.fold(0.0, (sum, p) {
+      final usdPrice = (p.purchasePriceUsd != null && p.purchasePriceUsd! > 0)
+          ? p.purchasePriceUsd!
+          : (currentRate > 0 ? p.purchasePrice / currentRate : 0.0);
+      return sum + (p.quantity * usdPrice);
+    });
+    sheet
+        .cell(CellIndex.indexByColumnRow(columnIndex: 13, rowIndex: summaryRow))
+        .value = TextCellValue('\$${totalCostValueUsd.toStringAsFixed(2)}');
+    sheet
+        .cell(CellIndex.indexByColumnRow(columnIndex: 13, rowIndex: summaryRow))
+        .cellStyle = summaryStyle;
+
+    // إجمالي قيمة المخزون بيع (ل.س)
+    final totalSaleValueSyp =
+        products.fold(0.0, (sum, p) => sum + (p.quantity * p.salePrice));
+    sheet
+        .cell(CellIndex.indexByColumnRow(columnIndex: 14, rowIndex: summaryRow))
+        .value = TextCellValue(totalSaleValueSyp.toStringAsFixed(0));
+    sheet
+        .cell(CellIndex.indexByColumnRow(columnIndex: 14, rowIndex: summaryRow))
+        .cellStyle = summaryStyle;
+
+    // إجمالي قيمة المخزون بيع ($)
+    // إذا لم يكن السعر بالدولار محفوظاً، نحسبه من سعر الصرف الحالي
+    final totalSaleValueUsd = products.fold(0.0, (sum, p) {
+      final usdPrice = (p.salePriceUsd != null && p.salePriceUsd! > 0)
+          ? p.salePriceUsd!
+          : (currentRate > 0 ? p.salePrice / currentRate : 0.0);
+      return sum + (p.quantity * usdPrice);
+    });
+    sheet
+        .cell(CellIndex.indexByColumnRow(columnIndex: 15, rowIndex: summaryRow))
+        .value = TextCellValue('\$${totalSaleValueUsd.toStringAsFixed(2)}');
+    sheet
+        .cell(CellIndex.indexByColumnRow(columnIndex: 15, rowIndex: summaryRow))
         .cellStyle = summaryStyle;
 
     // ضبط عرض الأعمدة
@@ -257,13 +327,17 @@ class ProductsExportService {
     sheet.setColumnWidth(2, 15); // الباركود
     sheet.setColumnWidth(3, 12); // SKU
     sheet.setColumnWidth(4, 15); // التصنيف
-    sheet.setColumnWidth(5, 12); // سعر التكلفة
-    sheet.setColumnWidth(6, 12); // سعر البيع
-    sheet.setColumnWidth(7, 10); // هامش الربح
-    sheet.setColumnWidth(8, 10); // الكمية
-    sheet.setColumnWidth(9, 10); // الحد الأدنى
-    sheet.setColumnWidth(10, 10); // الوحدة
-    sheet.setColumnWidth(11, 15); // قيمة المخزون
+    sheet.setColumnWidth(5, 15); // سعر التكلفة (ل.س)
+    sheet.setColumnWidth(6, 12); // سعر التكلفة ($)
+    sheet.setColumnWidth(7, 15); // سعر البيع (ل.س)
+    sheet.setColumnWidth(8, 12); // سعر البيع ($)
+    sheet.setColumnWidth(9, 10); // هامش الربح
+    sheet.setColumnWidth(10, 10); // الكمية
+    sheet.setColumnWidth(11, 10); // الحد الأدنى
+    sheet.setColumnWidth(12, 18); // قيمة المخزون تكلفة (ل.س)
+    sheet.setColumnWidth(13, 15); // قيمة المخزون تكلفة ($)
+    sheet.setColumnWidth(14, 18); // قيمة المخزون بيع (ل.س)
+    sheet.setColumnWidth(15, 15); // قيمة المخزون بيع ($)
 
     // حفظ الملف
     final bytes = excel.save();
@@ -288,11 +362,15 @@ class ProductsExportService {
     List<Category>? categories,
     String? title,
     String? companyName,
+    ExportSettings? settings,
   }) async {
-    // تحميل الخطوط العربية
-    await _loadFonts();
+    // تهيئة الخطوط العربية من PdfFonts
+    await _ensureFontsInitialized();
 
     final pdf = pw.Document();
+
+    // استخدام اسم الشركة من الإعدادات إذا لم يتم تمريره
+    final effectiveCompanyName = companyName ?? settings?.companyName;
 
     // بناء خريطة التصنيفات
     final categoryMap = <String, String>{};
@@ -331,11 +409,12 @@ class ProductsExportService {
           textDirection: pw.TextDirection.rtl,
           child: _buildHeader(
             title: title ?? 'قائمة المنتجات',
-            companyName: companyName,
+            companyName: effectiveCompanyName,
             productCount: products.length,
+            settings: settings,
           ),
         ),
-        footer: (context) => _buildFooter(context),
+        footer: (context) => _buildFooter(context, settings: settings),
         build: (context) => [
           pw.Directionality(
             textDirection: pw.TextDirection.rtl,
@@ -368,7 +447,21 @@ class ProductsExportService {
     required String title,
     String? companyName,
     required int productCount,
+    ExportSettings? settings,
   }) {
+    // إنشاء صورة الشعار إذا كانت موجودة
+    pw.Widget? logoWidget;
+    if (settings?.logoBytes != null) {
+      try {
+        final image = pw.MemoryImage(settings!.logoBytes!);
+        logoWidget = pw.Container(
+          width: 50,
+          height: 50,
+          child: pw.Image(image, fit: pw.BoxFit.contain),
+        );
+      } catch (_) {}
+    }
+
     return pw.Container(
       padding: const pw.EdgeInsets.only(bottom: 16),
       decoration: const pw.BoxDecoration(
@@ -402,28 +495,37 @@ class ProductsExportService {
               ),
             ],
           ),
-          // معلومات الشركة والتاريخ (يسار في RTL)
-          pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
+          // معلومات الشركة والشعار (يسار في RTL)
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.center,
             children: [
-              if (companyName != null)
-                pw.Text(
-                  companyName,
-                  style: pw.TextStyle(
-                    font: _fontBold,
-                    fontSize: 12,
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  if (companyName != null)
+                    pw.Text(
+                      companyName,
+                      style: pw.TextStyle(
+                        font: _fontBold,
+                        fontSize: 12,
+                      ),
+                      textDirection: pw.TextDirection.rtl,
+                    ),
+                  pw.Text(
+                    ExportFormatters.formatDateTime(DateTime.now()),
+                    style: pw.TextStyle(
+                      font: _font,
+                      fontSize: 9,
+                      color: PdfColors.grey600,
+                    ),
+                    textDirection: pw.TextDirection.rtl,
                   ),
-                  textDirection: pw.TextDirection.rtl,
-                ),
-              pw.Text(
-                ExportFormatters.formatDateTime(DateTime.now()),
-                style: pw.TextStyle(
-                  font: _font,
-                  fontSize: 9,
-                  color: PdfColors.grey600,
-                ),
-                textDirection: pw.TextDirection.rtl,
+                ],
               ),
+              if (logoWidget != null) ...[
+                pw.SizedBox(width: 10),
+                logoWidget,
+              ],
             ],
           ),
         ],
@@ -431,17 +533,36 @@ class ProductsExportService {
     );
   }
 
-  static pw.Widget _buildFooter(pw.Context context) {
+  static pw.Widget _buildFooter(pw.Context context,
+      {ExportSettings? settings}) {
     return pw.Container(
       alignment: pw.Alignment.center,
       margin: const pw.EdgeInsets.only(top: 10),
-      child: pw.Text(
-        'صفحة ${context.pageNumber} من ${context.pagesCount}',
-        style: pw.TextStyle(
-          font: _font,
-          fontSize: 9,
-          color: PdfColors.grey500,
-        ),
+      child: pw.Column(
+        children: [
+          pw.Text(
+            'صفحة ${context.pageNumber} من ${context.pagesCount}',
+            style: pw.TextStyle(
+              font: _font,
+              fontSize: 9,
+              color: PdfColors.grey500,
+            ),
+          ),
+          if (settings?.footerMessage != null &&
+              settings!.footerMessage!.isNotEmpty)
+            pw.Padding(
+              padding: const pw.EdgeInsets.only(top: 4),
+              child: pw.Text(
+                settings.footerMessage!,
+                style: pw.TextStyle(
+                  font: _font,
+                  fontSize: 8,
+                  color: PdfColors.grey500,
+                ),
+                textDirection: pw.TextDirection.rtl,
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -516,77 +637,80 @@ class ProductsExportService {
     List<Product> products,
     Map<String, String> categoryMap,
   ) {
-    // ترتيب الأعمدة من اليمين لليسار (RTL)
-    return pw.Table(
-      border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
-      columnWidths: {
-        0: const pw.FlexColumnWidth(1.2), // قيمة المخزون
-        1: const pw.FlexColumnWidth(1), // الكمية
-        2: const pw.FlexColumnWidth(1.2), // البيع
-        3: const pw.FlexColumnWidth(1.2), // التكلفة
-        4: const pw.FlexColumnWidth(1.5), // الباركود
-        5: const pw.FlexColumnWidth(3), // المنتج
-        6: const pw.FlexColumnWidth(0.5), // #
-      },
-      children: [
-        // رأس الجدول (RTL)
-        pw.TableRow(
-          decoration: const pw.BoxDecoration(color: ExportColors.primary),
-          children: [
-            _headerCell('القيمة'),
-            _headerCell('الكمية'),
-            _headerCell('البيع'),
-            _headerCell('التكلفة'),
-            _headerCell('الباركود'),
-            _headerCell('المنتج'),
-            _headerCell('#'),
-          ],
-        ),
-        // البيانات (RTL) - الدولار هو الأساس
-        ...products.asMap().entries.map((entry) {
-          final i = entry.key;
-          final p = entry.value;
-          final isEven = i.isEven;
-          final isLowStock = p.quantity <= p.minQuantity;
-
-          // حساب الأسعار من الدولار × سعر الصرف الحالي
-          final currentRate = CurrencyService.currentRate;
-          final purchasePriceSyp =
-              (p.purchasePriceUsd != null && p.purchasePriceUsd! > 0)
-                  ? p.purchasePriceUsd! * currentRate
-                  : p.purchasePrice;
-          final salePriceSyp = (p.salePriceUsd != null && p.salePriceUsd! > 0)
-              ? p.salePriceUsd! * currentRate
-              : p.salePrice;
-          final stockValue = p.quantity * purchasePriceSyp;
-
-          return pw.TableRow(
-            decoration: pw.BoxDecoration(
-              color: isLowStock
-                  ? PdfColors.red50
-                  : isEven
-                      ? PdfColors.grey50
-                      : PdfColors.white,
-            ),
+    // ترتيب الأعمدة من اليمين لليسار (RTL) مع دعم Directionality
+    return pw.Directionality(
+      textDirection: pw.TextDirection.rtl,
+      child: pw.Table(
+        border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+        columnWidths: {
+          0: const pw.FlexColumnWidth(1.2), // قيمة المخزون
+          1: const pw.FlexColumnWidth(1), // الكمية
+          2: const pw.FlexColumnWidth(1.2), // البيع
+          3: const pw.FlexColumnWidth(1.2), // التكلفة
+          4: const pw.FlexColumnWidth(1.5), // الباركود
+          5: const pw.FlexColumnWidth(3), // المنتج
+          6: const pw.FlexColumnWidth(0.5), // #
+        },
+        children: [
+          // رأس الجدول (RTL)
+          pw.TableRow(
+            decoration: const pw.BoxDecoration(color: ExportColors.primary),
             children: [
-              _dataCell(ExportFormatters.formatPrice(stockValue,
-                  showCurrency: false)),
-              _dataCell(
-                '${p.quantity}',
-                color: isLowStock ? ExportColors.error : null,
-                bold: isLowStock,
-              ),
-              _dataCell(
-                  '${salePriceSyp.toStringAsFixed(0)} (\$${p.salePriceUsd?.toStringAsFixed(1) ?? "-"})'),
-              _dataCell(
-                  '${purchasePriceSyp.toStringAsFixed(0)} (\$${p.purchasePriceUsd?.toStringAsFixed(1) ?? "-"})'),
-              _dataCell(p.barcode ?? '-'),
-              _dataCell(p.name, align: pw.Alignment.centerRight),
-              _dataCell('${i + 1}'),
+              _headerCell('القيمة'),
+              _headerCell('الكمية'),
+              _headerCell('البيع'),
+              _headerCell('التكلفة'),
+              _headerCell('الباركود'),
+              _headerCell('المنتج'),
+              _headerCell('#'),
             ],
-          );
-        }),
-      ],
+          ),
+          // البيانات (RTL) - الدولار هو الأساس
+          ...products.asMap().entries.map((entry) {
+            final i = entry.key;
+            final p = entry.value;
+            final isEven = i.isEven;
+            final isLowStock = p.quantity <= p.minQuantity;
+
+            // حساب الأسعار من الدولار × سعر الصرف الحالي
+            final currentRate = CurrencyService.currentRate;
+            final purchasePriceSyp =
+                (p.purchasePriceUsd != null && p.purchasePriceUsd! > 0)
+                    ? p.purchasePriceUsd! * currentRate
+                    : p.purchasePrice;
+            final salePriceSyp = (p.salePriceUsd != null && p.salePriceUsd! > 0)
+                ? p.salePriceUsd! * currentRate
+                : p.salePrice;
+            final stockValue = p.quantity * purchasePriceSyp;
+
+            return pw.TableRow(
+              decoration: pw.BoxDecoration(
+                color: isLowStock
+                    ? PdfColors.red50
+                    : isEven
+                        ? PdfColors.grey50
+                        : PdfColors.white,
+              ),
+              children: [
+                _dataCell(ExportFormatters.formatPrice(stockValue,
+                    showCurrency: false)),
+                _dataCell(
+                  '${p.quantity}',
+                  color: isLowStock ? ExportColors.error : null,
+                  bold: isLowStock,
+                ),
+                _dataCell(
+                    '${salePriceSyp.toStringAsFixed(0)} (\$${p.salePriceUsd?.toStringAsFixed(1) ?? "-"})'),
+                _dataCell(
+                    '${purchasePriceSyp.toStringAsFixed(0)} (\$${p.purchasePriceUsd?.toStringAsFixed(1) ?? "-"})'),
+                _dataCell(p.barcode ?? '-'),
+                _dataCell(p.name, align: pw.Alignment.centerRight),
+                _dataCell('${i + 1}'),
+              ],
+            );
+          }),
+        ],
+      ),
     );
   }
 

@@ -5,7 +5,6 @@
 
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui';
 
@@ -299,10 +298,12 @@ class _PrintSettingsScreenProState
                 // زر حذف الشعار
                 TextButton.icon(
                   onPressed: _removeLogo,
-                  icon: Icon(Icons.delete_outline, size: 20.sp, color: AppColors.error),
+                  icon: Icon(Icons.delete_outline,
+                      size: 20.sp, color: AppColors.error),
                   label: Text(
                     'حذف الشعار',
-                    style: AppTypography.labelMedium.copyWith(color: AppColors.error),
+                    style: AppTypography.labelMedium
+                        .copyWith(color: AppColors.error),
                   ),
                 ),
               ],
@@ -316,7 +317,8 @@ class _PrintSettingsScreenProState
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, size: 16.sp, color: AppColors.info),
+                    Icon(Icons.info_outline,
+                        size: 16.sp, color: AppColors.info),
                     SizedBox(width: AppSpacing.xs),
                     Expanded(
                       child: Text(

@@ -131,6 +131,51 @@ final activeProductsStreamProvider = StreamProvider<List<Product>>((ref) {
   return ref.watch(productRepositoryProvider).watchActiveProducts();
 });
 
+/// Active Products with Default Warehouse Stock
+final activeProductsWithDefaultWarehouseStockProvider =
+    StreamProvider<List<Map<String, dynamic>>>((ref) async* {
+  final db = ref.watch(databaseProvider);
+
+  // Get default warehouse
+  final defaultWarehouse = await db.getDefaultWarehouse();
+
+  if (defaultWarehouse == null) {
+    // If no default warehouse, return products with their own quantity (from products table)
+    await for (final products in db.watchActiveProducts()) {
+      yield products
+          .map((product) => {
+                'product': product,
+                'warehouseStock': null,
+                'quantity':
+                    product.quantity, // استخدام كمية المنتج الأصلية بدلاً من 0
+              })
+          .toList();
+    }
+  } else {
+    // Watch both products and warehouse stock
+    await for (final products in db.watchActiveProducts()) {
+      final result = <Map<String, dynamic>>[];
+
+      for (final product in products) {
+        final stock = await db.getWarehouseStockByProductAndWarehouse(
+          product.id,
+          defaultWarehouse.id,
+        );
+
+        result.add({
+          'product': product,
+          'warehouseStock': stock,
+          'quantity': stock?.quantity ??
+              product
+                  .quantity, // احتياطي: استخدام كمية المنتج إذا لم يكن موجودًا في المستودع
+        });
+      }
+
+      yield result;
+    }
+  }
+});
+
 /// Low Stock Products Stream
 final lowStockProductsProvider = StreamProvider<List<Product>>((ref) {
   return ref.watch(productRepositoryProvider).watchLowStockProducts();
@@ -183,21 +228,6 @@ final cashMovementsByShiftProvider =
   return ref.watch(cashRepositoryProvider).watchMovementsByShift(shiftId);
 });
 
-/// All Warehouses Stream
-final warehousesStreamProvider = StreamProvider<List<Warehouse>>((ref) {
-  return ref.watch(warehouseRepositoryProvider).watchAllWarehouses();
-});
-
-/// Active Warehouses Stream
-final activeWarehousesStreamProvider = StreamProvider<List<Warehouse>>((ref) {
-  return ref.watch(warehouseRepositoryProvider).watchActiveWarehouses();
-});
-
-/// Stock Transfers Stream
-final stockTransfersStreamProvider = StreamProvider<List<StockTransfer>>((ref) {
-  return ref.watch(databaseProvider).watchAllStockTransfers();
-});
-
 /// Sales Returns Stream (filtered from invoices)
 final salesReturnsStreamProvider = StreamProvider<List<Invoice>>((ref) {
   return ref.watch(invoiceRepositoryProvider).watchAllInvoices().map(
@@ -211,6 +241,20 @@ final purchaseReturnsStreamProvider = StreamProvider<List<Invoice>>((ref) {
         (invoices) =>
             invoices.where((i) => i.type == 'purchase_return').toList(),
       );
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// WAREHOUSE STREAM PROVIDERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// All Warehouses Stream
+final warehousesStreamProvider = StreamProvider<List<Warehouse>>((ref) {
+  return ref.watch(warehouseRepositoryProvider).watchAllWarehouses();
+});
+
+/// Active Warehouses Stream
+final activeWarehousesStreamProvider = StreamProvider<List<Warehouse>>((ref) {
+  return ref.watch(warehouseRepositoryProvider).watchActiveWarehouses();
 });
 
 // ═══════════════════════════════════════════════════════════════════════════

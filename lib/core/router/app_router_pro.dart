@@ -24,10 +24,6 @@ import '../../features/shifts_pro/shifts_screen_pro.dart';
 import '../../features/vouchers_pro/vouchers_screen_pro.dart';
 import '../../features/vouchers_pro/voucher_details_screen_pro.dart';
 import '../../features/alerts_pro/alerts_screen_pro.dart';
-import '../../features/inventory_pro/inventory_screen_pro.dart';
-import '../../features/inventory_pro/warehouses_screen_pro.dart';
-import '../../features/inventory_pro/stock_transfer_screen_pro.dart';
-import '../../features/inventory_pro/inventory_count_screen_pro.dart';
 import '../../features/categories_pro/categories_screen_pro.dart';
 import '../../features/cash_pro/cash_screen_pro.dart';
 import '../../features/backup_pro/backup_screen_pro.dart';
@@ -48,6 +44,11 @@ import '../../features/invoices_pro/invoice_preview_screen_pro.dart';
 import '../../features/expenses_pro/expenses_screen_pro.dart';
 import '../../features/expenses_pro/expense_form_screen_pro.dart';
 import '../../features/expenses_pro/screens/recurring_expenses_screen.dart';
+
+// Warehouses Screen
+import '../../features/warehouses_pro/warehouses_screen_pro.dart';
+import '../../features/warehouses_pro/warehouse_stock_screen_pro.dart';
+import '../../features/warehouses_pro/stock_transfer_screen_pro.dart';
 
 // Home Screen
 import '../../features/home_pro/home_screen_pro.dart';
@@ -583,44 +584,6 @@ final appRouterProProvider = Provider<GoRouter>((ref) {
       ),
 
       // ═══════════════════════════════════════════════════════════════════
-      // Inventory
-      // ═══════════════════════════════════════════════════════════════════
-      GoRoute(
-        path: '/inventory',
-        name: 'inventory',
-        pageBuilder: (context, state) => _buildSlideTransition(
-          state,
-          const InventoryScreenPro(),
-        ),
-        routes: [
-          GoRoute(
-            path: 'warehouses',
-            name: 'warehouses',
-            pageBuilder: (context, state) => _buildSlideTransition(
-              state,
-              const WarehousesScreenPro(),
-            ),
-          ),
-          GoRoute(
-            path: 'transfer',
-            name: 'stock-transfer',
-            pageBuilder: (context, state) => _buildSlideTransition(
-              state,
-              const StockTransferScreenPro(),
-            ),
-          ),
-          GoRoute(
-            path: 'count',
-            name: 'inventory-count',
-            pageBuilder: (context, state) => _buildSlideTransition(
-              state,
-              const InventoryCountScreenPro(),
-            ),
-          ),
-        ],
-      ),
-
-      // ═══════════════════════════════════════════════════════════════════
       // Categories
       // ═══════════════════════════════════════════════════════════════════
       GoRoute(
@@ -653,6 +616,40 @@ final appRouterProProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => _buildSlideTransition(
           state,
           const BackupScreenPro(),
+        ),
+      ),
+
+      // ═══════════════════════════════════════════════════════════════════
+      // Warehouses - المستودعات
+      // ═══════════════════════════════════════════════════════════════════
+      GoRoute(
+        path: '/warehouses',
+        name: 'warehouses',
+        pageBuilder: (context, state) => _buildSlideTransition(
+          state,
+          const WarehousesScreenPro(),
+        ),
+        routes: [
+          GoRoute(
+            path: ':id/stock',
+            name: 'warehouse-stock',
+            pageBuilder: (context, state) => _buildSlideTransition(
+              state,
+              WarehouseStockScreenPro(warehouseId: state.pathParameters['id']!),
+            ),
+          ),
+        ],
+      ),
+
+      // ═══════════════════════════════════════════════════════════════════
+      // Stock Transfers - نقل المخزون
+      // ═══════════════════════════════════════════════════════════════════
+      GoRoute(
+        path: '/stock-transfers',
+        name: 'stock-transfers',
+        pageBuilder: (context, state) => _buildSlideTransition(
+          state,
+          const StockTransferScreenPro(),
         ),
       ),
     ],

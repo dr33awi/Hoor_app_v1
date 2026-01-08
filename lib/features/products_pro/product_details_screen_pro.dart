@@ -68,7 +68,7 @@ class ProductDetailsScreenPro extends ConsumerWidget {
   }
 }
 
-class _ProductDetailsView extends StatelessWidget {
+class _ProductDetailsView extends ConsumerStatefulWidget {
   final Product product;
   final Category? category;
   final WidgetRef ref;
@@ -79,9 +79,41 @@ class _ProductDetailsView extends StatelessWidget {
     required this.ref,
   });
 
+  @override
+  ConsumerState<_ProductDetailsView> createState() =>
+      _ProductDetailsViewState();
+}
+
+class _ProductDetailsViewState extends ConsumerState<_ProductDetailsView> {
+  Product get product => widget.product;
+  Category? get category => widget.category;
+
   double get profit => product.salePrice - product.purchasePrice;
   double get margin =>
       product.salePrice > 0 ? (profit / product.salePrice * 100) : 0;
+
+  // الكمية الإجمالية من المستودعات
+  int _totalStock = 0;
+  bool _stockLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTotalStock();
+  }
+
+  Future<void> _loadTotalStock() async {
+    final db = ref.read(databaseProvider);
+    final stock = await db.getWarehouseStockByProduct(product.id);
+    if (mounted) {
+      setState(() {
+        _totalStock = stock.isEmpty
+            ? product.quantity
+            : stock.fold<int>(0, (sum, s) => sum + s.quantity);
+        _stockLoaded = true;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -196,6 +228,10 @@ class _ProductDetailsView extends StatelessWidget {
 
                   // Stock Info
                   _buildStockSection(),
+                  SizedBox(height: AppSpacing.md),
+
+                  // Warehouse Stock Distribution - توزيع المخزون على المستودعات
+                  _buildWarehouseStockSection(),
                   SizedBox(height: AppSpacing.md),
 
                   // Product Details
@@ -597,8 +633,8 @@ class _ProductDetailsView extends StatelessWidget {
           child: ProStatCardText(
             icon: Icons.inventory_2_outlined,
             label: 'المخزون',
-            value: '${product.quantity}',
-            color: product.quantity > product.minQuantity
+            value: _stockLoaded ? '$_totalStock' : '...',
+            color: _totalStock > product.minQuantity
                 ? AppColors.success
                 : AppColors.warning,
           ),
@@ -727,63 +763,481 @@ class _ProductDetailsView extends StatelessWidget {
   }
 
   Widget _buildStockSection() {
-    return _buildCard(
-      title: 'المخزون',
-      icon: Icons.inventory_outlined,
-      child: Column(
-        children: [
-          _buildInfoRow('الكمية المتوفرة', '${product.quantity} وحدة'),
-          SizedBox(height: AppSpacing.xs),
-          _buildInfoRow('حد التنبيه', '${product.minQuantity} وحدة'),
-          SizedBox(height: AppSpacing.sm),
+    final db = ref.watch(databaseProvider);
 
-          // Stock Status
-          Container(
-            padding: EdgeInsets.all(AppSpacing.sm),
-            decoration: BoxDecoration(
-              color: product.quantity > product.minQuantity
-                  ? AppColors.success.soft
-                  : product.quantity > 0
-                      ? AppColors.warning.soft
-                      : AppColors.error.soft,
-              borderRadius: BorderRadius.circular(AppRadius.sm),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  product.quantity > product.minQuantity
-                      ? Icons.check_circle_outline
-                      : product.quantity > 0
-                          ? Icons.warning_amber_rounded
-                          : Icons.error_outline,
-                  color: product.quantity > product.minQuantity
-                      ? AppColors.success
-                      : product.quantity > 0
-                          ? AppColors.warning
-                          : AppColors.error,
-                  size: AppIconSize.sm,
+    return FutureBuilder<List<WarehouseStockData>>(
+      future: db.getWarehouseStockByProduct(product.id),
+      builder: (context, snapshot) {
+        final stock = snapshot.data ?? [];
+        // حساب الكمية الإجمالية من المستودعات أو استخدام كمية المنتج إذا لم توجد بيانات
+        final totalQuantity = stock.isEmpty
+            ? product.quantity
+            : stock.fold<int>(0, (sum, s) => sum + s.quantity);
+
+        return _buildCard(
+          title: 'المخزون',
+          icon: Icons.inventory_outlined,
+          child: Column(
+            children: [
+              _buildInfoRow('الكمية المتوفرة', '$totalQuantity وحدة'),
+              SizedBox(height: AppSpacing.xs),
+              _buildInfoRow('حد التنبيه', '${product.minQuantity} وحدة'),
+              SizedBox(height: AppSpacing.sm),
+
+              // Stock Status
+              Container(
+                padding: EdgeInsets.all(AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: totalQuantity > product.minQuantity
+                      ? AppColors.success.soft
+                      : totalQuantity > 0
+                          ? AppColors.warning.soft
+                          : AppColors.error.soft,
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
                 ),
-                SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Text(
-                    product.quantity > product.minQuantity
-                        ? 'المخزون كافي'
-                        : product.quantity > 0
-                            ? 'المخزون منخفض - يُنصح بإعادة الطلب'
-                            : 'نفد المخزون',
-                    style: AppTypography.bodySmall.copyWith(
-                      color: product.quantity > product.minQuantity
+                child: Row(
+                  children: [
+                    Icon(
+                      totalQuantity > product.minQuantity
+                          ? Icons.check_circle_outline
+                          : totalQuantity > 0
+                              ? Icons.warning_amber_rounded
+                              : Icons.error_outline,
+                      color: totalQuantity > product.minQuantity
                           ? AppColors.success
-                          : product.quantity > 0
+                          : totalQuantity > 0
                               ? AppColors.warning
                               : AppColors.error,
+                      size: AppIconSize.sm,
+                    ),
+                    SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        totalQuantity > product.minQuantity
+                            ? 'المخزون كافي'
+                            : totalQuantity > 0
+                                ? 'المخزون منخفض - يُنصح بإعادة الطلب'
+                                : 'نفد المخزون',
+                        style: AppTypography.bodySmall.copyWith(
+                          color: totalQuantity > product.minQuantity
+                              ? AppColors.success
+                              : totalQuantity > 0
+                                  ? AppColors.warning
+                                  : AppColors.error,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// قسم توزيع المخزون على المستودعات
+  Widget _buildWarehouseStockSection() {
+    final db = ref.watch(databaseProvider);
+    final warehousesAsync = ref.watch(activeWarehousesStreamProvider);
+
+    return warehousesAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+      data: (warehouses) {
+        if (warehouses.isEmpty) return const SizedBox.shrink();
+
+        return FutureBuilder<List<WarehouseStockData>>(
+          future: db.getWarehouseStockByProduct(product.id),
+          builder: (context, snapshot) {
+            final stock = snapshot.data ?? [];
+
+            // إذا لم توجد بيانات مستودعات وعدد المستودعات واحد فقط - إخفاء القسم
+            if (stock.isEmpty && warehouses.length <= 1) {
+              return const SizedBox.shrink();
+            }
+
+            // حساب الإجمالي - استخدام كمية المنتج الأصلية إذا لم توجد بيانات مستودعات
+            final totalFromStock =
+                stock.fold<int>(0, (sum, s) => sum + s.quantity);
+            final totalQuantity =
+                stock.isEmpty ? product.quantity : totalFromStock;
+
+            return _buildCard(
+              title: 'توزيع المخزون على المستودعات',
+              icon: Icons.warehouse_rounded,
+              trailing: IconButton(
+                onPressed: () =>
+                    _showTransferDialog(context, warehouses, stock),
+                icon: Icon(
+                  Icons.swap_horiz_rounded,
+                  color: AppColors.primary,
+                  size: AppIconSize.sm,
+                ),
+                tooltip: 'نقل بين المستودعات',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+              child: Column(
+                children: [
+                  // عرض المستودعات مع الكميات
+                  ...warehouses.map((warehouse) {
+                    final warehouseStock = stock
+                        .where((s) => s.warehouseId == warehouse.id)
+                        .firstOrNull;
+
+                    // إذا لم توجد بيانات مستودعات، اعرض كمية المنتج في المستودع الافتراضي
+                    final qty = warehouseStock?.quantity ??
+                        (warehouse.isDefault && stock.isEmpty
+                            ? product.quantity
+                            : 0);
+                    final isLowStock = qty > 0 && qty <= product.minQuantity;
+                    final isOutOfStock = qty <= 0;
+
+                    return Container(
+                      padding: EdgeInsets.symmetric(
+                        vertical: AppSpacing.sm,
+                        horizontal: AppSpacing.xs,
+                      ),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(
+                            color: AppColors.border,
+                            width: 0.5,
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          // أيقونة المستودع
+                          Container(
+                            width: 32.w,
+                            height: 32.w,
+                            decoration: BoxDecoration(
+                              color: warehouse.isDefault
+                                  ? AppColors.primary.soft
+                                  : AppColors.secondary.soft,
+                              borderRadius: BorderRadius.circular(AppRadius.xs),
+                            ),
+                            child: Center(
+                              child: Icon(
+                                Icons.warehouse_outlined,
+                                color: warehouse.isDefault
+                                    ? AppColors.primary
+                                    : AppColors.secondary,
+                                size: 16.sp,
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: AppSpacing.sm),
+
+                          // اسم المستودع
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Text(
+                                  warehouse.name,
+                                  style: AppTypography.bodySmall.copyWith(
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                if (warehouse.isDefault) ...[
+                                  SizedBox(width: AppSpacing.xs),
+                                  Container(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 4.w,
+                                      vertical: 1.h,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary.soft,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      'افتراضي',
+                                      style: AppTypography.labelSmall.copyWith(
+                                        color: AppColors.primary,
+                                        fontSize: 8.sp,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+
+                          // الكمية
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: AppSpacing.sm,
+                              vertical: AppSpacing.xs,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isOutOfStock
+                                  ? AppColors.error.soft
+                                  : isLowStock
+                                      ? AppColors.warning.soft
+                                      : AppColors.success.soft,
+                              borderRadius: BorderRadius.circular(AppRadius.sm),
+                            ),
+                            child: Text(
+                              '$qty',
+                              style: AppTypography.labelMedium.copyWith(
+                                color: isOutOfStock
+                                    ? AppColors.error
+                                    : isLowStock
+                                        ? AppColors.warning
+                                        : AppColors.success,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+
+                  // الإجمالي
+                  SizedBox(height: AppSpacing.sm),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'الإجمالي في جميع المستودعات',
+                        style: AppTypography.labelMedium.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      Text(
+                        '$totalQuantity وحدة',
+                        style: AppTypography.titleSmall.copyWith(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// عرض حوار نقل المخزون بين المستودعات
+  void _showTransferDialog(
+    BuildContext context,
+    List<Warehouse> warehouses,
+    List<WarehouseStockData> currentStock,
+  ) {
+    if (warehouses.length < 2) {
+      ProSnackbar.warning(context, 'يجب وجود مستودعين على الأقل للنقل');
+      return;
+    }
+
+    String? fromWarehouseId;
+    String? toWarehouseId;
+    int transferQuantity = 0;
+    int maxQuantity = 0;
+    final quantityController = TextEditingController();
+
+    showProDialog(
+      context: context,
+      title: 'نقل بين المستودعات',
+      icon: Icons.swap_horiz_rounded,
+      child: StatefulBuilder(
+        builder: (context, setDialogState) {
+          // حساب الكمية المتاحة للنقل
+          if (fromWarehouseId != null) {
+            final fromStock = currentStock
+                .where((s) => s.warehouseId == fromWarehouseId)
+                .firstOrNull;
+            maxQuantity = fromStock?.quantity ?? 0;
+          }
+
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                product.name,
+                style: AppTypography.titleSmall.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: AppSpacing.md),
+
+              // من مستودع
+              DropdownButtonFormField<String>(
+                value: fromWarehouseId,
+                decoration: InputDecoration(
+                  labelText: 'من مستودع',
+                  prefixIcon: const Icon(Icons.warehouse_outlined),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                  ),
+                ),
+                items: warehouses.map((w) {
+                  final qty = currentStock
+                          .where((s) => s.warehouseId == w.id)
+                          .firstOrNull
+                          ?.quantity ??
+                      0;
+                  return DropdownMenuItem(
+                    value: w.id,
+                    enabled: qty > 0,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(w.name),
+                        Text(
+                          '$qty',
+                          style: TextStyle(
+                            color: qty > 0
+                                ? AppColors.success
+                                : AppColors.textTertiary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+                onChanged: (value) {
+                  setDialogState(() {
+                    fromWarehouseId = value;
+                    // إعادة تعيين الكمية عند تغيير المستودع المصدر
+                    transferQuantity = 0;
+                    if (toWarehouseId == value) {
+                      toWarehouseId = null;
+                    }
+                  });
+                },
+              ),
+              SizedBox(height: AppSpacing.md),
+
+              // إلى مستودع
+              DropdownButtonFormField<String>(
+                value: toWarehouseId,
+                decoration: InputDecoration(
+                  labelText: 'إلى مستودع',
+                  prefixIcon: const Icon(Icons.warehouse_rounded),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                  ),
+                ),
+                items: warehouses
+                    .where((w) => w.id != fromWarehouseId)
+                    .map((w) => DropdownMenuItem(
+                          value: w.id,
+                          child: Text(w.name),
+                        ))
+                    .toList(),
+                onChanged: (value) {
+                  setDialogState(() => toWarehouseId = value);
+                },
+              ),
+              SizedBox(height: AppSpacing.md),
+
+              // الكمية
+              Row(
+                children: [
+                  Expanded(
+                    child: ProTextField(
+                      controller: quantityController,
+                      label: 'الكمية',
+                      prefixIcon: Icons.numbers,
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        setDialogState(() {
+                          transferQuantity = int.tryParse(value) ?? 0;
+                        });
+                      },
+                    ),
+                  ),
+                  if (maxQuantity > 0) ...[
+                    SizedBox(width: AppSpacing.sm),
+                    TextButton(
+                      onPressed: () {
+                        setDialogState(() {
+                          transferQuantity = maxQuantity;
+                          quantityController.text = maxQuantity.toString();
+                        });
+                      },
+                      child: Text('الكل ($maxQuantity)'),
+                    ),
+                  ],
+                ],
+              ),
+              if (fromWarehouseId != null)
+                Padding(
+                  padding: EdgeInsets.only(top: AppSpacing.xs),
+                  child: Text(
+                    'المتاح للنقل: $maxQuantity وحدة',
+                    style: AppTypography.labelSmall.copyWith(
+                      color: AppColors.textTertiary,
                     ),
                   ),
                 ),
-              ],
-            ),
-          ),
-        ],
+
+              SizedBox(height: AppSpacing.xl),
+
+              // الأزرار
+              Row(
+                children: [
+                  Expanded(
+                    child: ProButton(
+                      label: 'إلغاء',
+                      onPressed: () => Navigator.pop(context),
+                      type: ProButtonType.outlined,
+                    ),
+                  ),
+                  SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: ProButton(
+                      label: 'نقل',
+                      type: ProButtonType.filled,
+                      onPressed: fromWarehouseId != null &&
+                              toWarehouseId != null &&
+                              transferQuantity > 0 &&
+                              transferQuantity <= maxQuantity
+                          ? () async {
+                              try {
+                                final warehouseRepo =
+                                    ref.read(warehouseRepositoryProvider);
+                                await warehouseRepo.transferStock(
+                                  fromWarehouseId: fromWarehouseId!,
+                                  toWarehouseId: toWarehouseId!,
+                                  items: [
+                                    {
+                                      'productId': product.id,
+                                      'quantity': transferQuantity,
+                                    }
+                                  ],
+                                );
+
+                                if (context.mounted) {
+                                  Navigator.pop(context);
+                                  ProSnackbar.success(context,
+                                      'تم نقل $transferQuantity وحدة بنجاح');
+                                  setState(() {}); // تحديث الواجهة
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  ProSnackbar.error(context, e.toString());
+                                }
+                              }
+                            }
+                          : null,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }

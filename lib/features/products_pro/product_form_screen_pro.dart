@@ -5,6 +5,7 @@
 
 import 'dart:math';
 import 'dart:ui';
+import 'package:drift/drift.dart' as drift;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,6 +18,7 @@ import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
 import '../../core/services/currency_service.dart';
 import '../../core/widgets/widgets.dart';
+import '../../data/database/app_database.dart';
 
 class ProductFormScreenPro extends ConsumerStatefulWidget {
   final String? productId; // null for new product
@@ -45,6 +47,7 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
   final _minStockController = TextEditingController();
 
   String? _selectedCategoryId;
+  String? _selectedWarehouseId;
   bool _isLoading = false;
   bool _isLoadingProduct = false;
   bool _isPrintingBarcode = false;
@@ -57,8 +60,25 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
     // تعيين القيمة الافتراضية للحد الأدنى
     _minStockController.text = '0';
 
+    // تحميل المستودع الافتراضي
+    _loadDefaultWarehouse();
+
     if (isEditing) {
       _loadProduct();
+    }
+  }
+
+  Future<void> _loadDefaultWarehouse() async {
+    try {
+      final db = ref.read(databaseProvider);
+      final defaultWarehouse = await db.getDefaultWarehouse();
+      if (defaultWarehouse != null && mounted) {
+        setState(() {
+          _selectedWarehouseId = defaultWarehouse.id;
+        });
+      }
+    } catch (e) {
+      // Ignore errors - warehouse selection is optional
     }
   }
 
@@ -255,11 +275,125 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // Warehouse Stock Management
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  Future<void> _addToWarehouseStock(
+      String productId, int quantity, int minQuantity) async {
+    if (_selectedWarehouseId == null) return;
+
+    try {
+      final db = ref.read(databaseProvider);
+      final id = DateTime.now().millisecondsSinceEpoch.toString();
+
+      await db.insertWarehouseStock(WarehouseStockCompanion(
+        id: drift.Value(id),
+        warehouseId: drift.Value(_selectedWarehouseId!),
+        productId: drift.Value(productId),
+        quantity: drift.Value(quantity),
+        minQuantity: drift.Value(minQuantity),
+        syncStatus: const drift.Value('pending'),
+      ));
+    } catch (e) {
+      // Ignore warehouse stock errors - main product was saved
+      debugPrint('Error adding warehouse stock: $e');
+    }
+  }
+
+  Future<void> _updateWarehouseStock(
+      String productId, int quantity, int minQuantity) async {
+    if (_selectedWarehouseId == null) return;
+
+    try {
+      final db = ref.read(databaseProvider);
+
+      // Check if stock entry exists
+      final existingStock = await db.getWarehouseStockByProductAndWarehouse(
+        productId,
+        _selectedWarehouseId!,
+      );
+
+      if (existingStock != null) {
+        // Update existing stock
+        await db.updateWarehouseStock(WarehouseStockCompanion(
+          id: drift.Value(existingStock.id),
+          quantity: drift.Value(quantity),
+          minQuantity: drift.Value(minQuantity),
+          updatedAt: drift.Value(DateTime.now()),
+          syncStatus: const drift.Value('pending'),
+        ));
+      } else {
+        // Create new stock entry
+        await _addToWarehouseStock(productId, quantity, minQuantity);
+      }
+    } catch (e) {
+      // Ignore warehouse stock errors - main product was saved
+      debugPrint('Error updating warehouse stock: $e');
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // Form Submission
   // ═══════════════════════════════════════════════════════════════════════════
 
   Future<void> _saveProduct() async {
     if (!_formKey.currentState!.validate()) return;
+
+    final quantity = int.tryParse(_stockController.text) ?? 0;
+    final minQuantity = int.tryParse(_minStockController.text) ?? 0;
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // التحقق من اختيار المستودع إذا كانت الكمية > 0
+    // ═══════════════════════════════════════════════════════════════════════
+    if (quantity > 0 && _selectedWarehouseId == null) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+              SizedBox(width: 8),
+              Text('تنبيه', style: TextStyle(color: Colors.orange)),
+            ],
+          ),
+          content: const Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'لم يتم اختيار مستودع!',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 12),
+              Text(
+                'أدخلت كمية مخزون لكن لم تختر مستودعاً. الكمية لن تُضاف لأي مستودع.',
+              ),
+              SizedBox(height: 8),
+              Text(
+                'هل تريد المتابعة بدون إضافة المخزون لمستودع؟',
+                style: TextStyle(color: Colors.grey),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('العودة لاختيار مستودع'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('متابعة بدون مستودع'),
+            ),
+          ],
+        ),
+      );
+
+      if (proceed != true) return;
+    }
 
     setState(() => _isLoading = true);
 
@@ -276,8 +410,6 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
       final purchasePrice = double.tryParse(_costPriceController.text) ?? 0;
       final purchasePriceUsd = double.tryParse(_costPriceUsdController.text);
       final salePrice = double.tryParse(_salePriceController.text) ?? 0;
-      final quantity = int.tryParse(_stockController.text) ?? 0;
-      final minQuantity = int.tryParse(_minStockController.text) ?? 0;
 
       if (isEditing && widget.productId != null) {
         // تعديل منتج موجود
@@ -293,9 +425,14 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
           minQuantity: minQuantity,
           categoryId: _selectedCategoryId,
         );
+
+        // تحديث مخزون المستودع إذا تم اختيار مستودع
+        if (_selectedWarehouseId != null) {
+          await _updateWarehouseStock(widget.productId!, quantity, minQuantity);
+        }
       } else {
         // إضافة منتج جديد
-        await productRepo.createProduct(
+        final newProductId = await productRepo.createProduct(
           name: name,
           barcode: barcode,
           description: description,
@@ -306,6 +443,11 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
           minQuantity: minQuantity,
           categoryId: _selectedCategoryId,
         );
+
+        // إضافة المخزون للمستودع المختار
+        if (_selectedWarehouseId != null) {
+          await _addToWarehouseStock(newProductId, quantity, minQuantity);
+        }
       }
 
       if (mounted) {
@@ -480,6 +622,33 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
           // ═══════════════════════════════════════════════════════════════
           const ProSectionTitle('المخزون'),
           SizedBox(height: AppSpacing.sm),
+          // تنبيه مهم
+          Container(
+            padding: EdgeInsets.all(AppSpacing.sm),
+            margin: EdgeInsets.only(bottom: AppSpacing.sm),
+            decoration: BoxDecoration(
+              color: AppColors.info.soft,
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+              border: Border.all(color: AppColors.info.border),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, color: AppColors.info, size: 18.sp),
+                SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    'يجب اختيار مستودع لإضافة الكمية. بدون مستودع، المنتج لن يكون له مخزون.',
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.info,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // اختيار المستودع
+          _buildWarehouseSelector(),
+          SizedBox(height: AppSpacing.md),
           Row(
             children: [
               Expanded(
@@ -646,6 +815,159 @@ class _ProductFormScreenProState extends ConsumerState<ProductFormScreenPro> {
           onChanged: (value) {
             setState(() {
               _selectedCategoryId = value;
+            });
+          },
+          icon: Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: AppColors.textSecondary,
+          ),
+          dropdownColor: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        );
+      },
+    );
+  }
+
+  Widget _buildWarehouseSelector() {
+    final warehousesAsync = ref.watch(activeWarehousesStreamProvider);
+
+    return warehousesAsync.when(
+      loading: () => Container(
+        height: 56.h,
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Center(
+          child: SizedBox(
+            width: 20.w,
+            height: 20.w,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      ),
+      error: (e, _) => Container(
+        padding: EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: AppColors.error.soft,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        child: Text(
+          'خطأ في تحميل المستودعات',
+          style: AppTypography.bodyMedium.copyWith(color: AppColors.error),
+        ),
+      ),
+      data: (warehouses) {
+        if (warehouses.isEmpty) {
+          return Container(
+            padding: EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: AppColors.warning.soft,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(color: AppColors.warning.border),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, color: AppColors.warning, size: 20.sp),
+                SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    'لا توجد مستودعات. أضف مستودعات من صفحة المستودعات.',
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AppColors.warning,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // التحقق من أن المستودع المختار موجود في القائمة
+        final validWarehouseId =
+            warehouses.any((w) => w.id == _selectedWarehouseId)
+                ? _selectedWarehouseId
+                : null;
+
+        return DropdownButtonFormField<String>(
+          value: validWarehouseId,
+          decoration: InputDecoration(
+            labelText: 'المستودع',
+            hintText: 'اختر المستودع',
+            filled: true,
+            fillColor: AppColors.surface,
+            prefixIcon: Icon(
+              Icons.warehouse_outlined,
+              color: AppColors.textTertiary,
+              size: AppIconSize.sm,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              borderSide: BorderSide(color: AppColors.border),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              borderSide: BorderSide(color: AppColors.border),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              borderSide: BorderSide(color: AppColors.primary, width: 2),
+            ),
+          ),
+          items: warehouses
+              .map((warehouse) => DropdownMenuItem<String>(
+                    value: warehouse.id,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 12.w,
+                          height: 12.w,
+                          decoration: BoxDecoration(
+                            color: warehouse.isDefault
+                                ? AppColors.warning
+                                : AppColors.primary,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        SizedBox(width: AppSpacing.sm),
+                        Flexible(
+                          child: Text(
+                            warehouse.name,
+                            style: AppTypography.bodyMedium.copyWith(
+                              color: AppColors.textPrimary,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        if (warehouse.isDefault) ...[
+                          SizedBox(width: AppSpacing.xs),
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: AppSpacing.xs,
+                              vertical: 2.h,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.warning.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(AppRadius.xs),
+                            ),
+                            child: Text(
+                              'افتراضي',
+                              style: AppTypography.labelSmall.copyWith(
+                                color: AppColors.warning,
+                                fontSize: 10.sp,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ))
+              .toList(),
+          onChanged: (value) {
+            setState(() {
+              _selectedWarehouseId = value;
             });
           },
           icon: Icon(

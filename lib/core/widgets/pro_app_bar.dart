@@ -55,12 +55,24 @@ class ProAppBar extends StatelessWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: implyLeading,
       leading: leading ??
           (showBackButton
-              ? IconButton(
-                  onPressed: onBack ?? () => context.pop(),
-                  icon: Icon(
-                    Icons.arrow_back_ios_rounded,
-                    color: AppColors.textSecondary,
-                    size: 20.sp,
+              ? Padding(
+                  padding: EdgeInsets.only(right: 8.w),
+                  child: GestureDetector(
+                    onTap: onBack ?? () => context.pop(),
+                    child: Container(
+                      width: 36.w,
+                      height: 36.w,
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceMuted,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Icon(
+                        Icons.arrow_back_rounded,
+                        size: 18.sp,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
                   ),
                 )
               : null),

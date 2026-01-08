@@ -29,12 +29,14 @@ part 'app_database.g.dart';
   InventoryCountItems,
   InventoryAdjustments,
   InventoryAdjustmentItems,
+  RecurringExpenseTemplates,
+  RecurringExpenseLogs,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration {
@@ -203,6 +205,16 @@ class AppDatabase extends _$AppDatabase {
             "ALTER TABLE inventory_adjustment_items ADD COLUMN adjustment_value_usd REAL",
           );
         }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // Version 14: جداول المصاريف الدورية
+        // ═══════════════════════════════════════════════════════════════════════
+        if (from < 14) {
+          // إنشاء جدول قوالب المصاريف الدورية
+          await m.createTable(recurringExpenseTemplates);
+          // إنشاء جدول سجل المصاريف الدورية المنشأة
+          await m.createTable(recurringExpenseLogs);
+        }
       },
     );
   }
@@ -313,7 +325,11 @@ class AppDatabase extends _$AppDatabase {
     return rowsAffected > 0;
   }
 
-  Future<int> deleteProduct(String id) {
+  /// حذف منتج مع جميع سجلات المخزون المرتبطة به
+  Future<int> deleteProduct(String id) async {
+    // حذف سجلات المخزون المرتبطة بالمنتج أولاً
+    await (delete(warehouseStock)..where((s) => s.productId.equals(id))).go();
+    // ثم حذف المنتج
     return (delete(products)..where((p) => p.id.equals(id))).go();
   }
 
@@ -857,7 +873,8 @@ class AppDatabase extends _$AppDatabase {
     DateTime? endDate,
     String? shiftId,
   }) async {
-    String whereClause = "WHERE i.type = 'sale'";
+    // ✅ استثناء الفواتير الملغاة من جميع الحسابات
+    String whereClause = "WHERE i.type = 'sale' AND i.status != 'cancelled'";
     if (shiftId != null) {
       whereClause += " AND i.shift_id = '$shiftId'";
     }
@@ -889,8 +906,13 @@ class AppDatabase extends _$AppDatabase {
       readsFrom: {invoiceItems, invoices, products},
     ).getSingleOrNull();
 
-    // المصروفات
-    String expenseWhere = "WHERE type = 'expense'";
+    // المصروفات (مع احتساب التعديلات والإلغاءات)
+    // expense = مصروف أصلي
+    // recurring_expense = مصروف دوري
+    // expense_reversal = إلغاء مصروف (يُطرح)
+    // expense_adjustment = تعديل مصروف (يُضاف أو يُطرح حسب النوع)
+    String expenseWhere =
+        "WHERE (type = 'expense' OR category IN ('expense_reversal', 'expense_adjustment', 'recurring_expense'))";
     if (shiftId != null) expenseWhere += " AND shift_id = '$shiftId'";
     if (startDate != null) {
       final startTimestamp = startDate.millisecondsSinceEpoch ~/ 1000;
@@ -904,16 +926,43 @@ class AppDatabase extends _$AppDatabase {
     final expenseResult = await customSelect(
       '''
       SELECT 
-        COALESCE(SUM(amount), 0) as total_expenses,
-        COALESCE(SUM(amount_usd), 0) as total_expenses_usd
+        COALESCE(SUM(CASE 
+          WHEN type = 'expense' THEN amount 
+          WHEN type = 'income' AND category IN ('expense_reversal', 'expense_adjustment') THEN -amount
+          ELSE 0 
+        END), 0) as total_expenses,
+        COALESCE(SUM(CASE 
+          WHEN type = 'expense' THEN amount_usd 
+          WHEN type = 'income' AND category IN ('expense_reversal', 'expense_adjustment') THEN -amount_usd
+          ELSE 0 
+        END), 0) as total_expenses_usd,
+        COALESCE(SUM(CASE 
+          WHEN type = 'expense' AND (category = 'recurring_expense' OR description LIKE '%دوري%') THEN amount 
+          WHEN type = 'income' AND category IN ('expense_reversal', 'expense_adjustment') AND description LIKE '%دوري%' THEN -amount
+          ELSE 0 
+        END), 0) as recurring_expenses,
+        COALESCE(SUM(CASE 
+          WHEN type = 'expense' AND (category = 'recurring_expense' OR description LIKE '%دوري%') THEN amount_usd 
+          WHEN type = 'income' AND category IN ('expense_reversal', 'expense_adjustment') AND description LIKE '%دوري%' THEN -amount_usd
+          ELSE 0 
+        END), 0) as recurring_expenses_usd,
+        COALESCE(SUM(CASE 
+          WHEN type = 'expense' AND description LIKE '%قسط%' THEN amount 
+          ELSE 0 
+        END), 0) as distributed_expenses,
+        COALESCE(SUM(CASE 
+          WHEN type = 'expense' AND description LIKE '%قسط%' THEN amount_usd 
+          ELSE 0 
+        END), 0) as distributed_expenses_usd
       FROM cash_movements
       $expenseWhere
       ''',
       readsFrom: {cashMovements},
     ).getSingleOrNull();
 
-    // مرتجعات المبيعات
-    String saleReturnWhere = "WHERE i.type = 'sale_return'";
+    // مرتجعات المبيعات (استثناء الملغاة)
+    String saleReturnWhere =
+        "WHERE i.type = 'sale_return' AND i.status != 'cancelled'";
     if (shiftId != null) saleReturnWhere += " AND i.shift_id = '$shiftId'";
     if (startDate != null) {
       final startTimestamp = startDate.millisecondsSinceEpoch ~/ 1000;
@@ -935,8 +984,9 @@ class AppDatabase extends _$AppDatabase {
       readsFrom: {invoices},
     ).getSingleOrNull();
 
-    // مرتجعات المشتريات (تعتبر ربح)
-    String purchaseReturnWhere = "WHERE i.type = 'purchase_return'";
+    // مرتجعات المشتريات (تعتبر ربح) - استثناء الملغاة
+    String purchaseReturnWhere =
+        "WHERE i.type = 'purchase_return' AND i.status != 'cancelled'";
     if (shiftId != null) purchaseReturnWhere += " AND i.shift_id = '$shiftId'";
     if (startDate != null) {
       final startTimestamp = startDate.millisecondsSinceEpoch ~/ 1000;
@@ -959,9 +1009,10 @@ class AppDatabase extends _$AppDatabase {
     ).getSingleOrNull();
 
     // ═══════════════════════════════════════════════════════════════════════
-    // فواتير المشتريات
+    // فواتير المشتريات (استثناء الملغاة)
     // ═══════════════════════════════════════════════════════════════════════
-    String purchaseWhere = "WHERE i.type = 'purchase'";
+    String purchaseWhere =
+        "WHERE i.type = 'purchase' AND i.status != 'cancelled'";
     if (shiftId != null) purchaseWhere += " AND i.shift_id = '$shiftId'";
     if (startDate != null) {
       final startTimestamp = startDate.millisecondsSinceEpoch ~/ 1000;
@@ -1094,6 +1145,16 @@ class AppDatabase extends _$AppDatabase {
         ((expenseData['total_expenses'] ?? 0) as num).toDouble();
     final totalExpensesUsd =
         ((expenseData['total_expenses_usd'] ?? 0) as num).toDouble();
+    // المصاريف الدورية
+    final recurringExpenses =
+        ((expenseData['recurring_expenses'] ?? 0) as num).toDouble();
+    final recurringExpensesUsd =
+        ((expenseData['recurring_expenses_usd'] ?? 0) as num).toDouble();
+    // المصاريف الموزعة (أقساط)
+    final distributedExpenses =
+        ((expenseData['distributed_expenses'] ?? 0) as num).toDouble();
+    final distributedExpensesUsd =
+        ((expenseData['distributed_expenses_usd'] ?? 0) as num).toDouble();
     final totalSaleReturns =
         ((saleReturnData['total_returns'] ?? 0) as num).toDouble();
     final totalSaleReturnsUsd =
@@ -1172,6 +1233,12 @@ class AppDatabase extends _$AppDatabase {
       'grossProfitUsd': grossProfitUsd,
       'totalExpenses': totalExpenses,
       'totalExpensesUsd': totalExpensesUsd,
+      // المصاريف الدورية (جزء من إجمالي المصاريف)
+      'recurringExpenses': recurringExpenses,
+      'recurringExpensesUsd': recurringExpensesUsd,
+      // المصاريف الموزعة (أقساط من مصاريف سنوية/ربعية)
+      'distributedExpenses': distributedExpenses,
+      'distributedExpensesUsd': distributedExpensesUsd,
       'totalSaleReturns': totalSaleReturns,
       'totalSaleReturnsUsd': totalSaleReturnsUsd,
       'totalPurchaseReturns': totalPurchaseReturns,
@@ -1259,7 +1326,8 @@ class AppDatabase extends _$AppDatabase {
     DateTime? endDate,
     int limit = 20,
   }) async {
-    String whereClause = "WHERE i.type = 'sale' AND i.customer_id IS NOT NULL";
+    String whereClause =
+        "WHERE i.type = 'sale' AND i.customer_id IS NOT NULL AND i.status != 'cancelled'";
     if (startDate != null) {
       final startTimestamp = startDate.millisecondsSinceEpoch ~/ 1000;
       whereClause += " AND i.created_at >= $startTimestamp";
@@ -1303,6 +1371,63 @@ class AppDatabase extends _$AppDatabase {
         'totalRevenue': ((data['total_revenue'] ?? 0) as num).toDouble(),
         'totalRevenueUsd': ((data['total_revenue_usd'] ?? 0) as num).toDouble(),
         'totalProfit': ((data['total_profit'] ?? 0) as num).toDouble(),
+      };
+    }).toList();
+  }
+
+  /// تقرير الأرباح حسب المنتج
+  Future<List<Map<String, dynamic>>> getProfitByProduct({
+    DateTime? startDate,
+    DateTime? endDate,
+    int limit = 30,
+  }) async {
+    String whereClause = "WHERE i.type = 'sale' AND i.status != 'cancelled'";
+    if (startDate != null) {
+      final startTimestamp = startDate.millisecondsSinceEpoch ~/ 1000;
+      whereClause += " AND i.created_at >= $startTimestamp";
+    }
+    if (endDate != null) {
+      final endTimestamp = endDate.millisecondsSinceEpoch ~/ 1000;
+      whereClause += " AND i.created_at <= $endTimestamp";
+    }
+
+    final result = await customSelect(
+      '''
+      SELECT 
+        p.id as product_id,
+        p.name as product_name,
+        p.barcode as product_barcode,
+        c.name as category_name,
+        COALESCE(SUM(ii.quantity), 0) as total_quantity,
+        COALESCE(SUM(ii.total), 0) as total_revenue,
+        COALESCE(SUM(ii.total_usd), 0) as total_revenue_usd,
+        COALESCE(SUM((ii.unit_price - COALESCE(ii.cost_price, ii.purchase_price, 0)) * ii.quantity), 0) as total_profit,
+        COALESCE(AVG(ii.unit_price - COALESCE(ii.cost_price, ii.purchase_price, 0)), 0) as avg_profit_per_unit
+      FROM invoice_items ii
+      INNER JOIN invoices i ON ii.invoice_id = i.id
+      INNER JOIN products p ON ii.product_id = p.id
+      LEFT JOIN categories c ON p.category_id = c.id
+      $whereClause
+      GROUP BY p.id, p.name, p.barcode, c.name
+      ORDER BY total_profit DESC
+      LIMIT $limit
+      ''',
+      readsFrom: {invoiceItems, invoices, products, categories},
+    ).get();
+
+    return result.map((row) {
+      final data = row.data;
+      return {
+        'productId': data['product_id']?.toString() ?? '',
+        'productName': data['product_name']?.toString() ?? '',
+        'productBarcode': data['product_barcode']?.toString(),
+        'categoryName': data['category_name']?.toString() ?? 'غير مصنف',
+        'totalQuantity': ((data['total_quantity'] ?? 0) as num).toDouble(),
+        'totalRevenue': ((data['total_revenue'] ?? 0) as num).toDouble(),
+        'totalRevenueUsd': ((data['total_revenue_usd'] ?? 0) as num).toDouble(),
+        'totalProfit': ((data['total_profit'] ?? 0) as num).toDouble(),
+        'avgProfitPerUnit':
+            ((data['avg_profit_per_unit'] ?? 0) as num).toDouble(),
       };
     }).toList();
   }
@@ -1962,6 +2087,15 @@ class AppDatabase extends _$AppDatabase {
       readsFrom: {warehouseStock},
     ).getSingleOrNull();
     return result?.read<int>('total') ?? 0;
+  }
+
+  /// ═══════════════════════════════════════════════════════════════════════════
+  /// ✅ إعادة حساب المخزون الإجمالي للمنتج من مجموع المستودعات
+  /// يضمن التزامن بين warehouse_stock و products.quantity
+  /// ═══════════════════════════════════════════════════════════════════════════
+  Future<void> syncProductTotalStockFromWarehouses(String productId) async {
+    final totalStock = await getTotalStockForProduct(productId);
+    await updateProductQuantity(productId, totalStock);
   }
 
   /// الحصول على المنتجات ذات المخزون المنخفض في مستودع معين
@@ -2754,6 +2888,169 @@ class AppDatabase extends _$AppDatabase {
               'lastPurchase': row.readNullable<DateTime>('last_purchase'),
             })
         .get();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Recurring Expense Templates CRUD
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// الحصول على جميع قوالب المصاريف الدورية
+  Future<List<RecurringExpenseTemplate>> getAllRecurringTemplates() =>
+      select(recurringExpenseTemplates).get();
+
+  /// الحصول على القوالب النشطة فقط
+  Future<List<RecurringExpenseTemplate>> getActiveRecurringTemplates() {
+    return (select(recurringExpenseTemplates)
+          ..where((t) => t.isActive.equals(true)))
+        .get();
+  }
+
+  /// مراقبة القوالب النشطة
+  Stream<List<RecurringExpenseTemplate>> watchActiveRecurringTemplates() {
+    return (select(recurringExpenseTemplates)
+          ..where((t) => t.isActive.equals(true))
+          ..orderBy([(t) => OrderingTerm.asc(t.name)]))
+        .watch();
+  }
+
+  /// الحصول على قالب بالمعرف
+  Future<RecurringExpenseTemplate?> getRecurringTemplateById(String id) {
+    return (select(recurringExpenseTemplates)..where((t) => t.id.equals(id)))
+        .getSingleOrNull();
+  }
+
+  /// إدراج قالب جديد
+  Future<void> insertRecurringTemplate(
+      RecurringExpenseTemplatesCompanion template) {
+    return into(recurringExpenseTemplates).insert(template);
+  }
+
+  /// تحديث قالب
+  Future<void> updateRecurringTemplate(
+      RecurringExpenseTemplatesCompanion template) {
+    return (update(recurringExpenseTemplates)
+          ..where((t) => t.id.equals(template.id.value)))
+        .write(template);
+  }
+
+  /// حذف قالب
+  Future<void> deleteRecurringTemplate(String id) {
+    return (delete(recurringExpenseTemplates)..where((t) => t.id.equals(id)))
+        .go();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Recurring Expense Logs CRUD
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// التحقق من وجود سجل لفترة معينة (لمنع التكرار)
+  Future<RecurringExpenseLog?> getLogByPeriodKey(
+      String templateId, String periodKey) {
+    return (select(recurringExpenseLogs)
+          ..where((l) =>
+              l.templateId.equals(templateId) & l.periodKey.equals(periodKey)))
+        .getSingleOrNull();
+  }
+
+  /// الحصول على سجلات قالب معين
+  Future<List<RecurringExpenseLog>> getLogsByTemplateId(String templateId) {
+    return (select(recurringExpenseLogs)
+          ..where((l) => l.templateId.equals(templateId))
+          ..orderBy([(l) => OrderingTerm.desc(l.createdAt)]))
+        .get();
+  }
+
+  /// إدراج سجل جديد
+  Future<void> insertRecurringLog(RecurringExpenseLogsCompanion log) {
+    return into(recurringExpenseLogs).insert(log);
+  }
+
+  /// تحديث سجل
+  Future<void> updateRecurringLog(RecurringExpenseLogsCompanion log) {
+    return (update(recurringExpenseLogs)
+          ..where((l) => l.id.equals(log.id.value)))
+        .write(log);
+  }
+
+  /// الحصول على سجلات فترة معينة (للتقارير)
+  Future<List<RecurringExpenseLog>> getLogsByDateRange(
+      DateTime start, DateTime end) {
+    return (select(recurringExpenseLogs)
+          ..where((l) =>
+              l.createdAt.isBiggerOrEqualValue(start) &
+              l.createdAt.isSmallerOrEqualValue(end))
+          ..orderBy([(l) => OrderingTerm.asc(l.createdAt)]))
+        .get();
+  }
+
+  /// ═══════════════════════════════════════════════════════════════════════════
+  /// الحصول على المصاريف الموزعة لفترة معينة (للتقارير)
+  /// ═══════════════════════════════════════════════════════════════════════════
+  /// يُرجع فقط حصة الفترة من المصاريف الموزعة
+  Future<double> getDistributedExpensesForPeriod(
+      DateTime start, DateTime end) async {
+    final result = await customSelect(
+      '''
+      SELECT COALESCE(SUM(amount_syp), 0) as total
+      FROM recurring_expense_logs
+      WHERE status = 'created'
+        AND period_start_date IS NOT NULL
+        AND period_end_date IS NOT NULL
+        AND (
+          (period_start_date >= ? AND period_start_date <= ?)
+          OR (period_end_date >= ? AND period_end_date <= ?)
+          OR (period_start_date <= ? AND period_end_date >= ?)
+        )
+      ''',
+      variables: [
+        Variable.withDateTime(start),
+        Variable.withDateTime(end),
+        Variable.withDateTime(start),
+        Variable.withDateTime(end),
+        Variable.withDateTime(start),
+        Variable.withDateTime(end),
+      ],
+      readsFrom: {recurringExpenseLogs},
+    ).getSingleOrNull();
+
+    return (result?.data['total'] as num?)?.toDouble() ?? 0;
+  }
+
+  /// الحصول على تفاصيل المصاريف الموزعة لفترة معينة
+  Future<List<Map<String, dynamic>>> getDistributedExpenseDetailsForPeriod(
+      DateTime start, DateTime end) async {
+    final logs = await (select(recurringExpenseLogs)
+          ..where((l) =>
+              l.status.equals('created') &
+              l.periodStartDate.isNotNull() &
+              l.periodEndDate.isNotNull())
+          ..orderBy([(l) => OrderingTerm.asc(l.createdAt)]))
+        .get();
+
+    final result = <Map<String, dynamic>>[];
+    for (final log in logs) {
+      if (log.periodStartDate != null && log.periodEndDate != null) {
+        // تحقق من تداخل الفترات
+        if (!(log.periodEndDate!.isBefore(start) ||
+            log.periodStartDate!.isAfter(end))) {
+          // جلب اسم القالب
+          final template = await getRecurringTemplateById(log.templateId);
+          result.add({
+            'id': log.id,
+            'templateId': log.templateId,
+            'templateName': template?.name ?? 'غير معروف',
+            'periodNumber': log.periodNumber,
+            'totalPeriods': log.totalPeriods,
+            'amountSyp': log.amountSyp,
+            'amountUsd': log.amountUsd,
+            'periodStartDate': log.periodStartDate,
+            'periodEndDate': log.periodEndDate,
+            'totalAmountSyp': log.totalAmountSyp,
+          });
+        }
+      }
+    }
+    return result;
   }
 }
 

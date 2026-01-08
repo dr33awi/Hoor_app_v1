@@ -89,18 +89,319 @@ class _RecurringExpensesScreenState
       subtitle: 'قوالب المصاريف المتكررة',
       onBack: () => context.pop(),
       actions: [
-        IconButton(
-          onPressed: _loadTemplates,
-          icon: const Icon(Icons.refresh),
-          tooltip: 'تحديث',
+        // زر تحويل القوالب القديمة إلى موزّعة
+        PopupMenuButton<String>(
+          icon: const Icon(Icons.more_vert),
+          tooltip: 'خيارات',
+          onSelected: (value) {
+            if (value == 'convert_to_distributed') {
+              _showConvertToDistributedDialog();
+            } else if (value == 'refresh') {
+              _loadTemplates();
+            } else if (value == 'clear_processed_periods') {
+              _showClearProcessedPeriodsDialog();
+            } else if (value == 'process_now') {
+              _processExpensesNow();
+            }
+          },
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'refresh',
+              child: Row(
+                children: [
+                  Icon(Icons.refresh),
+                  SizedBox(width: 8),
+                  Text('تحديث'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'convert_to_distributed',
+              child: Row(
+                children: [
+                  Icon(Icons.transform, color: Colors.orange),
+                  SizedBox(width: 8),
+                  Text('تحويل السنوية لموزّعة'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'clear_processed_periods',
+              child: Row(
+                children: [
+                  Icon(Icons.restart_alt, color: Colors.red),
+                  SizedBox(width: 8),
+                  Text('إعادة تعيين السجلات'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'process_now',
+              child: Row(
+                children: [
+                  Icon(Icons.play_arrow, color: Colors.green),
+                  SizedBox(width: 8),
+                  Text('معالجة المستحقات الآن'),
+                ],
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 
+  /// معالجة المصاريف المستحقة يدوياً
+  Future<void> _processExpensesNow() async {
+    try {
+      // عرض مؤشر تحميل
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => const AlertDialog(
+          content: Row(
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('جاري معالجة المصاريف الدورية...'),
+            ],
+          ),
+        ),
+      );
+
+      final expenseRepo = ref.read(expenseRepositoryProvider);
+      final result =
+          await RecurringExpenseService.processAllDueExpenses(expenseRepo);
+
+      if (mounted) Navigator.pop(context); // إغلاق مؤشر التحميل
+
+      if (!mounted) return;
+
+      String message = '';
+      if (result.successCount > 0) {
+        message +=
+            'تم إنشاء ${result.successCount} مصروف:\n${result.generatedExpenseNames.join("\n")}';
+      }
+      if (result.skippedDuplicates.isNotEmpty) {
+        if (message.isNotEmpty) message += '\n\n';
+        message += 'تم تخطي ${result.skippedDuplicates.length} مصروف مكرر';
+      }
+      if (result.failedCount > 0) {
+        if (message.isNotEmpty) message += '\n\n';
+        message += 'فشل ${result.failedCount}: ${result.errors.join(", ")}';
+      }
+      if (message.isEmpty) {
+        message = 'لا توجد مصاريف مستحقة للمعالجة';
+      }
+
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('نتيجة المعالجة'),
+          content: SingleChildScrollView(child: Text(message)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('حسناً'),
+            ),
+          ],
+        ),
+      );
+
+      _loadTemplates();
+    } catch (e) {
+      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        ProSnackbar.error(context, 'خطأ: $e');
+      }
+    }
+  }
+
+  /// تحويل القوالب السنوية/الربعية إلى موزّعة
+  void _showConvertToDistributedDialog() {
+    final yearlyTemplates = _templates
+        .where((t) =>
+            t.frequency == RecurrenceFrequency.yearly &&
+            t.distributionType != ExpenseDistributionType.distributed)
+        .toList();
+
+    final quarterlyTemplates = _templates
+        .where((t) =>
+            t.frequency == RecurrenceFrequency.quarterly &&
+            t.distributionType != ExpenseDistributionType.distributed)
+        .toList();
+
+    if (yearlyTemplates.isEmpty && quarterlyTemplates.isEmpty) {
+      ProSnackbar.info(context, 'لا توجد قوالب سنوية أو ربعية للتحويل');
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('تحويل إلى مصاريف موزّعة'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'سيتم تحويل المصاريف التالية إلى موزّعة:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            if (yearlyTemplates.isNotEmpty) ...[
+              Text('📅 سنوية (تُقسم على 12 شهر):',
+                  style: TextStyle(color: AppColors.info)),
+              ...yearlyTemplates.map((t) => Padding(
+                    padding: const EdgeInsets.only(right: 16, top: 4),
+                    child: Text('• ${t.name}'),
+                  )),
+              const SizedBox(height: 8),
+            ],
+            if (quarterlyTemplates.isNotEmpty) ...[
+              Text('📆 ربعية (تُقسم على 3 أشهر):',
+                  style: TextStyle(color: AppColors.info)),
+              ...quarterlyTemplates.map((t) => Padding(
+                    padding: const EdgeInsets.only(right: 16, top: 4),
+                    child: Text('• ${t.name}'),
+                  )),
+            ],
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.warningSurface,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text(
+                '⚠️ ملاحظة: هذا سيؤثر على الأقساط الجديدة فقط.\n'
+                'المصاريف المسجلة سابقاً ستبقى كما هي.',
+                style: TextStyle(fontSize: 12),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _convertTemplatesToDistributed(
+                  [...yearlyTemplates, ...quarterlyTemplates]);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            child: const Text('تحويل', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _convertTemplatesToDistributed(
+      List<RecurringExpenseTemplate> templates) async {
+    int converted = 0;
+    for (final template in templates) {
+      try {
+        await RecurringExpenseService.updateTemplate(
+          template.copyWith(
+            distributionType: ExpenseDistributionType.distributed,
+          ),
+        );
+        converted++;
+      } catch (e) {
+        debugPrint('خطأ في تحويل ${template.name}: $e');
+      }
+    }
+
+    _loadTemplates();
+    if (mounted) {
+      ProSnackbar.success(context, 'تم تحويل $converted قالب إلى موزّع');
+    }
+  }
+
+  // دالة إعادة تعيين سجلات المعالجة
+  void _showClearProcessedPeriodsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.warning, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('إعادة تعيين السجلات'),
+          ],
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'هذا سيحذف سجلات المعالجة للمصاريف الدورية.',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'عند المعالجة التالية، سيتم إنشاء أقساط جديدة لجميع القوالب الموزّعة.',
+              style: TextStyle(fontSize: 13),
+            ),
+            SizedBox(height: 12),
+            Text(
+              '⚠️ تحذير: قد يؤدي هذا لإنشاء مصاريف مكررة.',
+              style: TextStyle(color: Colors.red, fontSize: 12),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _clearProcessedPeriods();
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            child: const Text('إعادة تعيين',
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _clearProcessedPeriods() async {
+    try {
+      // حذف سجلات المعالجة من قاعدة البيانات
+      await RecurringExpenseService.clearProcessedLogs();
+
+      if (mounted) {
+        ProSnackbar.success(context, 'تم إعادة تعيين سجلات المعالجة');
+        _loadTemplates();
+      }
+    } catch (e) {
+      if (mounted) {
+        ProSnackbar.error(context, 'خطأ: $e');
+      }
+    }
+  }
+
   Widget _buildStats() {
     final dueCount = _stats['dueTemplates'] ?? 0;
     final monthlyTotal = _stats['expectedMonthlyTotal'] ?? 0.0;
+
+    // إحصائيات القوالب الموزّعة
+    final distributedCount = _templates
+        .where((t) => t.distributionType == ExpenseDistributionType.distributed)
+        .length;
+    final immediateYearlyCount = _templates
+        .where((t) =>
+            t.frequency == RecurrenceFrequency.yearly &&
+            t.distributionType == ExpenseDistributionType.immediate)
+        .length;
 
     return Container(
       margin: EdgeInsets.all(AppSpacing.md),
@@ -117,61 +418,99 @@ class _RecurringExpensesScreenState
         borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(color: AppColors.primary.withOpacity(0.2)),
       ),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.repeat, color: AppColors.primary, size: 20),
-                    SizedBox(width: AppSpacing.xs),
+                    Row(
+                      children: [
+                        Icon(Icons.repeat, color: AppColors.primary, size: 20),
+                        SizedBox(width: AppSpacing.xs),
+                        Text(
+                          'قوالب نشطة: ${_stats['activeTemplates'] ?? 0}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: AppSpacing.xs),
                     Text(
-                      'قوالب نشطة: ${_stats['activeTemplates'] ?? 0}',
+                      'المتوقع شهرياً: ${CurrencyFormatter.formatSyp(monthlyTotal)}',
                       style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                        fontSize: 12,
+                        color: AppColors.textTertiary,
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: AppSpacing.xs),
-                Text(
-                  'المتوقع شهرياً: ${CurrencyFormatter.formatSyp(monthlyTotal)}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textTertiary,
+              ),
+              if (dueCount > 0)
+                Container(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.notifications_active,
+                          color: AppColors.warning, size: 16),
+                      SizedBox(width: AppSpacing.xs),
+                      Text(
+                        '$dueCount مستحق',
+                        style: TextStyle(
+                          color: AppColors.warning,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+            ],
           ),
-          if (dueCount > 0)
+          // تحذير للقوالب السنوية غير الموزّعة
+          if (immediateYearlyCount > 0) ...[
+            SizedBox(height: AppSpacing.sm),
             Container(
-              padding: EdgeInsets.symmetric(
-                  horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+              padding: EdgeInsets.all(AppSpacing.sm),
               decoration: BoxDecoration(
-                color: AppColors.warning.withOpacity(0.2),
+                color: Colors.orange.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(AppRadius.sm),
+                border: Border.all(color: Colors.orange.withOpacity(0.3)),
               ),
               child: Row(
-                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.notifications_active,
-                      color: AppColors.warning, size: 16),
+                  const Icon(Icons.warning_amber,
+                      color: Colors.orange, size: 18),
                   SizedBox(width: AppSpacing.xs),
-                  Text(
-                    '$dueCount مستحق',
-                    style: TextStyle(
-                      color: AppColors.warning,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                  Expanded(
+                    child: Text(
+                      '$immediateYearlyCount قالب سنوي غير موزّع! استخدم القائمة ← "تحويل السنوية لموزّعة"',
+                      style:
+                          const TextStyle(fontSize: 11, color: Colors.orange),
                     ),
                   ),
                 ],
               ),
             ),
+          ],
+          // معلومات الموزّع
+          if (distributedCount > 0) ...[
+            SizedBox(height: AppSpacing.xs),
+            Text(
+              '✓ $distributedCount قالب موزّع (أقساط شهرية)',
+              style: TextStyle(fontSize: 11, color: AppColors.success),
+            ),
+          ],
         ],
       ),
     );
@@ -320,6 +659,28 @@ class _RecurringExpensesScreenState
                               color: AppColors.textTertiary,
                             ),
                           ),
+                          // عرض نوع التوزيع
+                          if (template.isDistributed) ...[
+                            Text(' • ',
+                                style:
+                                    TextStyle(color: AppColors.textTertiary)),
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 4, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: AppColors.info.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                'موزّع',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: AppColors.info,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
                           if (template.categoryName != null) ...[
                             Text(' • ',
                                 style:
@@ -358,21 +719,47 @@ class _RecurringExpensesScreenState
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      CurrencyFormatter.formatSyp(template.amountSyp),
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.expense,
-                      ),
-                    ),
-                    if (template.amountUsd != null)
+                    // للمصاريف الموزعة: عرض القسط
+                    if (template.isDistributed) ...[
                       Text(
-                        CurrencyFormatter.formatUsd(template.amountUsd!),
+                        CurrencyFormatter.formatSyp(
+                            template.getAmountForPeriod()),
                         style: TextStyle(
-                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.expense,
+                        ),
+                      ),
+                      Text(
+                        'قسط شهري',
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: AppColors.info,
+                        ),
+                      ),
+                      Text(
+                        'الإجمالي: ${CurrencyFormatter.formatSyp(template.amountSyp)}',
+                        style: TextStyle(
+                          fontSize: 10,
                           color: AppColors.textTertiary,
                         ),
                       ),
+                    ] else ...[
+                      Text(
+                        CurrencyFormatter.formatSyp(template.amountSyp),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.expense,
+                        ),
+                      ),
+                      if (template.amountUsd != null)
+                        Text(
+                          CurrencyFormatter.formatUsd(template.amountUsd!),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textTertiary,
+                          ),
+                        ),
+                    ],
                   ],
                 ),
                 SizedBox(width: AppSpacing.sm),
@@ -550,9 +937,9 @@ class _RecurringExpensesScreenState
 
     // ضبط المبلغ الأولي
     if (isEditing) {
-      if (isUsd && template!.amountUsd != null && template.amountUsd! > 0) {
+      if (isUsd && template.amountUsd != null && template.amountUsd! > 0) {
         amountController.text = template.amountUsd!.toStringAsFixed(2);
-      } else if (template!.amountSyp > 0) {
+      } else if (template.amountSyp > 0) {
         amountController.text = template.amountSyp.toStringAsFixed(0);
       }
     }
@@ -561,6 +948,14 @@ class _RecurringExpensesScreenState
         template?.frequency ?? RecurrenceFrequency.monthly;
     String? selectedCategoryId = template?.categoryId;
     String? selectedCategoryName = template?.categoryName;
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // نوع التوزيع المحاسبي
+    // ═══════════════════════════════════════════════════════════════════════
+    ExpenseDistributionType distributionType =
+        template?.distributionType ?? ExpenseDistributionType.immediate;
+    DistributionPeriod? distributionPeriod = template?.distributionPeriod;
+    int distributionCount = template?.distributionCount ?? 12;
 
     showDialog(
       context: context,
@@ -830,6 +1225,157 @@ class _RecurringExpensesScreenState
                     },
                   ),
                   SizedBox(height: AppSpacing.md),
+
+                  // ═══════════════════════════════════════════════════════════
+                  // نوع التوزيع المحاسبي (فوري/موزّع)
+                  // ═══════════════════════════════════════════════════════════
+                  Container(
+                    padding: EdgeInsets.all(AppSpacing.sm),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'التوزيع المحاسبي',
+                          style: AppTypography.labelMedium.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        SizedBox(height: AppSpacing.xs),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _DistributionTypeButton(
+                                title: 'فوري',
+                                subtitle: 'يُسجل كاملاً',
+                                icon: Icons.flash_on,
+                                isSelected: distributionType ==
+                                    ExpenseDistributionType.immediate,
+                                onTap: () {
+                                  setDialogState(() {
+                                    distributionType =
+                                        ExpenseDistributionType.immediate;
+                                    distributionPeriod = null;
+                                  });
+                                },
+                              ),
+                            ),
+                            SizedBox(width: AppSpacing.sm),
+                            Expanded(
+                              child: _DistributionTypeButton(
+                                title: 'موزّع',
+                                subtitle: 'يُقسم على فترات',
+                                icon: Icons.pie_chart,
+                                isSelected: distributionType ==
+                                    ExpenseDistributionType.distributed,
+                                onTap: () {
+                                  setDialogState(() {
+                                    distributionType =
+                                        ExpenseDistributionType.distributed;
+                                    distributionPeriod =
+                                        DistributionPeriod.monthly;
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        // خيارات التوزيع إذا كان موزّعاً
+                        if (distributionType ==
+                            ExpenseDistributionType.distributed) ...[
+                          SizedBox(height: AppSpacing.sm),
+                          Row(
+                            children: [
+                              Expanded(
+                                child:
+                                    DropdownButtonFormField<DistributionPeriod>(
+                                  value: distributionPeriod ??
+                                      DistributionPeriod.monthly,
+                                  decoration: InputDecoration(
+                                    labelText: 'فترة التوزيع',
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: AppSpacing.sm,
+                                      vertical: AppSpacing.xs,
+                                    ),
+                                  ),
+                                  items: DistributionPeriod.values.map((p) {
+                                    return DropdownMenuItem(
+                                      value: p,
+                                      child: Text(p.arabicName,
+                                          style: TextStyle(fontSize: 12)),
+                                    );
+                                  }).toList(),
+                                  onChanged: (value) {
+                                    setDialogState(() {
+                                      distributionPeriod = value;
+                                      distributionCount =
+                                          value?.periodsPerYear ?? 12;
+                                    });
+                                  },
+                                ),
+                              ),
+                              SizedBox(width: AppSpacing.sm),
+                              SizedBox(
+                                width: 80,
+                                child: TextField(
+                                  decoration: InputDecoration(
+                                    labelText: 'عدد الأقساط',
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: AppSpacing.sm,
+                                      vertical: AppSpacing.xs,
+                                    ),
+                                  ),
+                                  keyboardType: TextInputType.number,
+                                  controller: TextEditingController(
+                                    text: distributionCount.toString(),
+                                  ),
+                                  onChanged: (v) {
+                                    final count = int.tryParse(v);
+                                    if (count != null && count > 0) {
+                                      distributionCount = count;
+                                    }
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: AppSpacing.xs),
+                          // معاينة التوزيع
+                          if (previewSyp != null)
+                            Container(
+                              padding: EdgeInsets.all(AppSpacing.xs),
+                              decoration: BoxDecoration(
+                                color: AppColors.infoSurface,
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.sm),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.info_outline,
+                                      size: 14, color: AppColors.info),
+                                  SizedBox(width: AppSpacing.xs),
+                                  Expanded(
+                                    child: Text(
+                                      'كل ${distributionPeriod?.arabicName ?? 'شهر'}: ${CurrencyFormatter.formatSyp(previewSyp / distributionCount)}',
+                                      style: AppTypography.labelSmall.copyWith(
+                                        color: AppColors.info,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: AppSpacing.md),
                   // اختيار التصنيف
                   categoriesAsync.when(
                     loading: () => const CircularProgressIndicator(),
@@ -955,10 +1501,17 @@ class _RecurringExpensesScreenState
                         name: name,
                         amountSyp: amountSyp,
                         amountUsd: amountUsd,
+                        exchangeRate: rate,
                         categoryId: selectedCategoryId,
                         categoryName: selectedCategoryName,
                         description: descController.text.trim(),
                         frequency: selectedFrequency,
+                        distributionType: distributionType,
+                        distributionPeriod: distributionPeriod,
+                        distributionCount: distributionType ==
+                                ExpenseDistributionType.distributed
+                            ? distributionCount
+                            : null,
                       ),
                     );
                   } else {
@@ -966,10 +1519,17 @@ class _RecurringExpensesScreenState
                       name: name,
                       amountSyp: amountSyp,
                       amountUsd: amountUsd,
+                      exchangeRate: rate,
                       categoryId: selectedCategoryId,
                       categoryName: selectedCategoryName,
                       description: descController.text.trim(),
                       frequency: selectedFrequency,
+                      distributionType: distributionType,
+                      distributionPeriod: distributionPeriod,
+                      distributionCount: distributionType ==
+                              ExpenseDistributionType.distributed
+                          ? distributionCount
+                          : null,
                     );
                   }
 
@@ -1024,6 +1584,73 @@ class _TemplateDialogCurrencyButton extends StatelessWidget {
               fontWeight: FontWeight.bold,
               color: isSelected ? Colors.white : AppColors.textSecondary,
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// زر اختيار نوع التوزيع المحاسبي
+class _DistributionTypeButton extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _DistributionTypeButton({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color:
+          isSelected ? AppColors.primary.withOpacity(0.1) : Colors.transparent,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm,
+            vertical: AppSpacing.xs,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(
+              color: isSelected ? AppColors.primary : AppColors.border,
+              width: isSelected ? 2 : 1,
+            ),
+          ),
+          child: Column(
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                size: 20,
+              ),
+              SizedBox(height: 2),
+              Text(
+                title,
+                style: AppTypography.labelMedium.copyWith(
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                ),
+              ),
+              Text(
+                subtitle,
+                style: AppTypography.labelSmall.copyWith(
+                  color: AppColors.textTertiary,
+                  fontSize: 9,
+                ),
+              ),
+            ],
           ),
         ),
       ),

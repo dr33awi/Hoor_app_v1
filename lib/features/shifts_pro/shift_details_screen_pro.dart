@@ -1331,9 +1331,6 @@ class _ShiftDetailsScreenProState extends ConsumerState<ShiftDetailsScreenPro> {
 
   /// قسم التقرير التفصيلي
   Widget _buildDetailedReportSection() {
-    final shift = _summary!['shift'] as Shift;
-    final rate = shift.exchangeRate ?? AppConstants.defaultExchangeRate;
-
     return ProCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1849,7 +1846,6 @@ class _ShiftDetailsScreenProState extends ConsumerState<ShiftDetailsScreenPro> {
   Widget _buildInvoiceItem(Invoice invoice) {
     final rate = invoice.exchangeRate ?? AppConstants.defaultExchangeRate;
     final totalUsd = invoice.totalUsd ?? (invoice.total / rate);
-    final isSale = invoice.type == 'sale';
     final isReturn = invoice.type.contains('return');
 
     Color typeColor;
@@ -2028,7 +2024,7 @@ class _ShiftDetailsScreenProState extends ConsumerState<ShiftDetailsScreenPro> {
   }
 
   Widget _buildVoucherItem(Voucher voucher) {
-    final rate = voucher.exchangeRate ?? AppConstants.defaultExchangeRate;
+    final rate = voucher.exchangeRate;
     final amountUsd = voucher.amountUsd ?? (voucher.amount / rate);
 
     Color typeColor;

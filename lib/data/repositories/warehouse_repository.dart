@@ -1,10 +1,7 @@
-import 'dart:async';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 
 import '../database/app_database.dart';
-
 import 'base_repository.dart';
 
 /// ═══════════════════════════════════════════════════════════════════════════
@@ -12,8 +9,6 @@ import 'base_repository.dart';
 /// ═══════════════════════════════════════════════════════════════════════════
 class WarehouseRepository
     extends BaseRepository<Warehouse, WarehousesCompanion> {
-  StreamSubscription? _warehouseFirestoreSubscription;
-
   WarehouseRepository({
     required super.database,
     required super.firestore,
@@ -89,7 +84,8 @@ class WarehouseRepository
     final existing = await database.getWarehouseById(id);
     if (existing == null) return;
 
-    if (isDefault == true) {
+    // إذا كان سيصبح افتراضي، إلغاء الافتراضي من المستودعات الأخرى
+    if (isDefault == true && !existing.isDefault) {
       await database.setDefaultWarehouse(id);
     }
 
@@ -108,33 +104,19 @@ class WarehouseRepository
     ));
   }
 
-  /// تعيين مستودع كافتراضي
-  Future<void> setDefaultWarehouse(String warehouseId) async {
-    await database.setDefaultWarehouse(warehouseId);
-  }
-
-  /// حذف مستودع (تعطيل فقط)
-  /// ✅ يتحقق من عدم وجود مخزون قبل الحذف
+  /// حذف مستودع (soft delete - تعطيل فقط)
   Future<void> deleteWarehouse(String id) async {
-    // التحقق من أن المستودع ليس افتراضي
-    final warehouse = await database.getWarehouseById(id);
-    if (warehouse == null) return;
-    
-    if (warehouse.isDefault) {
-      throw Exception('لا يمكن حذف المستودع الافتراضي. عيّن مستودعاً آخر كافتراضي أولاً.');
-    }
-    
     // التحقق من عدم وجود مخزون في المستودع
     final stock = await database.getWarehouseStockByWarehouse(id);
-    final totalQty = stock.fold<int>(0, (sum, s) => sum + s.quantity);
-    
+    final totalQty = stock.fold<int>(0, (sum, item) => sum + item.quantity);
+
     if (totalQty > 0) {
       throw Exception(
         'لا يمكن حذف المستودع لأنه يحتوي على مخزون ($totalQty وحدة). '
         'انقل المخزون إلى مستودع آخر أولاً.',
       );
     }
-    
+
     // التحقق من عدم وجود عمليات نقل معلقة
     final pendingTransfers = await database.getPendingTransfersForWarehouse(id);
     if (pendingTransfers.isNotEmpty) {
@@ -142,7 +124,7 @@ class WarehouseRepository
         'لا يمكن حذف المستودع لأنه يوجد ${pendingTransfers.length} عملية نقل معلقة.',
       );
     }
-    
+
     await updateWarehouse(id: id, isActive: false);
   }
 
@@ -200,6 +182,7 @@ class WarehouseRepository
         syncStatus: const Value('pending'),
       ));
     } else {
+      // تحديث المخزون الموجود
       await database.updateWarehouseStock(WarehouseStockCompanion(
         id: Value(stock.id),
         quantity: Value(quantity),
@@ -212,37 +195,35 @@ class WarehouseRepository
     }
   }
 
-  // ==================== Stock Transfer Operations ====================
+  /// إضافة منتج لمستودع
+  Future<void> addProductToWarehouse({
+    required String productId,
+    required String warehouseId,
+    required int quantity,
+    int? minQuantity,
+    int? maxQuantity,
+    String? location,
+  }) async {
+    await updateProductStock(
+      productId: productId,
+      warehouseId: warehouseId,
+      quantity: quantity,
+      minQuantity: minQuantity,
+      maxQuantity: maxQuantity,
+      location: location,
+    );
+  }
 
-  /// الحصول على جميع عمليات النقل
-  Future<List<StockTransfer>> getAllTransfers() =>
-      database.getAllStockTransfers();
+  // ==================== Stock Transfers ====================
 
-  /// مراقبة جميع عمليات النقل
-  Stream<List<StockTransfer>> watchAllTransfers() =>
-      database.watchAllStockTransfers();
-
-  /// مراقبة عمليات النقل المعلقة
-  Stream<List<StockTransfer>> watchPendingTransfers() =>
-      database.watchPendingStockTransfers();
-
-  /// الحصول على عملية نقل بالمعرف
-  Future<StockTransfer?> getTransferById(String id) =>
-      database.getStockTransferById(id);
-
-  /// الحصول على عناصر عملية النقل
-  Future<List<StockTransferItem>> getTransferItems(String transferId) =>
-      database.getStockTransferItems(transferId);
-
-  /// إنشاء عملية نقل جديدة
-  /// ✅ يتحقق من كفاية المخزون قبل النقل
-  Future<String> createTransfer({
+  /// نقل المخزون بين المستودعات
+  Future<String> transferStock({
     required String fromWarehouseId,
     required String toWarehouseId,
-    required List<Map<String, dynamic>> items,
+    required List<Map<String, dynamic>> items, // {productId, quantity}
     String? notes,
   }) async {
-    // ✅ التحقق من صحة المستودعات
+    // التحقق من وجود المستودعات
     final fromWarehouse = await database.getWarehouseById(fromWarehouseId);
     if (fromWarehouse == null) {
       throw Exception('المستودع المصدر غير موجود');
@@ -250,7 +231,7 @@ class WarehouseRepository
     if (!fromWarehouse.isActive) {
       throw Exception('المستودع المصدر غير نشط');
     }
-    
+
     final toWarehouse = await database.getWarehouseById(toWarehouseId);
     if (toWarehouse == null) {
       throw Exception('المستودع الهدف غير موجود');
@@ -263,164 +244,111 @@ class WarehouseRepository
     for (final item in items) {
       final productId = item['productId'] as String;
       final requestedQty = item['quantity'] as int;
-      
+
       final stock = await database.getWarehouseStockByProductAndWarehouse(
         productId,
         fromWarehouseId,
       );
-      
+
       final availableQty = stock?.quantity ?? 0;
+
       if (availableQty < requestedQty) {
         final product = await database.getProductById(productId);
-        throw Exception(
-          'الكمية المطلوبة ($requestedQty) للمنتج "${product?.name ?? productId}" '
-          'أكبر من المتاح ($availableQty) في المستودع المصدر',
-        );
+        throw Exception('المخزون غير كافٍ لـ "${product?.name ?? "المنتج"}"\n'
+            'المتوفر: $availableQty | المطلوب: $requestedQty');
       }
     }
 
-    final transferId = generateId();
-    final transferNumber = 'TR${DateTime.now().millisecondsSinceEpoch}';
-    final now = DateTime.now();
-
     // إنشاء عملية النقل
+    final transferId = generateId();
+    final transferNumber = 'TRF${DateTime.now().millisecondsSinceEpoch}';
+
     await database.insertStockTransfer(StockTransfersCompanion(
       id: Value(transferId),
       transferNumber: Value(transferNumber),
       fromWarehouseId: Value(fromWarehouseId),
       toWarehouseId: Value(toWarehouseId),
-      status: const Value('pending'),
+      status: const Value('completed'), // مباشرة completed للبساطة
       notes: Value(notes),
       syncStatus: const Value('pending'),
-      transferDate: Value(now),
-      createdAt: Value(now),
+      transferDate: Value(DateTime.now()),
+      completedAt: Value(DateTime.now()),
+      createdAt: Value(DateTime.now()),
     ));
 
-    // إنشاء عناصر النقل
-    final transferItems = <StockTransferItemsCompanion>[];
-    for (final item in items) {
-      final productId = item['productId'] as String;
-      final product = await database.getProductById(productId);
-      if (product != null) {
-        transferItems.add(StockTransferItemsCompanion(
-          id: Value('ti_${DateTime.now().millisecondsSinceEpoch}_$productId'),
+    // نقل المخزون
+    await database.transaction(() async {
+      for (final item in items) {
+        final productId = item['productId'] as String;
+        final qty = item['quantity'] as int;
+
+        // خصم من المستودع المصدر
+        final fromStock = await database.getWarehouseStockByProductAndWarehouse(
+          productId,
+          fromWarehouseId,
+        );
+
+        if (fromStock != null) {
+          await database.updateWarehouseStockQuantity(
+            fromWarehouseId,
+            productId,
+            fromStock.quantity - qty,
+          );
+        }
+
+        // إضافة للمستودع الهدف
+        final toStock = await database.getWarehouseStockByProductAndWarehouse(
+          productId,
+          toWarehouseId,
+        );
+
+        if (toStock != null) {
+          await database.updateWarehouseStockQuantity(
+            toWarehouseId,
+            productId,
+            toStock.quantity + qty,
+          );
+        } else {
+          // إنشاء سجل جديد
+          await database.insertWarehouseStock(WarehouseStockCompanion(
+            id: Value('ws_${DateTime.now().millisecondsSinceEpoch}_$productId'),
+            warehouseId: Value(toWarehouseId),
+            productId: Value(productId),
+            quantity: Value(qty),
+            minQuantity: const Value(5),
+            syncStatus: const Value('pending'),
+          ));
+        }
+
+        // إضافة بند النقل
+        final product = await database.getProductById(productId);
+        await database.insertStockTransferItem(StockTransferItemsCompanion(
+          id: Value(generateId()),
           transferId: Value(transferId),
           productId: Value(productId),
-          productName: Value(product.name),
-          requestedQuantity: Value(item['quantity'] as int),
-          notes: Value(item['notes'] as String?),
+          productName: Value(product?.name ?? ''),
+          requestedQuantity: Value(qty),
+          transferredQuantity: Value(qty),
           syncStatus: const Value('pending'),
-          createdAt: Value(now),
         ));
       }
-    }
-
-    if (transferItems.isNotEmpty) {
-      await database.insertStockTransferItems(transferItems);
-    }
+    });
 
     return transferId;
   }
 
-  /// بدء عملية النقل (in_transit)
-  Future<void> startTransfer(String transferId) async {
-    await database.updateStockTransfer(StockTransfersCompanion(
-      id: Value(transferId),
-      status: const Value('in_transit'),
-    ));
-  }
-
-  /// إكمال عملية النقل
-  Future<void> completeTransfer(String transferId) async {
-    await database.completeStockTransfer(transferId);
-  }
-
-  /// إلغاء عملية النقل
-  Future<void> cancelTransfer(String transferId) async {
-    await database.updateStockTransfer(StockTransfersCompanion(
-      id: Value(transferId),
-      status: const Value('cancelled'),
-    ));
-  }
-
-  /// حذف عملية النقل (للمعلقة فقط)
-  Future<void> deleteTransfer(String transferId) async {
-    final transfer = await getTransferById(transferId);
-    if (transfer != null && transfer.status == 'pending') {
-      await database.deleteStockTransferItems(transferId);
-      await database.deleteStockTransfer(transferId);
-    }
-  }
-
-  // ==================== Cloud Sync ====================
+  // ==================== Base Repository Implementation ====================
 
   @override
   Future<void> syncPendingChanges() async {
-    // مزامنة المستودعات
-    final allWarehouses = await database.getAllWarehouses();
-    final pendingWarehouses =
-        allWarehouses.where((w) => w.syncStatus == 'pending').toList();
-
-    for (final warehouse in pendingWarehouses) {
-      try {
-        await collection.doc(warehouse.id).set(toFirestore(warehouse));
-        await database.updateWarehouse(WarehousesCompanion(
-          id: Value(warehouse.id),
-          syncStatus: const Value('synced'),
-        ));
-      } catch (e) {
-        debugPrint('Error syncing warehouse ${warehouse.id}: $e');
-      }
-    }
-
-    // مزامنة عمليات النقل المكتملة
-    final completedTransfers =
-        await database.getStockTransfersByStatus('completed');
-    for (final transfer in completedTransfers) {
-      if (transfer.syncStatus == 'pending') {
-        try {
-          await firestore.collection('stock_transfers').doc(transfer.id).set({
-            'id': transfer.id,
-            'transferNumber': transfer.transferNumber,
-            'fromWarehouseId': transfer.fromWarehouseId,
-            'toWarehouseId': transfer.toWarehouseId,
-            'status': transfer.status,
-            'notes': transfer.notes,
-            'transferDate': Timestamp.fromDate(transfer.transferDate),
-            'completedAt': transfer.completedAt != null
-                ? Timestamp.fromDate(transfer.completedAt!)
-                : null,
-            'createdAt': Timestamp.fromDate(transfer.createdAt),
-          });
-          await database.updateStockTransfer(StockTransfersCompanion(
-            id: Value(transfer.id),
-            syncStatus: const Value('synced'),
-          ));
-        } catch (e) {
-          debugPrint('Error syncing transfer ${transfer.id}: $e');
-        }
-      }
-    }
+    // TODO: Implement warehouse sync to cloud
+    debugPrint('WarehouseRepository.syncPendingChanges() not implemented yet');
   }
 
   @override
   Future<void> pullFromCloud() async {
-    try {
-      final snapshot = await collection.get();
-      for (final doc in snapshot.docs) {
-        final data = doc.data() as Map<String, dynamic>;
-        final companion = fromFirestore(data, doc.id);
-
-        final existing = await database.getWarehouseById(companion.id.value);
-        if (existing == null) {
-          await database.insertWarehouse(companion);
-        } else {
-          await database.updateWarehouse(companion);
-        }
-      }
-    } catch (e) {
-      debugPrint('Error pulling warehouses from cloud: $e');
-    }
+    // TODO: Implement warehouse pull from cloud
+    debugPrint('WarehouseRepository.pullFromCloud() not implemented yet');
   }
 
   @override
@@ -435,8 +363,8 @@ class WarehouseRepository
       'isDefault': entity.isDefault,
       'isActive': entity.isActive,
       'notes': entity.notes,
-      'createdAt': Timestamp.fromDate(entity.createdAt),
-      'updatedAt': Timestamp.fromDate(entity.updatedAt),
+      'createdAt': entity.createdAt.toIso8601String(),
+      'updatedAt': entity.updatedAt.toIso8601String(),
     };
   }
 
@@ -453,45 +381,20 @@ class WarehouseRepository
       isActive: Value(data['isActive'] as bool? ?? true),
       notes: Value(data['notes'] as String?),
       syncStatus: const Value('synced'),
-      createdAt:
-          Value((data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now()),
-      updatedAt:
-          Value((data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now()),
+      createdAt: Value(DateTime.parse(data['createdAt'] as String)),
+      updatedAt: Value(DateTime.parse(data['updatedAt'] as String)),
     );
   }
 
   @override
   void startRealtimeSync() {
-    _warehouseFirestoreSubscription?.cancel();
-    _warehouseFirestoreSubscription = collection.snapshots().listen((snapshot) {
-      for (final change in snapshot.docChanges) {
-        final data = change.doc.data() as Map<String, dynamic>?;
-        if (data != null) {
-          final companion = fromFirestore(data, change.doc.id);
-          switch (change.type) {
-            case DocumentChangeType.added:
-            case DocumentChangeType.modified:
-              database.getWarehouseById(companion.id.value).then((existing) {
-                if (existing == null) {
-                  database.insertWarehouse(companion);
-                } else {
-                  database.updateWarehouse(companion);
-                }
-              });
-              break;
-            case DocumentChangeType.removed:
-              // لا نحذف المستودعات، نعطلها فقط
-              break;
-          }
-        }
-      }
-    });
+    // TODO: Implement warehouse realtime sync
+    debugPrint('WarehouseRepository.startRealtimeSync() not implemented yet');
   }
 
   @override
   void stopRealtimeSync() {
-    _warehouseFirestoreSubscription?.cancel();
-    _warehouseFirestoreSubscription = null;
+    super.stopRealtimeSync();
   }
 
   void dispose() {

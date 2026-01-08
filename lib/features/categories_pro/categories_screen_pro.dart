@@ -297,15 +297,17 @@ class _CategoriesScreenProState extends ConsumerState<CategoriesScreenPro> {
 
   Future<void> _exportCategoriesToPdf(
       List<Category> categories, String fileName) async {
-    final pdfBytes =
-        await PdfExportService.generateCategoriesList(categories: categories);
+    final settings = await ExportService.getExportSettings();
+    final pdfBytes = await PdfExportService.generateCategoriesList(
+        categories: categories, settings: settings);
     await PdfExportService.savePdfFile(pdfBytes, fileName);
   }
 
   Future<void> _shareCategoriesPdf(
       List<Category> categories, String fileName) async {
-    final pdfBytes =
-        await PdfExportService.generateCategoriesList(categories: categories);
+    final settings = await ExportService.getExportSettings();
+    final pdfBytes = await PdfExportService.generateCategoriesList(
+        categories: categories, settings: settings);
     await PdfExportService.sharePdfBytes(pdfBytes,
         fileName: fileName, subject: 'قائمة التصنيفات');
   }

@@ -100,6 +100,12 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
           }
 
           if (mounted) {
+            // ⚠️ السياسة المحاسبية: تخزين سعر الصرف والسعر بالدولار مع العنصر
+            final exchangeRate = CurrencyService.currentRate;
+            final priceUsd = widget.isSales
+                ? (productData['salePriceUsd'] ?? (price / exchangeRate))
+                : (productData['purchasePriceUsd'] ?? (price / exchangeRate));
+
             setState(() {
               _items.add({
                 'id': '1',
@@ -107,9 +113,13 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
                 'name': productData['name'],
                 'quantity': productData['quantity'] ?? 1,
                 'price': price,
+                'priceUsd': priceUsd,
                 'purchasePrice': productData['purchasePrice'],
+                'purchasePriceUsd': productData['purchasePriceUsd'] ??
+                    (productData['purchasePrice'] / exchangeRate),
                 'discount': 0.0,
                 'maxQuantity': productData['availableStock'] ?? 999,
+                'exchangeRate': exchangeRate,
               });
             });
           }
@@ -770,8 +780,9 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
                               color: AppColors.secondary,
                             ),
                             SizedBox(width: 4.w),
+                            // ⚠️ السياسة المحاسبية: استخدام السعر بالدولار المحفوظ مع العنصر
                             Text(
-                              '${item['price'].toStringAsFixed(0)} (\$${(item['price'] / CurrencyService.currentRate).toStringAsFixed(1)}) ل.س × ${item['quantity']}',
+                              '${item['price'].toStringAsFixed(0)} (\$${(item['priceUsd'] ?? 0.0).toStringAsFixed(2)}) ل.س × ${item['quantity']}',
                               style: AppTypography.bodySmall
                                   .copyWith(
                                     color: AppColors.secondary,
@@ -795,9 +806,12 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
+                  // ⚠️ السياسة المحاسبية: حساب الإجمالي بالدولار من السعر المحفوظ
                   CompactDualPrice(
                     amountSyp: total,
-                    amountUsd: total / CurrencyService.currentRate,
+                    amountUsd: (item['priceUsd'] ?? 0.0) *
+                        item['quantity'] *
+                        (1 - item['discount'] / 100),
                     sypStyle: AppTypography.titleSmall
                         .copyWith(color: AppColors.textPrimary)
                         .monoSemibold,
@@ -907,6 +921,10 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
               if (newPrice != null && newPrice > 0) {
                 setState(() {
                   _items[index]['price'] = newPrice;
+                  // ⚠️ السياسة المحاسبية: تحديث السعر بالدولار عند تغيير السعر
+                  final exchangeRate = _items[index]['exchangeRate'] ??
+                      CurrencyService.currentRate;
+                  _items[index]['priceUsd'] = newPrice / exchangeRate;
                 });
                 Navigator.pop(context);
               } else {
@@ -1439,7 +1457,9 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
   }
 
   void _addItem() {
-    final productsAsync = ref.read(activeProductsStreamProvider);
+    // استخدام activeProductsWithDefaultWarehouseStockProvider للحصول على الكميات الصحيحة من المستودع
+    final productsAsync =
+        ref.read(activeProductsWithDefaultWarehouseStockProvider);
 
     showModalBottomSheet(
       context: context,
@@ -1454,7 +1474,7 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
               height: 200.h, child: ProLoadingState.list(itemCount: 3)),
           error: (e, _) => SizedBox(
               height: 200.h, child: ProEmptyState.error(error: e.toString())),
-          data: (products) => Container(
+          data: (productData) => Container(
             constraints: BoxConstraints(maxHeight: 500.h),
             padding: EdgeInsets.all(AppSpacing.md),
             child: Column(
@@ -1463,12 +1483,14 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
                 Text('اختر منتج', style: AppTypography.titleMedium),
                 SizedBox(height: AppSpacing.md),
                 Expanded(
-                  child: products.isEmpty
+                  child: productData.isEmpty
                       ? Center(child: Text('لا توجد منتجات'))
                       : ListView.builder(
-                          itemCount: products.length,
+                          itemCount: productData.length,
                           itemBuilder: (context, index) {
-                            final product = products[index];
+                            final item = productData[index];
+                            final product = item['product'] as Product;
+                            final stockQuantity = item['quantity'] as int;
                             final alreadyAdded =
                                 _items.any((i) => i['productId'] == product.id);
                             // حساب السعر من الدولار × سعر الصرف الحالي
@@ -1483,6 +1505,10 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
                                         product.purchasePriceUsd! > 0)
                                     ? product.purchasePriceUsd! * currentRate
                                     : product.purchasePrice;
+                            // للشراء: لا نتحقق من المخزون (يمكن الشراء حتى لو المخزون 0)
+                            // للبيع: نتحقق من توفر المخزون
+                            final isAvailable =
+                                !widget.isSales || stockQuantity > 0;
                             return ListTile(
                               leading: CircleAvatar(
                                 backgroundColor: AppColors.secondary.soft,
@@ -1491,12 +1517,12 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
                               ),
                               title: Text(product.name),
                               subtitle: Text(
-                                  '${(widget.isSales ? displaySalePrice : displayPurchasePrice).toStringAsFixed(0)} ل.س • المخزون: ${product.quantity}'),
+                                  '${(widget.isSales ? displaySalePrice : displayPurchasePrice).toStringAsFixed(0)} ل.س • المخزون: $stockQuantity'),
                               trailing: alreadyAdded
                                   ? Icon(Icons.check, color: AppColors.success)
                                   : null,
-                              enabled: !alreadyAdded && product.quantity > 0,
-                              onTap: alreadyAdded || product.quantity == 0
+                              enabled: !alreadyAdded && isAvailable,
+                              onTap: alreadyAdded || !isAvailable
                                   ? null
                                   : () async {
                                       // تحديد السعر حسب نوع الفاتورة (محسوب من الدولار)
@@ -1521,6 +1547,15 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
                                         price = enteredPrice;
                                       }
 
+                                      // ⚠️ السياسة المحاسبية: تخزين سعر الصرف والسعر بالدولار مع العنصر
+                                      final exchangeRate =
+                                          CurrencyService.currentRate;
+                                      final priceUsd = widget.isSales
+                                          ? (product.salePriceUsd ??
+                                              (price / exchangeRate))
+                                          : (product.purchasePriceUsd ??
+                                              (price / exchangeRate));
+
                                       setState(() {
                                         _items.add({
                                           'id': '${_items.length + 1}',
@@ -1528,9 +1563,15 @@ class _InvoiceFormScreenProState extends ConsumerState<InvoiceFormScreenPro> {
                                           'name': product.name,
                                           'quantity': 1,
                                           'price': price,
+                                          'priceUsd': priceUsd,
                                           'purchasePrice': displayPurchasePrice,
+                                          'purchasePriceUsd':
+                                              product.purchasePriceUsd ??
+                                                  (displayPurchasePrice /
+                                                      exchangeRate),
                                           'discount': 0.0,
-                                          'maxQuantity': product.quantity,
+                                          'maxQuantity': stockQuantity,
+                                          'exchangeRate': exchangeRate,
                                         });
                                       });
                                       if (mounted &&

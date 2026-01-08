@@ -31,6 +31,9 @@ class PdfExportService {
   static Future<Uint8List> generateInvoicesList({
     required List<Invoice> invoices,
     String? type,
+    Map<String, String>? customerNames,
+    Map<String, String>? supplierNames,
+    ExportSettings? settings,
   }) async {
     await _ensureFontsInitialized();
 
@@ -40,11 +43,13 @@ class PdfExportService {
         ? ExportFormatters.getInvoiceTypeLabel(type)
         : 'جميع الفواتير';
 
-    // حساب الإحصائيات
+    // حساب الإحصائيات - مع القيم المحفوظة بالدولار
     double totalAmount = 0;
+    double totalAmountUsd = 0;
     double totalDiscount = 0;
     for (final inv in invoices) {
       totalAmount += inv.total;
+      totalAmountUsd += inv.totalUsd ?? 0;
       totalDiscount += inv.discountAmount;
     }
 
@@ -54,6 +59,7 @@ class PdfExportService {
       headerColor: type != null
           ? ExportColors.getInvoiceTypeColor(type)
           : ExportColors.primary,
+      settings: settings,
     );
 
     doc.addPage(
@@ -78,14 +84,15 @@ class PdfExportService {
           ),
         ),
         build: (context) => [
-          // ملخص الإحصائيات
+          // ملخص الإحصائيات - مع القيم بالدولار
           pw.Directionality(
             textDirection: pw.TextDirection.rtl,
             child: template.buildStatsBox([
               StatItem(label: 'عدد الفواتير', value: '${invoices.length}'),
               StatItem(
                 label: 'إجمالي المبلغ',
-                value: ExportFormatters.formatPrice(totalAmount),
+                value: ExportFormatters.formatDualPriceFromLocked(
+                    totalAmount, totalAmountUsd),
                 color: ExportColors.success,
               ),
               StatItem(
@@ -97,13 +104,14 @@ class PdfExportService {
           ),
           pw.SizedBox(height: 16),
 
-          // جدول الفواتير
+          // جدول الفواتير - مع الطرف والقيم بالدولار
           pw.Directionality(
             textDirection: pw.TextDirection.rtl,
             child: template.buildTable(
               headers: [
-                'الإجمالي',
-                'الخصم',
+                'الإجمالي (\$)',
+                'الإجمالي (ل.س)',
+                'الطرف',
                 'طريقة الدفع',
                 'النوع',
                 'التاريخ',
@@ -112,10 +120,20 @@ class PdfExportService {
               ],
               data: List.generate(invoices.length, (index) {
                 final inv = invoices[index];
+                // تحديد اسم الطرف
+                String partyName = '-';
+                if (inv.customerId != null) {
+                  partyName = customerNames?[inv.customerId!] ?? 'عميل';
+                } else if (inv.supplierId != null) {
+                  partyName = supplierNames?[inv.supplierId!] ?? 'مورد';
+                }
                 return [
+                  // ⚠️ السياسة المحاسبية: استخدام القيم المحفوظة
+                  inv.totalUsd != null
+                      ? '\$${inv.totalUsd!.toStringAsFixed(2)}'
+                      : '-',
                   ExportFormatters.formatPrice(inv.total, showCurrency: false),
-                  ExportFormatters.formatPrice(inv.discountAmount,
-                      showCurrency: false),
+                  partyName,
                   ExportFormatters.getPaymentMethodLabel(inv.paymentMethod),
                   ExportFormatters.getInvoiceTypeLabel(inv.type),
                   ExportFormatters.formatDateTime(inv.invoiceDate),
@@ -141,6 +159,7 @@ class PdfExportService {
     required Map<String, double> summary,
     required DateTime startDate,
     required DateTime endDate,
+    ExportSettings? settings,
   }) async {
     await _ensureFontsInitialized();
 
@@ -158,6 +177,7 @@ class PdfExportService {
       subtitle: ExportFormatters.formatDateRange(startDate, endDate),
       reportDate: now,
       headerColor: ExportColors.success,
+      settings: settings,
     );
 
     doc.addPage(
@@ -244,6 +264,7 @@ class PdfExportService {
   static Future<Uint8List> generateInventoryReport({
     required List<Product> products,
     Map<String, int>? soldQuantities,
+    ExportSettings? settings,
   }) async {
     await _ensureFontsInitialized();
 
@@ -265,6 +286,7 @@ class PdfExportService {
       title: 'تقرير المخزون',
       reportDate: now,
       headerColor: ExportColors.warning,
+      settings: settings,
     );
 
     doc.addPage(
@@ -305,39 +327,12 @@ class PdfExportService {
           pw.SizedBox(height: 8),
 
           // صندوق الربح المتوقع
-          pw.Container(
-            width: double.infinity,
-            padding: const pw.EdgeInsets.all(12),
-            decoration: pw.BoxDecoration(
-              color: PdfColors.green50,
-              borderRadius: pw.BorderRadius.circular(8),
-              border: pw.Border.all(color: ExportColors.success),
-            ),
-            child: pw.Directionality(
-              textDirection: pw.TextDirection.rtl,
-              child: pw.Row(
-                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                children: [
-                  pw.Text(
-                    'الربح المتوقع:',
-                    style: pw.TextStyle(
-                      font: PdfFonts.bold,
-                      fontSize: 12,
-                      color: ExportColors.success,
-                    ),
-                  ),
-                  pw.Text(
-                    ExportFormatters.formatPrice(
-                        totalSaleValue - totalCostValue),
-                    style: pw.TextStyle(
-                      font: PdfFonts.bold,
-                      fontSize: 14,
-                      color: ExportColors.success,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          ExportTheme.highlightBox(
+            label: 'الربح المتوقع:',
+            value:
+                ExportFormatters.formatPrice(totalSaleValue - totalCostValue),
+            bgColor: AppPdfColors.bgGreen,
+            textColor: AppPdfColors.success,
           ),
           pw.SizedBox(height: 16),
 
@@ -386,6 +381,7 @@ class PdfExportService {
   static Future<Uint8List> generateProductsList({
     required List<Product> products,
     Map<String, int>? soldQuantities,
+    ExportSettings? settings,
   }) async {
     final doc = pw.Document();
     final now = DateTime.now();
@@ -403,6 +399,7 @@ class PdfExportService {
       title: 'قائمة المنتجات',
       reportDate: now,
       headerColor: ExportColors.primary,
+      settings: settings,
     );
 
     doc.addPage(
@@ -484,6 +481,9 @@ class PdfExportService {
   static Future<Uint8List> generateVouchersList({
     required List<Voucher> vouchers,
     String? type,
+    Map<String, String>? customerNames,
+    Map<String, String>? supplierNames,
+    ExportSettings? settings,
   }) async {
     final doc = pw.Document();
     final now = DateTime.now();
@@ -500,6 +500,7 @@ class PdfExportService {
       reportDate: now,
       headerColor:
           type != null ? _getVoucherTypeColor(type) : ExportColors.primary,
+      settings: settings,
     );
 
     doc.addPage(
@@ -543,12 +544,14 @@ class PdfExportService {
           ),
           pw.SizedBox(height: 16),
 
-          // جدول السندات
+          // جدول السندات - مع إضافة الطرف وسعر الصرف
           pw.Directionality(
             textDirection: pw.TextDirection.rtl,
             child: template.buildTable(
               headers: [
-                'المبلغ',
+                'المبلغ (\$)',
+                'المبلغ (ل.س)',
+                'الطرف',
                 'الوصف',
                 'النوع',
                 'التاريخ',
@@ -557,9 +560,21 @@ class PdfExportService {
               ],
               data: List.generate(vouchers.length, (index) {
                 final voucher = vouchers[index];
+                // تحديد اسم الطرف
+                String partyName = '-';
+                if (voucher.customerId != null) {
+                  partyName = customerNames?[voucher.customerId!] ?? 'عميل';
+                } else if (voucher.supplierId != null) {
+                  partyName = supplierNames?[voucher.supplierId!] ?? 'مورد';
+                }
                 return [
+                  // ⚠️ السياسة المحاسبية: استخدام القيم المحفوظة
+                  voucher.amountUsd != null
+                      ? '\$${voucher.amountUsd!.toStringAsFixed(2)}'
+                      : '-',
                   ExportFormatters.formatPrice(voucher.amount,
                       showCurrency: false),
+                  partyName,
                   voucher.description ?? '-',
                   _getVoucherTypeLabel(voucher.type),
                   ExportFormatters.formatDateTime(voucher.voucherDate),
@@ -608,6 +623,7 @@ class PdfExportService {
 
   static Future<Uint8List> generateCategoriesList({
     required List<DbCategory> categories,
+    ExportSettings? settings,
   }) async {
     await _ensureFontsInitialized();
 
@@ -618,6 +634,7 @@ class PdfExportService {
       title: 'قائمة التصنيفات',
       reportDate: now,
       headerColor: ExportColors.primary,
+      settings: settings,
     );
 
     doc.addPage(
@@ -645,54 +662,18 @@ class PdfExportService {
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
                 // إحصائيات
-                pw.Container(
-                  padding: const pw.EdgeInsets.all(12),
-                  decoration: pw.BoxDecoration(
-                    color: PdfColors.grey100,
-                    borderRadius: pw.BorderRadius.circular(8),
-                  ),
-                  child: pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                    children: [
-                      pw.Text(
-                        'عدد التصنيفات: ${categories.length}',
-                        style: pw.TextStyle(
-                          fontWeight: pw.FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                      pw.Text(
-                        'تاريخ التصدير: ${ExportFormatters.formatDate(now)}',
-                        style: const pw.TextStyle(fontSize: 10),
-                      ),
-                    ],
-                  ),
+                ExportTheme.infoBox(
+                  title: 'عدد التصنيفات: ${categories.length}',
+                  subtitle: '',
+                  trailing:
+                      'تاريخ التصدير: ${ExportFormatters.formatDate(now)}',
                 ),
                 pw.SizedBox(height: 16),
 
                 // الجدول
-                pw.TableHelper.fromTextArray(
-                  headerStyle: pw.TextStyle(
-                    fontWeight: pw.FontWeight.bold,
-                    color: PdfColors.white,
-                    fontSize: 10,
-                  ),
-                  headerDecoration: pw.BoxDecoration(
-                    color: PdfColor.fromHex('#2196F3'),
-                    borderRadius: const pw.BorderRadius.only(
-                      topLeft: pw.Radius.circular(8),
-                      topRight: pw.Radius.circular(8),
-                    ),
-                  ),
-                  cellStyle: const pw.TextStyle(fontSize: 9),
-                  cellPadding: const pw.EdgeInsets.all(8),
-                  cellAlignments: {
-                    0: pw.Alignment.center,
-                    1: pw.Alignment.centerRight,
-                    2: pw.Alignment.centerRight,
-                    3: pw.Alignment.center,
-                  },
+                ExportTheme.tableHelper(
                   headers: ['#', 'الاسم', 'الوصف', 'تاريخ الإنشاء'],
+                  headerColor: ExportTheme.headerPrimary,
                   data: categories.asMap().entries.map((entry) {
                     final index = entry.key;
                     final category = entry.value;
@@ -758,15 +739,18 @@ class PdfExportService {
 
   static Future<Uint8List> generateCashMovementsList({
     required List<CashMovement> movements,
+    ExportSettings? settings,
   }) async {
     await _ensureFontsInitialized();
 
     final doc = pw.Document();
     final now = DateTime.now();
 
-    // حساب الإحصائيات
+    // حساب الإحصائيات - مع USD
     double totalIncome = 0;
+    double totalIncomeUsd = 0;
     double totalExpense = 0;
+    double totalExpenseUsd = 0;
     for (final m in movements) {
       final isIncome = m.type == 'income' ||
           m.type == 'sale' ||
@@ -774,8 +758,10 @@ class PdfExportService {
           m.type == 'opening';
       if (isIncome) {
         totalIncome += m.amount;
+        totalIncomeUsd += m.amountUsd ?? 0;
       } else {
         totalExpense += m.amount;
+        totalExpenseUsd += m.amountUsd ?? 0;
       }
     }
 
@@ -783,6 +769,7 @@ class PdfExportService {
       title: 'حركات الصندوق',
       reportDate: now,
       headerColor: ExportColors.primary,
+      settings: settings,
     );
 
     doc.addPage(
@@ -809,89 +796,30 @@ class PdfExportService {
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                // إحصائيات
-                pw.Container(
-                  padding: const pw.EdgeInsets.all(12),
-                  decoration: pw.BoxDecoration(
-                    color: PdfColors.grey100,
-                    borderRadius: pw.BorderRadius.circular(8),
-                  ),
-                  child: pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                    children: [
-                      pw.Column(
-                        crossAxisAlignment: pw.CrossAxisAlignment.start,
-                        children: [
-                          pw.Text(
-                            'عدد الحركات: ${movements.length}',
-                            style: pw.TextStyle(
-                              fontWeight: pw.FontWeight.bold,
-                              fontSize: 11,
-                            ),
-                          ),
-                          pw.SizedBox(height: 4),
-                          pw.Text(
-                            // ⚠️ ملاحظة: الوردية لا تحفظ قيم USD - نعرض الليرة فقط
-                            'الصافي: ${(totalIncome - totalExpense).toStringAsFixed(2)} ل.س',
-                            style: pw.TextStyle(
-                              fontWeight: pw.FontWeight.bold,
-                              fontSize: 11,
-                              color: totalIncome >= totalExpense
-                                  ? PdfColors.green
-                                  : PdfColors.red,
-                            ),
-                          ),
-                        ],
-                      ),
-                      pw.Column(
-                        crossAxisAlignment: pw.CrossAxisAlignment.end,
-                        children: [
-                          pw.Text(
-                            'الإيرادات: ${totalIncome.toStringAsFixed(2)}',
-                            style: pw.TextStyle(
-                              color: PdfColors.green,
-                              fontSize: 10,
-                            ),
-                          ),
-                          pw.SizedBox(height: 2),
-                          pw.Text(
-                            'المصروفات: ${totalExpense.toStringAsFixed(2)}',
-                            style: pw.TextStyle(
-                              color: PdfColors.red,
-                              fontSize: 10,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                // إحصائيات - مع USD
+                CashMovementTheme.summaryBox(
+                  movementCount: 'عدد الحركات: ${movements.length}',
+                  netValue:
+                      'الصافي: ${ExportFormatters.formatDualPriceFromLocked(totalIncome - totalExpense, totalIncomeUsd - totalExpenseUsd)}',
+                  isPositive: totalIncome >= totalExpense,
+                  incomeValue:
+                      'الإيرادات: ${ExportFormatters.formatDualPriceFromLocked(totalIncome, totalIncomeUsd)}',
+                  expenseValue:
+                      'المصروفات: ${ExportFormatters.formatDualPriceFromLocked(totalExpense, totalExpenseUsd)}',
                 ),
                 pw.SizedBox(height: 16),
 
-                // الجدول
-                pw.TableHelper.fromTextArray(
-                  headerStyle: pw.TextStyle(
-                    fontWeight: pw.FontWeight.bold,
-                    color: PdfColors.white,
-                    fontSize: 10,
-                  ),
-                  headerDecoration: pw.BoxDecoration(
-                    color: PdfColor.fromHex('#2196F3'),
-                    borderRadius: const pw.BorderRadius.only(
-                      topLeft: pw.Radius.circular(8),
-                      topRight: pw.Radius.circular(8),
-                    ),
-                  ),
-                  cellStyle: const pw.TextStyle(fontSize: 9),
-                  cellPadding: const pw.EdgeInsets.all(8),
-                  cellAlignments: {
-                    0: pw.Alignment.center,
-                    1: pw.Alignment.center,
-                    2: pw.Alignment.centerRight,
-                    3: pw.Alignment.center,
-                    4: pw.Alignment.center,
-                  },
-                  headers: ['#', 'التاريخ', 'الوصف', 'النوع', 'المبلغ'],
+                // الجدول - مع USD
+                ExportTheme.tableHelper(
+                  headers: [
+                    '#',
+                    'التاريخ',
+                    'الوصف',
+                    'النوع',
+                    'المبلغ (ل.س)',
+                    'المبلغ (\$)'
+                  ],
+                  headerColor: ExportTheme.headerPrimary,
                   data: movements.asMap().entries.map((entry) {
                     final index = entry.key;
                     final movement = entry.value;
@@ -904,7 +832,11 @@ class PdfExportService {
                       ExportFormatters.formatDateTime(movement.createdAt),
                       movement.description,
                       isIncome ? 'إيراد' : 'مصروف',
-                      '${isIncome ? '+' : '-'}${movement.amount.toStringAsFixed(0)}',
+                      '${isIncome ? '+' : '-'}${ExportFormatters.formatPrice(movement.amount, showCurrency: false)}',
+                      // ⚠️ السياسة المحاسبية: استخدام القيم المحفوظة
+                      movement.amountUsd != null
+                          ? '${isIncome ? '+' : '-'}\$${movement.amountUsd!.toStringAsFixed(2)}'
+                          : '-',
                     ];
                   }).toList(),
                 ),
@@ -924,24 +856,30 @@ class PdfExportService {
 
   static Future<Uint8List> generateShiftsList({
     required List<Shift> shifts,
+    ExportSettings? settings,
   }) async {
     await _ensureFontsInitialized();
 
     final doc = pw.Document();
     final now = DateTime.now();
 
-    // حساب الإحصائيات
+    // حساب الإحصائيات - مع USD
     double totalSales = 0;
+    double totalSalesUsd = 0;
     double totalExpenses = 0;
+    double totalExpensesUsd = 0;
     for (final s in shifts) {
       totalSales += s.totalSales;
+      totalSalesUsd += s.totalSalesUsd;
       totalExpenses += s.totalExpenses;
+      totalExpensesUsd += s.totalExpensesUsd;
     }
 
     final template = PdfReportTemplate(
       title: 'قائمة الورديات',
       reportDate: now,
       headerColor: ExportColors.primary,
+      settings: settings,
     );
 
     doc.addPage(
@@ -966,24 +904,28 @@ class PdfExportService {
           ),
         ),
         build: (context) => [
-          // ملخص الإحصائيات
+          // ملخص الإحصائيات - مع USD
           pw.Directionality(
             textDirection: pw.TextDirection.rtl,
             child: template.buildStatsBox([
               StatItem(label: 'عدد الورديات', value: '${shifts.length}'),
               StatItem(
                 label: 'إجمالي المبيعات',
-                value: ExportFormatters.formatPrice(totalSales),
+                value: ExportFormatters.formatDualPriceFromLocked(
+                    totalSales, totalSalesUsd),
                 color: ExportColors.success,
               ),
               StatItem(
                 label: 'إجمالي المصاريف',
-                value: ExportFormatters.formatPrice(totalExpenses),
+                value: ExportFormatters.formatDualPriceFromLocked(
+                    totalExpenses, totalExpensesUsd),
                 color: ExportColors.error,
               ),
               StatItem(
                 label: 'الصافي',
-                value: ExportFormatters.formatPrice(totalSales - totalExpenses),
+                value: ExportFormatters.formatDualPriceFromLocked(
+                    totalSales - totalExpenses,
+                    totalSalesUsd - totalExpensesUsd),
                 color: totalSales >= totalExpenses
                     ? ExportColors.success
                     : ExportColors.error,
@@ -992,29 +934,27 @@ class PdfExportService {
           ),
           pw.SizedBox(height: 16),
 
-          // جدول الورديات
+          // جدول الورديات - مع USD
           pw.Directionality(
             textDirection: pw.TextDirection.rtl,
             child: template.buildTable(
               headers: [
-                '#',
-                'رقم الوردية',
+                'المبيعات (\$)',
+                'المبيعات (ل.س)',
                 'التاريخ',
-                'المبيعات',
-                'المصاريف',
-                'الحالة',
+                'رقم الوردية',
+                '#',
               ],
               data: List.generate(shifts.length, (index) {
                 final shift = shifts[index];
                 return [
-                  '${index + 1}',
-                  '#${shift.shiftNumber}',
-                  ExportFormatters.formatDateTime(shift.openedAt),
+                  // ⚠️ السياسة المحاسبية: استخدام القيم المحفوظة
+                  '\$${shift.totalSalesUsd.toStringAsFixed(2)}',
                   ExportFormatters.formatPrice(shift.totalSales,
                       showCurrency: false),
-                  ExportFormatters.formatPrice(shift.totalExpenses,
-                      showCurrency: false),
-                  shift.status == 'open' ? 'مفتوحة' : 'مغلقة',
+                  ExportFormatters.formatDateTime(shift.openedAt),
+                  '#${shift.shiftNumber}',
+                  '${index + 1}',
                 ];
               }),
             ),
@@ -1034,6 +974,7 @@ class PdfExportService {
     required Customer customer,
     required List<Invoice> invoices,
     required List<Voucher> vouchers,
+    ExportSettings? settings,
   }) async {
     await _ensureFontsInitialized();
 
@@ -1043,12 +984,15 @@ class PdfExportService {
     // دمج وترتيب البيانات
     final List<Map<String, dynamic>> entries = [];
 
+    // ⚠️ السياسة المحاسبية: استخدام القيم المحفوظة (SYP + USD) بدون تحويل
     for (final invoice in invoices) {
       entries.add({
         'date': invoice.createdAt,
         'description': 'فاتورة بيع #${invoice.invoiceNumber}',
         'debit': invoice.total,
+        'debitUsd': invoice.totalUsd ?? 0.0,
         'credit': 0.0,
+        'creditUsd': 0.0,
       });
     }
 
@@ -1057,32 +1001,43 @@ class PdfExportService {
         'date': voucher.voucherDate,
         'description': 'سند قبض #${voucher.voucherNumber}',
         'debit': 0.0,
+        'debitUsd': 0.0,
         'credit': voucher.amount,
+        'creditUsd': voucher.amountUsd ?? 0.0,
       });
     }
 
     entries.sort(
         (a, b) => (a['date'] as DateTime).compareTo(b['date'] as DateTime));
 
-    // حساب الرصيد التراكمي
+    // حساب الرصيد التراكمي (بالليرة والدولار)
     double runningBalance = 0;
+    double runningBalanceUsd = 0;
     for (final entry in entries) {
       runningBalance +=
           (entry['debit'] as double) - (entry['credit'] as double);
+      runningBalanceUsd +=
+          (entry['debitUsd'] as double) - (entry['creditUsd'] as double);
       entry['balance'] = runningBalance;
+      entry['balanceUsd'] = runningBalanceUsd;
     }
 
-    // حساب الإجماليات
+    // حساب الإجماليات (بالليرة والدولار)
     final totalDebit =
         entries.fold(0.0, (sum, e) => sum + (e['debit'] as double));
+    final totalDebitUsd =
+        entries.fold(0.0, (sum, e) => sum + (e['debitUsd'] as double));
     final totalCredit =
         entries.fold(0.0, (sum, e) => sum + (e['credit'] as double));
+    final totalCreditUsd =
+        entries.fold(0.0, (sum, e) => sum + (e['creditUsd'] as double));
 
     final template = PdfReportTemplate(
       title: 'كشف حساب العميل',
       subtitle: customer.name,
       reportDate: now,
       headerColor: ExportColors.primary,
+      settings: settings,
     );
 
     doc.addPage(
@@ -1097,32 +1052,11 @@ class PdfExportService {
               template.buildHeader(),
               pw.SizedBox(height: 8),
               // معلومات العميل
-              pw.Container(
-                width: double.infinity,
-                padding: const pw.EdgeInsets.all(10),
-                decoration: pw.BoxDecoration(
-                  color: PdfColors.grey100,
-                  borderRadius: pw.BorderRadius.circular(4),
-                ),
-                child: pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Text(
-                      'الهاتف: ${customer.phone ?? "غير محدد"}',
-                      style: pw.TextStyle(font: PdfFonts.regular, fontSize: 9),
-                    ),
-                    pw.Text(
-                      'الرصيد الحالي: ${customer.balance.toStringAsFixed(0)} ل.س',
-                      style: pw.TextStyle(
-                        font: PdfFonts.bold,
-                        fontSize: 10,
-                        color: customer.balance > 0
-                            ? ExportColors.error
-                            : ExportColors.success,
-                      ),
-                    ),
-                  ],
-                ),
+              StatementTheme.partyInfoBox(
+                phone: 'الهاتف: ${customer.phone ?? "غير محدد"}',
+                balance:
+                    'الرصيد الحالي: ${customer.balance.toStringAsFixed(0)} ل.س${customer.balanceUsd != null && customer.balanceUsd != 0 ? " (\$${customer.balanceUsd!.toStringAsFixed(2)})" : ""}',
+                isPositive: customer.balance > 0,
               ),
               pw.SizedBox(height: 12),
             ],
@@ -1137,33 +1071,35 @@ class PdfExportService {
         ),
         build: (context) => [
           if (entries.isEmpty)
-            pw.Center(
-              child: pw.Padding(
-                padding: const pw.EdgeInsets.all(40),
-                child: pw.Text(
-                  'لا توجد معاملات',
-                  style: pw.TextStyle(
-                      font: PdfFonts.regular,
-                      fontSize: 14,
-                      color: PdfColors.grey600),
-                ),
-              ),
-            )
+            StatementTheme.emptyMessage()
           else ...[
-            // جدول كشف الحساب
+            // جدول كشف الحساب - مع قيم USD
             pw.Directionality(
               textDirection: pw.TextDirection.rtl,
               child: template.buildTable(
-                headers: ['الرصيد', 'دائن', 'مدين', 'البيان', 'التاريخ', '#'],
+                headers: [
+                  'الرصيد (\$)',
+                  'الرصيد (ل.س)',
+                  'دائن',
+                  'مدين',
+                  'البيان',
+                  'التاريخ',
+                  '#'
+                ],
                 data: List.generate(entries.length, (index) {
                   final entry = entries[index];
+                  final debit = entry['debit'] as double;
+                  final debitUsd = entry['debitUsd'] as double;
+                  final credit = entry['credit'] as double;
+                  final creditUsd = entry['creditUsd'] as double;
                   return [
+                    '\$${(entry['balanceUsd'] as double).toStringAsFixed(2)}',
                     (entry['balance'] as double).toStringAsFixed(0),
-                    (entry['credit'] as double) > 0
-                        ? (entry['credit'] as double).toStringAsFixed(0)
+                    credit > 0
+                        ? '${credit.toStringAsFixed(0)}${creditUsd > 0 ? ' (\$${creditUsd.toStringAsFixed(2)})' : ''}'
                         : '-',
-                    (entry['debit'] as double) > 0
-                        ? (entry['debit'] as double).toStringAsFixed(0)
+                    debit > 0
+                        ? '${debit.toStringAsFixed(0)}${debitUsd > 0 ? ' (\$${debitUsd.toStringAsFixed(2)})' : ''}'
                         : '-',
                     entry['description'] as String,
                     ExportFormatters.formatDate(entry['date'] as DateTime),
@@ -1173,38 +1109,16 @@ class PdfExportService {
               ),
             ),
             pw.SizedBox(height: 16),
-            // صف الإجماليات
+            // صف الإجماليات - مع قيم USD
             pw.Directionality(
               textDirection: pw.TextDirection.rtl,
-              child: pw.Container(
-                padding: const pw.EdgeInsets.all(10),
-                decoration: pw.BoxDecoration(
-                  color: PdfColors.grey200,
-                  borderRadius: pw.BorderRadius.circular(4),
-                ),
-                child: pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
-                  children: [
-                    pw.Text(
-                      'إجمالي المدين: ${totalDebit.toStringAsFixed(0)} ل.س',
-                      style: pw.TextStyle(
-                          font: PdfFonts.bold,
-                          fontSize: 10,
-                          color: ExportColors.error),
-                    ),
-                    pw.Text(
-                      'إجمالي الدائن: ${totalCredit.toStringAsFixed(0)} ل.س',
-                      style: pw.TextStyle(
-                          font: PdfFonts.bold,
-                          fontSize: 10,
-                          color: ExportColors.success),
-                    ),
-                    pw.Text(
-                      'الرصيد: ${(totalDebit - totalCredit).toStringAsFixed(0)} ل.س',
-                      style: pw.TextStyle(font: PdfFonts.bold, fontSize: 10),
-                    ),
-                  ],
-                ),
+              child: StatementTheme.totalsBox(
+                totalDebit:
+                    'إجمالي المدين: ${totalDebit.toStringAsFixed(0)} ل.س (\$${totalDebitUsd.toStringAsFixed(2)})',
+                totalCredit:
+                    'إجمالي الدائن: ${totalCredit.toStringAsFixed(0)} ل.س (\$${totalCreditUsd.toStringAsFixed(2)})',
+                finalBalance:
+                    'الرصيد النهائي: ${(totalDebit - totalCredit).toStringAsFixed(0)} ل.س (\$${(totalDebitUsd - totalCreditUsd).toStringAsFixed(2)})',
               ),
             ),
           ],
@@ -1223,6 +1137,7 @@ class PdfExportService {
     required Supplier supplier,
     required List<Invoice> invoices,
     required List<Voucher> vouchers,
+    ExportSettings? settings,
   }) async {
     await _ensureFontsInitialized();
 
@@ -1232,12 +1147,15 @@ class PdfExportService {
     // دمج وترتيب البيانات
     final List<Map<String, dynamic>> entries = [];
 
+    // ⚠️ السياسة المحاسبية: استخدام القيم المحفوظة (SYP + USD) بدون تحويل
     for (final invoice in invoices) {
       entries.add({
         'date': invoice.createdAt,
         'description': 'فاتورة مشتريات #${invoice.invoiceNumber}',
         'debit': invoice.total,
+        'debitUsd': invoice.totalUsd ?? 0.0,
         'credit': 0.0,
+        'creditUsd': 0.0,
       });
     }
 
@@ -1246,32 +1164,43 @@ class PdfExportService {
         'date': voucher.voucherDate,
         'description': 'سند صرف #${voucher.voucherNumber}',
         'debit': 0.0,
+        'debitUsd': 0.0,
         'credit': voucher.amount,
+        'creditUsd': voucher.amountUsd ?? 0.0,
       });
     }
 
     entries.sort(
         (a, b) => (a['date'] as DateTime).compareTo(b['date'] as DateTime));
 
-    // حساب الرصيد التراكمي
+    // حساب الرصيد التراكمي (بالليرة والدولار)
     double runningBalance = 0;
+    double runningBalanceUsd = 0;
     for (final entry in entries) {
       runningBalance +=
           (entry['debit'] as double) - (entry['credit'] as double);
+      runningBalanceUsd +=
+          (entry['debitUsd'] as double) - (entry['creditUsd'] as double);
       entry['balance'] = runningBalance;
+      entry['balanceUsd'] = runningBalanceUsd;
     }
 
-    // حساب الإجماليات
+    // حساب الإجماليات (بالليرة والدولار)
     final totalDebit =
         entries.fold(0.0, (sum, e) => sum + (e['debit'] as double));
+    final totalDebitUsd =
+        entries.fold(0.0, (sum, e) => sum + (e['debitUsd'] as double));
     final totalCredit =
         entries.fold(0.0, (sum, e) => sum + (e['credit'] as double));
+    final totalCreditUsd =
+        entries.fold(0.0, (sum, e) => sum + (e['creditUsd'] as double));
 
     final template = PdfReportTemplate(
       title: 'كشف حساب المورد',
       subtitle: supplier.name,
       reportDate: now,
       headerColor: ExportColors.purchase,
+      settings: settings,
     );
 
     doc.addPage(
@@ -1286,32 +1215,11 @@ class PdfExportService {
               template.buildHeader(),
               pw.SizedBox(height: 8),
               // معلومات المورد
-              pw.Container(
-                width: double.infinity,
-                padding: const pw.EdgeInsets.all(10),
-                decoration: pw.BoxDecoration(
-                  color: PdfColors.grey100,
-                  borderRadius: pw.BorderRadius.circular(4),
-                ),
-                child: pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Text(
-                      'الهاتف: ${supplier.phone ?? "غير محدد"}',
-                      style: pw.TextStyle(font: PdfFonts.regular, fontSize: 9),
-                    ),
-                    pw.Text(
-                      'الرصيد الحالي: ${supplier.balance.toStringAsFixed(0)} ل.س',
-                      style: pw.TextStyle(
-                        font: PdfFonts.bold,
-                        fontSize: 10,
-                        color: supplier.balance > 0
-                            ? ExportColors.error
-                            : ExportColors.success,
-                      ),
-                    ),
-                  ],
-                ),
+              StatementTheme.partyInfoBox(
+                phone: 'الهاتف: ${supplier.phone ?? "غير محدد"}',
+                balance:
+                    'الرصيد الحالي: ${supplier.balance.toStringAsFixed(0)} ل.س${supplier.balanceUsd != null && supplier.balanceUsd != 0 ? " (\$${supplier.balanceUsd!.toStringAsFixed(2)})" : ""}',
+                isPositive: supplier.balance > 0,
               ),
               pw.SizedBox(height: 12),
             ],
@@ -1326,31 +1234,37 @@ class PdfExportService {
         ),
         build: (context) => [
           if (entries.isEmpty)
-            pw.Center(
-              child: pw.Padding(
-                padding: const pw.EdgeInsets.all(40),
-                child: pw.Text(
-                  'لا توجد معاملات',
-                  style: pw.TextStyle(
-                      font: PdfFonts.regular,
-                      fontSize: 14,
-                      color: PdfColors.grey600),
-                ),
-              ),
-            )
+            StatementTheme.emptyMessage()
           else ...[
             // جدول كشف الحساب
             pw.Directionality(
               textDirection: pw.TextDirection.rtl,
               child: template.buildTable(
-                headers: ['الرصيد', 'دائن', 'مدين', 'البيان', 'التاريخ', '#'],
+                headers: [
+                  'الرصيد \$',
+                  'الرصيد ل.س',
+                  'دائن \$',
+                  'دائن ل.س',
+                  'مدين \$',
+                  'مدين ل.س',
+                  'البيان',
+                  'التاريخ',
+                  '#'
+                ],
                 headerBgColor: ExportColors.purchase,
                 data: List.generate(entries.length, (index) {
                   final entry = entries[index];
                   return [
+                    (entry['balanceUsd'] as double).toStringAsFixed(2),
                     (entry['balance'] as double).toStringAsFixed(0),
+                    (entry['creditUsd'] as double) > 0
+                        ? (entry['creditUsd'] as double).toStringAsFixed(2)
+                        : '-',
                     (entry['credit'] as double) > 0
                         ? (entry['credit'] as double).toStringAsFixed(0)
+                        : '-',
+                    (entry['debitUsd'] as double) > 0
+                        ? (entry['debitUsd'] as double).toStringAsFixed(2)
                         : '-',
                     (entry['debit'] as double) > 0
                         ? (entry['debit'] as double).toStringAsFixed(0)
@@ -1366,35 +1280,13 @@ class PdfExportService {
             // صف الإجماليات
             pw.Directionality(
               textDirection: pw.TextDirection.rtl,
-              child: pw.Container(
-                padding: const pw.EdgeInsets.all(10),
-                decoration: pw.BoxDecoration(
-                  color: PdfColors.grey200,
-                  borderRadius: pw.BorderRadius.circular(4),
-                ),
-                child: pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
-                  children: [
-                    pw.Text(
-                      'إجمالي المدين: ${totalDebit.toStringAsFixed(0)} ل.س',
-                      style: pw.TextStyle(
-                          font: PdfFonts.bold,
-                          fontSize: 10,
-                          color: ExportColors.error),
-                    ),
-                    pw.Text(
-                      'إجمالي الدائن: ${totalCredit.toStringAsFixed(0)} ل.س',
-                      style: pw.TextStyle(
-                          font: PdfFonts.bold,
-                          fontSize: 10,
-                          color: ExportColors.success),
-                    ),
-                    pw.Text(
-                      'الرصيد: ${(totalDebit - totalCredit).toStringAsFixed(0)} ل.س',
-                      style: pw.TextStyle(font: PdfFonts.bold, fontSize: 10),
-                    ),
-                  ],
-                ),
+              child: StatementTheme.totalsBox(
+                totalDebit:
+                    'إجمالي المدين: ${totalDebit.toStringAsFixed(0)} ل.س (\$${totalDebitUsd.toStringAsFixed(2)})',
+                totalCredit:
+                    'إجمالي الدائن: ${totalCredit.toStringAsFixed(0)} ل.س (\$${totalCreditUsd.toStringAsFixed(2)})',
+                finalBalance:
+                    'الرصيد: ${(totalDebit - totalCredit).toStringAsFixed(0)} ل.س (\$${(totalDebitUsd - totalCreditUsd).toStringAsFixed(2)})',
               ),
             ),
           ],
@@ -1413,6 +1305,7 @@ class PdfExportService {
     required Shift shift,
     List<Invoice>? invoices,
     List<CashMovement>? cashMovements,
+    ExportSettings? settings,
   }) async {
     await _ensureFontsInitialized();
 
@@ -1452,6 +1345,7 @@ class PdfExportService {
       subtitle: '#${shift.shiftNumber}',
       reportDate: now,
       headerColor: ExportColors.primary,
+      settings: settings,
     );
 
     doc.addPage(
@@ -1482,179 +1376,94 @@ class PdfExportService {
               crossAxisAlignment: pw.CrossAxisAlignment.stretch,
               children: [
                 // معلومات الوردية
-                pw.Container(
-                  padding: const pw.EdgeInsets.all(16),
-                  decoration: pw.BoxDecoration(
-                    border: pw.Border.all(color: PdfColors.grey300),
-                    borderRadius:
-                        const pw.BorderRadius.all(pw.Radius.circular(8)),
-                  ),
-                  child: pw.Column(
-                    children: [
-                      _buildZReportRow('رقم الوردية', '#${shift.shiftNumber}'),
-                      pw.Divider(color: PdfColors.grey200),
-                      _buildZReportRow('تاريخ الافتتاح',
-                          ExportFormatters.formatDateTime(shift.openedAt)),
-                      pw.Divider(color: PdfColors.grey200),
-                      _buildZReportRow(
-                          'تاريخ الإغلاق',
-                          shift.closedAt != null
-                              ? ExportFormatters.formatDateTime(shift.closedAt!)
-                              : 'لم تغلق بعد'),
-                      pw.Divider(color: PdfColors.grey200),
-                      _buildZReportRow('الحالة',
-                          shift.status == 'open' ? 'مفتوحة' : 'مغلقة'),
-                    ],
-                  ),
-                ),
+                ZReportTheme.shiftInfoBox([
+                  ZReportRow(
+                      label: 'رقم الوردية', value: '#${shift.shiftNumber}'),
+                  ZReportRow(
+                      label: 'تاريخ الافتتاح',
+                      value: ExportFormatters.formatDateTime(shift.openedAt)),
+                  ZReportRow(
+                      label: 'تاريخ الإغلاق',
+                      value: shift.closedAt != null
+                          ? ExportFormatters.formatDateTime(shift.closedAt!)
+                          : 'لم تغلق بعد'),
+                  ZReportRow(
+                      label: 'الحالة',
+                      value: shift.status == 'open' ? 'مفتوحة' : 'مغلقة'),
+                ]),
                 pw.SizedBox(height: 20),
 
                 // ملخص المبيعات
-                pw.Container(
-                  padding: const pw.EdgeInsets.all(16),
-                  decoration: pw.BoxDecoration(
-                    color: PdfColor.fromHex('#E8F5E9'),
-                    borderRadius:
-                        const pw.BorderRadius.all(pw.Radius.circular(8)),
-                  ),
-                  child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text(
-                        'ملخص المبيعات',
-                        style: pw.TextStyle(
-                          fontSize: 14,
-                          fontWeight: pw.FontWeight.bold,
-                          color: PdfColor.fromHex('#2E7D32'),
-                        ),
-                      ),
-                      pw.SizedBox(height: 12),
-                      _buildZReportRow(
-                          'عدد فواتير البيع', '$salesCount فاتورة'),
-                      // ⚠️ ملاحظة: الوردية لا تحفظ قيم USD - نعرض الليرة فقط
-                      _buildZReportRow('مبيعات نقدية',
-                          '${cashSales.toStringAsFixed(2)} ل.س'),
-                      _buildZReportRow('مبيعات آجلة',
-                          '${creditSales.toStringAsFixed(2)} ل.س'),
-                      pw.Divider(color: PdfColors.green200),
-                      _buildZReportRow('إجمالي المبيعات',
-                          '${shift.totalSales.toStringAsFixed(2)} ل.س',
-                          isBold: true),
-                    ],
+                ZReportTheme.salesBox(
+                  title: 'ملخص المبيعات',
+                  rows: [
+                    ZReportRow(
+                        label: 'عدد فواتير البيع', value: '$salesCount فاتورة'),
+                    ZReportRow(
+                        label: 'مبيعات نقدية',
+                        value: '${cashSales.toStringAsFixed(0)} ل.س'),
+                    ZReportRow(
+                        label: 'مبيعات آجلة',
+                        value: '${creditSales.toStringAsFixed(0)} ل.س'),
+                  ],
+                  total: ZReportRow(
+                    label: 'إجمالي المبيعات',
+                    value:
+                        '${shift.totalSales.toStringAsFixed(0)} ل.س${shift.totalSalesUsd > 0 ? " (\$${shift.totalSalesUsd.toStringAsFixed(2)})" : ""}',
+                    isBold: true,
                   ),
                 ),
                 pw.SizedBox(height: 16),
 
                 // المصروفات
-                pw.Container(
-                  padding: const pw.EdgeInsets.all(16),
-                  decoration: pw.BoxDecoration(
-                    color: PdfColor.fromHex('#FFEBEE'),
-                    borderRadius:
-                        const pw.BorderRadius.all(pw.Radius.circular(8)),
-                  ),
-                  child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text(
-                        'المصروفات',
-                        style: pw.TextStyle(
-                          fontSize: 14,
-                          fontWeight: pw.FontWeight.bold,
-                          color: PdfColor.fromHex('#C62828'),
-                        ),
-                      ),
-                      pw.SizedBox(height: 12),
-                      _buildZReportRow(
-                          'عدد فواتير الشراء', '$purchasesCount فاتورة'),
-                      _buildZReportRow('عدد المرتجعات', '$returnsCount فاتورة'),
-                      pw.Divider(color: PdfColors.red200),
-                      // ⚠️ ملاحظة: الوردية لا تحفظ قيم USD - نعرض الليرة فقط
-                      _buildZReportRow('إجمالي المصروفات',
-                          '${shift.totalExpenses.toStringAsFixed(2)} ل.س',
-                          isBold: true),
-                    ],
+                ZReportTheme.expenseBox(
+                  title: 'المصروفات',
+                  rows: [
+                    ZReportRow(
+                        label: 'عدد فواتير الشراء',
+                        value: '$purchasesCount فاتورة'),
+                    ZReportRow(
+                        label: 'عدد المرتجعات', value: '$returnsCount فاتورة'),
+                  ],
+                  total: ZReportRow(
+                    label: 'إجمالي المصروفات',
+                    value:
+                        '${shift.totalExpenses.toStringAsFixed(0)} ل.س${shift.totalExpensesUsd > 0 ? " (\$${shift.totalExpensesUsd.toStringAsFixed(2)})" : ""}',
+                    isBold: true,
                   ),
                 ),
                 pw.SizedBox(height: 20),
 
                 // ملخص النقدية
-                pw.Container(
-                  padding: const pw.EdgeInsets.all(16),
-                  decoration: pw.BoxDecoration(
-                    color: PdfColor.fromHex('#E3F2FD'),
-                    borderRadius:
-                        const pw.BorderRadius.all(pw.Radius.circular(8)),
-                  ),
-                  child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Text(
-                        'ملخص النقدية',
-                        style: pw.TextStyle(
-                          fontSize: 14,
-                          fontWeight: pw.FontWeight.bold,
-                          color: PdfColor.fromHex('#1565C0'),
-                        ),
-                      ),
-                      pw.SizedBox(height: 12),
-                      // ⚠️ ملاحظة: الوردية لا تحفظ قيم USD - نعرض الليرة فقط
-                      _buildZReportRow('الرصيد الافتتاحي',
-                          '${shift.openingBalance.toStringAsFixed(2)} ل.س'),
-                      _buildZReportRow('+ المبيعات النقدية',
-                          '${shift.totalSales.toStringAsFixed(2)} ل.س',
-                          color: PdfColors.green),
-                      _buildZReportRow('- المصروفات',
-                          '${shift.totalExpenses.toStringAsFixed(2)} ل.س',
-                          color: PdfColors.red),
-                      pw.Divider(color: PdfColors.blue200, thickness: 2),
-                      _buildZReportRow('= صافي النقدية المتوقع',
-                          '${netCash.toStringAsFixed(2)} ل.س',
-                          isBold: true, fontSize: 14),
-                    ],
+                ZReportTheme.cashBox(
+                  title: 'ملخص النقدية',
+                  rows: [
+                    ZReportRow(
+                        label: 'الرصيد الافتتاحي',
+                        value:
+                            '${shift.openingBalance.toStringAsFixed(0)} ل.س${(shift.openingBalanceUsd ?? 0) > 0 ? " (\$${shift.openingBalanceUsd!.toStringAsFixed(2)})" : ""}'),
+                    ZReportRow(
+                        label: '+ المبيعات النقدية',
+                        value:
+                            '${shift.totalSales.toStringAsFixed(0)} ل.س${shift.totalSalesUsd > 0 ? " (\$${shift.totalSalesUsd.toStringAsFixed(2)})" : ""}',
+                        color: AppPdfColors.success),
+                    ZReportRow(
+                        label: '- المصروفات',
+                        value:
+                            '${shift.totalExpenses.toStringAsFixed(0)} ل.س${shift.totalExpensesUsd > 0 ? " (\$${shift.totalExpensesUsd.toStringAsFixed(2)})" : ""}',
+                        color: AppPdfColors.error),
+                  ],
+                  total: ZReportRow(
+                    label: '= صافي النقدية المتوقع',
+                    value:
+                        '${netCash.toStringAsFixed(0)} ل.س${_calculateNetCashUsd(shift) != null ? " (\$${_calculateNetCashUsd(shift)!.toStringAsFixed(2)})" : ""}',
+                    isBold: true,
                   ),
                 ),
                 pw.SizedBox(height: 20),
 
                 // التوقيع
-                pw.Container(
-                  padding: const pw.EdgeInsets.all(16),
-                  child: pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                    children: [
-                      pw.Column(
-                        children: [
-                          pw.Text('توقيع الكاشير',
-                              style: const pw.TextStyle(fontSize: 10)),
-                          pw.SizedBox(height: 24),
-                          pw.Container(
-                            width: 120,
-                            decoration: const pw.BoxDecoration(
-                              border: pw.Border(
-                                  bottom:
-                                      pw.BorderSide(color: PdfColors.grey400)),
-                            ),
-                          ),
-                        ],
-                      ),
-                      pw.Column(
-                        children: [
-                          pw.Text('توقيع المدير',
-                              style: const pw.TextStyle(fontSize: 10)),
-                          pw.SizedBox(height: 24),
-                          pw.Container(
-                            width: 120,
-                            decoration: const pw.BoxDecoration(
-                              border: pw.Border(
-                                  bottom:
-                                      pw.BorderSide(color: PdfColors.grey400)),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+                ZReportTheme.signaturesSection(),
               ],
             ),
           ),
@@ -1665,35 +1474,17 @@ class PdfExportService {
     return doc.save();
   }
 
-  static pw.Widget _buildZReportRow(
-    String label,
-    String value, {
-    bool isBold = false,
-    double fontSize = 11,
-    PdfColor? color,
-  }) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 4),
-      child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-        children: [
-          pw.Text(
-            label,
-            style: pw.TextStyle(
-              fontSize: fontSize,
-              fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal,
-            ),
-          ),
-          pw.Text(
-            value,
-            style: pw.TextStyle(
-              fontSize: fontSize,
-              fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
+  /// حساب صافي النقدية بالدولار
+  static double? _calculateNetCashUsd(Shift shift) {
+    final openingUsd = shift.openingBalanceUsd ?? 0.0;
+    final salesUsd = shift.totalSalesUsd;
+    final expensesUsd = shift.totalExpensesUsd;
+
+    // إذا كانت جميع القيم صفر، نرجع null
+    if (openingUsd == 0 && salesUsd == 0 && expensesUsd == 0) {
+      return null;
+    }
+
+    return openingUsd + salesUsd - expensesUsd;
   }
 }

@@ -79,6 +79,54 @@ class PartyNameResolver {
     return names;
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Bulk Loading - تحميل جماعي لتحسين الأداء
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// تحميل جميع أسماء العملاء مرة واحدة (لاستخدامها في التصدير)
+  Future<Map<String, String>> loadAllCustomerNames() async {
+    if (_customerCache.isNotEmpty) return Map.from(_customerCache);
+
+    try {
+      final customersAsync = ref.read(customersStreamProvider);
+      final customers = customersAsync.value ?? [];
+
+      for (final customer in customers) {
+        _customerCache[customer.id] = customer.name;
+      }
+
+      return Map.from(_customerCache);
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// تحميل جميع أسماء الموردين مرة واحدة (لاستخدامها في التصدير)
+  Future<Map<String, String>> loadAllSupplierNames() async {
+    if (_supplierCache.isNotEmpty) return Map.from(_supplierCache);
+
+    try {
+      final suppliersAsync = ref.read(suppliersStreamProvider);
+      final suppliers = suppliersAsync.value ?? [];
+
+      for (final supplier in suppliers) {
+        _supplierCache[supplier.id] = supplier.name;
+      }
+
+      return Map.from(_supplierCache);
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// تحميل جميع الأسماء (عملاء وموردين) - للتصدير
+  Future<({Map<String, String> customers, Map<String, String> suppliers})>
+      loadAllPartyNames() async {
+    final customers = await loadAllCustomerNames();
+    final suppliers = await loadAllSupplierNames();
+    return (customers: customers, suppliers: suppliers);
+  }
+
   /// مسح الـ cache
   void clearCache() {
     _customerCache.clear();

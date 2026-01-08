@@ -32,8 +32,8 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
   String _searchQuery = '';
   String _filterType = 'all'; // all, income, expense
   DateTimeRange? _dateRange;
+  // ignore: unused_field
   bool _isExporting = false;
-  bool _showChart = false;
 
   @override
   void dispose() {
@@ -66,9 +66,6 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
       return matchesSearch && matchesType && matchesDate;
     }).toList();
   }
-
-  bool get _hasActiveFilters =>
-      _filterType != 'all' || _dateRange != null || _searchQuery.isNotEmpty;
 
   @override
   Widget build(BuildContext context) {
@@ -275,6 +272,7 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
     );
   }
 
+  // ignore: unused_element
   Widget _buildChart(List<CashMovement> movements) {
     // حساب الإجماليات حسب النوع
     double totalIncome = 0;
@@ -454,6 +452,7 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
     );
   }
 
+  // ignore: unused_element
   void _showFilterSheet() {
     showModalBottomSheet(
       context: context,
@@ -545,6 +544,7 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
     );
   }
 
+  // ignore: unused_element
   Future<void> _handleExport(
       ExportType type, List<CashMovement> movements) async {
     if (movements.isEmpty) {
@@ -566,15 +566,19 @@ class _CashScreenProState extends ConsumerState<CashScreenPro> {
           if (mounted) ProSnackbar.success(context, 'تم حفظ الملف بنجاح');
           break;
         case ExportType.pdf:
+          final settings = await ExportService.getExportSettings();
           final pdfBytes = await PdfExportService.generateCashMovementsList(
             movements: movements,
+            settings: settings,
           );
           await PdfExportService.savePdfFile(pdfBytes, fileName);
           if (mounted) ProSnackbar.success(context, 'تم حفظ الملف بنجاح');
           break;
         case ExportType.sharePdf:
+          final settingsShare = await ExportService.getExportSettings();
           final pdfBytes = await PdfExportService.generateCashMovementsList(
             movements: movements,
+            settings: settingsShare,
           );
           await PdfExportService.sharePdfBytes(
             pdfBytes,

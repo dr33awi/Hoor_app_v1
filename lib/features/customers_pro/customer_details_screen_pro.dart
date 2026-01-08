@@ -690,20 +690,24 @@ class _CustomerDetailsScreenProState
           if (mounted) ProSnackbar.success(context, 'تم حفظ الملف بنجاح');
           break;
         case ExportType.pdf:
+          final settings = await ExportService.getExportSettings();
           final pdfBytes = await PdfExportService.generateCustomerStatement(
             customer: _customer!,
             invoices: _currentInvoices,
             vouchers: _currentVouchers,
+            settings: settings,
           );
           await PdfExportService.savePdfFile(pdfBytes, fileName);
           if (mounted) ProSnackbar.success(context, 'تم حفظ الملف بنجاح');
           break;
         case ExportType.sharePdf:
+          final settingsShare = await ExportService.getExportSettings();
           final pdfBytesShare =
               await PdfExportService.generateCustomerStatement(
             customer: _customer!,
             invoices: _currentInvoices,
             vouchers: _currentVouchers,
+            settings: settingsShare,
           );
           await PdfExportService.sharePdfBytes(pdfBytesShare,
               fileName: fileName, subject: 'كشف حساب ${_customer!.name}');

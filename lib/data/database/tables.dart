@@ -569,3 +569,112 @@ class InventoryAdjustmentItems extends Table {
   @override
   Set<Column> get primaryKey => {id};
 }
+
+/// ═══════════════════════════════════════════════════════════════════════════
+/// Recurring Expense Templates - قوالب المصاريف الدورية
+/// ═══════════════════════════════════════════════════════════════════════════
+/// يحل محل SharedPreferences لضمان:
+/// - عدم فقدان البيانات عند مسح الكاش
+/// - التزامن مع Firestore
+/// - الـ Transaction Atomicity
+/// ═══════════════════════════════════════════════════════════════════════════
+class RecurringExpenseTemplates extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()(); // اسم القالب
+  TextColumn get categoryId =>
+      text().nullable().references(VoucherCategories, #id)();
+  TextColumn get categoryName => text().nullable()();
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // المبالغ (مع تثبيت السعر)
+  // ═══════════════════════════════════════════════════════════════════════════
+  RealColumn get amountSyp => real()(); // المبلغ بالليرة
+  RealColumn get amountUsd => real().nullable()(); // المبلغ بالدولار
+  RealColumn get exchangeRate =>
+      real().nullable()(); // سعر الصرف وقت إنشاء القالب
+
+  TextColumn get description => text().nullable()();
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // إعدادات التكرار
+  // ═══════════════════════════════════════════════════════════════════════════
+  TextColumn get frequency =>
+      text()(); // daily, weekly, biweekly, monthly, quarterly, yearly
+  DateTimeColumn get lastGeneratedDate =>
+      dateTime().nullable()(); // آخر تاريخ إنشاء
+  DateTimeColumn get nextDueDate =>
+      dateTime().nullable()(); // تاريخ الاستحقاق التالي
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // إعدادات التوزيع (للمصاريف الكبيرة)
+  // ═══════════════════════════════════════════════════════════════════════════
+  TextColumn get distributionType => text()
+      .withDefault(const Constant('immediate'))(); // immediate, distributed
+  TextColumn get distributionPeriod =>
+      text().nullable()(); // monthly, quarterly, semiAnnual, annual
+  IntColumn get distributionCount =>
+      integer().nullable()(); // عدد فترات التوزيع
+  DateTimeColumn get distributionStartDate =>
+      dateTime().nullable()(); // تاريخ بداية التوزيع
+  DateTimeColumn get distributionEndDate =>
+      dateTime().nullable()(); // تاريخ نهاية التوزيع
+
+  BoolColumn get isActive =>
+      boolean().withDefault(const Constant(true))(); // هل القالب نشط
+  TextColumn get syncStatus =>
+      text().withDefault(const Constant('pending'))(); // pending, synced
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+/// ═══════════════════════════════════════════════════════════════════════════
+/// Recurring Expense Logs - سجل المصاريف الدورية المنشأة
+/// ═══════════════════════════════════════════════════════════════════════════
+/// يحفظ سجل كل مصروف دوري تم إنشاؤه مع Period Key لمنع التكرار
+/// ═══════════════════════════════════════════════════════════════════════════
+class RecurringExpenseLogs extends Table {
+  TextColumn get id => text()();
+  TextColumn get templateId =>
+      text().references(RecurringExpenseTemplates, #id)();
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Period Key - المفتاح الفريد للفترة (لمنع التكرار)
+  // ═══════════════════════════════════════════════════════════════════════════
+  TextColumn get periodKey => text()(); // مثال: template123_2026_01
+
+  // معرف المصروف المنشأ
+  TextColumn get expenseId => text().nullable()();
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // معلومات التوزيع (للمصاريف الموزعة)
+  // ═══════════════════════════════════════════════════════════════════════════
+  IntColumn get periodNumber =>
+      integer().nullable()(); // رقم الفترة (1, 2, 3...)
+  IntColumn get totalPeriods => integer().nullable()(); // إجمالي الفترات
+  RealColumn get amountSyp => real()(); // المبلغ لهذه الفترة
+  RealColumn get amountUsd => real().nullable()();
+  RealColumn get totalAmountSyp =>
+      real().nullable()(); // المبلغ الإجمالي للمصروف الأب
+  DateTimeColumn get periodStartDate => dateTime().nullable()(); // بداية الفترة
+  DateTimeColumn get periodEndDate => dateTime().nullable()(); // نهاية الفترة
+
+  // حالة الإنشاء
+  TextColumn get status => text()
+      .withDefault(const Constant('created'))(); // created, failed, cancelled
+  TextColumn get errorMessage => text().nullable()(); // رسالة الخطأ إن وجد
+
+  TextColumn get syncStatus => text().withDefault(const Constant('pending'))();
+  DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+
+  // فهرس فريد على Period Key لمنع التكرار
+  @override
+  List<Set<Column>> get uniqueKeys => [
+        {templateId, periodKey}
+      ];
+}

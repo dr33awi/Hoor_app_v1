@@ -23,6 +23,7 @@ import '../../core/services/export/export_button.dart';
 import '../../core/services/export/export_services.dart';
 import '../../core/services/printing/print_menu_button.dart';
 import '../../data/database/app_database.dart';
+import '../expenses_pro/services/recurring_expense_service.dart';
 
 class ShiftsScreenPro extends ConsumerStatefulWidget {
   const ShiftsScreenPro({super.key});
@@ -276,8 +277,9 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
         'الورديات_${DateFormat('yyyyMMdd').format(DateTime.now())}';
 
     try {
-      final pdfBytes =
-          await PdfExportService.generateShiftsList(shifts: shifts);
+      final settings = await ExportService.getExportSettings();
+      final pdfBytes = await PdfExportService.generateShiftsList(
+          shifts: shifts, settings: settings);
 
       switch (type) {
         case PrintType.print:
@@ -327,15 +329,19 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
           if (mounted) ProSnackbar.success(context, 'تم حفظ الملف بنجاح');
           break;
         case ExportType.pdf:
+          final settings = await ExportService.getExportSettings();
           final pdfBytes = await PdfExportService.generateShiftsList(
             shifts: shifts,
+            settings: settings,
           );
           await PdfExportService.savePdfFile(pdfBytes, fileName);
           if (mounted) ProSnackbar.success(context, 'تم حفظ الملف بنجاح');
           break;
         case ExportType.sharePdf:
+          final settingsShare = await ExportService.getExportSettings();
           final pdfBytes = await PdfExportService.generateShiftsList(
             shifts: shifts,
+            settings: settingsShare,
           );
           await PdfExportService.sharePdfBytes(
             pdfBytes,
@@ -705,12 +711,105 @@ class _ShiftsScreenProState extends ConsumerState<ShiftsScreenPro> {
         await shiftRepo.openShift(openingBalance: result);
         if (context.mounted) {
           ProSnackbar.success(context, 'تم فتح الوردية بنجاح');
+
+          // ═══════════════════════════════════════════════════════════════════════
+          // معالجة المصاريف الدورية المستحقة تلقائياً
+          // ═══════════════════════════════════════════════════════════════════════
+          _processRecurringExpenses(context, ref);
         }
       } catch (e) {
         if (context.mounted) {
           ProSnackbar.error(context, 'خطأ: $e');
         }
       }
+    }
+  }
+
+  /// معالجة المصاريف الدورية المستحقة بعد فتح الوردية
+  void _processRecurringExpenses(BuildContext context, WidgetRef ref) async {
+    try {
+      // التحقق من وجود مصاريف مستحقة
+      final dueCount = await RecurringExpenseService.getDueCount();
+      if (dueCount == 0) return;
+
+      // إظهار رسالة تأكيد
+      if (!context.mounted) return;
+
+      final shouldProcess = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: AppColors.warning.soft,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: Icon(Icons.schedule, color: AppColors.warning),
+              ),
+              SizedBox(width: AppSpacing.sm),
+              const Text('مصاريف دورية مستحقة'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'يوجد $dueCount مصروف دوري مستحق.',
+                style: AppTypography.bodyMedium,
+              ),
+              SizedBox(height: AppSpacing.sm),
+              Text(
+                'هل تريد إنشاءها تلقائياً الآن؟',
+                style: AppTypography.bodyMedium,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('لاحقاً'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.success,
+              ),
+              child: const Text('إنشاء الآن'),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldProcess == true && context.mounted) {
+        // إنشاء المصاريف
+        final expenseRepo = ref.read(expenseRepositoryProvider);
+        final result =
+            await RecurringExpenseService.processAllDueExpenses(expenseRepo);
+
+        if (!context.mounted) return;
+
+        if (result.hasSuccess) {
+          ProSnackbar.success(
+            context,
+            'تم إنشاء ${result.successCount} مصروف دوري: ${result.generatedExpenseNames.join("، ")}',
+          );
+        }
+
+        if (result.hasErrors) {
+          ProSnackbar.warning(
+            context,
+            'فشل إنشاء ${result.failedCount} مصروف',
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ خطأ في معالجة المصاريف الدورية: $e');
     }
   }
 
@@ -775,8 +874,6 @@ class _ShiftCard extends StatelessWidget {
     final dateFormat = DateFormat('MM/dd HH:mm', 'ar');
     final isOpen = shift.status == 'open';
     final statusColor = isOpen ? AppColors.success : AppColors.textSecondary;
-    // استخدام سعر الصرف المحفوظ مع الوردية أو الافتراضي كـ fallback
-    final rate = shift.exchangeRate ?? AppConstants.defaultExchangeRate;
 
     // حساب مدة الوردية
     final endTime = shift.closedAt ?? DateTime.now();
@@ -950,167 +1047,6 @@ class _MiniStat extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _ShiftCardOld extends StatelessWidget {
-  final Shift shift;
-
-  const _ShiftCardOld({required this.shift});
-
-  @override
-  Widget build(BuildContext context) {
-    final dateFormat = DateFormat('yyyy/MM/dd HH:mm', 'ar');
-    final isOpen = shift.status == 'open';
-    final statusColor = isOpen ? AppColors.success : AppColors.textSecondary;
-    // استخدام سعر الصرف المحفوظ مع الوردية أو الافتراضي كـ fallback
-    final rate = shift.exchangeRate ?? AppConstants.defaultExchangeRate;
-
-    return ProCard(
-      onTap: () => context.push('/shifts/${shift.id}'),
-      margin: EdgeInsets.only(bottom: AppSpacing.sm),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 40.w,
-                height: 40.h,
-                decoration: BoxDecoration(
-                  color: statusColor.soft,
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                ),
-                child: Icon(
-                  isOpen
-                      ? Icons.access_time_rounded
-                      : Icons.check_circle_rounded,
-                  color: statusColor,
-                  size: AppIconSize.sm,
-                ),
-              ),
-              SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(
-                          '#${shift.shiftNumber}',
-                          style: AppTypography.titleSmall
-                              .copyWith(
-                                color: AppColors.textPrimary,
-                              )
-                              .monoSemibold,
-                        ),
-                        SizedBox(width: AppSpacing.sm),
-                        ProStatusBadge.fromShiftStatus(shift.status,
-                            small: true),
-                      ],
-                    ),
-                    Text(
-                      dateFormat.format(shift.openedAt),
-                      style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.textTertiary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: AppSpacing.md),
-          Row(
-            children: [
-              Expanded(
-                child: _InfoItem(
-                  label: 'الافتتاح',
-                  value: '${shift.openingBalance.toStringAsFixed(0)} ل.س',
-                  usdValue: shift.openingBalanceUsd != null
-                      ? '\$${shift.openingBalanceUsd!.toStringAsFixed(2)}'
-                      : '\$${(shift.openingBalance / rate).toStringAsFixed(2)}',
-                ),
-              ),
-              Expanded(
-                child: _InfoItem(
-                  label: 'المبيعات',
-                  value: '${shift.totalSales.toStringAsFixed(0)} ل.س',
-                  usdValue: shift.totalSalesUsd > 0
-                      ? '\$${shift.totalSalesUsd.toStringAsFixed(2)}'
-                      : '\$${(shift.totalSales / rate).toStringAsFixed(2)}',
-                  color: AppColors.success,
-                ),
-              ),
-              Expanded(
-                child: _InfoItem(
-                  label: 'المصاريف',
-                  value: '${shift.totalExpenses.toStringAsFixed(0)} ل.س',
-                  usdValue: shift.totalExpensesUsd > 0
-                      ? '\$${shift.totalExpensesUsd.toStringAsFixed(2)}'
-                      : '\$${(shift.totalExpenses / rate).toStringAsFixed(2)}',
-                  color: AppColors.error,
-                ),
-              ),
-              if (!isOpen && shift.closingBalance != null)
-                Expanded(
-                  child: _InfoItem(
-                    label: 'الإغلاق',
-                    value: '${shift.closingBalance!.toStringAsFixed(0)} ل.س',
-                    usdValue: shift.closingBalanceUsd != null
-                        ? '\$${shift.closingBalanceUsd!.toStringAsFixed(2)}'
-                        : '\$${(shift.closingBalance! / rate).toStringAsFixed(2)}',
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoItem extends StatelessWidget {
-  final String label;
-  final String value;
-  final String? usdValue;
-  final Color? color;
-
-  const _InfoItem({
-    required this.label,
-    required this.value,
-    this.usdValue,
-    this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: AppTypography.labelSmall.copyWith(
-            color: AppColors.textTertiary,
-          ),
-        ),
-        Text(
-          value,
-          style: AppTypography.labelMedium
-              .copyWith(
-                color: color ?? AppColors.textPrimary,
-              )
-              .mono,
-        ),
-        if (usdValue != null)
-          Text(
-            usdValue!,
-            style: AppTypography.labelSmall.copyWith(
-              color: (color ?? AppColors.textPrimary).withValues(alpha: 0.7),
-            ),
-          ),
-      ],
     );
   }
 }

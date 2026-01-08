@@ -17,7 +17,6 @@ import 'package:hoor_manager/features/home_pro/widgets/alerts_widget.dart';
 
 import '../../core/theme/design_tokens.dart';
 import '../../core/providers/app_providers.dart';
-import '../../core/services/currency_service.dart';
 import 'widgets/pro_navigation_drawer.dart';
 
 class HomeScreenPro extends ConsumerStatefulWidget {
@@ -212,12 +211,6 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
                   style: AppTypography.titleSmall.copyWith(
                     color: AppColors.primary,
                     fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  'نظام إدارة المبيعات',
-                  style: AppTypography.labelSmall.copyWith(
-                    color: AppColors.textTertiary,
                   ),
                 ),
               ],
@@ -639,8 +632,8 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
         _OptionItem(
           icon: Icons.warehouse_rounded,
           title: 'المخازن',
-          subtitle: 'إدارة المخزون والمستودعات',
-          route: '/inventory',
+          subtitle: 'إدارة المخازن والمستودعات',
+          route: '/warehouses',
           color: AppColors.secondary,
         ),
       ],
@@ -731,29 +724,6 @@ class _HomeScreenProState extends ConsumerState<HomeScreenPro>
           ),
         ),
       ),
-    );
-  }
-
-  // ═══════════════════════════════════════════════════════════════════════════
-  // MANAGEMENT GRID - Enterprise Style
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  Widget _buildManagementGrid() {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 3,
-      mainAxisSpacing: AppSpacing.xs.h,
-      crossAxisSpacing: AppSpacing.xs.w,
-      childAspectRatio: 1.1,
-      children: [
-        _SmallMenuCard(
-          icon: Icons.bar_chart_rounded,
-          label: 'التقارير',
-          color: AppColors.primary,
-          onTap: () => context.push('/reports'),
-        ),
-      ],
     );
   }
 
@@ -887,52 +857,6 @@ class _ModernMenuCard extends StatelessWidget {
               subtitle,
               style: AppTypography.labelSmall.copyWith(
                 color: AppColors.textTertiary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SmallMenuCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _SmallMenuCard({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        HapticFeedback.lightImpact();
-        onTap();
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppRadius.xs),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: color, size: 20.sp),
-            SizedBox(height: AppSpacing.xs.h),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: AppTypography.labelSmall.copyWith(
-                color: AppColors.textSecondary,
-                fontWeight: FontWeight.w500,
               ),
             ),
           ],

@@ -81,9 +81,14 @@ final alertsProvider = FutureProvider<List<AlertItem>>((ref) async {
   final formatter = NumberFormat('#,##0', 'ar');
 
   // 1. Check for products with ZERO stock (Critical)
+  // استخدام الكميات الفعلية من المستودعات
   try {
-    final products = await ref.watch(activeProductsStreamProvider.future);
-    final zeroStockProducts = products.where((p) => p.quantity == 0).toList();
+    final productData =
+        await ref.watch(activeProductsWithDefaultWarehouseStockProvider.future);
+    final zeroStockProducts = productData
+        .where((item) => (item['quantity'] as int) == 0)
+        .map((item) => item['product'])
+        .toList();
     if (zeroStockProducts.isNotEmpty) {
       alerts.add(AlertItem(
         id: 'zero_stock',
@@ -105,8 +110,19 @@ final alertsProvider = FutureProvider<List<AlertItem>>((ref) async {
   }
 
   // 2. Check for LOW stock products (Warning)
+  // استخدام الكميات الفعلية من المستودعات
   try {
-    final lowStockProducts = await ref.watch(lowStockProductsProvider.future);
+    final productData =
+        await ref.watch(activeProductsWithDefaultWarehouseStockProvider.future);
+    final lowStockProducts = productData
+        .where((item) {
+          final quantity = item['quantity'] as int;
+          final product = item['product'];
+          // المخزون أكبر من صفر ولكن أقل من أو يساوي الحد الأدنى
+          return quantity > 0 && quantity <= product.minQuantity;
+        })
+        .map((item) => item['product'])
+        .toList();
     if (lowStockProducts.isNotEmpty) {
       alerts.add(AlertItem(
         id: 'low_stock',
@@ -237,14 +253,18 @@ final alertsProvider = FutureProvider<List<AlertItem>>((ref) async {
 
 /// Provider for alert count
 final alertsCountProvider = Provider<int>((ref) {
-  return ref.watch(alertsProvider).whenOrNull(data: (alerts) => alerts.length) ?? 0;
+  return ref
+          .watch(alertsProvider)
+          .whenOrNull(data: (alerts) => alerts.length) ??
+      0;
 });
 
 /// Provider for critical alerts only
 final criticalAlertsProvider = Provider<List<AlertItem>>((ref) {
   return ref.watch(alertsProvider).whenOrNull(
-            data: (alerts) =>
-                alerts.where((a) => a.severity == AlertSeverity.critical).toList(),
+            data: (alerts) => alerts
+                .where((a) => a.severity == AlertSeverity.critical)
+                .toList(),
           ) ??
       [];
 });
@@ -252,8 +272,9 @@ final criticalAlertsProvider = Provider<List<AlertItem>>((ref) {
 /// Provider for warning alerts only
 final warningAlertsProvider = Provider<List<AlertItem>>((ref) {
   return ref.watch(alertsProvider).whenOrNull(
-            data: (alerts) =>
-                alerts.where((a) => a.severity == AlertSeverity.warning).toList(),
+            data: (alerts) => alerts
+                .where((a) => a.severity == AlertSeverity.warning)
+                .toList(),
           ) ??
       [];
 });

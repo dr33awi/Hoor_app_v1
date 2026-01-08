@@ -153,7 +153,7 @@ class _ReturnsScreenProState extends ConsumerState<ReturnsScreenPro> {
     return ProHeader(
       title: widget.type.title,
       subtitle: widget.type.subtitle,
-      onBack: () => context.pop(),
+      onBack: () => context.go('/'),
       actions: [
         returnsAsync.when(
           loading: () => const SizedBox.shrink(),
@@ -240,6 +240,7 @@ class _ReturnsScreenProState extends ConsumerState<ReturnsScreenPro> {
   // New Return Sheet
   // ═══════════════════════════════════════════════════════════════════════════
 
+  // ignore: unused_element
   void _showNewReturnSheet() {
     Invoice? selectedInvoice;
     final reasonController = TextEditingController();

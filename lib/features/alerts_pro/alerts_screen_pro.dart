@@ -61,13 +61,15 @@ class AlertsScreenPro extends ConsumerWidget {
       ),
       body: alertsAsync.when(
         loading: () => ProLoadingState.list(),
-        error: (error, _) => ProEmptyState.error(error: 'خطأ في تحميل التنبيهات: $error'),
+        error: (error, _) =>
+            ProEmptyState.error(error: 'خطأ في تحميل التنبيهات: $error'),
         data: (alerts) {
           if (alerts.isEmpty) {
             return const ProEmptyState(
               icon: Icons.notifications_none_rounded,
               title: 'لا توجد تنبيهات',
-              message: 'ستظهر التنبيهات الجديدة هنا عند وجود:\n• منتجات منخفضة المخزون\n• ذمم مدينة أو دائنة\n• وردية غير مفتوحة',
+              message:
+                  'ستظهر التنبيهات الجديدة هنا عند وجود:\n• منتجات منخفضة المخزون\n• ذمم مدينة أو دائنة\n• وردية غير مفتوحة',
             );
           }
 

@@ -13393,6 +13393,1754 @@ class InventoryAdjustmentItemsCompanion
   }
 }
 
+class $RecurringExpenseTemplatesTable extends RecurringExpenseTemplates
+    with TableInfo<$RecurringExpenseTemplatesTable, RecurringExpenseTemplate> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RecurringExpenseTemplatesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+      'name', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _categoryIdMeta =
+      const VerificationMeta('categoryId');
+  @override
+  late final GeneratedColumn<String> categoryId = GeneratedColumn<String>(
+      'category_id', aliasedName, true,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'REFERENCES voucher_categories (id)'));
+  static const VerificationMeta _categoryNameMeta =
+      const VerificationMeta('categoryName');
+  @override
+  late final GeneratedColumn<String> categoryName = GeneratedColumn<String>(
+      'category_name', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _amountSypMeta =
+      const VerificationMeta('amountSyp');
+  @override
+  late final GeneratedColumn<double> amountSyp = GeneratedColumn<double>(
+      'amount_syp', aliasedName, false,
+      type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _amountUsdMeta =
+      const VerificationMeta('amountUsd');
+  @override
+  late final GeneratedColumn<double> amountUsd = GeneratedColumn<double>(
+      'amount_usd', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _exchangeRateMeta =
+      const VerificationMeta('exchangeRate');
+  @override
+  late final GeneratedColumn<double> exchangeRate = GeneratedColumn<double>(
+      'exchange_rate', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _descriptionMeta =
+      const VerificationMeta('description');
+  @override
+  late final GeneratedColumn<String> description = GeneratedColumn<String>(
+      'description', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _frequencyMeta =
+      const VerificationMeta('frequency');
+  @override
+  late final GeneratedColumn<String> frequency = GeneratedColumn<String>(
+      'frequency', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _lastGeneratedDateMeta =
+      const VerificationMeta('lastGeneratedDate');
+  @override
+  late final GeneratedColumn<DateTime> lastGeneratedDate =
+      GeneratedColumn<DateTime>('last_generated_date', aliasedName, true,
+          type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _nextDueDateMeta =
+      const VerificationMeta('nextDueDate');
+  @override
+  late final GeneratedColumn<DateTime> nextDueDate = GeneratedColumn<DateTime>(
+      'next_due_date', aliasedName, true,
+      type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _distributionTypeMeta =
+      const VerificationMeta('distributionType');
+  @override
+  late final GeneratedColumn<String> distributionType = GeneratedColumn<String>(
+      'distribution_type', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('immediate'));
+  static const VerificationMeta _distributionPeriodMeta =
+      const VerificationMeta('distributionPeriod');
+  @override
+  late final GeneratedColumn<String> distributionPeriod =
+      GeneratedColumn<String>('distribution_period', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _distributionCountMeta =
+      const VerificationMeta('distributionCount');
+  @override
+  late final GeneratedColumn<int> distributionCount = GeneratedColumn<int>(
+      'distribution_count', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _distributionStartDateMeta =
+      const VerificationMeta('distributionStartDate');
+  @override
+  late final GeneratedColumn<DateTime> distributionStartDate =
+      GeneratedColumn<DateTime>('distribution_start_date', aliasedName, true,
+          type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _distributionEndDateMeta =
+      const VerificationMeta('distributionEndDate');
+  @override
+  late final GeneratedColumn<DateTime> distributionEndDate =
+      GeneratedColumn<DateTime>('distribution_end_date', aliasedName, true,
+          type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _isActiveMeta =
+      const VerificationMeta('isActive');
+  @override
+  late final GeneratedColumn<bool> isActive = GeneratedColumn<bool>(
+      'is_active', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_active" IN (0, 1))'),
+      defaultValue: const Constant(true));
+  static const VerificationMeta _syncStatusMeta =
+      const VerificationMeta('syncStatus');
+  @override
+  late final GeneratedColumn<String> syncStatus = GeneratedColumn<String>(
+      'sync_status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('pending'));
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        name,
+        categoryId,
+        categoryName,
+        amountSyp,
+        amountUsd,
+        exchangeRate,
+        description,
+        frequency,
+        lastGeneratedDate,
+        nextDueDate,
+        distributionType,
+        distributionPeriod,
+        distributionCount,
+        distributionStartDate,
+        distributionEndDate,
+        isActive,
+        syncStatus,
+        createdAt,
+        updatedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'recurring_expense_templates';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<RecurringExpenseTemplate> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+          _nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('category_id')) {
+      context.handle(
+          _categoryIdMeta,
+          categoryId.isAcceptableOrUnknown(
+              data['category_id']!, _categoryIdMeta));
+    }
+    if (data.containsKey('category_name')) {
+      context.handle(
+          _categoryNameMeta,
+          categoryName.isAcceptableOrUnknown(
+              data['category_name']!, _categoryNameMeta));
+    }
+    if (data.containsKey('amount_syp')) {
+      context.handle(_amountSypMeta,
+          amountSyp.isAcceptableOrUnknown(data['amount_syp']!, _amountSypMeta));
+    } else if (isInserting) {
+      context.missing(_amountSypMeta);
+    }
+    if (data.containsKey('amount_usd')) {
+      context.handle(_amountUsdMeta,
+          amountUsd.isAcceptableOrUnknown(data['amount_usd']!, _amountUsdMeta));
+    }
+    if (data.containsKey('exchange_rate')) {
+      context.handle(
+          _exchangeRateMeta,
+          exchangeRate.isAcceptableOrUnknown(
+              data['exchange_rate']!, _exchangeRateMeta));
+    }
+    if (data.containsKey('description')) {
+      context.handle(
+          _descriptionMeta,
+          description.isAcceptableOrUnknown(
+              data['description']!, _descriptionMeta));
+    }
+    if (data.containsKey('frequency')) {
+      context.handle(_frequencyMeta,
+          frequency.isAcceptableOrUnknown(data['frequency']!, _frequencyMeta));
+    } else if (isInserting) {
+      context.missing(_frequencyMeta);
+    }
+    if (data.containsKey('last_generated_date')) {
+      context.handle(
+          _lastGeneratedDateMeta,
+          lastGeneratedDate.isAcceptableOrUnknown(
+              data['last_generated_date']!, _lastGeneratedDateMeta));
+    }
+    if (data.containsKey('next_due_date')) {
+      context.handle(
+          _nextDueDateMeta,
+          nextDueDate.isAcceptableOrUnknown(
+              data['next_due_date']!, _nextDueDateMeta));
+    }
+    if (data.containsKey('distribution_type')) {
+      context.handle(
+          _distributionTypeMeta,
+          distributionType.isAcceptableOrUnknown(
+              data['distribution_type']!, _distributionTypeMeta));
+    }
+    if (data.containsKey('distribution_period')) {
+      context.handle(
+          _distributionPeriodMeta,
+          distributionPeriod.isAcceptableOrUnknown(
+              data['distribution_period']!, _distributionPeriodMeta));
+    }
+    if (data.containsKey('distribution_count')) {
+      context.handle(
+          _distributionCountMeta,
+          distributionCount.isAcceptableOrUnknown(
+              data['distribution_count']!, _distributionCountMeta));
+    }
+    if (data.containsKey('distribution_start_date')) {
+      context.handle(
+          _distributionStartDateMeta,
+          distributionStartDate.isAcceptableOrUnknown(
+              data['distribution_start_date']!, _distributionStartDateMeta));
+    }
+    if (data.containsKey('distribution_end_date')) {
+      context.handle(
+          _distributionEndDateMeta,
+          distributionEndDate.isAcceptableOrUnknown(
+              data['distribution_end_date']!, _distributionEndDateMeta));
+    }
+    if (data.containsKey('is_active')) {
+      context.handle(_isActiveMeta,
+          isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta));
+    }
+    if (data.containsKey('sync_status')) {
+      context.handle(
+          _syncStatusMeta,
+          syncStatus.isAcceptableOrUnknown(
+              data['sync_status']!, _syncStatusMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  RecurringExpenseTemplate map(Map<String, dynamic> data,
+      {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RecurringExpenseTemplate(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      name: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
+      categoryId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}category_id']),
+      categoryName: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}category_name']),
+      amountSyp: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}amount_syp'])!,
+      amountUsd: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}amount_usd']),
+      exchangeRate: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}exchange_rate']),
+      description: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}description']),
+      frequency: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}frequency'])!,
+      lastGeneratedDate: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}last_generated_date']),
+      nextDueDate: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}next_due_date']),
+      distributionType: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}distribution_type'])!,
+      distributionPeriod: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}distribution_period']),
+      distributionCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}distribution_count']),
+      distributionStartDate: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime,
+          data['${effectivePrefix}distribution_start_date']),
+      distributionEndDate: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime,
+          data['${effectivePrefix}distribution_end_date']),
+      isActive: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_active'])!,
+      syncStatus: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}sync_status'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+    );
+  }
+
+  @override
+  $RecurringExpenseTemplatesTable createAlias(String alias) {
+    return $RecurringExpenseTemplatesTable(attachedDatabase, alias);
+  }
+}
+
+class RecurringExpenseTemplate extends DataClass
+    implements Insertable<RecurringExpenseTemplate> {
+  final String id;
+  final String name;
+  final String? categoryId;
+  final String? categoryName;
+  final double amountSyp;
+  final double? amountUsd;
+  final double? exchangeRate;
+  final String? description;
+  final String frequency;
+  final DateTime? lastGeneratedDate;
+  final DateTime? nextDueDate;
+  final String distributionType;
+  final String? distributionPeriod;
+  final int? distributionCount;
+  final DateTime? distributionStartDate;
+  final DateTime? distributionEndDate;
+  final bool isActive;
+  final String syncStatus;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const RecurringExpenseTemplate(
+      {required this.id,
+      required this.name,
+      this.categoryId,
+      this.categoryName,
+      required this.amountSyp,
+      this.amountUsd,
+      this.exchangeRate,
+      this.description,
+      required this.frequency,
+      this.lastGeneratedDate,
+      this.nextDueDate,
+      required this.distributionType,
+      this.distributionPeriod,
+      this.distributionCount,
+      this.distributionStartDate,
+      this.distributionEndDate,
+      required this.isActive,
+      required this.syncStatus,
+      required this.createdAt,
+      required this.updatedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || categoryId != null) {
+      map['category_id'] = Variable<String>(categoryId);
+    }
+    if (!nullToAbsent || categoryName != null) {
+      map['category_name'] = Variable<String>(categoryName);
+    }
+    map['amount_syp'] = Variable<double>(amountSyp);
+    if (!nullToAbsent || amountUsd != null) {
+      map['amount_usd'] = Variable<double>(amountUsd);
+    }
+    if (!nullToAbsent || exchangeRate != null) {
+      map['exchange_rate'] = Variable<double>(exchangeRate);
+    }
+    if (!nullToAbsent || description != null) {
+      map['description'] = Variable<String>(description);
+    }
+    map['frequency'] = Variable<String>(frequency);
+    if (!nullToAbsent || lastGeneratedDate != null) {
+      map['last_generated_date'] = Variable<DateTime>(lastGeneratedDate);
+    }
+    if (!nullToAbsent || nextDueDate != null) {
+      map['next_due_date'] = Variable<DateTime>(nextDueDate);
+    }
+    map['distribution_type'] = Variable<String>(distributionType);
+    if (!nullToAbsent || distributionPeriod != null) {
+      map['distribution_period'] = Variable<String>(distributionPeriod);
+    }
+    if (!nullToAbsent || distributionCount != null) {
+      map['distribution_count'] = Variable<int>(distributionCount);
+    }
+    if (!nullToAbsent || distributionStartDate != null) {
+      map['distribution_start_date'] =
+          Variable<DateTime>(distributionStartDate);
+    }
+    if (!nullToAbsent || distributionEndDate != null) {
+      map['distribution_end_date'] = Variable<DateTime>(distributionEndDate);
+    }
+    map['is_active'] = Variable<bool>(isActive);
+    map['sync_status'] = Variable<String>(syncStatus);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  RecurringExpenseTemplatesCompanion toCompanion(bool nullToAbsent) {
+    return RecurringExpenseTemplatesCompanion(
+      id: Value(id),
+      name: Value(name),
+      categoryId: categoryId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(categoryId),
+      categoryName: categoryName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(categoryName),
+      amountSyp: Value(amountSyp),
+      amountUsd: amountUsd == null && nullToAbsent
+          ? const Value.absent()
+          : Value(amountUsd),
+      exchangeRate: exchangeRate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(exchangeRate),
+      description: description == null && nullToAbsent
+          ? const Value.absent()
+          : Value(description),
+      frequency: Value(frequency),
+      lastGeneratedDate: lastGeneratedDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastGeneratedDate),
+      nextDueDate: nextDueDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(nextDueDate),
+      distributionType: Value(distributionType),
+      distributionPeriod: distributionPeriod == null && nullToAbsent
+          ? const Value.absent()
+          : Value(distributionPeriod),
+      distributionCount: distributionCount == null && nullToAbsent
+          ? const Value.absent()
+          : Value(distributionCount),
+      distributionStartDate: distributionStartDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(distributionStartDate),
+      distributionEndDate: distributionEndDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(distributionEndDate),
+      isActive: Value(isActive),
+      syncStatus: Value(syncStatus),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory RecurringExpenseTemplate.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RecurringExpenseTemplate(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      categoryId: serializer.fromJson<String?>(json['categoryId']),
+      categoryName: serializer.fromJson<String?>(json['categoryName']),
+      amountSyp: serializer.fromJson<double>(json['amountSyp']),
+      amountUsd: serializer.fromJson<double?>(json['amountUsd']),
+      exchangeRate: serializer.fromJson<double?>(json['exchangeRate']),
+      description: serializer.fromJson<String?>(json['description']),
+      frequency: serializer.fromJson<String>(json['frequency']),
+      lastGeneratedDate:
+          serializer.fromJson<DateTime?>(json['lastGeneratedDate']),
+      nextDueDate: serializer.fromJson<DateTime?>(json['nextDueDate']),
+      distributionType: serializer.fromJson<String>(json['distributionType']),
+      distributionPeriod:
+          serializer.fromJson<String?>(json['distributionPeriod']),
+      distributionCount: serializer.fromJson<int?>(json['distributionCount']),
+      distributionStartDate:
+          serializer.fromJson<DateTime?>(json['distributionStartDate']),
+      distributionEndDate:
+          serializer.fromJson<DateTime?>(json['distributionEndDate']),
+      isActive: serializer.fromJson<bool>(json['isActive']),
+      syncStatus: serializer.fromJson<String>(json['syncStatus']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'categoryId': serializer.toJson<String?>(categoryId),
+      'categoryName': serializer.toJson<String?>(categoryName),
+      'amountSyp': serializer.toJson<double>(amountSyp),
+      'amountUsd': serializer.toJson<double?>(amountUsd),
+      'exchangeRate': serializer.toJson<double?>(exchangeRate),
+      'description': serializer.toJson<String?>(description),
+      'frequency': serializer.toJson<String>(frequency),
+      'lastGeneratedDate': serializer.toJson<DateTime?>(lastGeneratedDate),
+      'nextDueDate': serializer.toJson<DateTime?>(nextDueDate),
+      'distributionType': serializer.toJson<String>(distributionType),
+      'distributionPeriod': serializer.toJson<String?>(distributionPeriod),
+      'distributionCount': serializer.toJson<int?>(distributionCount),
+      'distributionStartDate':
+          serializer.toJson<DateTime?>(distributionStartDate),
+      'distributionEndDate': serializer.toJson<DateTime?>(distributionEndDate),
+      'isActive': serializer.toJson<bool>(isActive),
+      'syncStatus': serializer.toJson<String>(syncStatus),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  RecurringExpenseTemplate copyWith(
+          {String? id,
+          String? name,
+          Value<String?> categoryId = const Value.absent(),
+          Value<String?> categoryName = const Value.absent(),
+          double? amountSyp,
+          Value<double?> amountUsd = const Value.absent(),
+          Value<double?> exchangeRate = const Value.absent(),
+          Value<String?> description = const Value.absent(),
+          String? frequency,
+          Value<DateTime?> lastGeneratedDate = const Value.absent(),
+          Value<DateTime?> nextDueDate = const Value.absent(),
+          String? distributionType,
+          Value<String?> distributionPeriod = const Value.absent(),
+          Value<int?> distributionCount = const Value.absent(),
+          Value<DateTime?> distributionStartDate = const Value.absent(),
+          Value<DateTime?> distributionEndDate = const Value.absent(),
+          bool? isActive,
+          String? syncStatus,
+          DateTime? createdAt,
+          DateTime? updatedAt}) =>
+      RecurringExpenseTemplate(
+        id: id ?? this.id,
+        name: name ?? this.name,
+        categoryId: categoryId.present ? categoryId.value : this.categoryId,
+        categoryName:
+            categoryName.present ? categoryName.value : this.categoryName,
+        amountSyp: amountSyp ?? this.amountSyp,
+        amountUsd: amountUsd.present ? amountUsd.value : this.amountUsd,
+        exchangeRate:
+            exchangeRate.present ? exchangeRate.value : this.exchangeRate,
+        description: description.present ? description.value : this.description,
+        frequency: frequency ?? this.frequency,
+        lastGeneratedDate: lastGeneratedDate.present
+            ? lastGeneratedDate.value
+            : this.lastGeneratedDate,
+        nextDueDate: nextDueDate.present ? nextDueDate.value : this.nextDueDate,
+        distributionType: distributionType ?? this.distributionType,
+        distributionPeriod: distributionPeriod.present
+            ? distributionPeriod.value
+            : this.distributionPeriod,
+        distributionCount: distributionCount.present
+            ? distributionCount.value
+            : this.distributionCount,
+        distributionStartDate: distributionStartDate.present
+            ? distributionStartDate.value
+            : this.distributionStartDate,
+        distributionEndDate: distributionEndDate.present
+            ? distributionEndDate.value
+            : this.distributionEndDate,
+        isActive: isActive ?? this.isActive,
+        syncStatus: syncStatus ?? this.syncStatus,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  RecurringExpenseTemplate copyWithCompanion(
+      RecurringExpenseTemplatesCompanion data) {
+    return RecurringExpenseTemplate(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      categoryId:
+          data.categoryId.present ? data.categoryId.value : this.categoryId,
+      categoryName: data.categoryName.present
+          ? data.categoryName.value
+          : this.categoryName,
+      amountSyp: data.amountSyp.present ? data.amountSyp.value : this.amountSyp,
+      amountUsd: data.amountUsd.present ? data.amountUsd.value : this.amountUsd,
+      exchangeRate: data.exchangeRate.present
+          ? data.exchangeRate.value
+          : this.exchangeRate,
+      description:
+          data.description.present ? data.description.value : this.description,
+      frequency: data.frequency.present ? data.frequency.value : this.frequency,
+      lastGeneratedDate: data.lastGeneratedDate.present
+          ? data.lastGeneratedDate.value
+          : this.lastGeneratedDate,
+      nextDueDate:
+          data.nextDueDate.present ? data.nextDueDate.value : this.nextDueDate,
+      distributionType: data.distributionType.present
+          ? data.distributionType.value
+          : this.distributionType,
+      distributionPeriod: data.distributionPeriod.present
+          ? data.distributionPeriod.value
+          : this.distributionPeriod,
+      distributionCount: data.distributionCount.present
+          ? data.distributionCount.value
+          : this.distributionCount,
+      distributionStartDate: data.distributionStartDate.present
+          ? data.distributionStartDate.value
+          : this.distributionStartDate,
+      distributionEndDate: data.distributionEndDate.present
+          ? data.distributionEndDate.value
+          : this.distributionEndDate,
+      isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      syncStatus:
+          data.syncStatus.present ? data.syncStatus.value : this.syncStatus,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecurringExpenseTemplate(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('categoryName: $categoryName, ')
+          ..write('amountSyp: $amountSyp, ')
+          ..write('amountUsd: $amountUsd, ')
+          ..write('exchangeRate: $exchangeRate, ')
+          ..write('description: $description, ')
+          ..write('frequency: $frequency, ')
+          ..write('lastGeneratedDate: $lastGeneratedDate, ')
+          ..write('nextDueDate: $nextDueDate, ')
+          ..write('distributionType: $distributionType, ')
+          ..write('distributionPeriod: $distributionPeriod, ')
+          ..write('distributionCount: $distributionCount, ')
+          ..write('distributionStartDate: $distributionStartDate, ')
+          ..write('distributionEndDate: $distributionEndDate, ')
+          ..write('isActive: $isActive, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id,
+      name,
+      categoryId,
+      categoryName,
+      amountSyp,
+      amountUsd,
+      exchangeRate,
+      description,
+      frequency,
+      lastGeneratedDate,
+      nextDueDate,
+      distributionType,
+      distributionPeriod,
+      distributionCount,
+      distributionStartDate,
+      distributionEndDate,
+      isActive,
+      syncStatus,
+      createdAt,
+      updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RecurringExpenseTemplate &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.categoryId == this.categoryId &&
+          other.categoryName == this.categoryName &&
+          other.amountSyp == this.amountSyp &&
+          other.amountUsd == this.amountUsd &&
+          other.exchangeRate == this.exchangeRate &&
+          other.description == this.description &&
+          other.frequency == this.frequency &&
+          other.lastGeneratedDate == this.lastGeneratedDate &&
+          other.nextDueDate == this.nextDueDate &&
+          other.distributionType == this.distributionType &&
+          other.distributionPeriod == this.distributionPeriod &&
+          other.distributionCount == this.distributionCount &&
+          other.distributionStartDate == this.distributionStartDate &&
+          other.distributionEndDate == this.distributionEndDate &&
+          other.isActive == this.isActive &&
+          other.syncStatus == this.syncStatus &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class RecurringExpenseTemplatesCompanion
+    extends UpdateCompanion<RecurringExpenseTemplate> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<String?> categoryId;
+  final Value<String?> categoryName;
+  final Value<double> amountSyp;
+  final Value<double?> amountUsd;
+  final Value<double?> exchangeRate;
+  final Value<String?> description;
+  final Value<String> frequency;
+  final Value<DateTime?> lastGeneratedDate;
+  final Value<DateTime?> nextDueDate;
+  final Value<String> distributionType;
+  final Value<String?> distributionPeriod;
+  final Value<int?> distributionCount;
+  final Value<DateTime?> distributionStartDate;
+  final Value<DateTime?> distributionEndDate;
+  final Value<bool> isActive;
+  final Value<String> syncStatus;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const RecurringExpenseTemplatesCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.categoryId = const Value.absent(),
+    this.categoryName = const Value.absent(),
+    this.amountSyp = const Value.absent(),
+    this.amountUsd = const Value.absent(),
+    this.exchangeRate = const Value.absent(),
+    this.description = const Value.absent(),
+    this.frequency = const Value.absent(),
+    this.lastGeneratedDate = const Value.absent(),
+    this.nextDueDate = const Value.absent(),
+    this.distributionType = const Value.absent(),
+    this.distributionPeriod = const Value.absent(),
+    this.distributionCount = const Value.absent(),
+    this.distributionStartDate = const Value.absent(),
+    this.distributionEndDate = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RecurringExpenseTemplatesCompanion.insert({
+    required String id,
+    required String name,
+    this.categoryId = const Value.absent(),
+    this.categoryName = const Value.absent(),
+    required double amountSyp,
+    this.amountUsd = const Value.absent(),
+    this.exchangeRate = const Value.absent(),
+    this.description = const Value.absent(),
+    required String frequency,
+    this.lastGeneratedDate = const Value.absent(),
+    this.nextDueDate = const Value.absent(),
+    this.distributionType = const Value.absent(),
+    this.distributionPeriod = const Value.absent(),
+    this.distributionCount = const Value.absent(),
+    this.distributionStartDate = const Value.absent(),
+    this.distributionEndDate = const Value.absent(),
+    this.isActive = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        name = Value(name),
+        amountSyp = Value(amountSyp),
+        frequency = Value(frequency);
+  static Insertable<RecurringExpenseTemplate> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<String>? categoryId,
+    Expression<String>? categoryName,
+    Expression<double>? amountSyp,
+    Expression<double>? amountUsd,
+    Expression<double>? exchangeRate,
+    Expression<String>? description,
+    Expression<String>? frequency,
+    Expression<DateTime>? lastGeneratedDate,
+    Expression<DateTime>? nextDueDate,
+    Expression<String>? distributionType,
+    Expression<String>? distributionPeriod,
+    Expression<int>? distributionCount,
+    Expression<DateTime>? distributionStartDate,
+    Expression<DateTime>? distributionEndDate,
+    Expression<bool>? isActive,
+    Expression<String>? syncStatus,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (categoryId != null) 'category_id': categoryId,
+      if (categoryName != null) 'category_name': categoryName,
+      if (amountSyp != null) 'amount_syp': amountSyp,
+      if (amountUsd != null) 'amount_usd': amountUsd,
+      if (exchangeRate != null) 'exchange_rate': exchangeRate,
+      if (description != null) 'description': description,
+      if (frequency != null) 'frequency': frequency,
+      if (lastGeneratedDate != null) 'last_generated_date': lastGeneratedDate,
+      if (nextDueDate != null) 'next_due_date': nextDueDate,
+      if (distributionType != null) 'distribution_type': distributionType,
+      if (distributionPeriod != null) 'distribution_period': distributionPeriod,
+      if (distributionCount != null) 'distribution_count': distributionCount,
+      if (distributionStartDate != null)
+        'distribution_start_date': distributionStartDate,
+      if (distributionEndDate != null)
+        'distribution_end_date': distributionEndDate,
+      if (isActive != null) 'is_active': isActive,
+      if (syncStatus != null) 'sync_status': syncStatus,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RecurringExpenseTemplatesCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? name,
+      Value<String?>? categoryId,
+      Value<String?>? categoryName,
+      Value<double>? amountSyp,
+      Value<double?>? amountUsd,
+      Value<double?>? exchangeRate,
+      Value<String?>? description,
+      Value<String>? frequency,
+      Value<DateTime?>? lastGeneratedDate,
+      Value<DateTime?>? nextDueDate,
+      Value<String>? distributionType,
+      Value<String?>? distributionPeriod,
+      Value<int?>? distributionCount,
+      Value<DateTime?>? distributionStartDate,
+      Value<DateTime?>? distributionEndDate,
+      Value<bool>? isActive,
+      Value<String>? syncStatus,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<int>? rowid}) {
+    return RecurringExpenseTemplatesCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      categoryId: categoryId ?? this.categoryId,
+      categoryName: categoryName ?? this.categoryName,
+      amountSyp: amountSyp ?? this.amountSyp,
+      amountUsd: amountUsd ?? this.amountUsd,
+      exchangeRate: exchangeRate ?? this.exchangeRate,
+      description: description ?? this.description,
+      frequency: frequency ?? this.frequency,
+      lastGeneratedDate: lastGeneratedDate ?? this.lastGeneratedDate,
+      nextDueDate: nextDueDate ?? this.nextDueDate,
+      distributionType: distributionType ?? this.distributionType,
+      distributionPeriod: distributionPeriod ?? this.distributionPeriod,
+      distributionCount: distributionCount ?? this.distributionCount,
+      distributionStartDate:
+          distributionStartDate ?? this.distributionStartDate,
+      distributionEndDate: distributionEndDate ?? this.distributionEndDate,
+      isActive: isActive ?? this.isActive,
+      syncStatus: syncStatus ?? this.syncStatus,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (categoryId.present) {
+      map['category_id'] = Variable<String>(categoryId.value);
+    }
+    if (categoryName.present) {
+      map['category_name'] = Variable<String>(categoryName.value);
+    }
+    if (amountSyp.present) {
+      map['amount_syp'] = Variable<double>(amountSyp.value);
+    }
+    if (amountUsd.present) {
+      map['amount_usd'] = Variable<double>(amountUsd.value);
+    }
+    if (exchangeRate.present) {
+      map['exchange_rate'] = Variable<double>(exchangeRate.value);
+    }
+    if (description.present) {
+      map['description'] = Variable<String>(description.value);
+    }
+    if (frequency.present) {
+      map['frequency'] = Variable<String>(frequency.value);
+    }
+    if (lastGeneratedDate.present) {
+      map['last_generated_date'] = Variable<DateTime>(lastGeneratedDate.value);
+    }
+    if (nextDueDate.present) {
+      map['next_due_date'] = Variable<DateTime>(nextDueDate.value);
+    }
+    if (distributionType.present) {
+      map['distribution_type'] = Variable<String>(distributionType.value);
+    }
+    if (distributionPeriod.present) {
+      map['distribution_period'] = Variable<String>(distributionPeriod.value);
+    }
+    if (distributionCount.present) {
+      map['distribution_count'] = Variable<int>(distributionCount.value);
+    }
+    if (distributionStartDate.present) {
+      map['distribution_start_date'] =
+          Variable<DateTime>(distributionStartDate.value);
+    }
+    if (distributionEndDate.present) {
+      map['distribution_end_date'] =
+          Variable<DateTime>(distributionEndDate.value);
+    }
+    if (isActive.present) {
+      map['is_active'] = Variable<bool>(isActive.value);
+    }
+    if (syncStatus.present) {
+      map['sync_status'] = Variable<String>(syncStatus.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecurringExpenseTemplatesCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('categoryId: $categoryId, ')
+          ..write('categoryName: $categoryName, ')
+          ..write('amountSyp: $amountSyp, ')
+          ..write('amountUsd: $amountUsd, ')
+          ..write('exchangeRate: $exchangeRate, ')
+          ..write('description: $description, ')
+          ..write('frequency: $frequency, ')
+          ..write('lastGeneratedDate: $lastGeneratedDate, ')
+          ..write('nextDueDate: $nextDueDate, ')
+          ..write('distributionType: $distributionType, ')
+          ..write('distributionPeriod: $distributionPeriod, ')
+          ..write('distributionCount: $distributionCount, ')
+          ..write('distributionStartDate: $distributionStartDate, ')
+          ..write('distributionEndDate: $distributionEndDate, ')
+          ..write('isActive: $isActive, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $RecurringExpenseLogsTable extends RecurringExpenseLogs
+    with TableInfo<$RecurringExpenseLogsTable, RecurringExpenseLog> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RecurringExpenseLogsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _templateIdMeta =
+      const VerificationMeta('templateId');
+  @override
+  late final GeneratedColumn<String> templateId = GeneratedColumn<String>(
+      'template_id', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: true,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'REFERENCES recurring_expense_templates (id)'));
+  static const VerificationMeta _periodKeyMeta =
+      const VerificationMeta('periodKey');
+  @override
+  late final GeneratedColumn<String> periodKey = GeneratedColumn<String>(
+      'period_key', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _expenseIdMeta =
+      const VerificationMeta('expenseId');
+  @override
+  late final GeneratedColumn<String> expenseId = GeneratedColumn<String>(
+      'expense_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _periodNumberMeta =
+      const VerificationMeta('periodNumber');
+  @override
+  late final GeneratedColumn<int> periodNumber = GeneratedColumn<int>(
+      'period_number', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _totalPeriodsMeta =
+      const VerificationMeta('totalPeriods');
+  @override
+  late final GeneratedColumn<int> totalPeriods = GeneratedColumn<int>(
+      'total_periods', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _amountSypMeta =
+      const VerificationMeta('amountSyp');
+  @override
+  late final GeneratedColumn<double> amountSyp = GeneratedColumn<double>(
+      'amount_syp', aliasedName, false,
+      type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _amountUsdMeta =
+      const VerificationMeta('amountUsd');
+  @override
+  late final GeneratedColumn<double> amountUsd = GeneratedColumn<double>(
+      'amount_usd', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _totalAmountSypMeta =
+      const VerificationMeta('totalAmountSyp');
+  @override
+  late final GeneratedColumn<double> totalAmountSyp = GeneratedColumn<double>(
+      'total_amount_syp', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _periodStartDateMeta =
+      const VerificationMeta('periodStartDate');
+  @override
+  late final GeneratedColumn<DateTime> periodStartDate =
+      GeneratedColumn<DateTime>('period_start_date', aliasedName, true,
+          type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _periodEndDateMeta =
+      const VerificationMeta('periodEndDate');
+  @override
+  late final GeneratedColumn<DateTime> periodEndDate =
+      GeneratedColumn<DateTime>('period_end_date', aliasedName, true,
+          type: DriftSqlType.dateTime, requiredDuringInsert: false);
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+      'status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('created'));
+  static const VerificationMeta _errorMessageMeta =
+      const VerificationMeta('errorMessage');
+  @override
+  late final GeneratedColumn<String> errorMessage = GeneratedColumn<String>(
+      'error_message', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _syncStatusMeta =
+      const VerificationMeta('syncStatus');
+  @override
+  late final GeneratedColumn<String> syncStatus = GeneratedColumn<String>(
+      'sync_status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('pending'));
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime,
+      requiredDuringInsert: false,
+      defaultValue: currentDateAndTime);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        templateId,
+        periodKey,
+        expenseId,
+        periodNumber,
+        totalPeriods,
+        amountSyp,
+        amountUsd,
+        totalAmountSyp,
+        periodStartDate,
+        periodEndDate,
+        status,
+        errorMessage,
+        syncStatus,
+        createdAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'recurring_expense_logs';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<RecurringExpenseLog> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('template_id')) {
+      context.handle(
+          _templateIdMeta,
+          templateId.isAcceptableOrUnknown(
+              data['template_id']!, _templateIdMeta));
+    } else if (isInserting) {
+      context.missing(_templateIdMeta);
+    }
+    if (data.containsKey('period_key')) {
+      context.handle(_periodKeyMeta,
+          periodKey.isAcceptableOrUnknown(data['period_key']!, _periodKeyMeta));
+    } else if (isInserting) {
+      context.missing(_periodKeyMeta);
+    }
+    if (data.containsKey('expense_id')) {
+      context.handle(_expenseIdMeta,
+          expenseId.isAcceptableOrUnknown(data['expense_id']!, _expenseIdMeta));
+    }
+    if (data.containsKey('period_number')) {
+      context.handle(
+          _periodNumberMeta,
+          periodNumber.isAcceptableOrUnknown(
+              data['period_number']!, _periodNumberMeta));
+    }
+    if (data.containsKey('total_periods')) {
+      context.handle(
+          _totalPeriodsMeta,
+          totalPeriods.isAcceptableOrUnknown(
+              data['total_periods']!, _totalPeriodsMeta));
+    }
+    if (data.containsKey('amount_syp')) {
+      context.handle(_amountSypMeta,
+          amountSyp.isAcceptableOrUnknown(data['amount_syp']!, _amountSypMeta));
+    } else if (isInserting) {
+      context.missing(_amountSypMeta);
+    }
+    if (data.containsKey('amount_usd')) {
+      context.handle(_amountUsdMeta,
+          amountUsd.isAcceptableOrUnknown(data['amount_usd']!, _amountUsdMeta));
+    }
+    if (data.containsKey('total_amount_syp')) {
+      context.handle(
+          _totalAmountSypMeta,
+          totalAmountSyp.isAcceptableOrUnknown(
+              data['total_amount_syp']!, _totalAmountSypMeta));
+    }
+    if (data.containsKey('period_start_date')) {
+      context.handle(
+          _periodStartDateMeta,
+          periodStartDate.isAcceptableOrUnknown(
+              data['period_start_date']!, _periodStartDateMeta));
+    }
+    if (data.containsKey('period_end_date')) {
+      context.handle(
+          _periodEndDateMeta,
+          periodEndDate.isAcceptableOrUnknown(
+              data['period_end_date']!, _periodEndDateMeta));
+    }
+    if (data.containsKey('status')) {
+      context.handle(_statusMeta,
+          status.isAcceptableOrUnknown(data['status']!, _statusMeta));
+    }
+    if (data.containsKey('error_message')) {
+      context.handle(
+          _errorMessageMeta,
+          errorMessage.isAcceptableOrUnknown(
+              data['error_message']!, _errorMessageMeta));
+    }
+    if (data.containsKey('sync_status')) {
+      context.handle(
+          _syncStatusMeta,
+          syncStatus.isAcceptableOrUnknown(
+              data['sync_status']!, _syncStatusMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+        {templateId, periodKey},
+      ];
+  @override
+  RecurringExpenseLog map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RecurringExpenseLog(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      templateId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}template_id'])!,
+      periodKey: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}period_key'])!,
+      expenseId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}expense_id']),
+      periodNumber: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}period_number']),
+      totalPeriods: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}total_periods']),
+      amountSyp: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}amount_syp'])!,
+      amountUsd: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}amount_usd']),
+      totalAmountSyp: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}total_amount_syp']),
+      periodStartDate: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}period_start_date']),
+      periodEndDate: attachedDatabase.typeMapping.read(
+          DriftSqlType.dateTime, data['${effectivePrefix}period_end_date']),
+      status: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}status'])!,
+      errorMessage: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}error_message']),
+      syncStatus: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}sync_status'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+    );
+  }
+
+  @override
+  $RecurringExpenseLogsTable createAlias(String alias) {
+    return $RecurringExpenseLogsTable(attachedDatabase, alias);
+  }
+}
+
+class RecurringExpenseLog extends DataClass
+    implements Insertable<RecurringExpenseLog> {
+  final String id;
+  final String templateId;
+  final String periodKey;
+  final String? expenseId;
+  final int? periodNumber;
+  final int? totalPeriods;
+  final double amountSyp;
+  final double? amountUsd;
+  final double? totalAmountSyp;
+  final DateTime? periodStartDate;
+  final DateTime? periodEndDate;
+  final String status;
+  final String? errorMessage;
+  final String syncStatus;
+  final DateTime createdAt;
+  const RecurringExpenseLog(
+      {required this.id,
+      required this.templateId,
+      required this.periodKey,
+      this.expenseId,
+      this.periodNumber,
+      this.totalPeriods,
+      required this.amountSyp,
+      this.amountUsd,
+      this.totalAmountSyp,
+      this.periodStartDate,
+      this.periodEndDate,
+      required this.status,
+      this.errorMessage,
+      required this.syncStatus,
+      required this.createdAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['template_id'] = Variable<String>(templateId);
+    map['period_key'] = Variable<String>(periodKey);
+    if (!nullToAbsent || expenseId != null) {
+      map['expense_id'] = Variable<String>(expenseId);
+    }
+    if (!nullToAbsent || periodNumber != null) {
+      map['period_number'] = Variable<int>(periodNumber);
+    }
+    if (!nullToAbsent || totalPeriods != null) {
+      map['total_periods'] = Variable<int>(totalPeriods);
+    }
+    map['amount_syp'] = Variable<double>(amountSyp);
+    if (!nullToAbsent || amountUsd != null) {
+      map['amount_usd'] = Variable<double>(amountUsd);
+    }
+    if (!nullToAbsent || totalAmountSyp != null) {
+      map['total_amount_syp'] = Variable<double>(totalAmountSyp);
+    }
+    if (!nullToAbsent || periodStartDate != null) {
+      map['period_start_date'] = Variable<DateTime>(periodStartDate);
+    }
+    if (!nullToAbsent || periodEndDate != null) {
+      map['period_end_date'] = Variable<DateTime>(periodEndDate);
+    }
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || errorMessage != null) {
+      map['error_message'] = Variable<String>(errorMessage);
+    }
+    map['sync_status'] = Variable<String>(syncStatus);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  RecurringExpenseLogsCompanion toCompanion(bool nullToAbsent) {
+    return RecurringExpenseLogsCompanion(
+      id: Value(id),
+      templateId: Value(templateId),
+      periodKey: Value(periodKey),
+      expenseId: expenseId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(expenseId),
+      periodNumber: periodNumber == null && nullToAbsent
+          ? const Value.absent()
+          : Value(periodNumber),
+      totalPeriods: totalPeriods == null && nullToAbsent
+          ? const Value.absent()
+          : Value(totalPeriods),
+      amountSyp: Value(amountSyp),
+      amountUsd: amountUsd == null && nullToAbsent
+          ? const Value.absent()
+          : Value(amountUsd),
+      totalAmountSyp: totalAmountSyp == null && nullToAbsent
+          ? const Value.absent()
+          : Value(totalAmountSyp),
+      periodStartDate: periodStartDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(periodStartDate),
+      periodEndDate: periodEndDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(periodEndDate),
+      status: Value(status),
+      errorMessage: errorMessage == null && nullToAbsent
+          ? const Value.absent()
+          : Value(errorMessage),
+      syncStatus: Value(syncStatus),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory RecurringExpenseLog.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RecurringExpenseLog(
+      id: serializer.fromJson<String>(json['id']),
+      templateId: serializer.fromJson<String>(json['templateId']),
+      periodKey: serializer.fromJson<String>(json['periodKey']),
+      expenseId: serializer.fromJson<String?>(json['expenseId']),
+      periodNumber: serializer.fromJson<int?>(json['periodNumber']),
+      totalPeriods: serializer.fromJson<int?>(json['totalPeriods']),
+      amountSyp: serializer.fromJson<double>(json['amountSyp']),
+      amountUsd: serializer.fromJson<double?>(json['amountUsd']),
+      totalAmountSyp: serializer.fromJson<double?>(json['totalAmountSyp']),
+      periodStartDate: serializer.fromJson<DateTime?>(json['periodStartDate']),
+      periodEndDate: serializer.fromJson<DateTime?>(json['periodEndDate']),
+      status: serializer.fromJson<String>(json['status']),
+      errorMessage: serializer.fromJson<String?>(json['errorMessage']),
+      syncStatus: serializer.fromJson<String>(json['syncStatus']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'templateId': serializer.toJson<String>(templateId),
+      'periodKey': serializer.toJson<String>(periodKey),
+      'expenseId': serializer.toJson<String?>(expenseId),
+      'periodNumber': serializer.toJson<int?>(periodNumber),
+      'totalPeriods': serializer.toJson<int?>(totalPeriods),
+      'amountSyp': serializer.toJson<double>(amountSyp),
+      'amountUsd': serializer.toJson<double?>(amountUsd),
+      'totalAmountSyp': serializer.toJson<double?>(totalAmountSyp),
+      'periodStartDate': serializer.toJson<DateTime?>(periodStartDate),
+      'periodEndDate': serializer.toJson<DateTime?>(periodEndDate),
+      'status': serializer.toJson<String>(status),
+      'errorMessage': serializer.toJson<String?>(errorMessage),
+      'syncStatus': serializer.toJson<String>(syncStatus),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  RecurringExpenseLog copyWith(
+          {String? id,
+          String? templateId,
+          String? periodKey,
+          Value<String?> expenseId = const Value.absent(),
+          Value<int?> periodNumber = const Value.absent(),
+          Value<int?> totalPeriods = const Value.absent(),
+          double? amountSyp,
+          Value<double?> amountUsd = const Value.absent(),
+          Value<double?> totalAmountSyp = const Value.absent(),
+          Value<DateTime?> periodStartDate = const Value.absent(),
+          Value<DateTime?> periodEndDate = const Value.absent(),
+          String? status,
+          Value<String?> errorMessage = const Value.absent(),
+          String? syncStatus,
+          DateTime? createdAt}) =>
+      RecurringExpenseLog(
+        id: id ?? this.id,
+        templateId: templateId ?? this.templateId,
+        periodKey: periodKey ?? this.periodKey,
+        expenseId: expenseId.present ? expenseId.value : this.expenseId,
+        periodNumber:
+            periodNumber.present ? periodNumber.value : this.periodNumber,
+        totalPeriods:
+            totalPeriods.present ? totalPeriods.value : this.totalPeriods,
+        amountSyp: amountSyp ?? this.amountSyp,
+        amountUsd: amountUsd.present ? amountUsd.value : this.amountUsd,
+        totalAmountSyp:
+            totalAmountSyp.present ? totalAmountSyp.value : this.totalAmountSyp,
+        periodStartDate: periodStartDate.present
+            ? periodStartDate.value
+            : this.periodStartDate,
+        periodEndDate:
+            periodEndDate.present ? periodEndDate.value : this.periodEndDate,
+        status: status ?? this.status,
+        errorMessage:
+            errorMessage.present ? errorMessage.value : this.errorMessage,
+        syncStatus: syncStatus ?? this.syncStatus,
+        createdAt: createdAt ?? this.createdAt,
+      );
+  RecurringExpenseLog copyWithCompanion(RecurringExpenseLogsCompanion data) {
+    return RecurringExpenseLog(
+      id: data.id.present ? data.id.value : this.id,
+      templateId:
+          data.templateId.present ? data.templateId.value : this.templateId,
+      periodKey: data.periodKey.present ? data.periodKey.value : this.periodKey,
+      expenseId: data.expenseId.present ? data.expenseId.value : this.expenseId,
+      periodNumber: data.periodNumber.present
+          ? data.periodNumber.value
+          : this.periodNumber,
+      totalPeriods: data.totalPeriods.present
+          ? data.totalPeriods.value
+          : this.totalPeriods,
+      amountSyp: data.amountSyp.present ? data.amountSyp.value : this.amountSyp,
+      amountUsd: data.amountUsd.present ? data.amountUsd.value : this.amountUsd,
+      totalAmountSyp: data.totalAmountSyp.present
+          ? data.totalAmountSyp.value
+          : this.totalAmountSyp,
+      periodStartDate: data.periodStartDate.present
+          ? data.periodStartDate.value
+          : this.periodStartDate,
+      periodEndDate: data.periodEndDate.present
+          ? data.periodEndDate.value
+          : this.periodEndDate,
+      status: data.status.present ? data.status.value : this.status,
+      errorMessage: data.errorMessage.present
+          ? data.errorMessage.value
+          : this.errorMessage,
+      syncStatus:
+          data.syncStatus.present ? data.syncStatus.value : this.syncStatus,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecurringExpenseLog(')
+          ..write('id: $id, ')
+          ..write('templateId: $templateId, ')
+          ..write('periodKey: $periodKey, ')
+          ..write('expenseId: $expenseId, ')
+          ..write('periodNumber: $periodNumber, ')
+          ..write('totalPeriods: $totalPeriods, ')
+          ..write('amountSyp: $amountSyp, ')
+          ..write('amountUsd: $amountUsd, ')
+          ..write('totalAmountSyp: $totalAmountSyp, ')
+          ..write('periodStartDate: $periodStartDate, ')
+          ..write('periodEndDate: $periodEndDate, ')
+          ..write('status: $status, ')
+          ..write('errorMessage: $errorMessage, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id,
+      templateId,
+      periodKey,
+      expenseId,
+      periodNumber,
+      totalPeriods,
+      amountSyp,
+      amountUsd,
+      totalAmountSyp,
+      periodStartDate,
+      periodEndDate,
+      status,
+      errorMessage,
+      syncStatus,
+      createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RecurringExpenseLog &&
+          other.id == this.id &&
+          other.templateId == this.templateId &&
+          other.periodKey == this.periodKey &&
+          other.expenseId == this.expenseId &&
+          other.periodNumber == this.periodNumber &&
+          other.totalPeriods == this.totalPeriods &&
+          other.amountSyp == this.amountSyp &&
+          other.amountUsd == this.amountUsd &&
+          other.totalAmountSyp == this.totalAmountSyp &&
+          other.periodStartDate == this.periodStartDate &&
+          other.periodEndDate == this.periodEndDate &&
+          other.status == this.status &&
+          other.errorMessage == this.errorMessage &&
+          other.syncStatus == this.syncStatus &&
+          other.createdAt == this.createdAt);
+}
+
+class RecurringExpenseLogsCompanion
+    extends UpdateCompanion<RecurringExpenseLog> {
+  final Value<String> id;
+  final Value<String> templateId;
+  final Value<String> periodKey;
+  final Value<String?> expenseId;
+  final Value<int?> periodNumber;
+  final Value<int?> totalPeriods;
+  final Value<double> amountSyp;
+  final Value<double?> amountUsd;
+  final Value<double?> totalAmountSyp;
+  final Value<DateTime?> periodStartDate;
+  final Value<DateTime?> periodEndDate;
+  final Value<String> status;
+  final Value<String?> errorMessage;
+  final Value<String> syncStatus;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const RecurringExpenseLogsCompanion({
+    this.id = const Value.absent(),
+    this.templateId = const Value.absent(),
+    this.periodKey = const Value.absent(),
+    this.expenseId = const Value.absent(),
+    this.periodNumber = const Value.absent(),
+    this.totalPeriods = const Value.absent(),
+    this.amountSyp = const Value.absent(),
+    this.amountUsd = const Value.absent(),
+    this.totalAmountSyp = const Value.absent(),
+    this.periodStartDate = const Value.absent(),
+    this.periodEndDate = const Value.absent(),
+    this.status = const Value.absent(),
+    this.errorMessage = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RecurringExpenseLogsCompanion.insert({
+    required String id,
+    required String templateId,
+    required String periodKey,
+    this.expenseId = const Value.absent(),
+    this.periodNumber = const Value.absent(),
+    this.totalPeriods = const Value.absent(),
+    required double amountSyp,
+    this.amountUsd = const Value.absent(),
+    this.totalAmountSyp = const Value.absent(),
+    this.periodStartDate = const Value.absent(),
+    this.periodEndDate = const Value.absent(),
+    this.status = const Value.absent(),
+    this.errorMessage = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        templateId = Value(templateId),
+        periodKey = Value(periodKey),
+        amountSyp = Value(amountSyp);
+  static Insertable<RecurringExpenseLog> custom({
+    Expression<String>? id,
+    Expression<String>? templateId,
+    Expression<String>? periodKey,
+    Expression<String>? expenseId,
+    Expression<int>? periodNumber,
+    Expression<int>? totalPeriods,
+    Expression<double>? amountSyp,
+    Expression<double>? amountUsd,
+    Expression<double>? totalAmountSyp,
+    Expression<DateTime>? periodStartDate,
+    Expression<DateTime>? periodEndDate,
+    Expression<String>? status,
+    Expression<String>? errorMessage,
+    Expression<String>? syncStatus,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (templateId != null) 'template_id': templateId,
+      if (periodKey != null) 'period_key': periodKey,
+      if (expenseId != null) 'expense_id': expenseId,
+      if (periodNumber != null) 'period_number': periodNumber,
+      if (totalPeriods != null) 'total_periods': totalPeriods,
+      if (amountSyp != null) 'amount_syp': amountSyp,
+      if (amountUsd != null) 'amount_usd': amountUsd,
+      if (totalAmountSyp != null) 'total_amount_syp': totalAmountSyp,
+      if (periodStartDate != null) 'period_start_date': periodStartDate,
+      if (periodEndDate != null) 'period_end_date': periodEndDate,
+      if (status != null) 'status': status,
+      if (errorMessage != null) 'error_message': errorMessage,
+      if (syncStatus != null) 'sync_status': syncStatus,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RecurringExpenseLogsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? templateId,
+      Value<String>? periodKey,
+      Value<String?>? expenseId,
+      Value<int?>? periodNumber,
+      Value<int?>? totalPeriods,
+      Value<double>? amountSyp,
+      Value<double?>? amountUsd,
+      Value<double?>? totalAmountSyp,
+      Value<DateTime?>? periodStartDate,
+      Value<DateTime?>? periodEndDate,
+      Value<String>? status,
+      Value<String?>? errorMessage,
+      Value<String>? syncStatus,
+      Value<DateTime>? createdAt,
+      Value<int>? rowid}) {
+    return RecurringExpenseLogsCompanion(
+      id: id ?? this.id,
+      templateId: templateId ?? this.templateId,
+      periodKey: periodKey ?? this.periodKey,
+      expenseId: expenseId ?? this.expenseId,
+      periodNumber: periodNumber ?? this.periodNumber,
+      totalPeriods: totalPeriods ?? this.totalPeriods,
+      amountSyp: amountSyp ?? this.amountSyp,
+      amountUsd: amountUsd ?? this.amountUsd,
+      totalAmountSyp: totalAmountSyp ?? this.totalAmountSyp,
+      periodStartDate: periodStartDate ?? this.periodStartDate,
+      periodEndDate: periodEndDate ?? this.periodEndDate,
+      status: status ?? this.status,
+      errorMessage: errorMessage ?? this.errorMessage,
+      syncStatus: syncStatus ?? this.syncStatus,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (templateId.present) {
+      map['template_id'] = Variable<String>(templateId.value);
+    }
+    if (periodKey.present) {
+      map['period_key'] = Variable<String>(periodKey.value);
+    }
+    if (expenseId.present) {
+      map['expense_id'] = Variable<String>(expenseId.value);
+    }
+    if (periodNumber.present) {
+      map['period_number'] = Variable<int>(periodNumber.value);
+    }
+    if (totalPeriods.present) {
+      map['total_periods'] = Variable<int>(totalPeriods.value);
+    }
+    if (amountSyp.present) {
+      map['amount_syp'] = Variable<double>(amountSyp.value);
+    }
+    if (amountUsd.present) {
+      map['amount_usd'] = Variable<double>(amountUsd.value);
+    }
+    if (totalAmountSyp.present) {
+      map['total_amount_syp'] = Variable<double>(totalAmountSyp.value);
+    }
+    if (periodStartDate.present) {
+      map['period_start_date'] = Variable<DateTime>(periodStartDate.value);
+    }
+    if (periodEndDate.present) {
+      map['period_end_date'] = Variable<DateTime>(periodEndDate.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (errorMessage.present) {
+      map['error_message'] = Variable<String>(errorMessage.value);
+    }
+    if (syncStatus.present) {
+      map['sync_status'] = Variable<String>(syncStatus.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecurringExpenseLogsCompanion(')
+          ..write('id: $id, ')
+          ..write('templateId: $templateId, ')
+          ..write('periodKey: $periodKey, ')
+          ..write('expenseId: $expenseId, ')
+          ..write('periodNumber: $periodNumber, ')
+          ..write('totalPeriods: $totalPeriods, ')
+          ..write('amountSyp: $amountSyp, ')
+          ..write('amountUsd: $amountUsd, ')
+          ..write('totalAmountSyp: $totalAmountSyp, ')
+          ..write('periodStartDate: $periodStartDate, ')
+          ..write('periodEndDate: $periodEndDate, ')
+          ..write('status: $status, ')
+          ..write('errorMessage: $errorMessage, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -13423,6 +15171,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $InventoryAdjustmentsTable(this);
   late final $InventoryAdjustmentItemsTable inventoryAdjustmentItems =
       $InventoryAdjustmentItemsTable(this);
+  late final $RecurringExpenseTemplatesTable recurringExpenseTemplates =
+      $RecurringExpenseTemplatesTable(this);
+  late final $RecurringExpenseLogsTable recurringExpenseLogs =
+      $RecurringExpenseLogsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -13447,7 +15199,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         inventoryCounts,
         inventoryCountItems,
         inventoryAdjustments,
-        inventoryAdjustmentItems
+        inventoryAdjustmentItems,
+        recurringExpenseTemplates,
+        recurringExpenseLogs
       ];
 }
 
@@ -18529,6 +20283,25 @@ final class $$VoucherCategoriesTableReferences extends BaseReferences<
     return ProcessedTableManager(
         manager.$state.copyWith(prefetchedData: cache));
   }
+
+  static MultiTypedResultKey<$RecurringExpenseTemplatesTable,
+      List<RecurringExpenseTemplate>> _recurringExpenseTemplatesRefsTable(
+          _$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(db.recurringExpenseTemplates,
+          aliasName: $_aliasNameGenerator(db.voucherCategories.id,
+              db.recurringExpenseTemplates.categoryId));
+
+  $$RecurringExpenseTemplatesTableProcessedTableManager
+      get recurringExpenseTemplatesRefs {
+    final manager = $$RecurringExpenseTemplatesTableTableManager(
+            $_db, $_db.recurringExpenseTemplates)
+        .filter((f) => f.categoryId.id($_item.id));
+
+    final cache = $_typedResult
+        .readTableOrNull(_recurringExpenseTemplatesRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
 }
 
 class $$VoucherCategoriesTableFilterComposer
@@ -18576,6 +20349,30 @@ class $$VoucherCategoriesTableFilterComposer
               $removeJoinBuilderFromRootComposer:
                   $removeJoinBuilderFromRootComposer,
             ));
+    return f(composer);
+  }
+
+  Expression<bool> recurringExpenseTemplatesRefs(
+      Expression<bool> Function(
+              $$RecurringExpenseTemplatesTableFilterComposer f)
+          f) {
+    final $$RecurringExpenseTemplatesTableFilterComposer composer =
+        $composerBuilder(
+            composer: this,
+            getCurrentColumn: (t) => t.id,
+            referencedTable: $db.recurringExpenseTemplates,
+            getReferencedColumn: (t) => t.categoryId,
+            builder: (joinBuilder,
+                    {$addJoinBuilderToRootComposer,
+                    $removeJoinBuilderFromRootComposer}) =>
+                $$RecurringExpenseTemplatesTableFilterComposer(
+                  $db: $db,
+                  $table: $db.recurringExpenseTemplates,
+                  $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                  joinBuilder: joinBuilder,
+                  $removeJoinBuilderFromRootComposer:
+                      $removeJoinBuilderFromRootComposer,
+                ));
     return f(composer);
   }
 }
@@ -18655,6 +20452,30 @@ class $$VoucherCategoriesTableAnnotationComposer
             ));
     return f(composer);
   }
+
+  Expression<T> recurringExpenseTemplatesRefs<T extends Object>(
+      Expression<T> Function(
+              $$RecurringExpenseTemplatesTableAnnotationComposer a)
+          f) {
+    final $$RecurringExpenseTemplatesTableAnnotationComposer composer =
+        $composerBuilder(
+            composer: this,
+            getCurrentColumn: (t) => t.id,
+            referencedTable: $db.recurringExpenseTemplates,
+            getReferencedColumn: (t) => t.categoryId,
+            builder: (joinBuilder,
+                    {$addJoinBuilderToRootComposer,
+                    $removeJoinBuilderFromRootComposer}) =>
+                $$RecurringExpenseTemplatesTableAnnotationComposer(
+                  $db: $db,
+                  $table: $db.recurringExpenseTemplates,
+                  $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                  joinBuilder: joinBuilder,
+                  $removeJoinBuilderFromRootComposer:
+                      $removeJoinBuilderFromRootComposer,
+                ));
+    return f(composer);
+  }
 }
 
 class $$VoucherCategoriesTableTableManager extends RootTableManager<
@@ -18668,7 +20489,8 @@ class $$VoucherCategoriesTableTableManager extends RootTableManager<
     $$VoucherCategoriesTableUpdateCompanionBuilder,
     (VoucherCategory, $$VoucherCategoriesTableReferences),
     VoucherCategory,
-    PrefetchHooks Function({bool vouchersRefs})> {
+    PrefetchHooks Function(
+        {bool vouchersRefs, bool recurringExpenseTemplatesRefs})> {
   $$VoucherCategoriesTableTableManager(
       _$AppDatabase db, $VoucherCategoriesTable table)
       : super(TableManagerState(
@@ -18723,10 +20545,14 @@ class $$VoucherCategoriesTableTableManager extends RootTableManager<
                     $$VoucherCategoriesTableReferences(db, table, e)
                   ))
               .toList(),
-          prefetchHooksCallback: ({vouchersRefs = false}) {
+          prefetchHooksCallback: (
+              {vouchersRefs = false, recurringExpenseTemplatesRefs = false}) {
             return PrefetchHooks(
               db: db,
-              explicitlyWatchedTables: [if (vouchersRefs) db.vouchers],
+              explicitlyWatchedTables: [
+                if (vouchersRefs) db.vouchers,
+                if (recurringExpenseTemplatesRefs) db.recurringExpenseTemplates
+              ],
               addJoins: null,
               getPrefetchedDataCallback: (items) async {
                 return [
@@ -18738,6 +20564,18 @@ class $$VoucherCategoriesTableTableManager extends RootTableManager<
                         managerFromTypedResult: (p0) =>
                             $$VoucherCategoriesTableReferences(db, table, p0)
                                 .vouchersRefs,
+                        referencedItemsForCurrentItem:
+                            (item, referencedItems) => referencedItems
+                                .where((e) => e.categoryId == item.id),
+                        typedResults: items),
+                  if (recurringExpenseTemplatesRefs)
+                    await $_getPrefetchedData(
+                        currentTable: table,
+                        referencedTable: $$VoucherCategoriesTableReferences
+                            ._recurringExpenseTemplatesRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$VoucherCategoriesTableReferences(db, table, p0)
+                                .recurringExpenseTemplatesRefs,
                         referencedItemsForCurrentItem:
                             (item, referencedItems) => referencedItems
                                 .where((e) => e.categoryId == item.id),
@@ -18760,7 +20598,8 @@ typedef $$VoucherCategoriesTableProcessedTableManager = ProcessedTableManager<
     $$VoucherCategoriesTableUpdateCompanionBuilder,
     (VoucherCategory, $$VoucherCategoriesTableReferences),
     VoucherCategory,
-    PrefetchHooks Function({bool vouchersRefs})>;
+    PrefetchHooks Function(
+        {bool vouchersRefs, bool recurringExpenseTemplatesRefs})>;
 typedef $$VouchersTableCreateCompanionBuilder = VouchersCompanion Function({
   required String id,
   required String voucherNumber,
@@ -23581,6 +25420,1053 @@ typedef $$InventoryAdjustmentItemsTableProcessedTableManager
         (InventoryAdjustmentItem, $$InventoryAdjustmentItemsTableReferences),
         InventoryAdjustmentItem,
         PrefetchHooks Function({bool adjustmentId, bool productId})>;
+typedef $$RecurringExpenseTemplatesTableCreateCompanionBuilder
+    = RecurringExpenseTemplatesCompanion Function({
+  required String id,
+  required String name,
+  Value<String?> categoryId,
+  Value<String?> categoryName,
+  required double amountSyp,
+  Value<double?> amountUsd,
+  Value<double?> exchangeRate,
+  Value<String?> description,
+  required String frequency,
+  Value<DateTime?> lastGeneratedDate,
+  Value<DateTime?> nextDueDate,
+  Value<String> distributionType,
+  Value<String?> distributionPeriod,
+  Value<int?> distributionCount,
+  Value<DateTime?> distributionStartDate,
+  Value<DateTime?> distributionEndDate,
+  Value<bool> isActive,
+  Value<String> syncStatus,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+typedef $$RecurringExpenseTemplatesTableUpdateCompanionBuilder
+    = RecurringExpenseTemplatesCompanion Function({
+  Value<String> id,
+  Value<String> name,
+  Value<String?> categoryId,
+  Value<String?> categoryName,
+  Value<double> amountSyp,
+  Value<double?> amountUsd,
+  Value<double?> exchangeRate,
+  Value<String?> description,
+  Value<String> frequency,
+  Value<DateTime?> lastGeneratedDate,
+  Value<DateTime?> nextDueDate,
+  Value<String> distributionType,
+  Value<String?> distributionPeriod,
+  Value<int?> distributionCount,
+  Value<DateTime?> distributionStartDate,
+  Value<DateTime?> distributionEndDate,
+  Value<bool> isActive,
+  Value<String> syncStatus,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+
+final class $$RecurringExpenseTemplatesTableReferences extends BaseReferences<
+    _$AppDatabase, $RecurringExpenseTemplatesTable, RecurringExpenseTemplate> {
+  $$RecurringExpenseTemplatesTableReferences(
+      super.$_db, super.$_table, super.$_typedResult);
+
+  static $VoucherCategoriesTable _categoryIdTable(_$AppDatabase db) =>
+      db.voucherCategories.createAlias($_aliasNameGenerator(
+          db.recurringExpenseTemplates.categoryId, db.voucherCategories.id));
+
+  $$VoucherCategoriesTableProcessedTableManager? get categoryId {
+    if ($_item.categoryId == null) return null;
+    final manager =
+        $$VoucherCategoriesTableTableManager($_db, $_db.voucherCategories)
+            .filter((f) => f.id($_item.categoryId!));
+    final item = $_typedResult.readTableOrNull(_categoryIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static MultiTypedResultKey<$RecurringExpenseLogsTable,
+      List<RecurringExpenseLog>> _recurringExpenseLogsRefsTable(
+          _$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(db.recurringExpenseLogs,
+          aliasName: $_aliasNameGenerator(db.recurringExpenseTemplates.id,
+              db.recurringExpenseLogs.templateId));
+
+  $$RecurringExpenseLogsTableProcessedTableManager
+      get recurringExpenseLogsRefs {
+    final manager =
+        $$RecurringExpenseLogsTableTableManager($_db, $_db.recurringExpenseLogs)
+            .filter((f) => f.templateId.id($_item.id));
+
+    final cache =
+        $_typedResult.readTableOrNull(_recurringExpenseLogsRefsTable($_db));
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: cache));
+  }
+}
+
+class $$RecurringExpenseTemplatesTableFilterComposer
+    extends Composer<_$AppDatabase, $RecurringExpenseTemplatesTable> {
+  $$RecurringExpenseTemplatesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get categoryName => $composableBuilder(
+      column: $table.categoryName, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get amountSyp => $composableBuilder(
+      column: $table.amountSyp, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get amountUsd => $composableBuilder(
+      column: $table.amountUsd, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get exchangeRate => $composableBuilder(
+      column: $table.exchangeRate, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get description => $composableBuilder(
+      column: $table.description, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get frequency => $composableBuilder(
+      column: $table.frequency, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get lastGeneratedDate => $composableBuilder(
+      column: $table.lastGeneratedDate,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get nextDueDate => $composableBuilder(
+      column: $table.nextDueDate, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get distributionType => $composableBuilder(
+      column: $table.distributionType,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get distributionPeriod => $composableBuilder(
+      column: $table.distributionPeriod,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get distributionCount => $composableBuilder(
+      column: $table.distributionCount,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get distributionStartDate => $composableBuilder(
+      column: $table.distributionStartDate,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get distributionEndDate => $composableBuilder(
+      column: $table.distributionEndDate,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isActive => $composableBuilder(
+      column: $table.isActive, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get syncStatus => $composableBuilder(
+      column: $table.syncStatus, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  $$VoucherCategoriesTableFilterComposer get categoryId {
+    final $$VoucherCategoriesTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.categoryId,
+        referencedTable: $db.voucherCategories,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$VoucherCategoriesTableFilterComposer(
+              $db: $db,
+              $table: $db.voucherCategories,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+
+  Expression<bool> recurringExpenseLogsRefs(
+      Expression<bool> Function($$RecurringExpenseLogsTableFilterComposer f)
+          f) {
+    final $$RecurringExpenseLogsTableFilterComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.id,
+        referencedTable: $db.recurringExpenseLogs,
+        getReferencedColumn: (t) => t.templateId,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$RecurringExpenseLogsTableFilterComposer(
+              $db: $db,
+              $table: $db.recurringExpenseLogs,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return f(composer);
+  }
+}
+
+class $$RecurringExpenseTemplatesTableOrderingComposer
+    extends Composer<_$AppDatabase, $RecurringExpenseTemplatesTable> {
+  $$RecurringExpenseTemplatesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get categoryName => $composableBuilder(
+      column: $table.categoryName,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get amountSyp => $composableBuilder(
+      column: $table.amountSyp, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get amountUsd => $composableBuilder(
+      column: $table.amountUsd, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get exchangeRate => $composableBuilder(
+      column: $table.exchangeRate,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get description => $composableBuilder(
+      column: $table.description, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get frequency => $composableBuilder(
+      column: $table.frequency, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get lastGeneratedDate => $composableBuilder(
+      column: $table.lastGeneratedDate,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get nextDueDate => $composableBuilder(
+      column: $table.nextDueDate, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get distributionType => $composableBuilder(
+      column: $table.distributionType,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get distributionPeriod => $composableBuilder(
+      column: $table.distributionPeriod,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get distributionCount => $composableBuilder(
+      column: $table.distributionCount,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get distributionStartDate => $composableBuilder(
+      column: $table.distributionStartDate,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get distributionEndDate => $composableBuilder(
+      column: $table.distributionEndDate,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isActive => $composableBuilder(
+      column: $table.isActive, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get syncStatus => $composableBuilder(
+      column: $table.syncStatus, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  $$VoucherCategoriesTableOrderingComposer get categoryId {
+    final $$VoucherCategoriesTableOrderingComposer composer = $composerBuilder(
+        composer: this,
+        getCurrentColumn: (t) => t.categoryId,
+        referencedTable: $db.voucherCategories,
+        getReferencedColumn: (t) => t.id,
+        builder: (joinBuilder,
+                {$addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer}) =>
+            $$VoucherCategoriesTableOrderingComposer(
+              $db: $db,
+              $table: $db.voucherCategories,
+              $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+              joinBuilder: joinBuilder,
+              $removeJoinBuilderFromRootComposer:
+                  $removeJoinBuilderFromRootComposer,
+            ));
+    return composer;
+  }
+}
+
+class $$RecurringExpenseTemplatesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RecurringExpenseTemplatesTable> {
+  $$RecurringExpenseTemplatesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<String> get categoryName => $composableBuilder(
+      column: $table.categoryName, builder: (column) => column);
+
+  GeneratedColumn<double> get amountSyp =>
+      $composableBuilder(column: $table.amountSyp, builder: (column) => column);
+
+  GeneratedColumn<double> get amountUsd =>
+      $composableBuilder(column: $table.amountUsd, builder: (column) => column);
+
+  GeneratedColumn<double> get exchangeRate => $composableBuilder(
+      column: $table.exchangeRate, builder: (column) => column);
+
+  GeneratedColumn<String> get description => $composableBuilder(
+      column: $table.description, builder: (column) => column);
+
+  GeneratedColumn<String> get frequency =>
+      $composableBuilder(column: $table.frequency, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get lastGeneratedDate => $composableBuilder(
+      column: $table.lastGeneratedDate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get nextDueDate => $composableBuilder(
+      column: $table.nextDueDate, builder: (column) => column);
+
+  GeneratedColumn<String> get distributionType => $composableBuilder(
+      column: $table.distributionType, builder: (column) => column);
+
+  GeneratedColumn<String> get distributionPeriod => $composableBuilder(
+      column: $table.distributionPeriod, builder: (column) => column);
+
+  GeneratedColumn<int> get distributionCount => $composableBuilder(
+      column: $table.distributionCount, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get distributionStartDate => $composableBuilder(
+      column: $table.distributionStartDate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get distributionEndDate => $composableBuilder(
+      column: $table.distributionEndDate, builder: (column) => column);
+
+  GeneratedColumn<bool> get isActive =>
+      $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<String> get syncStatus => $composableBuilder(
+      column: $table.syncStatus, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  $$VoucherCategoriesTableAnnotationComposer get categoryId {
+    final $$VoucherCategoriesTableAnnotationComposer composer =
+        $composerBuilder(
+            composer: this,
+            getCurrentColumn: (t) => t.categoryId,
+            referencedTable: $db.voucherCategories,
+            getReferencedColumn: (t) => t.id,
+            builder: (joinBuilder,
+                    {$addJoinBuilderToRootComposer,
+                    $removeJoinBuilderFromRootComposer}) =>
+                $$VoucherCategoriesTableAnnotationComposer(
+                  $db: $db,
+                  $table: $db.voucherCategories,
+                  $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                  joinBuilder: joinBuilder,
+                  $removeJoinBuilderFromRootComposer:
+                      $removeJoinBuilderFromRootComposer,
+                ));
+    return composer;
+  }
+
+  Expression<T> recurringExpenseLogsRefs<T extends Object>(
+      Expression<T> Function($$RecurringExpenseLogsTableAnnotationComposer a)
+          f) {
+    final $$RecurringExpenseLogsTableAnnotationComposer composer =
+        $composerBuilder(
+            composer: this,
+            getCurrentColumn: (t) => t.id,
+            referencedTable: $db.recurringExpenseLogs,
+            getReferencedColumn: (t) => t.templateId,
+            builder: (joinBuilder,
+                    {$addJoinBuilderToRootComposer,
+                    $removeJoinBuilderFromRootComposer}) =>
+                $$RecurringExpenseLogsTableAnnotationComposer(
+                  $db: $db,
+                  $table: $db.recurringExpenseLogs,
+                  $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                  joinBuilder: joinBuilder,
+                  $removeJoinBuilderFromRootComposer:
+                      $removeJoinBuilderFromRootComposer,
+                ));
+    return f(composer);
+  }
+}
+
+class $$RecurringExpenseTemplatesTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $RecurringExpenseTemplatesTable,
+    RecurringExpenseTemplate,
+    $$RecurringExpenseTemplatesTableFilterComposer,
+    $$RecurringExpenseTemplatesTableOrderingComposer,
+    $$RecurringExpenseTemplatesTableAnnotationComposer,
+    $$RecurringExpenseTemplatesTableCreateCompanionBuilder,
+    $$RecurringExpenseTemplatesTableUpdateCompanionBuilder,
+    (RecurringExpenseTemplate, $$RecurringExpenseTemplatesTableReferences),
+    RecurringExpenseTemplate,
+    PrefetchHooks Function({bool categoryId, bool recurringExpenseLogsRefs})> {
+  $$RecurringExpenseTemplatesTableTableManager(
+      _$AppDatabase db, $RecurringExpenseTemplatesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RecurringExpenseTemplatesTableFilterComposer(
+                  $db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RecurringExpenseTemplatesTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RecurringExpenseTemplatesTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> name = const Value.absent(),
+            Value<String?> categoryId = const Value.absent(),
+            Value<String?> categoryName = const Value.absent(),
+            Value<double> amountSyp = const Value.absent(),
+            Value<double?> amountUsd = const Value.absent(),
+            Value<double?> exchangeRate = const Value.absent(),
+            Value<String?> description = const Value.absent(),
+            Value<String> frequency = const Value.absent(),
+            Value<DateTime?> lastGeneratedDate = const Value.absent(),
+            Value<DateTime?> nextDueDate = const Value.absent(),
+            Value<String> distributionType = const Value.absent(),
+            Value<String?> distributionPeriod = const Value.absent(),
+            Value<int?> distributionCount = const Value.absent(),
+            Value<DateTime?> distributionStartDate = const Value.absent(),
+            Value<DateTime?> distributionEndDate = const Value.absent(),
+            Value<bool> isActive = const Value.absent(),
+            Value<String> syncStatus = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              RecurringExpenseTemplatesCompanion(
+            id: id,
+            name: name,
+            categoryId: categoryId,
+            categoryName: categoryName,
+            amountSyp: amountSyp,
+            amountUsd: amountUsd,
+            exchangeRate: exchangeRate,
+            description: description,
+            frequency: frequency,
+            lastGeneratedDate: lastGeneratedDate,
+            nextDueDate: nextDueDate,
+            distributionType: distributionType,
+            distributionPeriod: distributionPeriod,
+            distributionCount: distributionCount,
+            distributionStartDate: distributionStartDate,
+            distributionEndDate: distributionEndDate,
+            isActive: isActive,
+            syncStatus: syncStatus,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String name,
+            Value<String?> categoryId = const Value.absent(),
+            Value<String?> categoryName = const Value.absent(),
+            required double amountSyp,
+            Value<double?> amountUsd = const Value.absent(),
+            Value<double?> exchangeRate = const Value.absent(),
+            Value<String?> description = const Value.absent(),
+            required String frequency,
+            Value<DateTime?> lastGeneratedDate = const Value.absent(),
+            Value<DateTime?> nextDueDate = const Value.absent(),
+            Value<String> distributionType = const Value.absent(),
+            Value<String?> distributionPeriod = const Value.absent(),
+            Value<int?> distributionCount = const Value.absent(),
+            Value<DateTime?> distributionStartDate = const Value.absent(),
+            Value<DateTime?> distributionEndDate = const Value.absent(),
+            Value<bool> isActive = const Value.absent(),
+            Value<String> syncStatus = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              RecurringExpenseTemplatesCompanion.insert(
+            id: id,
+            name: name,
+            categoryId: categoryId,
+            categoryName: categoryName,
+            amountSyp: amountSyp,
+            amountUsd: amountUsd,
+            exchangeRate: exchangeRate,
+            description: description,
+            frequency: frequency,
+            lastGeneratedDate: lastGeneratedDate,
+            nextDueDate: nextDueDate,
+            distributionType: distributionType,
+            distributionPeriod: distributionPeriod,
+            distributionCount: distributionCount,
+            distributionStartDate: distributionStartDate,
+            distributionEndDate: distributionEndDate,
+            isActive: isActive,
+            syncStatus: syncStatus,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable(table),
+                    $$RecurringExpenseTemplatesTableReferences(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: (
+              {categoryId = false, recurringExpenseLogsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (recurringExpenseLogsRefs) db.recurringExpenseLogs
+              ],
+              addJoins: <
+                  T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic>>(state) {
+                if (categoryId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.categoryId,
+                    referencedTable: $$RecurringExpenseTemplatesTableReferences
+                        ._categoryIdTable(db),
+                    referencedColumn: $$RecurringExpenseTemplatesTableReferences
+                        ._categoryIdTable(db)
+                        .id,
+                  ) as T;
+                }
+
+                return state;
+              },
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (recurringExpenseLogsRefs)
+                    await $_getPrefetchedData(
+                        currentTable: table,
+                        referencedTable:
+                            $$RecurringExpenseTemplatesTableReferences
+                                ._recurringExpenseLogsRefsTable(db),
+                        managerFromTypedResult: (p0) =>
+                            $$RecurringExpenseTemplatesTableReferences(
+                                    db, table, p0)
+                                .recurringExpenseLogsRefs,
+                        referencedItemsForCurrentItem:
+                            (item, referencedItems) => referencedItems
+                                .where((e) => e.templateId == item.id),
+                        typedResults: items)
+                ];
+              },
+            );
+          },
+        ));
+}
+
+typedef $$RecurringExpenseTemplatesTableProcessedTableManager
+    = ProcessedTableManager<
+        _$AppDatabase,
+        $RecurringExpenseTemplatesTable,
+        RecurringExpenseTemplate,
+        $$RecurringExpenseTemplatesTableFilterComposer,
+        $$RecurringExpenseTemplatesTableOrderingComposer,
+        $$RecurringExpenseTemplatesTableAnnotationComposer,
+        $$RecurringExpenseTemplatesTableCreateCompanionBuilder,
+        $$RecurringExpenseTemplatesTableUpdateCompanionBuilder,
+        (RecurringExpenseTemplate, $$RecurringExpenseTemplatesTableReferences),
+        RecurringExpenseTemplate,
+        PrefetchHooks Function(
+            {bool categoryId, bool recurringExpenseLogsRefs})>;
+typedef $$RecurringExpenseLogsTableCreateCompanionBuilder
+    = RecurringExpenseLogsCompanion Function({
+  required String id,
+  required String templateId,
+  required String periodKey,
+  Value<String?> expenseId,
+  Value<int?> periodNumber,
+  Value<int?> totalPeriods,
+  required double amountSyp,
+  Value<double?> amountUsd,
+  Value<double?> totalAmountSyp,
+  Value<DateTime?> periodStartDate,
+  Value<DateTime?> periodEndDate,
+  Value<String> status,
+  Value<String?> errorMessage,
+  Value<String> syncStatus,
+  Value<DateTime> createdAt,
+  Value<int> rowid,
+});
+typedef $$RecurringExpenseLogsTableUpdateCompanionBuilder
+    = RecurringExpenseLogsCompanion Function({
+  Value<String> id,
+  Value<String> templateId,
+  Value<String> periodKey,
+  Value<String?> expenseId,
+  Value<int?> periodNumber,
+  Value<int?> totalPeriods,
+  Value<double> amountSyp,
+  Value<double?> amountUsd,
+  Value<double?> totalAmountSyp,
+  Value<DateTime?> periodStartDate,
+  Value<DateTime?> periodEndDate,
+  Value<String> status,
+  Value<String?> errorMessage,
+  Value<String> syncStatus,
+  Value<DateTime> createdAt,
+  Value<int> rowid,
+});
+
+final class $$RecurringExpenseLogsTableReferences extends BaseReferences<
+    _$AppDatabase, $RecurringExpenseLogsTable, RecurringExpenseLog> {
+  $$RecurringExpenseLogsTableReferences(
+      super.$_db, super.$_table, super.$_typedResult);
+
+  static $RecurringExpenseTemplatesTable _templateIdTable(_$AppDatabase db) =>
+      db.recurringExpenseTemplates.createAlias($_aliasNameGenerator(
+          db.recurringExpenseLogs.templateId, db.recurringExpenseTemplates.id));
+
+  $$RecurringExpenseTemplatesTableProcessedTableManager? get templateId {
+    if ($_item.templateId == null) return null;
+    final manager = $$RecurringExpenseTemplatesTableTableManager(
+            $_db, $_db.recurringExpenseTemplates)
+        .filter((f) => f.id($_item.templateId!));
+    final item = $_typedResult.readTableOrNull(_templateIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+        manager.$state.copyWith(prefetchedData: [item]));
+  }
+}
+
+class $$RecurringExpenseLogsTableFilterComposer
+    extends Composer<_$AppDatabase, $RecurringExpenseLogsTable> {
+  $$RecurringExpenseLogsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get periodKey => $composableBuilder(
+      column: $table.periodKey, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get expenseId => $composableBuilder(
+      column: $table.expenseId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get periodNumber => $composableBuilder(
+      column: $table.periodNumber, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get totalPeriods => $composableBuilder(
+      column: $table.totalPeriods, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get amountSyp => $composableBuilder(
+      column: $table.amountSyp, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get amountUsd => $composableBuilder(
+      column: $table.amountUsd, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get totalAmountSyp => $composableBuilder(
+      column: $table.totalAmountSyp,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get periodStartDate => $composableBuilder(
+      column: $table.periodStartDate,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get periodEndDate => $composableBuilder(
+      column: $table.periodEndDate, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get errorMessage => $composableBuilder(
+      column: $table.errorMessage, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get syncStatus => $composableBuilder(
+      column: $table.syncStatus, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  $$RecurringExpenseTemplatesTableFilterComposer get templateId {
+    final $$RecurringExpenseTemplatesTableFilterComposer composer =
+        $composerBuilder(
+            composer: this,
+            getCurrentColumn: (t) => t.templateId,
+            referencedTable: $db.recurringExpenseTemplates,
+            getReferencedColumn: (t) => t.id,
+            builder: (joinBuilder,
+                    {$addJoinBuilderToRootComposer,
+                    $removeJoinBuilderFromRootComposer}) =>
+                $$RecurringExpenseTemplatesTableFilterComposer(
+                  $db: $db,
+                  $table: $db.recurringExpenseTemplates,
+                  $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                  joinBuilder: joinBuilder,
+                  $removeJoinBuilderFromRootComposer:
+                      $removeJoinBuilderFromRootComposer,
+                ));
+    return composer;
+  }
+}
+
+class $$RecurringExpenseLogsTableOrderingComposer
+    extends Composer<_$AppDatabase, $RecurringExpenseLogsTable> {
+  $$RecurringExpenseLogsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get periodKey => $composableBuilder(
+      column: $table.periodKey, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get expenseId => $composableBuilder(
+      column: $table.expenseId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get periodNumber => $composableBuilder(
+      column: $table.periodNumber,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get totalPeriods => $composableBuilder(
+      column: $table.totalPeriods,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get amountSyp => $composableBuilder(
+      column: $table.amountSyp, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get amountUsd => $composableBuilder(
+      column: $table.amountUsd, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get totalAmountSyp => $composableBuilder(
+      column: $table.totalAmountSyp,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get periodStartDate => $composableBuilder(
+      column: $table.periodStartDate,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get periodEndDate => $composableBuilder(
+      column: $table.periodEndDate,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get errorMessage => $composableBuilder(
+      column: $table.errorMessage,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get syncStatus => $composableBuilder(
+      column: $table.syncStatus, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  $$RecurringExpenseTemplatesTableOrderingComposer get templateId {
+    final $$RecurringExpenseTemplatesTableOrderingComposer composer =
+        $composerBuilder(
+            composer: this,
+            getCurrentColumn: (t) => t.templateId,
+            referencedTable: $db.recurringExpenseTemplates,
+            getReferencedColumn: (t) => t.id,
+            builder: (joinBuilder,
+                    {$addJoinBuilderToRootComposer,
+                    $removeJoinBuilderFromRootComposer}) =>
+                $$RecurringExpenseTemplatesTableOrderingComposer(
+                  $db: $db,
+                  $table: $db.recurringExpenseTemplates,
+                  $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                  joinBuilder: joinBuilder,
+                  $removeJoinBuilderFromRootComposer:
+                      $removeJoinBuilderFromRootComposer,
+                ));
+    return composer;
+  }
+}
+
+class $$RecurringExpenseLogsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RecurringExpenseLogsTable> {
+  $$RecurringExpenseLogsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get periodKey =>
+      $composableBuilder(column: $table.periodKey, builder: (column) => column);
+
+  GeneratedColumn<String> get expenseId =>
+      $composableBuilder(column: $table.expenseId, builder: (column) => column);
+
+  GeneratedColumn<int> get periodNumber => $composableBuilder(
+      column: $table.periodNumber, builder: (column) => column);
+
+  GeneratedColumn<int> get totalPeriods => $composableBuilder(
+      column: $table.totalPeriods, builder: (column) => column);
+
+  GeneratedColumn<double> get amountSyp =>
+      $composableBuilder(column: $table.amountSyp, builder: (column) => column);
+
+  GeneratedColumn<double> get amountUsd =>
+      $composableBuilder(column: $table.amountUsd, builder: (column) => column);
+
+  GeneratedColumn<double> get totalAmountSyp => $composableBuilder(
+      column: $table.totalAmountSyp, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get periodStartDate => $composableBuilder(
+      column: $table.periodStartDate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get periodEndDate => $composableBuilder(
+      column: $table.periodEndDate, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get errorMessage => $composableBuilder(
+      column: $table.errorMessage, builder: (column) => column);
+
+  GeneratedColumn<String> get syncStatus => $composableBuilder(
+      column: $table.syncStatus, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$RecurringExpenseTemplatesTableAnnotationComposer get templateId {
+    final $$RecurringExpenseTemplatesTableAnnotationComposer composer =
+        $composerBuilder(
+            composer: this,
+            getCurrentColumn: (t) => t.templateId,
+            referencedTable: $db.recurringExpenseTemplates,
+            getReferencedColumn: (t) => t.id,
+            builder: (joinBuilder,
+                    {$addJoinBuilderToRootComposer,
+                    $removeJoinBuilderFromRootComposer}) =>
+                $$RecurringExpenseTemplatesTableAnnotationComposer(
+                  $db: $db,
+                  $table: $db.recurringExpenseTemplates,
+                  $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                  joinBuilder: joinBuilder,
+                  $removeJoinBuilderFromRootComposer:
+                      $removeJoinBuilderFromRootComposer,
+                ));
+    return composer;
+  }
+}
+
+class $$RecurringExpenseLogsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $RecurringExpenseLogsTable,
+    RecurringExpenseLog,
+    $$RecurringExpenseLogsTableFilterComposer,
+    $$RecurringExpenseLogsTableOrderingComposer,
+    $$RecurringExpenseLogsTableAnnotationComposer,
+    $$RecurringExpenseLogsTableCreateCompanionBuilder,
+    $$RecurringExpenseLogsTableUpdateCompanionBuilder,
+    (RecurringExpenseLog, $$RecurringExpenseLogsTableReferences),
+    RecurringExpenseLog,
+    PrefetchHooks Function({bool templateId})> {
+  $$RecurringExpenseLogsTableTableManager(
+      _$AppDatabase db, $RecurringExpenseLogsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RecurringExpenseLogsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RecurringExpenseLogsTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RecurringExpenseLogsTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> templateId = const Value.absent(),
+            Value<String> periodKey = const Value.absent(),
+            Value<String?> expenseId = const Value.absent(),
+            Value<int?> periodNumber = const Value.absent(),
+            Value<int?> totalPeriods = const Value.absent(),
+            Value<double> amountSyp = const Value.absent(),
+            Value<double?> amountUsd = const Value.absent(),
+            Value<double?> totalAmountSyp = const Value.absent(),
+            Value<DateTime?> periodStartDate = const Value.absent(),
+            Value<DateTime?> periodEndDate = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<String?> errorMessage = const Value.absent(),
+            Value<String> syncStatus = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              RecurringExpenseLogsCompanion(
+            id: id,
+            templateId: templateId,
+            periodKey: periodKey,
+            expenseId: expenseId,
+            periodNumber: periodNumber,
+            totalPeriods: totalPeriods,
+            amountSyp: amountSyp,
+            amountUsd: amountUsd,
+            totalAmountSyp: totalAmountSyp,
+            periodStartDate: periodStartDate,
+            periodEndDate: periodEndDate,
+            status: status,
+            errorMessage: errorMessage,
+            syncStatus: syncStatus,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String templateId,
+            required String periodKey,
+            Value<String?> expenseId = const Value.absent(),
+            Value<int?> periodNumber = const Value.absent(),
+            Value<int?> totalPeriods = const Value.absent(),
+            required double amountSyp,
+            Value<double?> amountUsd = const Value.absent(),
+            Value<double?> totalAmountSyp = const Value.absent(),
+            Value<DateTime?> periodStartDate = const Value.absent(),
+            Value<DateTime?> periodEndDate = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<String?> errorMessage = const Value.absent(),
+            Value<String> syncStatus = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              RecurringExpenseLogsCompanion.insert(
+            id: id,
+            templateId: templateId,
+            periodKey: periodKey,
+            expenseId: expenseId,
+            periodNumber: periodNumber,
+            totalPeriods: totalPeriods,
+            amountSyp: amountSyp,
+            amountUsd: amountUsd,
+            totalAmountSyp: totalAmountSyp,
+            periodStartDate: periodStartDate,
+            periodEndDate: periodEndDate,
+            status: status,
+            errorMessage: errorMessage,
+            syncStatus: syncStatus,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (
+                    e.readTable(table),
+                    $$RecurringExpenseLogsTableReferences(db, table, e)
+                  ))
+              .toList(),
+          prefetchHooksCallback: ({templateId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins: <
+                  T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic>>(state) {
+                if (templateId) {
+                  state = state.withJoin(
+                    currentTable: table,
+                    currentColumn: table.templateId,
+                    referencedTable: $$RecurringExpenseLogsTableReferences
+                        ._templateIdTable(db),
+                    referencedColumn: $$RecurringExpenseLogsTableReferences
+                        ._templateIdTable(db)
+                        .id,
+                  ) as T;
+                }
+
+                return state;
+              },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ));
+}
+
+typedef $$RecurringExpenseLogsTableProcessedTableManager
+    = ProcessedTableManager<
+        _$AppDatabase,
+        $RecurringExpenseLogsTable,
+        RecurringExpenseLog,
+        $$RecurringExpenseLogsTableFilterComposer,
+        $$RecurringExpenseLogsTableOrderingComposer,
+        $$RecurringExpenseLogsTableAnnotationComposer,
+        $$RecurringExpenseLogsTableCreateCompanionBuilder,
+        $$RecurringExpenseLogsTableUpdateCompanionBuilder,
+        (RecurringExpenseLog, $$RecurringExpenseLogsTableReferences),
+        RecurringExpenseLog,
+        PrefetchHooks Function({bool templateId})>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -23626,4 +26512,9 @@ class $AppDatabaseManager {
   $$InventoryAdjustmentItemsTableTableManager get inventoryAdjustmentItems =>
       $$InventoryAdjustmentItemsTableTableManager(
           _db, _db.inventoryAdjustmentItems);
+  $$RecurringExpenseTemplatesTableTableManager get recurringExpenseTemplates =>
+      $$RecurringExpenseTemplatesTableTableManager(
+          _db, _db.recurringExpenseTemplates);
+  $$RecurringExpenseLogsTableTableManager get recurringExpenseLogs =>
+      $$RecurringExpenseLogsTableTableManager(_db, _db.recurringExpenseLogs);
 }
